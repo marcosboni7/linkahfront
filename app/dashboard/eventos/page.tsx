@@ -23,8 +23,11 @@ export default function DashboardEventos() {
   }, []);
 
   const handleLogout = () => {
+    // Limpa os dados de login
     localStorage.clear(); 
-    window.location.href = 'http://localhost:3000/auth/login';
+    
+    // Redireciona para o login de forma inteligente (funciona local e na web)
+    router.push('/auth/login');
   };
 
   return (

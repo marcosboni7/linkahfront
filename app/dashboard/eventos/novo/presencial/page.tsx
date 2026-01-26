@@ -98,7 +98,7 @@ export default function NovoEventoPresencial() {
     setIsLoading(true);
     try {
       // DEFINIÇÃO DA URL DINÂMICA
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://linkah-api.onrender.com';
 
       const response = await fetch(`${apiBaseUrl}/api/eventos/novo-presencial`, {
         method: 'POST',

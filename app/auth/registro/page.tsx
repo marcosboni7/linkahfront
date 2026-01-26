@@ -24,10 +24,8 @@ export default function RegisterPage() {
     const payload = { ...data, tipo: tipoPessoa };
 
     try {
-      // AJUSTE PARA AWS: Usa a variável de ambiente ou o localhost
-// Procure por apiBaseUrl e mude para:
-// Remova o process.env por enquanto para testar a "ligação direta"
-const apiBaseUrl = 'https://linkah-api.onrender.com';
+      // URL Dinâmica: Tenta variável da Vercel, se não houver, usa o Render direto
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://linkah-api.onrender.com';
 
       const response = await fetch(`${apiBaseUrl}/api/auth/register`, {
         method: 'POST',
@@ -70,7 +68,7 @@ const apiBaseUrl = 'https://linkah-api.onrender.com';
       console.error("Erro na requisição:", error);
       Swal.fire({
         title: 'Erro de Conexão',
-        text: 'Não foi possível conectar ao servidor da AWS.',
+        text: 'Não foi possível conectar ao servidor. Verifique sua conexão.',
         icon: 'error',
         confirmButtonColor: '#C22973'
       });

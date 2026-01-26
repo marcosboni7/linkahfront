@@ -18,9 +18,8 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-
-   // Remova o process.env por enquanto para testar a "ligação direta"
-const apiBaseUrl = 'https://linkah-api.onrender.com';
+      // URL DINÂMICA: Prioriza a variável de ambiente, plano B é o Render oficial
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://linkah-api.onrender.com';
 
       const response = await fetch(`${apiBaseUrl}/api/auth/login`, {
         method: 'POST',
@@ -31,13 +30,17 @@ const apiBaseUrl = 'https://linkah-api.onrender.com';
       const data = await response.json();
 
       if (response.ok) {
+        // Pega os dados do usuário ou define padrões para evitar erros de undefined
         const nomeUsuario = data?.user?.nome || 'Produtor';
         const emailUsuario = data?.user?.email || email;
 
+        // Salva no navegador para as outras páginas usarem
         localStorage.setItem('userName', nomeUsuario);
         localStorage.setItem('userEmail', emailUsuario);
 
         console.log("Login realizado com sucesso para:", emailUsuario);
+        
+        // Redireciona para o Dashboard
         router.push('/dashboard/eventos');
       } else {
         alert(data.message || "E-mail ou senha incorretos.");
@@ -45,7 +48,7 @@ const apiBaseUrl = 'https://linkah-api.onrender.com';
       }
     } catch (error) {
       console.error("Erro na conexão:", error);
-      alert("Não foi possível conectar ao servidor. Verifique a API na AWS.");
+      alert("Não foi possível conectar ao servidor. Verifique sua conexão com a internet.");
       setIsLoading(false);
     }
   };

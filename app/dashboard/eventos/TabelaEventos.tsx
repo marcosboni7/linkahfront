@@ -18,13 +18,19 @@ export default function TabelaEventos() {
   const [eventoParaEditar, setEventoParaEditar] = useState<any>(null);
   const [saving, setSaving] = useState(false);
 
+  // Link da API (Centralizado para facilitar)
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://linkah-api.onrender.com';
+
   // Buscar eventos do banco de dados
   const carregarEventos = async () => {
     const email = localStorage.getItem('userEmail');
-    if (!email) return;
+    if (!email) {
+        setLoading(false);
+        return;
+    }
 
     try {
-      const res = await fetch(`http://localhost:3001/api/eventos/listar?email=${email}`);
+      const res = await fetch(`${apiBaseUrl}/api/eventos/listar?email=${email}`);
       if (res.ok) {
         const data = await res.json();
         setEventos(data);
@@ -46,22 +52,25 @@ export default function TabelaEventos() {
     
     if (confirmou) {
       try {
-        const res = await fetch(`http://localhost:3001/api/eventos/${id}`, {
+        const res = await fetch(`${apiBaseUrl}/api/eventos/${id}`, {
           method: 'DELETE',
         });
 
         if (res.ok) {
-          setEventos(prev => prev.filter((ev: any) => ev.id !== id));
+          setEventos((prev: any) => prev.filter((ev: any) => ev.id !== id));
           alert("Evento removido com sucesso!");
         } else {
-          alert("Erro ao tentar excluir o evento.");
+          const erro = await res.json();
+          alert(erro.message || "Erro ao tentar excluir o evento.");
         }
       } catch (err) {
+        console.error("Erro ao excluir:", err);
         alert("Erro de conexão com o servidor.");
       }
     }
   };
 
+  // Aqui continuaria o restante do seu componente (Renderização do JSX)...
   // --- NOVAS FUNÇÕES DO MODAL (ADICIONADAS) ---
   const abrirModalEdicao = (evento: any) => {
     setEventoParaEditar({ ...evento });
