@@ -28,7 +28,10 @@ export default function CadastroIngressos() {
   const handleFinalizar = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:3001/api/eventos/${id}/ingressos`, {
+      // CONFIGURAÇÃO DINÂMICA DA URL
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      
+      const response = await fetch(`${apiBaseUrl}/api/eventos/${id}/ingressos`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ingressos }),
@@ -37,9 +40,12 @@ export default function CadastroIngressos() {
       if (response.ok) {
         alert("🎉 Evento publicado com sucesso!");
         router.push('/dashboard/eventos');
+      } else {
+        alert("Erro ao salvar ingressos. Verifique os dados.");
       }
     } catch (error) {
-      alert("Erro ao salvar ingressos.");
+      console.error("Erro na conexão:", error);
+      alert("Não foi possível conectar ao servidor da AWS.");
     } finally {
       setLoading(false);
     }
@@ -86,10 +92,8 @@ export default function CadastroIngressos() {
         </div>
 
         <div className="max-w-[800px] mx-auto space-y-6">
-           {/* Aqui entram os inputs de ingressos que você já conhece... */}
            {ingressos.map((ing, index) => (
              <div key={index} className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-50 flex flex-col md:flex-row items-end gap-6 animate-in slide-in-from-bottom-4">
-                {/* Inputs do Nome, Preço e Qtd */}
                 <div className="flex-1 w-full space-y-2">
                   <label className="text-[10px] text-slate-400 font-black uppercase ml-1">Tipo de Ingresso</label>
                   <input 
