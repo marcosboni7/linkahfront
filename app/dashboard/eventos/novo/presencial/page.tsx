@@ -20,7 +20,8 @@ export default function NovoEventoPresencial() {
   const [formData, setFormData] = useState({
     nome: '', categoria: '', status: 'Ativo', descricao: '',
     data_inicio: '', hora_inicio: '', data_termino: '', hora_termino: '',
-    local_nome: '', cep: '', endereco: '', numero: '', complemento: '', cidade: '', estado: ''
+    local_nome: '', cep: '', endereco: '', numero: '', complemento: '', cidade: '', estado: '',
+    tipo: 'Presencial' // Garantindo o tipo correto para o banco
   });
 
   // 1. Inicializa Mapa e Autocomplete
@@ -88,15 +89,18 @@ export default function NovoEventoPresencial() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // --- FUNÇÃO ATUALIZADA: SALVAR E IR PARA INGRESSOS ---
+  // --- FUNÇÃO CONFIGURADA PARA AWS ---
   const handleSalvar = async () => {
     const emailProdutor = localStorage.getItem('userEmail');
-    if (!emailProdutor) return alert("Sessão expirada.");
+    if (!emailProdutor) return alert("Sessão expirada. Faça login novamente.");
     if (!formData.nome) return alert("Dê um nome ao evento.");
 
     setIsLoading(true);
     try {
-      const response = await fetch('http://localhost:3001/api/eventos/novo-presencial', {
+      // DEFINIÇÃO DA URL DINÂMICA
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
+      const response = await fetch(`${apiBaseUrl}/api/eventos/novo-presencial`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -109,13 +113,14 @@ export default function NovoEventoPresencial() {
       const data = await response.json();
 
       if (response.ok) {
-        // Redireciona para a etapa 2 passando o ID gerado pelo banco
+        // Redireciona para a etapa 2 (Ingressos)
         router.push(`/dashboard/eventos/novo/ingressos/${data.id}`);
       } else {
-        alert("Erro ao salvar: " + data.message);
+        alert("Erro ao salvar: " + (data.message || "Erro desconhecido"));
       }
     } catch (error) {
-      alert("❌ Erro na conexão com o servidor.");
+      console.error("Erro na conexão:", error);
+      alert("❌ Erro na conexão com o servidor da AWS.");
     } finally {
       setIsLoading(false);
     }
@@ -145,12 +150,10 @@ export default function NovoEventoPresencial() {
 
       <main className="max-w-[1300px] mx-auto p-10">
         
-        {/* Stepper - Passo 1 Ativo */}
+        {/* Stepper */}
         <div className="flex justify-center items-center mb-16 px-20">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-2xl bg-[#C22973] text-white flex items-center justify-center shadow-lg shadow-pink-100 font-bold text-sm italic">
-              1
-            </div>
+            <div className="w-10 h-10 rounded-2xl bg-[#C22973] text-white flex items-center justify-center shadow-lg shadow-pink-100 font-bold text-sm italic">1</div>
             <span className="text-sm font-bold text-slate-800">Dados do Evento</span>
           </div>
           <div className="w-40 h-[2px] bg-slate-100 mx-8"></div>
@@ -176,6 +179,8 @@ export default function NovoEventoPresencial() {
                       <option value="">Selecione...</option>
                       <option value="Show">Música & Show</option>
                       <option value="Workshop">Workshop & Palestra</option>
+                      <option value="Show">Teatro</option>
+                      <option value="Show">Esportes</option>
                     </select>
                   </div>
                   <div className="flex flex-col gap-2">
@@ -196,10 +201,10 @@ export default function NovoEventoPresencial() {
             <section className="bg-white rounded-[2.5rem] p-10 shadow-sm border border-slate-50">
               <h3 className="text-[#C22973] text-[10px] font-black uppercase tracking-[0.3em] mb-8 flex items-center gap-2"><Calendar size={14}/> 2. Data e Horário</h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <input name="data_inicio" value={formData.data_inicio} type="date" onChange={handleChange} className="bg-slate-50 border border-slate-100 p-4 rounded-xl text-sm" />
-                <input name="hora_inicio" value={formData.hora_inicio} type="time" onChange={handleChange} className="bg-slate-50 border border-slate-100 p-4 rounded-xl text-sm" />
-                <input name="data_termino" value={formData.data_termino} type="date" onChange={handleChange} className="bg-slate-50 border border-slate-100 p-4 rounded-xl text-sm" />
-                <input name="hora_termino" value={formData.hora_termino} type="time" onChange={handleChange} className="bg-slate-50 border border-slate-100 p-4 rounded-xl text-sm" />
+                <input name="data_inicio" value={formData.data_inicio} type="date" onChange={handleChange} className="bg-slate-50 border border-slate-100 p-4 rounded-xl text-sm outline-none" />
+                <input name="hora_inicio" value={formData.hora_inicio} type="time" onChange={handleChange} className="bg-slate-50 border border-slate-100 p-4 rounded-xl text-sm outline-none" />
+                <input name="data_termino" value={formData.data_termino} type="date" onChange={handleChange} className="bg-slate-50 border border-slate-100 p-4 rounded-xl text-sm outline-none" />
+                <input name="hora_termino" value={formData.hora_termino} type="time" onChange={handleChange} className="bg-slate-50 border border-slate-100 p-4 rounded-xl text-sm outline-none" />
               </div>
             </section>
 
