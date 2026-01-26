@@ -24,7 +24,7 @@ export default function RegisterPage() {
     const payload = { ...data, tipo: tipoPessoa };
 
     try {
-      // URL Dinâmica: Tenta variável da Vercel, se não houver, usa o Render direto
+    
       const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://linkah-api.onrender.com';
 
       const response = await fetch(`${apiBaseUrl}/api/auth/register`, {

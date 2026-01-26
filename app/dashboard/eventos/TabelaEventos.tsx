@@ -13,12 +13,12 @@ export default function TabelaEventos() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  // --- NOVOS ESTADOS PARA O MODAL (ADICIONADOS) ---
+  // --- ESTADOS PARA O MODAL ---
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [eventoParaEditar, setEventoParaEditar] = useState<any>(null);
   const [saving, setSaving] = useState(false);
 
-  // Link da API (Centralizado para facilitar)
+  // Link da API Dinâmico (Usa Render como fallback)
   const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://linkah-api.onrender.com';
 
   // Buscar eventos do banco de dados
@@ -70,8 +70,6 @@ export default function TabelaEventos() {
     }
   };
 
-  // Aqui continuaria o restante do seu componente (Renderização do JSX)...
-  // --- NOVAS FUNÇÕES DO MODAL (ADICIONADAS) ---
   const abrirModalEdicao = (evento: any) => {
     setEventoParaEditar({ ...evento });
     setIsEditModalOpen(true);
@@ -81,7 +79,8 @@ export default function TabelaEventos() {
     e.preventDefault();
     setSaving(true);
     try {
-      const res = await fetch(`http://localhost:3001/api/eventos/${eventoParaEditar.id}`, {
+      // CORREÇÃO: Removido localhost daqui também
+      const res = await fetch(`${apiBaseUrl}/api/eventos/${eventoParaEditar.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(eventoParaEditar),
@@ -91,9 +90,11 @@ export default function TabelaEventos() {
         alert("Evento atualizado com sucesso!");
         setIsEditModalOpen(false);
         carregarEventos(); 
+      } else {
+        alert("Erro ao salvar as alterações.");
       }
     } catch (err) {
-      alert("Erro ao atualizar evento.");
+      alert("Erro ao conectar com o servidor.");
     } finally {
       setSaving(false);
     }
@@ -106,7 +107,6 @@ export default function TabelaEventos() {
           Meus Eventos
         </button>
 
-        {/* BOTÃO NOVO EVENTO */}
         <div className="relative">
           <button 
             onClick={() => setIsOpen(!isOpen)}
@@ -216,20 +216,17 @@ export default function TabelaEventos() {
                     </span>
                   </td>
 
-                  {/* COLUNA DE AÇÕES */}
                   <td className="px-4 py-4">
                     <div className="flex items-center justify-center gap-2">
                       <button 
                         onClick={() => abrirModalEdicao(evento)}
                         className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
-                        title="Editar"
                       >
                         <Edit3 size={18} />
                       </button>
                       <button 
                         onClick={() => handleExcluir(evento.id)}
                         className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                        title="Excluir"
                       >
                         <Trash2 size={18} />
                       </button>
@@ -260,7 +257,7 @@ export default function TabelaEventos() {
         </div>
       </div>
 
-      {/* --- MODAL DE EDIÇÃO INTEGRADO (ADICIONADO) --- */}
+      {/* --- MODAL DE EDIÇÃO --- */}
       {isEditModalOpen && eventoParaEditar && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setIsEditModalOpen(false)}></div>
@@ -312,7 +309,7 @@ export default function TabelaEventos() {
                 <button 
                   type="submit"
                   disabled={saving}
-                  className="flex-1 bg-indigo-500 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-indigo-600 shadow-lg shadow-indigo-100 transition-all text-xs uppercase tracking-widest disabled:opacity-50"
+                  className="flex-1 bg-indigo-500 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-indigo-600 shadow-lg transition-all text-xs uppercase tracking-widest disabled:opacity-50"
                 >
                   {saving ? 'Salvando...' : <><Save size={16} /> Salvar</>}
                 </button>

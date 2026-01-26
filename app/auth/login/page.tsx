@@ -18,7 +18,7 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      // URL DINÂMICA: Prioriza a variável de ambiente, plano B é o Render oficial
+     
       const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://linkah-api.onrender.com';
 
       const response = await fetch(`${apiBaseUrl}/api/auth/login`, {

@@ -14,6 +14,9 @@ export default function PerfilPage() {
     bairro: ''
   });
 
+  // URL Dinâmica da API
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://linkah-api.onrender.com';
+
   // BUSCA OS DADOS DO BANCO QUANDO A PÁGINA ABRE
   useEffect(() => {
     const carregarDados = async () => {
@@ -21,7 +24,7 @@ export default function PerfilPage() {
       if (!emailLogado) return;
 
       try {
-        const response = await fetch(`http://localhost:3001/api/auth/perfil?email=${emailLogado}`);
+        const response = await fetch(`${apiBaseUrl}/api/auth/perfil?email=${emailLogado}`);
         const data = await response.json();
         
         if (response.ok && data.user) {
@@ -39,7 +42,7 @@ export default function PerfilPage() {
       }
     };
     carregarDados();
-  }, []);
+  }, [apiBaseUrl]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -49,14 +52,18 @@ export default function PerfilPage() {
     e.preventDefault();
     setIsSaving(true);
     try {
-      const response = await fetch('http://localhost:3001/api/auth/perfil', {
+      const response = await fetch(`${apiBaseUrl}/api/auth/perfil`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: localStorage.getItem('userEmail'), ...formData }),
       });
-      if (response.ok) alert("✅ Alterações salvas!");
+      if (response.ok) {
+        alert("✅ Alterações salvas!");
+      } else {
+        alert("❌ Erro ao salvar dados no servidor.");
+      }
     } catch (error) {
-      alert("❌ Erro ao salvar");
+      alert("❌ Erro de conexão com o servidor.");
     } finally {
       setIsSaving(false);
     }
@@ -88,18 +95,18 @@ export default function PerfilPage() {
             <h2 className="text-[#C22973] text-2xl font-bold mt-12 mb-6">Endereço</h2>
             <div className="grid grid-cols-4 gap-6">
               <div className="relative"><label className="absolute -top-2 left-4 bg-white px-1 text-xs text-slate-400">CEP</label>
-                <input name="cep" value={formData.cep} onChange={handleChange} className="w-full border rounded-xl p-4" />
+                <input name="cep" value={formData.cep} onChange={handleChange} className="w-full border rounded-xl p-4 outline-none focus:border-[#C22973]" />
               </div>
               <div className="relative col-span-2"><label className="absolute -top-2 left-4 bg-white px-1 text-xs text-slate-400">Rua</label>
-                <input name="rua" value={formData.rua} onChange={handleChange} className="w-full border rounded-xl p-4" />
+                <input name="rua" value={formData.rua} onChange={handleChange} className="w-full border rounded-xl p-4 outline-none focus:border-[#C22973]" />
               </div>
               <div className="relative"><label className="absolute -top-2 left-4 bg-white px-1 text-xs text-slate-400">Nº</label>
-                <input name="numero" value={formData.numero} onChange={handleChange} className="w-full border rounded-xl p-4" />
+                <input name="numero" value={formData.numero} onChange={handleChange} className="w-full border rounded-xl p-4 outline-none focus:border-[#C22973]" />
               </div>
             </div>
 
             <div className="flex justify-end">
-              <button type="submit" disabled={isSaving} className="bg-[#C22973] text-white px-10 py-4 rounded-2xl font-bold flex items-center gap-2">
+              <button type="submit" disabled={isSaving} className="bg-[#C22973] text-white px-10 py-4 rounded-2xl font-bold flex items-center gap-2 hover:bg-[#a62262] transition-colors disabled:opacity-50">
                 {isSaving ? <Loader2 className="animate-spin" /> : <Save />} SALVAR ALTERAÇÕES
               </button>
             </div>
