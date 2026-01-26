@@ -29,7 +29,7 @@ export default function NovoEventoOnline() {
     
     try {
       // CONFIGURAÇÃO DINÂMICA DA URL (AWS ou Local)
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://linkah-api.onrender.com';
 
       const res = await fetch(`${apiBaseUrl}/api/eventos/novo-online`, {
         method: 'POST',
