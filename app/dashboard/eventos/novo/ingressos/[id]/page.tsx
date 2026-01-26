@@ -28,7 +28,7 @@ export default function CadastroIngressos() {
   const handleFinalizar = async () => {
     setLoading(true);
     try {
-      // CONFIGURAÇÃO DINÂMICA DA URL
+    
       const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://linkah-api.onrender.com';
       
       const response = await fetch(`${apiBaseUrl}/api/eventos/${id}/ingressos`, {
