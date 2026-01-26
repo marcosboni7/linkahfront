@@ -19,7 +19,7 @@ export default function LoginPage() {
 
     try {
 
-      const apiBaseUrl = 'https://linkah-api.onrender.com';
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://linkah-api.onrender.com';
 
       const response = await fetch(`${apiBaseUrl}/api/auth/login`, {
         method: 'POST',
