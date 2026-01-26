@@ -19,17 +19,15 @@ export default function RegisterPage() {
     e.preventDefault();
     setIsLoading(true);
 
-    // Captura os dados do formulário
     const formData = new FormData(e.currentTarget);
     const data = Object.fromEntries(formData.entries());
-    
-    // Adiciona o tipo (PF/PJ) selecionado nos botões
     const payload = { ...data, tipo: tipoPessoa };
 
-    console.log("Enviando dados para o servidor:", payload);
-
     try {
-      const response = await fetch('http://localhost:3001/api/auth/register', {
+      // AJUSTE PARA AWS: Usa a variável de ambiente ou o localhost
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
+      const response = await fetch(`${apiBaseUrl}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -38,7 +36,6 @@ export default function RegisterPage() {
       const result = await response.json();
 
       if (response.ok) {
-        // ALERTA DE SUCESSO
         Swal.fire({
           title: '<span style="color: #C22973">🚀 Sucesso!</span>',
           text: 'Conta criada! Verifique seu e-mail para receber sua senha.',
@@ -55,7 +52,6 @@ export default function RegisterPage() {
         });
 
       } else {
-        // ALERTA DE ERRO (Usuário já existe ou erro no servidor)
         Swal.fire({
           title: '<span style="color: #475569">Atenção</span>',
           text: result.message || 'Erro ao processar cadastro.',
@@ -72,7 +68,7 @@ export default function RegisterPage() {
       console.error("Erro na requisição:", error);
       Swal.fire({
         title: 'Erro de Conexão',
-        text: 'O servidor não respondeu. Verifique se o Back-end está rodando.',
+        text: 'Não foi possível conectar ao servidor da AWS.',
         icon: 'error',
         confirmButtonColor: '#C22973'
       });
