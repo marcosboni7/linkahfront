@@ -18,7 +18,10 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://localhost:3001/api/auth/login', {
+      // AJUSTE AQUI: Pega a URL da AWS ou usa o localhost se estiver no seu PC
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      
+      const response = await fetch(`${apiBaseUrl}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, senha }),
@@ -27,17 +30,13 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (response.ok) {
-        // 1. Captura os dados do usuário vindos do Back-end
         const nomeUsuario = data?.user?.nome || 'Produtor';
-        const emailUsuario = data?.user?.email || email; // Usa o email do input se o back não mandar
+        const emailUsuario = data?.user?.email || email;
         
-        // 2. SALVA NA MEMÓRIA DO NAVEGADOR (LocalStorage)
         localStorage.setItem('userName', nomeUsuario);
-        localStorage.setItem('userEmail', emailUsuario); // <--- LINHA ESSENCIAL PARA O PERFIL
+        localStorage.setItem('userEmail', emailUsuario);
         
         console.log("Login realizado com sucesso para:", emailUsuario);
-        
-        // 3. Redireciona para o Dashboard
         router.push('/dashboard/eventos');
       } else {
         alert(data.message || "E-mail ou senha incorretos.");
@@ -45,7 +44,7 @@ export default function LoginPage() {
       }
     } catch (error) {
       console.error("Erro na conexão:", error);
-      alert("Não foi possível conectar ao servidor. Verifique o terminal do Back-end.");
+      alert("Não foi possível conectar ao servidor. Verifique a API na AWS.");
       setIsLoading(false);
     }
   };
