@@ -26,7 +26,8 @@ export default function RegisterPage() {
     try {
       // AJUSTE PARA AWS: Usa a variável de ambiente ou o localhost
 // Procure por apiBaseUrl e mude para:
-const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://linkah-api.onrender.com';
+// Remova o process.env por enquanto para testar a "ligação direta"
+const apiBaseUrl = 'https://linkah-api.onrender.com';
 
       const response = await fetch(`${apiBaseUrl}/api/auth/register`, {
         method: 'POST',
