@@ -9,7 +9,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
 
@@ -18,9 +18,9 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      // AJUSTE AQUI: Pega a URL da AWS ou usa o localhost se estiver no seu PC
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-      
+
+      const apiBaseUrl = 'https://linkah-api.onrender.com';
+
       const response = await fetch(`${apiBaseUrl}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -32,10 +32,10 @@ export default function LoginPage() {
       if (response.ok) {
         const nomeUsuario = data?.user?.nome || 'Produtor';
         const emailUsuario = data?.user?.email || email;
-        
+
         localStorage.setItem('userName', nomeUsuario);
         localStorage.setItem('userEmail', emailUsuario);
-        
+
         console.log("Login realizado com sucesso para:", emailUsuario);
         router.push('/dashboard/eventos');
       } else {
@@ -51,7 +51,7 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen bg-[#F8FAFC] font-sans antialiased text-slate-900">
-      
+
       {/* LADO ESQUERDO - Visual */}
       <div className="hidden lg:flex w-[40%] bg-[#C22973] flex-col justify-between p-16 relative overflow-hidden shadow-[20px_0_40px_rgba(0,0,0,0.1)]">
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
@@ -94,7 +94,7 @@ export default function LoginPage() {
       {/* LADO DIREITO - Formulário */}
       <div className="flex-1 flex flex-col justify-center items-center px-8 lg:px-24 bg-[#F8FAFC]">
         <div className="w-full max-w-[440px] bg-white p-10 rounded-[3rem] shadow-[0_10px_40px_rgba(0,0,0,0.03)] border border-slate-100">
-          
+
           <div className="mb-10 text-center">
             <h1 className="text-4xl font-black tracking-tight text-slate-900 mb-3">Bem-vindo</h1>
             <p className="text-slate-400 font-medium">Insira suas credenciais de produtor.</p>
@@ -103,9 +103,9 @@ export default function LoginPage() {
           <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-2 group">
               <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-2">E-mail Corporativo</label>
-              <input 
+              <input
                 required
-                type="email" 
+                type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="nome@empresa.com"
@@ -119,16 +119,16 @@ export default function LoginPage() {
                 <Link href="#" className="text-[10px] font-bold text-[#C22973]">Esqueceu?</Link>
               </div>
               <div className="relative">
-                <input 
+                <input
                   required
-                  type={showPassword ? "text" : "password"} 
+                  type={showPassword ? "text" : "password"}
                   value={senha}
                   onChange={(e) => setSenha(e.target.value)}
                   placeholder="••••••••"
                   className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:bg-white focus:border-[#C22973] focus:ring-4 focus:ring-pink-50 transition-all"
                 />
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 hover:text-[#C22973]"
                 >
@@ -137,7 +137,7 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <button 
+            <button
               disabled={isLoading}
               className="w-full bg-[#C22973] text-white py-5 rounded-[1.5rem] font-black uppercase tracking-[0.2em] shadow-2xl shadow-pink-200 hover:bg-[#a62262] transition-all flex items-center justify-center gap-3 disabled:opacity-70"
             >
