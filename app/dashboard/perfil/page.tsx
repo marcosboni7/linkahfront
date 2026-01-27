@@ -17,7 +17,7 @@ export default function PerfilPage() {
   // URL Dinâmica da API
   const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://linkah-api.onrender.com';
 
-  // BUSCA OS DADOS DO BANCO QUANDO A PÁGINA ABRE
+ // BUSCA OS DADOS DO BANCO QUANDO A PÁGINA ABRE
   useEffect(() => {
     const carregarDados = async () => {
       const emailLogado = localStorage.getItem('userEmail');
@@ -27,14 +27,15 @@ export default function PerfilPage() {
         const response = await fetch(`${apiBaseUrl}/api/auth/perfil?email=${emailLogado}`);
         const data = await response.json();
         
-        if (response.ok && data.user) {
+        // CORREÇÃO: O Back-end envia os dados direto no 'data', sem o '.user'
+        if (response.ok && data) {
           setFormData({
-            nome: data.user.nome || '',
-            cpf_cnpj: data.user.cpf_cnpj || '',
-            cep: data.user.cep || '',
-            rua: data.user.rua || '',
-            numero: data.user.numero || '',
-            bairro: data.user.bairro || ''
+            nome: data.nome || '',
+            cpf_cnpj: data.cpf_cnpj || '',
+            cep: data.cep || '',
+            rua: data.rua || '',
+            numero: data.numero || '',
+            bairro: data.bairro || ''
           });
         }
       } catch (error) {
@@ -44,18 +45,20 @@ export default function PerfilPage() {
     carregarDados();
   }, [apiBaseUrl]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
   const handleSalvar = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
     try {
+      // Garantir que estamos enviando os campos que o Back-end espera
       const response = await fetch(`${apiBaseUrl}/api/auth/perfil`, {
-        method: 'PUT',
+        method: 'PUT', // Certifique-se que no back a rota é PUT
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: localStorage.getItem('userEmail'), ...formData }),
+        body: JSON.stringify({ 
+            email_original: localStorage.getItem('userEmail'), // Campo que seu back usa no WHERE
+            nome: formData.nome,
+            email_novo: localStorage.getItem('userEmail'), // Por enquanto mantém o mesmo
+            ...formData 
+        }),
       });
       if (response.ok) {
         alert("✅ Alterações salvas!");
