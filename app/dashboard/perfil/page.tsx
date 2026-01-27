@@ -17,27 +17,28 @@ export default function PerfilPage() {
   // URL da API
   const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://linkah-api.onrender.com';
 
-  // FUNÇÃO QUE BUSCA OS DADOS
   useEffect(() => {
     const carregarDados = async () => {
-      // Pega o email e remove espaços ou letras maiúsculas acidentais
-      const emailStorage = localStorage.getItem('userEmail');
-      const emailLogado = emailStorage ? emailStorage.trim().toLowerCase() : null;
+      // 1. Tenta pegar o e-mail de todas as formas possíveis no navegador
+      const emailSalvo = localStorage.getItem('userEmail') || localStorage.getItem('email');
       
-      if (!emailLogado) {
-        console.log("⚠️ E-mail não encontrado no localStorage");
+      if (!emailSalvo) {
+        console.error("⚠️ Erro: O navegador não tem nenhum e-mail guardado. Precisas de fazer Login novamente.");
         return;
       }
 
+      // 2. Limpa o e-mail (remove espaços e põe em minúsculas)
+      const emailLimpo = emailSalvo.trim().toLowerCase();
+
       try {
-        console.log("🔄 Buscando dados para:", emailLogado);
-        const response = await fetch(`${apiBaseUrl}/api/auth/perfil?email=${emailLogado}`);
+        console.log("🔄 A procurar no banco de dados por:", emailLimpo);
+        
+        const response = await fetch(`${apiBaseUrl}/api/auth/perfil?email=${emailLimpo}`);
         const data = await response.json();
         
-        console.log("✅ Resposta da API:", data);
-
         if (response.ok && data) {
-          // Preenche o formulário com o que vem do banco (ou vazio se for null)
+          console.log("✅ Dados encontrados!", data);
+          // 3. O SEGREDO: Se o dado for null no banco, vira '' (vazio) para o React mostrar na tela
           setFormData({
             nome: data.nome || '',
             cpf_cnpj: data.cpf_cnpj || '',
@@ -48,44 +49,48 @@ export default function PerfilPage() {
           });
         }
       } catch (error) {
-        console.error("❌ Erro ao conectar com a API:", error);
+        console.error("❌ Erro ao ligar ao servidor:", error);
       }
     };
 
     carregarDados();
   }, [apiBaseUrl]);
 
-  // Atualiza o estado enquanto o usuário digita
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // Envia as alterações para o banco
   const handleSalvar = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
     
-    const emailStorage = localStorage.getItem('userEmail');
-    const emailLogado = emailStorage ? emailStorage.trim().toLowerCase() : null;
+    const emailSalvo = localStorage.getItem('userEmail') || localStorage.getItem('email');
+    const emailLimpo = emailSalvo ? emailSalvo.trim().toLowerCase() : null;
+
+    if (!emailLimpo) {
+      alert("❌ Erro: Não foi possível identificar o teu e-mail. Faz login outra vez.");
+      setIsSaving(false);
+      return;
+    }
 
     try {
       const response = await fetch(`${apiBaseUrl}/api/auth/perfil`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          email_original: emailLogado, 
+          email_original: emailLimpo, 
           ...formData 
         }),
       });
 
       if (response.ok) {
-        alert("✅ Dados salvos com sucesso!");
+        alert("✅ Alterações guardadas com sucesso!");
       } else {
-        const errorData = await response.json();
-        alert(`❌ Erro: ${errorData.message || 'Falha ao salvar'}`);
+        const erro = await response.json();
+        alert(`❌ Erro: ${erro.message}`);
       }
     } catch (error) {
-      alert("❌ Erro de conexão com o servidor.");
+      alert("❌ Erro ao ligar ao servidor.");
     } finally {
       setIsSaving(false);
     }
@@ -93,10 +98,10 @@ export default function PerfilPage() {
 
   return (
     <div className="min-h-screen bg-[#F1F5F9]">
-      <nav className="bg-white px-8 py-4 flex justify-between items-center border-b border-slate-200 shadow-sm">
+      <nav className="bg-white px-8 py-4 flex justify-between items-center border-b border-slate-200">
         <span className="text-2xl font-black text-[#4B0082]">LİNKAH</span>
         <div className="flex items-center gap-3">
-          <span className="text-slate-500 text-sm font-medium">{formData.nome || 'Usuário'}</span>
+          <span className="text-slate-500 text-sm font-medium">{formData.nome || 'A carregar...'}</span>
           <UserCircle className="text-slate-300" size={32} />
         </div>
       </nav>
@@ -109,21 +114,11 @@ export default function PerfilPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="relative">
                 <label className="absolute -top-2 left-4 bg-white px-1 text-xs text-slate-400 font-medium">Nome Completo</label>
-                <input 
-                  name="nome" 
-                  value={formData.nome} 
-                  onChange={handleChange} 
-                  className="w-full border border-slate-200 rounded-xl p-4 outline-none focus:border-[#C22973] text-slate-700 bg-white" 
-                />
+                <input name="nome" value={formData.nome} onChange={handleChange} className="w-full border border-slate-200 rounded-xl p-4 outline-none focus:border-[#C22973] text-slate-700 bg-white" />
               </div>
               <div className="relative">
                 <label className="absolute -top-2 left-4 bg-white px-1 text-xs text-slate-400 font-medium">CPF / CNPJ</label>
-                <input 
-                  name="cpf_cnpj" 
-                  value={formData.cpf_cnpj} 
-                  onChange={handleChange} 
-                  className="w-full border border-slate-200 rounded-xl p-4 outline-none focus:border-[#C22973] text-slate-700 bg-white" 
-                />
+                <input name="cpf_cnpj" value={formData.cpf_cnpj} onChange={handleChange} className="w-full border border-slate-200 rounded-xl p-4 outline-none focus:border-[#C22973] text-slate-700 bg-white" />
               </div>
             </div>
 
@@ -131,41 +126,22 @@ export default function PerfilPage() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <div className="relative">
                 <label className="absolute -top-2 left-4 bg-white px-1 text-xs text-slate-400 font-medium">CEP</label>
-                <input 
-                  name="cep" 
-                  value={formData.cep} 
-                  onChange={handleChange} 
-                  className="w-full border border-slate-200 rounded-xl p-4 outline-none focus:border-[#C22973] text-slate-700 bg-white" 
-                />
+                <input name="cep" value={formData.cep} onChange={handleChange} className="w-full border border-slate-200 rounded-xl p-4 outline-none focus:border-[#C22973] text-slate-700 bg-white" />
               </div>
               <div className="relative md:col-span-2">
                 <label className="absolute -top-2 left-4 bg-white px-1 text-xs text-slate-400 font-medium">Rua</label>
-                <input 
-                  name="rua" 
-                  value={formData.rua} 
-                  onChange={handleChange} 
-                  className="w-full border border-slate-200 rounded-xl p-4 outline-none focus:border-[#C22973] text-slate-700 bg-white" 
-                />
+                <input name="rua" value={formData.rua} onChange={handleChange} className="w-full border border-slate-200 rounded-xl p-4 outline-none focus:border-[#C22973] text-slate-700 bg-white" />
               </div>
               <div className="relative">
                 <label className="absolute -top-2 left-4 bg-white px-1 text-xs text-slate-400 font-medium">Nº</label>
-                <input 
-                  name="numero" 
-                  value={formData.numero} 
-                  onChange={handleChange} 
-                  className="w-full border border-slate-200 rounded-xl p-4 outline-none focus:border-[#C22973] text-slate-700 bg-white" 
-                />
+                <input name="numero" value={formData.numero} onChange={handleChange} className="w-full border border-slate-200 rounded-xl p-4 outline-none focus:border-[#C22973] text-slate-700 bg-white" />
               </div>
             </div>
 
             <div className="flex justify-end pt-4">
-              <button 
-                type="submit" 
-                disabled={isSaving} 
-                className="bg-[#C22973] text-white px-10 py-4 rounded-2xl font-bold flex items-center gap-2 hover:bg-[#a62262] active:scale-95 transition-all disabled:opacity-50 shadow-lg shadow-pink-50"
-              >
+              <button type="submit" disabled={isSaving} className="bg-[#C22973] text-white px-10 py-4 rounded-2xl font-bold flex items-center gap-2 hover:bg-[#a62262] transition-all disabled:opacity-50 shadow-lg shadow-pink-50">
                 {isSaving ? <Loader2 className="animate-spin" /> : <Save size={20} />} 
-                SALVAR ALTERAÇÕES
+                GUARDAR ALTERAÇÕES
               </button>
             </div>
           </form>
