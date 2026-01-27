@@ -88,7 +88,7 @@ export default function PerfilPage() {
 
         // Pequeno delay para o usuário ver o check de sucesso
         setTimeout(() => {
-          router.push('/auth/dashboard');
+          router.push('/dashboard/eventos');
         }, 2000);
 
       } else {
