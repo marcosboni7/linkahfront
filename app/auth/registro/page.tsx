@@ -7,7 +7,7 @@ import Swal from 'sweetalert2';
 import { 
   Globe, ArrowLeft, Instagram, Facebook, 
   User, Building2, Calendar, Phone, 
-  MapPin, Mail, Fingerprint, Info 
+  MapPin, Mail, Fingerprint, Info, Lock 
 } from 'lucide-react';
 
 export default function RegisterPage() {
@@ -24,7 +24,6 @@ export default function RegisterPage() {
     const payload = { ...data, tipo: tipoPessoa };
 
     try {
-    
       const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://linkah-api.onrender.com';
 
       const response = await fetch(`${apiBaseUrl}/api/auth/register`, {
@@ -37,11 +36,11 @@ export default function RegisterPage() {
 
       if (response.ok) {
         Swal.fire({
-          title: '<span style="color: #C22973">🚀 Sucesso!</span>',
-          text: 'Conta criada! Verifique seu e-mail para receber sua senha.',
+          title: '<span style="color: #C22973">🚀 Bem-vindo(a)!</span>',
+          text: 'Sua conta foi criada com sucesso. Agora é só fazer o login!',
           icon: 'success',
           confirmButtonColor: '#C22973',
-          confirmButtonText: 'IR PARA LOGIN',
+          confirmButtonText: 'ACESSAR MINHA CONTA',
           background: '#ffffff',
           customClass: {
             popup: 'rounded-[2.5rem]',
@@ -53,11 +52,11 @@ export default function RegisterPage() {
 
       } else {
         Swal.fire({
-          title: '<span style="color: #475569">Atenção</span>',
+          title: '<span style="color: #475569">Ops!</span>',
           text: result.message || 'Erro ao processar cadastro.',
           icon: 'warning',
           confirmButtonColor: '#C22973',
-          confirmButtonText: 'ENTENDI',
+          confirmButtonText: 'CORRIGIR',
           customClass: {
             popup: 'rounded-[2.5rem]',
             confirmButton: 'rounded-xl px-10 py-4 font-bold'
@@ -65,10 +64,9 @@ export default function RegisterPage() {
         });
       }
     } catch (error) {
-      console.error("Erro na requisição:", error);
       Swal.fire({
         title: 'Erro de Conexão',
-        text: 'Não foi possível conectar ao servidor. Verifique sua conexão.',
+        text: 'Não foi possível conectar ao servidor.',
         icon: 'error',
         confirmButtonColor: '#C22973'
       });
@@ -132,16 +130,15 @@ export default function RegisterPage() {
                 <input required name="nome" type="text" placeholder={tipoPessoa === 'PF' ? "Nome completo" : "Nome do Responsável"} className="w-full pl-12 pr-4 py-4 border border-slate-200 rounded-2xl outline-none focus:border-[#C22973] bg-slate-50/50" />
               </div>
 
-              {tipoPessoa === 'PJ' && (
-                <div className="md:col-span-2 relative">
-                  <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
-                  <input required name="razao_social" type="text" placeholder="Razão Social" className="w-full pl-12 pr-4 py-4 border border-slate-200 rounded-2xl outline-none focus:border-[#C22973] bg-slate-50/50" />
-                </div>
-              )}
-
-              <div className="relative">
+              <div className="relative md:col-span-2">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
                 <input required name="email" type="email" placeholder="E-mail" className="w-full pl-12 pr-4 py-4 border border-slate-200 rounded-2xl outline-none focus:border-[#C22973] bg-slate-50/50" />
+              </div>
+
+              {/* CAMPO DE SENHA ADICIONADO AQUI */}
+              <div className="relative md:col-span-2">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
+                <input required name="senha" type="password" placeholder="Crie sua senha de acesso" className="w-full pl-12 pr-4 py-4 border border-slate-200 rounded-2xl outline-none focus:border-[#C22973] bg-slate-50/50" />
               </div>
 
               <div className="relative">
@@ -168,27 +165,10 @@ export default function RegisterPage() {
                 <input name="bairro" placeholder="Bairro" className="p-4 border border-slate-200 rounded-2xl outline-none focus:border-[#C22973] bg-slate-50/50" />
                 <input name="estado" placeholder="UF" className="p-4 border border-slate-200 rounded-2xl outline-none focus:border-[#C22973] bg-slate-50/50 text-center uppercase" maxLength={2} />
               </div>
-
-              <div className="relative">
-                <Instagram className="absolute right-4 top-1/2 -translate-y-1/2 text-pink-500" size={18} />
-                <input name="instagram" placeholder="Instagram" className="w-full p-4 border border-slate-200 rounded-2xl outline-none bg-slate-50/50 focus:border-[#C22973]" />
-              </div>
-              <div className="relative">
-                <Facebook className="absolute right-4 top-1/2 -translate-y-1/2 text-blue-600" size={18} />
-                <input name="facebook" placeholder="Facebook" className="w-full p-4 border border-slate-200 rounded-2xl outline-none bg-slate-50/50 focus:border-[#C22973]" />
-              </div>
-
-              <div className="col-span-2">
-                <textarea 
-                  name="descricao" 
-                  placeholder="Conte sobre sua trajetória em eventos..." 
-                  className="w-full p-5 border border-slate-200 rounded-3xl outline-none focus:border-[#C22973] bg-slate-50/50 h-32 resize-none"
-                />
-              </div>
             </div>
 
             <div className="flex items-center gap-3 p-4 bg-pink-50 rounded-2xl text-[11px] text-pink-800 font-bold uppercase tracking-widest">
-              <Info size={16} /> Verifique seu e-mail para receber sua senha inicial.
+              <Info size={16} /> Sua senha é pessoal e intransferível.
             </div>
 
             <button 
@@ -196,7 +176,7 @@ export default function RegisterPage() {
               disabled={isLoading}
               className="w-full bg-[#C22973] text-white py-5 rounded-2xl font-black uppercase tracking-[0.3em] shadow-2xl hover:bg-[#a62262] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? "Processando..." : "Criar Conta Profissional"}
+              {isLoading ? "Processando..." : "Criar Minha Conta"}
             </button>
           </form>
         </div>
