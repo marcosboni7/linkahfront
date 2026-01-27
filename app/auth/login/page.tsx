@@ -1,185 +1,166 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { UserCircle, Save, Loader2 } from 'lucide-react';
+import { useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { Eye, EyeOff, Globe, ArrowRight, Sparkles } from 'lucide-react';
 
-export default function PerfilPage() {
-  const [isSaving, setIsSaving] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [formData, setFormData] = useState({
-    nome: '',
-    cpf_cnpj: '',
-    cep: '',
-    rua: '',
-    numero: '',
-    bairro: ''
-  });
+export default function LoginPage() {
+  const router = useRouter();
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://linkah-api.onrender.com';
+  const [email, setEmail] = useState('');
+  const [senha, setSenha] = useState('');
 
-  useEffect(() => {
-    const carregarDados = async () => {
-      // 1. Busca o email exatamente como o seu Login salva
-      const emailLogado = localStorage.getItem('userEmail');
-      
-      console.log("🔍 Email recuperado do Login:", emailLogado);
-
-      if (!emailLogado) {
-        console.error("⚠️ Nenhum e-mail no navegador. Volte ao login.");
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        // 2. Chama a API (Usando trim() para evitar espaços vazios)
-        const response = await fetch(`${apiBaseUrl}/api/auth/perfil?email=${emailLogado.trim().toLowerCase()}`);
-        const data = await response.json();
-        
-        console.log("📦 Dados vindos da API:", data);
-
-        if (response.ok && data) {
-          // 3. MAPEAMENTO: Forçamos '' caso o banco retorne NULL
-          setFormData({
-            nome: data.nome || '',
-            cpf_cnpj: data.cpf_cnpj || '',
-            cep: data.cep || '',
-            rua: data.rua || '',
-            numero: data.numero || '',
-            bairro: data.bairro || ''
-          });
-        }
-      } catch (error) {
-        console.error("❌ Erro ao buscar dados:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    carregarDados();
-  }, [apiBaseUrl]);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
-  };
-
-  const handleSalvar = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSaving(true);
-    const emailLogado = localStorage.getItem('userEmail');
+    setIsLoading(true);
 
     try {
-      const response = await fetch(`${apiBaseUrl}/api/auth/perfil`, {
-        method: 'PUT',
+      // URL DIRETA PARA NÃO TER ERRO
+      const apiBaseUrl = 'https://linkah-api.onrender.com';
+
+      const response = await fetch(`${apiBaseUrl}/api/auth/login`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          email_original: emailLogado, 
-          ...formData 
+          email: email.trim().toLowerCase(), 
+          senha 
         }),
       });
 
+      const data = await response.json();
+
       if (response.ok) {
-        alert("✅ Perfil atualizado com sucesso!");
+        // Pega o e-mail que voltou da API ou o que foi digitado
+        const emailUsuario = data?.user?.email || email.trim().toLowerCase();
+        const nomeUsuario = data?.user?.nome || 'Produtor';
+
+        // SALVA NO NAVEGADOR (Isso é o que o Perfil vai ler)
+        window.localStorage.setItem('userEmail', emailUsuario);
+        window.localStorage.setItem('userName', nomeUsuario);
+
+        console.log("✅ Login OK! E-mail salvo:", emailUsuario);
+        
+        // Vai direto para o perfil para testar
+        router.push('/dashboard/perfil');
       } else {
-        alert("❌ Erro ao salvar dados.");
+        alert(data.message || "E-mail ou senha incorretos.");
+        setIsLoading(false);
       }
     } catch (error) {
-      alert("❌ Erro de conexão.");
-    } finally {
-      setIsSaving(false);
+      console.error("Erro na conexão:", error);
+      alert("Não foi possível conectar ao servidor.");
+      setIsLoading(false);
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F1F5F9]">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="animate-spin text-[#C22973]" size={40} />
-          <p className="text-slate-500 font-medium">Carregando seu perfil...</p>
+  return (
+    <div className="flex min-h-screen bg-[#F8FAFC] font-sans antialiased text-slate-900">
+      {/* LADO ESQUERDO - Visual */}
+      <div className="hidden lg:flex w-[40%] bg-[#C22973] flex-col justify-between p-16 relative overflow-hidden shadow-[20px_0_40px_rgba(0,0,0,0.1)]">
+        <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
+          <div className="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] bg-white/10 rounded-full blur-[120px] animate-pulse" />
+          <div className="absolute bottom-[-10%] left-[-10%] w-[400px] h-[400px] bg-black/20 rounded-full blur-[100px]" />
+        </div>
+
+        <div className="relative z-10">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 bg-white rounded-[1.5rem] flex items-center justify-center shadow-[0_20px_40px_rgba(0,0,0,0.2)] transform rotate-6 hover:rotate-0 transition-all duration-500">
+              <Globe className="text-[#C22973] w-8 h-8" />
+            </div>
+            <div>
+              <span className="text-3xl font-black tracking-tighter text-white italic block leading-none">LINKAH</span>
+              <span className="text-[10px] font-bold text-pink-200 uppercase tracking-[0.4em] ml-1">Producer Hub</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="relative z-10 text-white">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-[10px] font-bold uppercase tracking-widest mb-6 backdrop-blur-md border border-white/10">
+            <Sparkles size={12} className="text-pink-300" /> Inteligência para Eventos
+          </div>
+          <h2 className="text-6xl font-black leading-[1] mb-8 tracking-tighter">
+            Escale sua <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-200 to-white">produção.</span>
+          </h2>
+          <p className="text-pink-100/80 text-lg font-light leading-relaxed max-w-sm">
+            A plataforma definitiva para quem transforma ideias em experiências inesquecíveis.
+          </p>
+        </div>
+
+        <div className="relative z-10 flex items-center gap-6 text-pink-200/40 text-[10px] font-black uppercase tracking-[0.2em]">
+          <span>v2.0.4</span>
+          <span className="w-1 h-1 bg-pink-200/20 rounded-full" />
+          <span>Suporte 24h</span>
         </div>
       </div>
-    );
-  }
 
-  return (
-    <div className="min-h-screen bg-[#F1F5F9]">
-      <nav className="bg-white px-8 py-4 flex justify-between items-center border-b border-slate-200">
-        <span className="text-2xl font-black text-[#4B0082]">LİNKAH</span>
-        <div className="flex items-center gap-3">
-          <span className="text-slate-500 text-sm font-medium">{formData.nome || 'Produtor'}</span>
-          <UserCircle className="text-slate-300" size={32} />
-        </div>
-      </nav>
+      {/* LADO DIREITO - Formulário */}
+      <div className="flex-1 flex flex-col justify-center items-center px-8 lg:px-24 bg-[#F8FAFC]">
+        <div className="w-full max-w-[440px] bg-white p-10 rounded-[3rem] shadow-[0_10px_40px_rgba(0,0,0,0.03)] border border-slate-100">
+          <div className="mb-10 text-center">
+            <h1 className="text-4xl font-black tracking-tight text-slate-900 mb-3">Bem-vindo</h1>
+            <p className="text-slate-400 font-medium">Insira suas credenciais de produtor.</p>
+          </div>
 
-      <main className="max-w-[1000px] mx-auto p-6 md:p-10">
-        <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 p-8 md:p-12">
-          <h2 className="text-[#C22973] text-2xl font-bold mb-8">Dados Pessoais</h2>
-          
-          <form onSubmit={handleSalvar} className="space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="relative">
-                <label className="absolute -top-2 left-4 bg-white px-1 text-xs text-slate-400 font-medium">Nome Completo</label>
-                <input 
-                  name="nome" 
-                  value={formData.nome} 
-                  onChange={handleChange} 
-                  className="w-full border border-slate-200 rounded-xl p-4 outline-none focus:border-[#C22973] text-slate-700 bg-white" 
-                />
+          <form onSubmit={handleLogin} className="space-y-6">
+            <div className="space-y-2 group">
+              <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-2">E-mail Corporativo</label>
+              <input
+                required
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="nome@empresa.com"
+                className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:bg-white focus:border-[#C22973] focus:ring-4 focus:ring-pink-50 transition-all"
+              />
+            </div>
+
+            <div className="space-y-2 group">
+              <div className="flex justify-between items-center px-2">
+                <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Senha de Acesso</label>
+                <Link href="#" className="text-[10px] font-bold text-[#C22973]">Esqueceu?</Link>
               </div>
               <div className="relative">
-                <label className="absolute -top-2 left-4 bg-white px-1 text-xs text-slate-400 font-medium">CPF / CNPJ</label>
-                <input 
-                  name="cpf_cnpj" 
-                  value={formData.cpf_cnpj} 
-                  onChange={handleChange} 
-                  className="w-full border border-slate-200 rounded-xl p-4 outline-none focus:border-[#C22973] text-slate-700 bg-white" 
+                <input
+                  required
+                  type={showPassword ? "text" : "password"}
+                  value={senha}
+                  onChange={(e) => setSenha(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:bg-white focus:border-[#C22973] focus:ring-4 focus:ring-pink-50 transition-all"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 hover:text-[#C22973]"
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
               </div>
             </div>
 
-            <h2 className="text-[#C22973] text-2xl font-bold mt-12 mb-6">Endereço</h2>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <div className="relative">
-                <label className="absolute -top-2 left-4 bg-white px-1 text-xs text-slate-400 font-medium">CEP</label>
-                <input 
-                  name="cep" 
-                  value={formData.cep} 
-                  onChange={handleChange} 
-                  className="w-full border border-slate-200 rounded-xl p-4 outline-none focus:border-[#C22973] text-slate-700 bg-white" 
-                />
-              </div>
-              <div className="relative md:col-span-2">
-                <label className="absolute -top-2 left-4 bg-white px-1 text-xs text-slate-400 font-medium">Rua</label>
-                <input 
-                  name="rua" 
-                  value={formData.rua} 
-                  onChange={handleChange} 
-                  className="w-full border border-slate-200 rounded-xl p-4 outline-none focus:border-[#C22973] text-slate-700 bg-white" 
-                />
-              </div>
-              <div className="relative">
-                <label className="absolute -top-2 left-4 bg-white px-1 text-xs text-slate-400 font-medium">Nº</label>
-                <input 
-                  name="numero" 
-                  value={formData.numero} 
-                  onChange={handleChange} 
-                  className="w-full border border-slate-200 rounded-xl p-4 outline-none focus:border-[#C22973] text-slate-700 bg-white" 
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end pt-4">
-              <button 
-                type="submit" 
-                disabled={isSaving} 
-                className="bg-[#C22973] text-white px-10 py-4 rounded-2xl font-bold flex items-center gap-2 hover:bg-[#a62262] transition-all disabled:opacity-50 shadow-lg"
-              >
-                {isSaving ? <Loader2 className="animate-spin" /> : <Save size={20} />} 
-                SALVAR ALTERAÇÕES
-              </button>
-            </div>
+            <button
+              disabled={isLoading}
+              className="w-full bg-[#C22973] text-white py-5 rounded-[1.5rem] font-black uppercase tracking-[0.2em] shadow-2xl shadow-pink-200 hover:bg-[#a62262] transition-all flex items-center justify-center gap-3 disabled:opacity-70"
+            >
+              {isLoading ? (
+                <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <>Acessar Painel <ArrowRight size={18} /></>
+              )}
+            </button>
           </form>
+
+          <div className="mt-10 text-center">
+            <p className="text-sm font-bold text-slate-400">
+              Não tem conta? <Link href="/auth/registro" className="text-[#C22973] hover:underline decoration-2 underline-offset-4">Cadastre sua produtora</Link>
+            </p>
+          </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }
