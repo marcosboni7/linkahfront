@@ -27,7 +27,9 @@ export default function PerfilPage() {
         const response = await fetch(`${apiBaseUrl}/api/auth/perfil?email=${emailLogado}`);
         const data = await response.json();
         
-        // No Back-end novo, os dados vêm direto no objeto raiz (data)
+        console.log("🔍 Dados recebidos do banco:", data);
+
+        // Se o back-end retorna o objeto direto, mapeamos aqui
         if (response.ok && data) {
           setFormData({
             nome: data.nome || '',
