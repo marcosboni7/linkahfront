@@ -24,13 +24,6 @@ export default function PerfilPage() {
   const apiBaseUrl = 'https://linkah-api.onrender.com';
 
   useEffect(() => {
-    // BLOQUEIO: Se o navegador já sabe que o perfil está ok, manda para eventos
-    const jaCompletou = localStorage.getItem('perfil_completo');
-    if (jaCompletou === 'true') {
-      router.replace('/dashboard/eventos');
-      return;
-    }
-
     const carregarDados = async () => {
       const emailLogado = localStorage.getItem('userEmail');
       
@@ -52,6 +45,13 @@ export default function PerfilPage() {
             numero: data.numero || '',
             bairro: data.bairro || ''
           });
+
+          // Se ao carregar, o sistema ver que já existem dados essenciais, 
+          // ele apenas garante que a trava do localStorage esteja ativa 
+          // para o Login não te jogar aqui à força, mas PERMITE que você edite.
+          if (data.cpf_cnpj && data.cep) {
+            localStorage.setItem('perfil_completo', 'true');
+          }
         }
       } catch (error) {
         console.error("❌ Erro ao carregar perfil:", error);
@@ -63,12 +63,10 @@ export default function PerfilPage() {
     carregarDados();
   }, [router]);
 
-  // Validação Inline (Feedback em Tempo Real)
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     
-    // Se o usuário digitar, removemos o erro visual na hora
     if (value.trim() !== "" && errors[name]) {
       setErrors(prev => ({ ...prev, [name]: "" }));
     }
@@ -77,7 +75,6 @@ export default function PerfilPage() {
   const handleSalvar = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validação rápida antes de enviar
     const newErrors: Record<string, string> = {};
     if (!formData.nome) newErrors.nome = "Obrigatório";
     if (!formData.cpf_cnpj) newErrors.cpf_cnpj = "Obrigatório";
@@ -102,20 +99,19 @@ export default function PerfilPage() {
       });
 
       if (response.ok) {
-        // MARCAÇÃO: Salva que o perfil foi preenchido com sucesso
+        // Atualiza a trava de segurança e o nome exibido
         localStorage.setItem('perfil_completo', 'true');
         localStorage.setItem('userName', formData.nome);
 
         await Swal.fire({
-          title: '<span style="color: #C22973">✅ Perfil Atualizado!</span>',
-          text: 'Suas informações foram salvas. Acesso ao painel liberado.',
+          title: '<span style="color: #C22973">✅ Dados Salvos!</span>',
+          text: 'Suas informações foram atualizadas com sucesso.',
           icon: 'success',
           confirmButtonColor: '#C22973',
-          confirmButtonText: 'IR PARA MEUS EVENTOS',
+          confirmButtonText: 'VOLTAR AO PAINEL',
           customClass: { popup: 'rounded-[2rem]' }
         });
 
-        // Redireciona e impede de voltar
         router.push('/dashboard/eventos');
 
       } else {
@@ -142,7 +138,7 @@ export default function PerfilPage() {
       <div className="max-w-[800px] mx-auto">
         
         <Link href="/dashboard/eventos" className="inline-flex items-center gap-2 text-slate-400 hover:text-[#C22973] transition-all mb-8 font-bold text-xs tracking-widest uppercase">
-          <ArrowLeft size={16} /> Painel de Controle
+          <ArrowLeft size={16} /> Voltar para Eventos
         </Link>
 
         <div className="bg-white rounded-[3rem] shadow-xl shadow-slate-200/50 p-8 md:p-12 border border-white">
@@ -151,8 +147,8 @@ export default function PerfilPage() {
               <UserCircle className="text-[#C22973]" size={35} />
             </div>
             <div>
-              <h2 className="text-3xl font-black text-slate-900 leading-none tracking-tight">Finalizar Cadastro</h2>
-              <p className="text-slate-400 mt-2 font-medium">Complete seu perfil para gerenciar eventos</p>
+              <h2 className="text-3xl font-black text-slate-900 leading-none tracking-tight">Meus Dados</h2>
+              <p className="text-slate-400 mt-2 font-medium">Mantenha suas informações de produtor atualizadas</p>
             </div>
           </div>
           
@@ -181,7 +177,6 @@ export default function PerfilPage() {
             <div className="pt-10 border-t border-slate-100 space-y-8">
               <div className="flex items-center justify-between">
                 <h3 className="text-slate-900 font-black text-lg uppercase tracking-tight">Localização</h3>
-                <span className="text-[10px] bg-slate-100 px-3 py-1 rounded-full font-bold text-slate-500 uppercase">Endereço de Faturamento</span>
               </div>
               
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
@@ -203,7 +198,7 @@ export default function PerfilPage() {
             <div className="bg-pink-50 p-6 rounded-[2rem] flex gap-4 items-start border border-pink-100">
               <Info className="text-[#C22973] shrink-0" size={20} />
               <p className="text-[12px] text-pink-900 font-medium leading-relaxed">
-                <strong>Por que pedimos isso?</strong> Seus dados de localização e documento são necessários para a emissão de notas fiscais e processamento seguro dos seus recebimentos.
+                As alterações salvas aqui serão refletidas em seus próximos contratos e faturamentos.
               </p>
             </div>
 
@@ -213,7 +208,7 @@ export default function PerfilPage() {
               className="w-full bg-[#C22973] text-white py-6 rounded-2xl font-black uppercase tracking-[0.3em] flex items-center justify-center gap-3 hover:bg-[#a62262] transition-all shadow-xl shadow-pink-100 disabled:opacity-50 active:scale-95"
             >
               {isSaving ? <Loader2 className="animate-spin" /> : <Save size={20} />} 
-              Concluir Perfil
+              Atualizar Perfil
             </button>
           </form>
         </div>
