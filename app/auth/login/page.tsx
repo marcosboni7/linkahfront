@@ -15,7 +15,8 @@ export default function LoginPage() {
   
   const [errors, setErrors] = useState<{ email?: string; senha?: string }>({});
 
-  // Validação em tempo real para o E-mail
+  const apiBaseUrl = 'https://linkah-api.onrender.com';
+
   useEffect(() => {
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setErrors(prev => ({ ...prev, email: 'E-mail inválido' }));
@@ -24,7 +25,6 @@ export default function LoginPage() {
     }
   }, [email]);
 
-  // Validação em tempo real para a Senha
   useEffect(() => {
     if (senha && senha.length < 6) {
       setErrors(prev => ({ ...prev, senha: 'Mínimo 6 caracteres' }));
@@ -43,7 +43,6 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const apiBaseUrl = 'https://linkah-api.onrender.com';
       const response = await fetch(`${apiBaseUrl}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -58,20 +57,27 @@ export default function LoginPage() {
       if (response.ok) {
         const user = data.user;
         const emailUsuario = user?.email || email.trim().toLowerCase();
-        const nomeUsuario = user?.nome || 'Produtor';
-
-        // 1. Salva informações básicas no Storage
+        
+        // 1. Salva informações básicas
         window.localStorage.setItem('userEmail', emailUsuario);
-        window.localStorage.setItem('userName', nomeUsuario);
+        window.localStorage.setItem('userName', user?.nome || 'Produtor');
 
-        // 2. LÓGICA DE DIRECIONAMENTO INTELIGENTE
-        // Verificamos se ele já tem dados que indicam perfil completo (ex: CPF/CNPJ ou CEP)
-        if (user?.cpf_cnpj || user?.cep || user?.perfil_completo === true) {
-          window.localStorage.setItem('perfil_completo', 'true');
-          router.push('/dashboard/eventos');
-        } else {
-          // Se for a primeira vez ou estiver incompleto, removemos a trava e mandamos pro perfil
-          window.localStorage.removeItem('perfil_completo');
+        // 2. CHECAGEM CRUCIAL: Se o login não trouxe os dados, perguntamos ao Perfil
+        try {
+          const perfilRes = await fetch(`${apiBaseUrl}/api/auth/perfil?email=${emailUsuario}`);
+          const perfilData = await perfilRes.json();
+
+          // Se o perfilData tiver qualquer dado importante, marcamos como completo
+          if (perfilRes.ok && (perfilData.cpf_cnpj || perfilData.cep || user?.cpf_cnpj)) {
+            window.localStorage.setItem('perfil_completo', 'true');
+            router.push('/dashboard/eventos');
+          } else {
+            // Se realmente estiver vazio no banco, vai pro preenchimento
+            window.localStorage.removeItem('perfil_completo');
+            router.push('/dashboard/perfil');
+          }
+        } catch (checkError) {
+          // Se a checagem falhar, segue o fluxo padrão
           router.push('/dashboard/perfil');
         }
         
