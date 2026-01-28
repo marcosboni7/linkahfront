@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react';
 import { 
   ChevronLeft, ChevronRight, ChevronDown, MapPin, 
-  Globe, Calendar, Clock, Edit3, Trash2, Image as ImageIcon, X, Save 
+  Globe, Calendar, Clock, Edit3, Trash2, Image as ImageIcon, X, Save, Loader2, Ticket 
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import Swal from 'sweetalert2';
 
 export default function TabelaEventos() {
   const [isOpen, setIsOpen] = useState(false);
@@ -13,15 +14,12 @@ export default function TabelaEventos() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  // --- ESTADOS PARA O MODAL ---
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [eventoParaEditar, setEventoParaEditar] = useState<any>(null);
   const [saving, setSaving] = useState(false);
 
-  // Link da API Dinâmico (Usa Render como fallback)
   const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://linkah-api.onrender.com';
 
-  // Buscar eventos do banco de dados
   const carregarEventos = async () => {
     const email = localStorage.getItem('userEmail');
     if (!email) {
@@ -46,26 +44,28 @@ export default function TabelaEventos() {
     carregarEventos();
   }, []);
 
-  // FUNÇÃO PARA EXCLUIR EVENTO
   const handleExcluir = async (id: number) => {
-    const confirmou = window.confirm("Tem certeza que deseja excluir este evento? Todos os ingressos vinculados também serão apagados.");
+    const result = await Swal.fire({
+      title: 'Tem certeza?',
+      text: "Todos os ingressos vinculados também serão apagados!",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#C22973',
+      cancelButtonColor: '#cbd5e1',
+      confirmButtonText: 'SIM, EXCLUIR',
+      cancelButtonText: 'CANCELAR',
+      customClass: { popup: 'rounded-[2rem]' }
+    });
     
-    if (confirmou) {
+    if (result.isConfirmed) {
       try {
-        const res = await fetch(`${apiBaseUrl}/api/eventos/${id}`, {
-          method: 'DELETE',
-        });
-
+        const res = await fetch(`${apiBaseUrl}/api/eventos/${id}`, { method: 'DELETE' });
         if (res.ok) {
           setEventos((prev: any) => prev.filter((ev: any) => ev.id !== id));
-          alert("Evento removido com sucesso!");
-        } else {
-          const erro = await res.json();
-          alert(erro.message || "Erro ao tentar excluir o evento.");
+          Swal.fire({ title: 'Removido!', icon: 'success', confirmButtonColor: '#C22973', customClass: { popup: 'rounded-[2rem]' } });
         }
       } catch (err) {
-        console.error("Erro ao excluir:", err);
-        alert("Erro de conexão com o servidor.");
+        Swal.fire('Erro', 'Erro ao conectar com o servidor.', 'error');
       }
     }
   };
@@ -79,7 +79,6 @@ export default function TabelaEventos() {
     e.preventDefault();
     setSaving(true);
     try {
-      // CORREÇÃO: Removido localhost daqui também
       const res = await fetch(`${apiBaseUrl}/api/eventos/${eventoParaEditar.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -87,14 +86,12 @@ export default function TabelaEventos() {
       });
 
       if (res.ok) {
-        alert("Evento atualizado com sucesso!");
+        Swal.fire({ title: 'Sucesso!', text: 'Evento atualizado.', icon: 'success', confirmButtonColor: '#C22973', customClass: { popup: 'rounded-[2rem]' } });
         setIsEditModalOpen(false);
         carregarEventos(); 
-      } else {
-        alert("Erro ao salvar as alterações.");
       }
     } catch (err) {
-      alert("Erro ao conectar com o servidor.");
+      Swal.fire('Erro', 'Falha ao salvar.', 'error');
     } finally {
       setSaving(false);
     }
@@ -102,44 +99,36 @@ export default function TabelaEventos() {
 
   return (
     <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
-      <div className="p-6 border-b border-slate-50 flex justify-between items-center">
-        <button className="text-[#C22973] font-bold border-b-2 border-[#C22973] pb-1 px-2 uppercase text-sm tracking-wider">
+      <div className="p-6 border-b border-slate-50 flex justify-between items-center bg-white">
+        <button className="text-[#C22973] font-black border-b-2 border-[#C22973] pb-1 px-2 uppercase text-xs tracking-[0.2em]">
           Meus Eventos
         </button>
 
         <div className="relative">
           <button 
             onClick={() => setIsOpen(!isOpen)}
-            className="bg-indigo-500 text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-indigo-600 transition-all shadow-md active:scale-95"
+            className="bg-[#C22973] text-white px-6 py-3 rounded-2xl font-black flex items-center gap-2 hover:bg-[#a62262] transition-all shadow-lg shadow-pink-100 active:scale-95 uppercase text-[11px] tracking-widest"
           >
-            NOVO EVENTO 
+            Criar Novo Evento 
             <ChevronDown size={18} className={`transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
           </button>
 
           {isOpen && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)}></div>
-              <div className="absolute right-0 mt-2 w-52 bg-white rounded-2xl shadow-2xl border border-slate-100 z-20 overflow-hidden py-2 animate-in fade-in zoom-in duration-200">
+              <div className="absolute right-0 mt-3 w-56 bg-white rounded-[2rem] shadow-2xl border border-slate-100 z-20 overflow-hidden py-3 animate-in fade-in zoom-in duration-200">
                 <button
-                  onClick={() => {
-                    setIsOpen(false);
-                    router.push('/dashboard/eventos/novo/presencial');
-                  }}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-colors text-left font-bold text-sm"
+                  onClick={() => { setIsOpen(false); router.push('/dashboard/eventos/novo/presencial'); }}
+                  className="w-full flex items-center gap-3 px-5 py-3 text-slate-600 hover:bg-pink-50 hover:text-[#C22973] transition-colors text-left font-bold text-sm"
                 >
-                  <MapPin size={18} className="text-indigo-500" />
-                  Presencial
+                  <MapPin size={18} className="text-[#C22973]" /> Presencial
                 </button>
-                <div className="h-px bg-slate-50 mx-2"></div>
+                <div className="h-px bg-slate-50 mx-4 my-1"></div>
                 <button
-                  onClick={() => {
-                    setIsOpen(false);
-                    router.push('/dashboard/eventos/novo/online');
-                  }}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-colors text-left font-bold text-sm"
+                  onClick={() => { setIsOpen(false); router.push('/dashboard/eventos/novo/online'); }}
+                  className="w-full flex items-center gap-3 px-5 py-3 text-slate-600 hover:bg-pink-50 hover:text-[#C22973] transition-colors text-left font-bold text-sm"
                 >
-                  <Globe size={18} className="text-blue-500" />
-                  Online
+                  <Globe size={18} className="text-blue-500" /> Online
                 </button>
               </div>
             </>
@@ -151,84 +140,83 @@ export default function TabelaEventos() {
         <table className="w-full text-left border-collapse">
           <thead className="bg-slate-50/50 text-slate-400 text-[10px] font-black uppercase tracking-widest">
             <tr>
-              <th className="px-8 py-4">Evento</th>
-              <th className="px-4 py-4">Onde</th>
-              <th className="px-4 py-4">Quando</th>
-              <th className="px-4 py-4">Horário</th>
-              <th className="px-4 py-4">Vendidos/Total</th>
-              <th className="px-4 py-4">Status</th>
-              <th className="px-4 py-4 text-center">Ações</th>
+              <th className="px-8 py-5">Evento & Ingressos</th>
+              <th className="px-4 py-5">Onde</th>
+              <th className="px-4 py-5">Quando</th>
+              <th className="px-4 py-5">Status</th>
+              <th className="px-4 py-5 text-center">Ações</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
             {loading ? (
               <tr>
-                <td colSpan={7} className="py-10 text-center text-slate-400 animate-pulse font-bold">Carregando eventos...</td>
+                <td colSpan={5} className="py-20 text-center"><Loader2 className="animate-spin mx-auto text-slate-300" size={40}/></td>
               </tr>
             ) : eventos.length > 0 ? (
               eventos.map((evento: any) => (
-                <tr key={evento.id} className="hover:bg-slate-50/50 transition-colors group">
-                  <td className="px-8 py-4">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-slate-100 overflow-hidden border border-slate-100 shrink-0">
+                <tr key={evento.id} className="hover:bg-slate-50/30 transition-colors group">
+                  <td className="px-8 py-5">
+                    <div className="flex items-start gap-4">
+                      <div className="w-14 h-14 rounded-2xl bg-slate-100 overflow-hidden border border-slate-100 shrink-0 shadow-sm">
                         {evento.imagem_capa ? (
                           <img src={evento.imagem_capa} className="w-full h-full object-cover" alt="" />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-slate-300"><ImageIcon size={16}/></div>
+                          <div className="w-full h-full flex items-center justify-center text-slate-300"><ImageIcon size={20}/></div>
                         )}
                       </div>
-                      <div>
-                        <p className="font-bold text-slate-800 text-sm line-clamp-1">{evento.nome}</p>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">{evento.categoria}</p>
+                      <div className="space-y-1.5">
+                        <div>
+                          <p className="font-black text-slate-800 text-sm leading-tight uppercase">{evento.nome}</p>
+                          <p className="text-[10px] text-pink-500 font-black uppercase tracking-widest mt-0.5">{evento.categoria}</p>
+                        </div>
+                        
+                        {/* EXIBIÇÃO DOS INGRESSOS AQUI */}
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {evento.ingressos && evento.ingressos.length > 0 ? (
+                            evento.ingressos.map((ing: any, idx: number) => (
+                              <div key={idx} className="flex items-center gap-1.5 bg-white border border-slate-200 px-2.5 py-1 rounded-lg shadow-sm">
+                                <Ticket size={10} className="text-slate-400" />
+                                <span className="text-[9px] font-bold text-slate-600 uppercase">{ing.nome}</span>
+                                <span className="text-[9px] font-black text-[#C22973]">R$ {ing.preco}</span>
+                              </div>
+                            ))
+                          ) : (
+                            <span className="text-[9px] text-slate-400 italic">Nenhum ingresso cadastrado</span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </td>
 
-                  <td className="px-4 py-4">
+                  <td className="px-4 py-5">
                     <div className="flex flex-col">
-                      <span className="text-sm font-medium text-slate-700">{evento.local_nome || 'A definir'}</span>
-                      <span className="text-[10px] text-slate-400">{evento.cidade}, {evento.estado}</span>
+                      <span className="text-xs font-bold text-slate-700">{evento.local_nome || 'A definir'}</span>
+                      <span className="text-[10px] text-slate-400 uppercase font-bold">{evento.cidade}, {evento.estado}</span>
                     </div>
                   </td>
 
-                  <td className="px-4 py-4 text-sm font-medium text-slate-600">
-                    {new Date(evento.data_inicio).toLocaleDateString('pt-BR')}
-                  </td>
-
-                  <td className="px-4 py-4 text-sm font-medium text-slate-600">
-                    {evento.hora_inicio?.slice(0, 5) || '--:--'}
-                  </td>
-
-                  <td className="px-4 py-4">
-                    <div className="flex flex-col gap-1">
-                      <span className="text-xs font-bold text-slate-700">0 / 100</span>
-                      <div className="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                        <div className="w-0 h-full bg-indigo-500 rounded-full"></div>
-                      </div>
+                  <td className="px-4 py-5">
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold text-slate-700">{new Date(evento.data_inicio).toLocaleDateString('pt-BR')}</span>
+                      <span className="text-[10px] text-slate-400 font-bold uppercase">{evento.hora_inicio?.slice(0, 5)}h</span>
                     </div>
                   </td>
 
-                  <td className="px-4 py-4">
-                    <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${
-                      evento.status === 'Ativo' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
+                  <td className="px-4 py-5">
+                    <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
+                      evento.status === 'Ativo' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-amber-50 text-amber-600 border border-amber-100'
                     }`}>
                       {evento.status}
                     </span>
                   </td>
 
-                  <td className="px-4 py-4">
+                  <td className="px-4 py-5">
                     <div className="flex items-center justify-center gap-2">
-                      <button 
-                        onClick={() => abrirModalEdicao(evento)}
-                        className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
-                      >
-                        <Edit3 size={18} />
+                      <button onClick={() => abrirModalEdicao(evento)} className="p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all shadow-sm bg-white">
+                        <Edit3 size={16} />
                       </button>
-                      <button 
-                        onClick={() => handleExcluir(evento.id)}
-                        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                      >
-                        <Trash2 size={18} />
+                      <button onClick={() => handleExcluir(evento.id)} className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all shadow-sm bg-white">
+                        <Trash2 size={16} />
                       </button>
                     </div>
                   </td>
@@ -236,8 +224,11 @@ export default function TabelaEventos() {
               ))
             ) : (
               <tr>
-                <td colSpan={7} className="py-20 text-center text-slate-300 font-medium italic">
-                  Nenhum evento encontrado.
+                <td colSpan={5} className="py-32 text-center">
+                  <div className="flex flex-col items-center gap-2 opacity-20">
+                    <Calendar size={48} />
+                    <p className="font-bold uppercase text-xs tracking-widest">Nenhum evento por aqui</p>
+                  </div>
                 </td>
               </tr>
             )}
@@ -245,75 +236,41 @@ export default function TabelaEventos() {
         </table>
       </div>
 
-      <div className="p-4 bg-slate-50/30 border-t border-slate-50 flex justify-end items-center gap-4 text-slate-400 text-xs">
-        <span>1-{eventos.length} de {eventos.length}</span>
-        <div className="flex gap-2">
-          <button className="hover:text-slate-600 transition-colors disabled:opacity-30">
-            <ChevronLeft size={18} />
-          </button>
-          <button className="hover:text-slate-600 transition-colors disabled:opacity-30">
-            <ChevronRight size={18} />
-          </button>
+      <div className="p-6 bg-slate-50/50 border-t border-slate-50 flex justify-between items-center text-slate-400 text-[10px] font-black uppercase tracking-widest">
+        <span>Mostrando {eventos.length} eventos</span>
+        <div className="flex gap-4">
+          <button className="hover:text-[#C22973] transition-colors"><ChevronLeft size={20} /></button>
+          <button className="hover:text-[#C22973] transition-colors"><ChevronRight size={20} /></button>
         </div>
       </div>
 
-      {/* --- MODAL DE EDIÇÃO --- */}
+      {/* MODAL DE EDIÇÃO */}
       {isEditModalOpen && eventoParaEditar && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setIsEditModalOpen(false)}></div>
-          
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setIsEditModalOpen(false)}></div>
           <div className="relative bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in slide-in-from-bottom-4 duration-300">
-            <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
-              <h2 className="text-xl font-black text-slate-800 tracking-tight">Editar Evento</h2>
-              <button onClick={() => setIsEditModalOpen(false)} className="p-2 hover:bg-white rounded-full text-slate-400 transition-all shadow-sm"><X size={20} /></button>
+            <div className="p-8 border-b border-slate-50 flex justify-between items-center">
+              <h2 className="text-xl font-black text-slate-800 uppercase tracking-tighter">Editar Evento</h2>
+              <button onClick={() => setIsEditModalOpen(false)} className="p-2 hover:bg-slate-50 rounded-full text-slate-400 transition-all"><X size={20} /></button>
             </div>
-
-            <form onSubmit={handleSalvarEdicao} className="p-8 space-y-5">
+            <form onSubmit={handleSalvarEdicao} className="p-8 space-y-6">
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase text-slate-400 ml-1 tracking-widest">Nome do Evento</label>
-                <input 
-                  required
-                  className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none focus:bg-white focus:border-indigo-500 transition-all font-bold text-slate-700"
-                  value={eventoParaEditar.nome}
-                  onChange={(e) => setEventoParaEditar({...eventoParaEditar, nome: e.target.value})}
-                />
+                <input required className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none focus:bg-white focus:border-[#C22973] font-bold text-slate-700" value={eventoParaEditar.nome} onChange={(e) => setEventoParaEditar({...eventoParaEditar, nome: e.target.value})} />
               </div>
-
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase text-slate-400 ml-1 tracking-widest">Cidade</label>
-                  <input 
-                    className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none focus:bg-white focus:border-indigo-500 transition-all font-bold text-slate-700"
-                    value={eventoParaEditar.cidade}
-                    onChange={(e) => setEventoParaEditar({...eventoParaEditar, cidade: e.target.value})}
-                  />
+                  <input className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none focus:bg-white focus:border-[#C22973] font-bold text-slate-700" value={eventoParaEditar.cidade} onChange={(e) => setEventoParaEditar({...eventoParaEditar, cidade: e.target.value})} />
                 </div>
                 <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase text-slate-400 ml-1 tracking-widest">Estado</label>
-                  <input 
-                    className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none focus:bg-white focus:border-indigo-500 transition-all font-bold text-slate-700"
-                    value={eventoParaEditar.estado}
-                    onChange={(e) => setEventoParaEditar({...eventoParaEditar, estado: e.target.value})}
-                  />
+                  <input className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none focus:bg-white focus:border-[#C22973] font-bold text-slate-700" value={eventoParaEditar.estado} onChange={(e) => setEventoParaEditar({...eventoParaEditar, estado: e.target.value})} />
                 </div>
               </div>
-
-              <div className="pt-4 flex gap-3">
-                <button 
-                  type="button" 
-                  onClick={() => setIsEditModalOpen(false)}
-                  className="flex-1 py-4 font-bold text-slate-400 hover:text-slate-600 transition-all text-xs uppercase tracking-widest"
-                >
-                  Cancelar
-                </button>
-                <button 
-                  type="submit"
-                  disabled={saving}
-                  className="flex-1 bg-indigo-500 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-indigo-600 shadow-lg transition-all text-xs uppercase tracking-widest disabled:opacity-50"
-                >
-                  {saving ? 'Salvando...' : <><Save size={16} /> Salvar</>}
-                </button>
-              </div>
+              <button type="submit" disabled={saving} className="w-full bg-[#C22973] text-white py-5 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-pink-100 hover:bg-[#a62262] transition-all flex items-center justify-center gap-2">
+                {saving ? <Loader2 className="animate-spin" size={20}/> : <><Save size={18} /> SALVAR ALTERAÇÕES</>}
+              </button>
             </form>
           </div>
         </div>
