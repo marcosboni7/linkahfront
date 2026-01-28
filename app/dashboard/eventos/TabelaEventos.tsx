@@ -143,7 +143,7 @@ export default function TabelaEventos() {
               <th className="px-8 py-5">Evento & Ingressos</th>
               <th className="px-4 py-5">Onde</th>
               <th className="px-4 py-5">Quando</th>
-              <th className="px-4 py-5 text-center">Vendidos/Total</th>
+              <th className="px-4 py-5">Vendas</th>
               <th className="px-4 py-5">Status</th>
               <th className="px-4 py-5 text-center">Ações</th>
             </tr>
@@ -171,6 +171,7 @@ export default function TabelaEventos() {
                           <p className="text-[10px] text-pink-500 font-black uppercase tracking-widest mt-0.5">{evento.categoria}</p>
                         </div>
                         
+                        {/* BADGES DOS INGRESSOS */}
                         <div className="flex flex-wrap gap-1.5 mt-2">
                           {evento.ingressos && evento.ingressos.length > 0 ? (
                             evento.ingressos.map((ing: any, idx: number) => (
@@ -181,7 +182,7 @@ export default function TabelaEventos() {
                               </div>
                             ))
                           ) : (
-                            <span className="text-[9px] text-slate-400 italic">Nenhum ingresso cadastrado</span>
+                            <span className="text-[9px] text-slate-400 italic font-bold">Nenhum ingresso cadastrado</span>
                           )}
                         </div>
                       </div>
@@ -202,15 +203,15 @@ export default function TabelaEventos() {
                     </div>
                   </td>
 
-                  {/* COLUNA VENDIDOS/TOTAL DINÂMICA */}
+                  {/* COLUNA VENDIDOS/TOTAL COM BARRA ROSA */}
                   <td className="px-4 py-5">
-                    <div className="flex flex-col items-center gap-1.5">
-                      <span className="text-[10px] font-black text-slate-700 uppercase tracking-tighter">
-                        {evento.total_vendidos} / {evento.total_vagas}
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[10px] font-black text-slate-700 uppercase">
+                        {evento.total_vendidos || 0} / {evento.total_vagas || 0}
                       </span>
-                      <div className="w-20 h-1.5 bg-slate-100 rounded-full overflow-hidden border border-slate-50">
+                      <div className="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                         <div 
-                          className="h-full bg-[#C22973] rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(194,41,115,0.3)]"
+                          className="h-full bg-[#C22973] rounded-full transition-all duration-700"
                           style={{ width: `${(evento.total_vendidos / (evento.total_vagas || 1)) * 100}%` }}
                         ></div>
                       </div>
@@ -227,10 +228,10 @@ export default function TabelaEventos() {
 
                   <td className="px-4 py-5">
                     <div className="flex items-center justify-center gap-2">
-                      <button onClick={() => abrirModalEdicao(evento)} className="p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all shadow-sm bg-white border border-slate-50">
+                      <button onClick={() => abrirModalEdicao(evento)} className="p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all shadow-sm bg-white border border-slate-100">
                         <Edit3 size={16} />
                       </button>
-                      <button onClick={() => handleExcluir(evento.id)} className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all shadow-sm bg-white border border-slate-50">
+                      <button onClick={() => handleExcluir(evento.id)} className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all shadow-sm bg-white border border-slate-100">
                         <Trash2 size={16} />
                       </button>
                     </div>
@@ -239,15 +240,20 @@ export default function TabelaEventos() {
               ))
             ) : (
               <tr>
-                <td colSpan={6} className="py-32 text-center text-slate-300 font-black uppercase text-xs tracking-[0.3em] opacity-20">Nenhum evento encontrado</td>
+                <td colSpan={6} className="py-32 text-center">
+                  <div className="flex flex-col items-center gap-2 opacity-20">
+                    <Calendar size={48} />
+                    <p className="font-bold uppercase text-xs tracking-widest">Nenhum evento por aqui</p>
+                  </div>
+                </td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
 
-      <div className="p-6 bg-slate-50/50 border-t border-slate-50 flex justify-between items-center text-slate-400 text-[10px] font-black uppercase tracking-[0.2em]">
-        <span>TOTAL: {eventos.length} EVENTOS</span>
+      <div className="p-6 bg-slate-50/50 border-t border-slate-50 flex justify-between items-center text-slate-400 text-[10px] font-black uppercase tracking-widest">
+        <span>Mostrando {eventos.length} eventos</span>
         <div className="flex gap-4">
           <button className="hover:text-[#C22973] transition-colors"><ChevronLeft size={20} /></button>
           <button className="hover:text-[#C22973] transition-colors"><ChevronRight size={20} /></button>
