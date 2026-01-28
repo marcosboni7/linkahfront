@@ -35,9 +35,11 @@ export default function DetalhesEvento() {
     </div>
   );
 
-  if (!evento) return <div className="p-20 text-center font-black">Evento não encontrado.</div>;
+  if (!evento) return <div className="p-20 text-center font-black text-slate-900">Evento não encontrado.</div>;
 
-  const total = (evento.preco_minimo || 0) * quantidade;
+  // Cálculo do total considerando o preço que vem do banco
+  const precoBase = parseFloat(evento.preco_minimo) || 0;
+  const total = precoBase * quantidade;
 
   return (
     <div className="bg-slate-50 min-h-screen pb-20">
@@ -50,7 +52,8 @@ export default function DetalhesEvento() {
           <div className="lg:col-span-2 space-y-8">
             <div className="relative h-[450px] rounded-[3rem] overflow-hidden shadow-2xl">
               <img 
-                src={evento.imagem_url || "https://images.unsplash.com/photo-1492684223066-81342ee5ff30"} 
+                // AJUSTE: imagem_capa
+                src={evento.imagem_capa || "https://images.unsplash.com/photo-1492684223066-81342ee5ff30"} 
                 className="w-full h-full object-cover"
                 alt={evento.nome}
               />
@@ -73,7 +76,10 @@ export default function DetalhesEvento() {
                   </div>
                   <div>
                     <p className="text-[10px] font-black uppercase text-slate-400">Data e Hora</p>
-                    <p className="font-bold text-slate-700">{new Date(evento.data).toLocaleDateString('pt-BR')}</p>
+                    {/* AJUSTE: data_inicio */}
+                    <p className="font-bold text-slate-700">
+                      {evento.data_inicio ? new Date(evento.data_inicio).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : 'A definir'}
+                    </p>
                   </div>
                 </div>
 
@@ -83,12 +89,15 @@ export default function DetalhesEvento() {
                   </div>
                   <div>
                     <p className="text-[10px] font-black uppercase text-slate-400">Localização</p>
-                    <p className="font-bold text-slate-700 line-clamp-1">{evento.local}</p>
+                    {/* AJUSTE: local_nome e cidade */}
+                    <p className="font-bold text-slate-700 line-clamp-1">
+                      {evento.local_nome || evento.cidade || 'Local a definir'}
+                    </p>
                   </div>
                 </div>
               </div>
 
-              <h3 className="text-lg font-black uppercase mb-4 flex items-center gap-2">
+              <h3 className="text-lg font-black uppercase mb-4 flex items-center gap-2 text-slate-900">
                 <Info size={18} className="text-[#C22973]" /> Sobre o Evento
               </h3>
               <p className="text-slate-500 leading-relaxed font-medium whitespace-pre-line">
@@ -100,8 +109,8 @@ export default function DetalhesEvento() {
           {/* LADO DIREITO: COMPRA (STICKY) */}
           <div className="lg:sticky lg:top-28 h-fit">
             <div className="bg-white p-8 rounded-[3rem] shadow-2xl border border-pink-50">
-              <h3 className="text-xl font-black mb-8 flex items-center gap-2">
-             <Ticket className="text-[#C22973]" /> Selecione seu Ingresso
+              <h3 className="text-xl font-black mb-8 flex items-center gap-2 text-slate-900">
+                <Ticket className="text-[#C22973]" /> Selecione seu Ingresso
               </h3>
 
               <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 mb-8">
@@ -109,7 +118,7 @@ export default function DetalhesEvento() {
                   <div>
                     <p className="font-black text-slate-900 uppercase text-sm">Ingresso Único</p>
                     <p className="text-[#C22973] font-black text-lg">
-                      R$ {evento.preco_minimo ? evento.preco_minimo.toFixed(2) : '0,00'}
+                      R$ {precoBase.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </p>
                   </div>
                   <div className="flex items-center gap-4 bg-white px-4 py-2 rounded-2xl border border-slate-200 shadow-sm">
@@ -130,7 +139,7 @@ export default function DetalhesEvento() {
                 <div className="flex justify-between items-end px-2">
                   <span className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Subtotal</span>
                   <span className="text-3xl font-black text-slate-900 leading-none tracking-tighter">
-                    R$ {total.toFixed(2)}
+                    R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
 
@@ -143,12 +152,11 @@ export default function DetalhesEvento() {
 
                 <div className="flex items-center justify-center gap-2 py-2 border-t border-slate-50">
                    <ShieldCheck size={16} className="text-green-500" />
-                   <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Plataforma Segura Linkah</span>
+                   <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest text-center">Plataforma Segura Linkah</span>
                 </div>
               </div>
             </div>
 
-            {/* AVISO ADICIONAL */}
             <div className="mt-6 px-4 py-6 bg-blue-50/50 rounded-[2rem] border border-blue-100/50 flex gap-4 items-start">
               <Info size={20} className="text-blue-500 shrink-0" />
               <p className="text-[11px] text-blue-800 font-bold leading-relaxed">
@@ -160,7 +168,6 @@ export default function DetalhesEvento() {
         </div>
       </main>
 
-      {/* FOOTER SIMPLES */}
       <footer className="mt-20 py-10 border-t border-slate-200 text-center">
         <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">
           © 2026 Linkah Eventos • Todos os direitos reservados
