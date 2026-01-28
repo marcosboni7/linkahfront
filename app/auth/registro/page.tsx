@@ -14,20 +14,27 @@ export default function RegisterPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [tipoPessoa, setTipoPessoa] = useState<'PF' | 'PJ'>('PF');
-  
-  // Estado para capturar erros de validação em tempo real
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Função para validar campos individualmente (Inline Validation)
-  const validateField = (name: string, value: string) => {
-    let error = "";
-    if (!value && ["nome", "email", "cpf_cnpj", "senha", "data_nascimento", "telefone", "cep", "rua"].includes(name)) {
-      error = "Campo obrigatório *";
+  // Validação Inline (reage enquanto o usuário interage)
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    
+    // Se o usuário começar a digitar, removemos o erro para dar feedback positivo
+    if (value.trim() !== "") {
+      setErrors(prev => ({ ...prev, [name]: "" }));
     }
+
+    // Validação específica de formato em tempo real
     if (name === "email" && value && !/\S+@\S+\.\S+/.test(value)) {
-      error = "E-mail inválido";
+      setErrors(prev => ({ ...prev, email: "E-mail inválido" }));
     }
-    setErrors(prev => ({ ...prev, [name]: error }));
+  };
+
+  const validateFieldOnBlur = (name: string, value: string) => {
+    if (!value && ["nome", "email", "cpf_cnpj", "senha", "data_nascimento", "telefone", "cep", "rua"].includes(name)) {
+      setErrors(prev => ({ ...prev, [name]: "Campo obrigatório *" }));
+    }
   };
 
   const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -37,17 +44,20 @@ export default function RegisterPage() {
     const formData = new FormData(e.currentTarget);
     const data = Object.fromEntries(formData.entries());
     
-    // Validação final antes de enviar
+    // Validação final de segurança
     const newErrors: Record<string, string> = {};
-    Object.keys(data).forEach(key => {
-      if (!data[key] && key !== 'numero' && key !== 'bairro') {
-        newErrors[key] = "Obrigatório *";
-      }
+    const camposObrigatòrios = ["nome", "email", "cpf_cnpj", "senha", "data_nascimento", "telefone", "cep", "rua", "estado"];
+    
+    camposObrigatòrios.forEach(key => {
+      if (!data[key]) newErrors[key] = "Obrigatório *";
     });
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       setIsLoading(false);
+      // Scroll suave para o primeiro erro
+      const firstError = Object.keys(newErrors)[0];
+      document.getElementsByName(firstError)[0]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
 
@@ -55,7 +65,6 @@ export default function RegisterPage() {
 
     try {
       const apiBaseUrl = 'https://linkah-api.onrender.com';
-
       const response = await fetch(`${apiBaseUrl}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -96,7 +105,7 @@ export default function RegisterPage() {
             <ArrowLeft size={16} /> Voltar para Login
           </Link>
           <div className="flex flex-col gap-6">
-            <div className="w-20 h-20 bg-white rounded-[2rem] flex items-center justify-center shadow-2xl transform -rotate-6">
+            <div className="w-20 h-20 bg-white rounded-[2rem] flex items-center justify-center shadow-2xl transform -rotate-6 transition-transform hover:rotate-0">
               <Globe className="text-[#C22973] w-10 h-10" />
             </div>
             <h2 className="text-5xl font-black text-white leading-tight mt-6">
@@ -104,6 +113,7 @@ export default function RegisterPage() {
             </h2>
           </div>
         </div>
+        <p className="relative z-10 text-pink-200/50 text-[10px] font-bold uppercase tracking-widest">Linkah Producer Hub v2.0</p>
       </div>
 
       {/* FORMULÁRIO */}
@@ -112,8 +122,8 @@ export default function RegisterPage() {
           
           <form onSubmit={handleRegister} className="space-y-6">
             <div className="flex items-center gap-8 mb-4 border-b border-slate-100 pb-6">
-              <button type="button" onClick={() => setTipoPessoa('PF')} className={`font-bold pb-2 transition-all ${tipoPessoa === 'PF' ? 'text-[#C22973] border-b-2 border-[#C22973]' : 'text-slate-400'}`}>Pessoa Física</button>
-              <button type="button" onClick={() => setTipoPessoa('PJ')} className={`font-bold pb-2 transition-all ${tipoPessoa === 'PJ' ? 'text-[#C22973] border-b-2 border-[#C22973]' : 'text-slate-400'}`}>Pessoa Jurídica</button>
+              <button type="button" onClick={() => setTipoPessoa('PF')} className={`font-black text-xs uppercase tracking-widest pb-2 transition-all ${tipoPessoa === 'PF' ? 'text-[#C22973] border-b-2 border-[#C22973]' : 'text-slate-400'}`}>Pessoa Física</button>
+              <button type="button" onClick={() => setTipoPessoa('PJ')} className={`font-black text-xs uppercase tracking-widest pb-2 transition-all ${tipoPessoa === 'PJ' ? 'text-[#C22973] border-b-2 border-[#C22973]' : 'text-slate-400'}`}>Pessoa Jurídica</button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -121,85 +131,142 @@ export default function RegisterPage() {
               {/* CPF / CNPJ */}
               <div className="flex flex-col">
                 <div className="relative">
-                  <Fingerprint className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
-                  <input required name="cpf_cnpj" onBlur={(e) => validateField(e.target.name, e.target.value)} placeholder={`${tipoPessoa === 'PF' ? "CPF" : "CNPJ"} *`} className={`w-full pl-12 pr-4 py-4 border ${errors.cpf_cnpj ? 'border-red-500' : 'border-slate-200'} rounded-2xl outline-none focus:border-[#C22973] bg-slate-50/50`} />
+                  <Fingerprint className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors ${errors.cpf_cnpj ? 'text-red-400' : 'text-slate-300'}`} size={20} />
+                  <input 
+                    name="cpf_cnpj" 
+                    onChange={handleInputChange}
+                    onBlur={(e) => validateFieldOnBlur(e.target.name, e.target.value)} 
+                    placeholder={`${tipoPessoa === 'PF' ? "CPF" : "CNPJ"} *`} 
+                    className={`w-full pl-12 pr-4 py-4 border ${errors.cpf_cnpj ? 'border-red-400 ring-4 ring-red-50' : 'border-slate-200 focus:border-[#C22973] focus:ring-4 focus:ring-pink-50'} rounded-2xl outline-none bg-slate-50/50 transition-all font-medium`} 
+                  />
                 </div>
-                {errors.cpf_cnpj && <span className="text-red-500 text-[10px] font-bold mt-1 ml-2">{errors.cpf_cnpj}</span>}
+                {errors.cpf_cnpj && <span className="text-red-500 text-[10px] font-black mt-1 ml-2 uppercase italic">{errors.cpf_cnpj}</span>}
               </div>
 
               {/* NOME */}
               <div className="flex flex-col">
                 <div className="relative">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
-                  <input required name="nome" onBlur={(e) => validateField(e.target.name, e.target.value)} placeholder={`${tipoPessoa === 'PF' ? "Nome completo" : "Nome do Responsável"} *`} className={`w-full pl-12 pr-4 py-4 border ${errors.nome ? 'border-red-500' : 'border-slate-200'} rounded-2xl outline-none focus:border-[#C22973] bg-slate-50/50`} />
+                  <User className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors ${errors.nome ? 'text-red-400' : 'text-slate-300'}`} size={20} />
+                  <input 
+                    name="nome" 
+                    onChange={handleInputChange}
+                    onBlur={(e) => validateFieldOnBlur(e.target.name, e.target.value)} 
+                    placeholder={`${tipoPessoa === 'PF' ? "Nome completo" : "Nome do Responsável"} *`} 
+                    className={`w-full pl-12 pr-4 py-4 border ${errors.nome ? 'border-red-400 ring-4 ring-red-50' : 'border-slate-200 focus:border-[#C22973] focus:ring-4 focus:ring-pink-50'} rounded-2xl outline-none bg-slate-50/50 transition-all font-medium`} 
+                  />
                 </div>
-                {errors.nome && <span className="text-red-500 text-[10px] font-bold mt-1 ml-2">{errors.nome}</span>}
+                {errors.nome && <span className="text-red-500 text-[10px] font-black mt-1 ml-2 uppercase italic">{errors.nome}</span>}
               </div>
 
               {/* EMAIL */}
               <div className="flex flex-col md:col-span-2">
                 <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
-                  <input required name="email" type="email" onBlur={(e) => validateField(e.target.name, e.target.value)} placeholder="E-mail *" className={`w-full pl-12 pr-4 py-4 border ${errors.email ? 'border-red-500' : 'border-slate-200'} rounded-2xl outline-none focus:border-[#C22973] bg-slate-50/50`} />
+                  <Mail className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors ${errors.email ? 'text-red-400' : 'text-slate-300'}`} size={20} />
+                  <input 
+                    name="email" 
+                    type="email" 
+                    onChange={handleInputChange}
+                    onBlur={(e) => validateFieldOnBlur(e.target.name, e.target.value)} 
+                    placeholder="E-mail Corporativo *" 
+                    className={`w-full pl-12 pr-4 py-4 border ${errors.email ? 'border-red-400 ring-4 ring-red-50' : 'border-slate-200 focus:border-[#C22973] focus:ring-4 focus:ring-pink-50'} rounded-2xl outline-none bg-slate-50/50 transition-all font-medium`} 
+                  />
                 </div>
-                {errors.email && <span className="text-red-500 text-[10px] font-bold mt-1 ml-2">{errors.email}</span>}
+                {errors.email && <span className="text-red-500 text-[10px] font-black mt-1 ml-2 uppercase italic">{errors.email}</span>}
               </div>
 
               {/* SENHA */}
               <div className="flex flex-col md:col-span-2">
                 <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
-                  <input required name="senha" type="password" onBlur={(e) => validateField(e.target.name, e.target.value)} placeholder="Crie sua senha de acesso *" className={`w-full pl-12 pr-4 py-4 border ${errors.senha ? 'border-red-500' : 'border-slate-200'} rounded-2xl outline-none focus:border-[#C22973] bg-slate-50/50`} />
+                  <Lock className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors ${errors.senha ? 'text-red-400' : 'text-slate-300'}`} size={20} />
+                  <input 
+                    name="senha" 
+                    type="password" 
+                    onChange={handleInputChange}
+                    onBlur={(e) => validateFieldOnBlur(e.target.name, e.target.value)} 
+                    placeholder="Crie sua senha de acesso (mín. 6 caracteres) *" 
+                    className={`w-full pl-12 pr-4 py-4 border ${errors.senha ? 'border-red-400 ring-4 ring-red-50' : 'border-slate-200 focus:border-[#C22973] focus:ring-4 focus:ring-pink-50'} rounded-2xl outline-none bg-slate-50/50 transition-all font-medium`} 
+                  />
                 </div>
-                {errors.senha && <span className="text-red-500 text-[10px] font-bold mt-1 ml-2">{errors.senha}</span>}
+                {errors.senha && <span className="text-red-500 text-[10px] font-black mt-1 ml-2 uppercase italic">{errors.senha}</span>}
               </div>
 
               {/* DATA NASCIMENTO */}
               <div className="flex flex-col">
                 <div className="relative">
                   <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
-                  <input required name="data_nascimento" type="date" onBlur={(e) => validateField(e.target.name, e.target.value)} className={`w-full pl-12 pr-4 py-4 border ${errors.data_nascimento ? 'border-red-500' : 'border-slate-200'} rounded-2xl outline-none focus:border-[#C22973] bg-slate-50/50 text-slate-400`} />
+                  <input 
+                    name="data_nascimento" 
+                    type="date" 
+                    onChange={handleInputChange}
+                    onBlur={(e) => validateFieldOnBlur(e.target.name, e.target.value)} 
+                    className={`w-full pl-12 pr-4 py-4 border ${errors.data_nascimento ? 'border-red-400' : 'border-slate-200 focus:border-[#C22973]'} rounded-2xl outline-none bg-slate-50/50 text-slate-500 font-medium transition-all`} 
+                  />
                 </div>
-                {errors.data_nascimento && <span className="text-red-500 text-[10px] font-bold mt-1 ml-2">{errors.data_nascimento}</span>}
+                {errors.data_nascimento && <span className="text-red-500 text-[10px] font-black mt-1 ml-2 uppercase italic">{errors.data_nascimento}</span>}
               </div>
 
               {/* TELEFONE */}
               <div className="flex flex-col">
                 <div className="relative">
                   <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
-                  <input required name="telefone" type="text" onBlur={(e) => validateField(e.target.name, e.target.value)} placeholder="Telefone *" className={`w-full pl-12 pr-4 py-4 border ${errors.telefone ? 'border-red-500' : 'border-slate-200'} rounded-2xl outline-none focus:border-[#C22973] bg-slate-50/50`} />
+                  <input 
+                    name="telefone" 
+                    type="text" 
+                    onChange={handleInputChange}
+                    onBlur={(e) => validateFieldOnBlur(e.target.name, e.target.value)} 
+                    placeholder="Telefone com DDD *" 
+                    className={`w-full pl-12 pr-4 py-4 border ${errors.telefone ? 'border-red-400' : 'border-slate-200 focus:border-[#C22973]'} rounded-2xl outline-none bg-slate-50/50 transition-all font-medium`} 
+                  />
                 </div>
-                {errors.telefone && <span className="text-red-500 text-[10px] font-bold mt-1 ml-2">{errors.telefone}</span>}
+                {errors.telefone && <span className="text-red-500 text-[10px] font-black mt-1 ml-2 uppercase italic">{errors.telefone}</span>}
               </div>
 
               {/* CEP */}
               <div className="flex flex-col">
                 <div className="relative">
                   <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
-                  <input required name="cep" type="text" onBlur={(e) => validateField(e.target.name, e.target.value)} placeholder="CEP *" className={`w-full pl-12 pr-4 py-4 border ${errors.cep ? 'border-red-500' : 'border-slate-200'} rounded-2xl outline-none focus:border-[#C22973] bg-slate-50/50`} />
+                  <input 
+                    name="cep" 
+                    type="text" 
+                    onChange={handleInputChange}
+                    onBlur={(e) => validateFieldOnBlur(e.target.name, e.target.value)} 
+                    placeholder="CEP *" 
+                    className={`w-full pl-12 pr-4 py-4 border ${errors.cep ? 'border-red-400' : 'border-slate-200 focus:border-[#C22973]'} rounded-2xl outline-none bg-slate-50/50 transition-all font-medium`} 
+                  />
                 </div>
-                {errors.cep && <span className="text-red-500 text-[10px] font-bold mt-1 ml-2">{errors.cep}</span>}
+                {errors.cep && <span className="text-red-500 text-[10px] font-black mt-1 ml-2 uppercase italic">{errors.cep}</span>}
               </div>
 
               {/* RUA */}
               <div className="flex flex-col md:col-span-2">
-                <input required name="rua" type="text" onBlur={(e) => validateField(e.target.name, e.target.value)} placeholder="Endereço Completo *" className={`w-full p-4 border ${errors.rua ? 'border-red-500' : 'border-slate-200'} rounded-2xl outline-none focus:border-[#C22973] bg-slate-50/50`} />
-                {errors.rua && <span className="text-red-500 text-[10px] font-bold mt-1 ml-2">{errors.rua}</span>}
+                <input 
+                  name="rua" 
+                  type="text" 
+                  onChange={handleInputChange}
+                  onBlur={(e) => validateFieldOnBlur(e.target.name, e.target.value)} 
+                  placeholder="Endereço Completo (Rua, Avenida...) *" 
+                  className={`w-full p-4 border ${errors.rua ? 'border-red-400' : 'border-slate-200 focus:border-[#C22973]'} rounded-2xl outline-none bg-slate-50/50 transition-all font-medium`} 
+                />
+                {errors.rua && <span className="text-red-500 text-[10px] font-black mt-1 ml-2 uppercase italic">{errors.rua}</span>}
               </div>
 
               {/* COMPLEMENTOS */}
               <div className="grid grid-cols-3 col-span-2 gap-4">
-                <input name="numero" placeholder="Nº" className="p-4 border border-slate-200 rounded-2xl outline-none focus:border-[#C22973] bg-slate-50/50" />
-                <input name="bairro" placeholder="Bairro" className="p-4 border border-slate-200 rounded-2xl outline-none focus:border-[#C22973] bg-slate-50/50" />
-                <input name="estado" placeholder="UF" className="p-4 border border-slate-200 rounded-2xl outline-none focus:border-[#C22973] bg-slate-50/50 text-center uppercase" maxLength={2} />
+                <input name="numero" placeholder="Nº" className="p-4 border border-slate-200 rounded-2xl outline-none focus:border-[#C22973] bg-slate-50/50 font-medium" />
+                <input name="bairro" placeholder="Bairro" className="p-4 border border-slate-200 rounded-2xl outline-none focus:border-[#C22973] bg-slate-50/50 font-medium" />
+                <input name="estado" placeholder="UF" required className="p-4 border border-slate-200 rounded-2xl outline-none focus:border-[#C22973] bg-slate-50/50 text-center uppercase font-bold" maxLength={2} />
               </div>
             </div>
 
-            <div className="flex items-center gap-3 p-4 bg-pink-50 rounded-2xl text-[11px] text-pink-800 font-bold uppercase tracking-widest">
-              <Info size={16} /> Campos marcados com * são obrigatórios.
+            <div className="flex items-center gap-3 p-4 bg-pink-50 rounded-2xl text-[11px] text-[#C22973] font-black uppercase tracking-widest border border-pink-100">
+              <Info size={16} /> Verifique seus dados antes de confirmar.
             </div>
 
-            <button type="submit" disabled={isLoading} className="w-full bg-[#C22973] text-white py-5 rounded-2xl font-black uppercase tracking-[0.3em] shadow-xl hover:bg-[#a62262] transition-all flex items-center justify-center gap-2">
+            <button 
+              type="submit" 
+              disabled={isLoading} 
+              className="w-full bg-[#C22973] text-white py-5 rounded-2xl font-black uppercase tracking-[0.3em] shadow-xl shadow-pink-100 hover:bg-[#a62262] transition-all flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-50"
+            >
               {isLoading ? <Loader2 className="animate-spin" /> : "Criar Minha Conta"}
             </button>
           </form>
