@@ -10,7 +10,8 @@ export default function BuyTicketHome() {
   const [loading, setLoading] = useState(true);
 
   // URL da sua API
-  const API_URL = 'https://linkah-api.onrender.com/api/eventos';
+ // Adicione o /listar no final
+const API_URL = 'https://linkah-api.onrender.com/api/eventos/listar';
 
   useEffect(() => {
     async function carregarEventos() {
