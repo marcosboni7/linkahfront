@@ -1,14 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  async redirects() {
-    return [
-      {
-        source: '/',
-        destination: '/auth/login',
-        permanent: true, // Isso faz com que o navegador sempre redirecione da home para o login
-      },
-    ];
+  /* Aqui você pode colocar outras configurações como imagens de domínios externos */
+  images: {
+    domains: ['linkah-api.onrender.com', 'images.unsplash.com'],
   },
 };
 
