@@ -1,13 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronLeft, Plus, Ticket, Trash2, CheckCircle2 } from 'lucide-react';
+import { ChevronLeft, Plus, Ticket, Trash2, CheckCircle2, Loader2, Info } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
+import Swal from 'sweetalert2';
 
 export default function CadastroIngressos() {
   const router = useRouter();
-  const { id } = useParams(); // Pega o ID da URL automaticamente
+  const { id } = useParams(); // Pega o ID do evento gerado na etapa anterior
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const [ingressos, setIngressos] = useState([
     { nome: 'Ingresso Meia', preco: '', quantidade: '', tipo: 'Pago' }
@@ -23,13 +25,31 @@ export default function CadastroIngressos() {
     const novos = [...ingressos];
     novos[index] = { ...novos[index], [field]: value };
     setIngressos(novos);
+    
+    // Limpa erro ao digitar
+    if (value) {
+      setErrors(prev => ({ ...prev, [`${index}-${field}`]: '' }));
+    }
+  };
+
+  // Validação em tempo real (Inline)
+  const validateField = (index: number, field: string, value: string) => {
+    if (!value) {
+      setErrors(prev => ({ ...prev, [`${index}-${field}`]: 'Obrigatório *' }));
+    }
   };
 
   const handleFinalizar = async () => {
+    // Validação básica antes de enviar
+    const hasEmpty = ingressos.some(ing => !ing.nome || !ing.preco || !ing.quantidade);
+    if (hasEmpty) {
+      Swal.fire('Atenção', 'Preencha todos os campos obrigatórios (*) de todos os ingressos.', 'warning');
+      return;
+    }
+
     setLoading(true);
     try {
-    
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://linkah-api.onrender.com';
+      const apiBaseUrl = 'https://linkah-api.onrender.com';
       
       const response = await fetch(`${apiBaseUrl}/api/eventos/${id}/ingressos`, {
         method: 'POST',
@@ -38,14 +58,21 @@ export default function CadastroIngressos() {
       });
 
       if (response.ok) {
-        alert("🎉 Evento publicado com sucesso!");
-        router.push('/dashboard/eventos');
+        Swal.fire({
+          title: '<span style="color: #C22973">🎉 Sucesso!</span>',
+          text: 'Seu evento foi publicado e já está disponível para venda!',
+          icon: 'success',
+          confirmButtonColor: '#C22973',
+          confirmButtonText: 'IR PARA MEUS EVENTOS',
+          customClass: { popup: 'rounded-[2.5rem]' }
+        }).then(() => {
+          router.push('/dashboard/eventos');
+        });
       } else {
-        alert("Erro ao salvar ingressos. Verifique os dados.");
+        Swal.fire('Erro', 'Não conseguimos salvar os ingressos. Tente novamente.', 'error');
       }
     } catch (error) {
-      console.error("Erro na conexão:", error);
-      alert("Não foi possível conectar ao servidor da AWS.");
+      Swal.fire('Erro de Conexão', 'Não foi possível conectar ao servidor.', 'error');
     } finally {
       setLoading(false);
     }
@@ -53,78 +80,98 @@ export default function CadastroIngressos() {
 
   return (
     <div className="min-h-screen bg-[#FAFBFF]">
-      <header className="border-b border-slate-100 px-10 py-5 flex justify-between items-center bg-white/90 backdrop-blur-md sticky top-0 z-50">
-        <div className="flex items-center gap-6">
-          <button onClick={() => router.back()} className="p-2 hover:bg-pink-50 rounded-full text-slate-400">
+      {/* HEADER FIXO */}
+      <header className="border-b border-slate-100 px-6 md:px-10 py-5 flex justify-between items-center bg-white/90 backdrop-blur-md sticky top-0 z-50">
+        <div className="flex items-center gap-4">
+          <button onClick={() => router.back()} className="p-2 hover:bg-pink-50 rounded-full text-slate-400 transition-colors">
             <ChevronLeft size={22} />
           </button>
           <div>
-            <h1 className="text-slate-800 font-bold text-lg tracking-tight">Configurar Ingressos</h1>
-            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em]">Passo 2 de 2</p>
+            <h1 className="text-slate-800 font-black text-lg tracking-tight uppercase">Configurar Ingressos</h1>
+            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em]">Finalizando publicação</p>
           </div>
         </div>
         <button 
           onClick={handleFinalizar}
           disabled={loading}
-          className="bg-[#C22973] text-white px-10 py-3 rounded-2xl font-bold uppercase text-[11px] tracking-widest hover:bg-[#a62262] transition-all shadow-lg disabled:opacity-50"
+          className="bg-[#C22973] text-white px-6 md:px-10 py-3 rounded-2xl font-black uppercase text-[11px] tracking-widest hover:bg-[#a62262] transition-all shadow-lg shadow-pink-100 disabled:opacity-50 flex items-center gap-2"
         >
-          {loading ? 'Publicando...' : 'Finalizar e Publicar'}
+          {loading ? <Loader2 className="animate-spin" size={16} /> : 'PUBLICAR EVENTO'}
         </button>
       </header>
 
-      <main className="max-w-[1100px] mx-auto p-10">
+      <main className="max-w-[1100px] mx-auto p-6 md:p-10">
         
-        {/* STEPPER DINÂMICO */}
-        <div className="flex justify-center items-center mb-16 px-20">
-          <div className="flex items-center gap-4 opacity-40">
-            <div className="w-10 h-10 rounded-2xl bg-emerald-500 text-white flex items-center justify-center">
-              <CheckCircle2 size={20} />
+        {/* INDICADOR DE PROGRESSO */}
+        <div className="flex justify-center items-center mb-12 md:mb-16">
+          <div className="flex items-center gap-3 opacity-40">
+            <div className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center">
+              <CheckCircle2 size={16} />
             </div>
-            <span className="text-sm font-bold text-slate-800 tracking-tight">Dados do Evento</span>
+            <span className="text-xs font-bold text-slate-800 uppercase tracking-widest">Informações</span>
           </div>
-          <div className="w-40 h-[2px] bg-emerald-100 mx-8"></div>
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-2xl bg-[#C22973] text-white flex items-center justify-center shadow-lg shadow-pink-100 font-bold text-sm">
+          <div className="w-20 h-[2px] bg-emerald-100 mx-4"></div>
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-[#C22973] text-white flex items-center justify-center shadow-lg shadow-pink-100 font-black text-xs">
               2
             </div>
-            <span className="text-sm font-bold text-slate-800 tracking-tight">Ingressos</span>
+            <span className="text-xs font-bold text-slate-800 uppercase tracking-widest">Ingressos</span>
           </div>
         </div>
 
-        <div className="max-w-[800px] mx-auto space-y-6">
+        <div className="max-w-[850px] mx-auto space-y-6">
+           <div className="bg-blue-50 border border-blue-100 p-5 rounded-3xl flex gap-3 text-blue-700 text-sm font-medium mb-8">
+             <Info className="shrink-0" size={20} />
+             <p>Defina os tipos de ingressos que estarão disponíveis. Você pode criar lotes diferentes como "Lote 1", "VIP" ou "Meia Entrada".</p>
+           </div>
+
            {ingressos.map((ing, index) => (
-             <div key={index} className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-50 flex flex-col md:flex-row items-end gap-6 animate-in slide-in-from-bottom-4">
+             <div key={index} className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100 flex flex-col md:flex-row items-end gap-6 relative group animate-in slide-in-from-bottom-4 transition-all hover:shadow-md">
+                
+                {/* NOME DO INGRESSO */}
                 <div className="flex-1 w-full space-y-2">
-                  <label className="text-[10px] text-slate-400 font-black uppercase ml-1">Tipo de Ingresso</label>
+                  <label className="text-[10px] text-slate-400 font-black uppercase ml-1 tracking-widest">Tipo / Nome do Ingresso *</label>
                   <input 
                     value={ing.nome} 
+                    onBlur={(e) => validateField(index, 'nome', e.target.value)}
                     onChange={(e) => handleChange(index, 'nome', e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none focus:border-[#C22973] font-bold" 
-                    placeholder="Ex: VIP"
+                    className={`w-full bg-slate-50 border ${errors[`${index}-nome`] ? 'border-red-500' : 'border-slate-100'} p-4 rounded-2xl outline-none focus:border-[#C22973] font-bold text-slate-700`} 
+                    placeholder="Ex: Ingresso Solidário"
                   />
+                  {errors[`${index}-nome`] && <span className="text-[9px] text-red-500 font-bold ml-1">{errors[`${index}-nome`]}</span>}
                 </div>
-                <div className="w-32 space-y-2">
-                  <label className="text-[10px] text-slate-400 font-black uppercase ml-1">Preço (R$)</label>
+
+                {/* PREÇO */}
+                <div className="w-full md:w-40 space-y-2">
+                  <label className="text-[10px] text-slate-400 font-black uppercase ml-1 tracking-widest">Preço R$ *</label>
                   <input 
                     type="number" 
                     value={ing.preco} 
+                    onBlur={(e) => validateField(index, 'preco', e.target.value)}
                     onChange={(e) => handleChange(index, 'preco', e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none focus:border-[#C22973] font-bold" 
+                    className={`w-full bg-slate-50 border ${errors[`${index}-preco`] ? 'border-red-500' : 'border-slate-100'} p-4 rounded-2xl outline-none focus:border-[#C22973] font-bold text-slate-700`} 
                     placeholder="0,00"
                   />
+                  {errors[`${index}-preco`] && <span className="text-[9px] text-red-500 font-bold ml-1">{errors[`${index}-preco`]}</span>}
                 </div>
-                <div className="w-32 space-y-2">
-                  <label className="text-[10px] text-slate-400 font-black uppercase ml-1">Qtd</label>
+
+                {/* QUANTIDADE */}
+                <div className="w-full md:w-32 space-y-2">
+                  <label className="text-[10px] text-slate-400 font-black uppercase ml-1 tracking-widest">Qtd Total *</label>
                   <input 
                     type="number" 
                     value={ing.quantidade} 
+                    onBlur={(e) => validateField(index, 'quantidade', e.target.value)}
                     onChange={(e) => handleChange(index, 'quantidade', e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none focus:border-[#C22973] font-bold" 
+                    className={`w-full bg-slate-50 border ${errors[`${index}-quantidade`] ? 'border-red-500' : 'border-slate-100'} p-4 rounded-2xl outline-none focus:border-[#C22973] font-bold text-slate-700`} 
                     placeholder="100"
                   />
+                  {errors[`${index}-quantidade`] && <span className="text-[9px] text-red-500 font-bold ml-1">{errors[`${index}-quantidade`]}</span>}
                 </div>
+
+                {/* REMOVER */}
                 {ingressos.length > 1 && (
-                  <button onClick={() => removeIngresso(index)} className="p-4 text-slate-300 hover:text-red-500 transition-colors">
+                  <button onClick={() => removeIngresso(index)} className="p-4 text-slate-300 hover:text-red-500 transition-colors mb-1">
                     <Trash2 size={20} />
                   </button>
                 )}
@@ -133,9 +180,9 @@ export default function CadastroIngressos() {
 
            <button 
              onClick={addIngresso}
-             className="w-full py-6 border-2 border-dashed border-slate-200 rounded-[2.5rem] text-slate-400 font-bold uppercase text-[10px] tracking-widest hover:border-[#C22973]/30 hover:text-[#C22973] transition-all bg-white/50"
+             className="w-full py-6 border-2 border-dashed border-slate-200 rounded-[2.5rem] text-slate-400 font-black uppercase text-[10px] tracking-[0.2em] hover:border-[#C22973]/30 hover:text-[#C22973] hover:bg-pink-50/30 transition-all bg-white/50 flex items-center justify-center gap-2"
            >
-             + Adicionar outro lote
+             <Plus size={16} /> Adicionar Novo Lote ou Categoria
            </button>
         </div>
       </main>
