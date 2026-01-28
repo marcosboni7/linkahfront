@@ -13,7 +13,6 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   
-  // Estados para validação inline
   const [errors, setErrors] = useState<{ email?: string; senha?: string }>({});
 
   // Validação em tempo real para o E-mail
@@ -37,7 +36,6 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Bloqueia se houver erros de formato antes de enviar
     if (errors.email || errors.senha || !email || !senha) {
       return;
     }
@@ -58,21 +56,32 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (response.ok) {
-        const emailUsuario = data?.user?.email || email.trim().toLowerCase();
-        const nomeUsuario = data?.user?.nome || 'Produtor';
+        const user = data.user;
+        const emailUsuario = user?.email || email.trim().toLowerCase();
+        const nomeUsuario = user?.nome || 'Produtor';
 
+        // 1. Salva informações básicas no Storage
         window.localStorage.setItem('userEmail', emailUsuario);
         window.localStorage.setItem('userName', nomeUsuario);
+
+        // 2. LÓGICA DE DIRECIONAMENTO INTELIGENTE
+        // Verificamos se ele já tem dados que indicam perfil completo (ex: CPF/CNPJ ou CEP)
+        if (user?.cpf_cnpj || user?.cep || user?.perfil_completo === true) {
+          window.localStorage.setItem('perfil_completo', 'true');
+          router.push('/dashboard/eventos');
+        } else {
+          // Se for a primeira vez ou estiver incompleto, removemos a trava e mandamos pro perfil
+          window.localStorage.removeItem('perfil_completo');
+          router.push('/dashboard/perfil');
+        }
         
-        router.push('/dashboard/perfil');
       } else {
-        // Feedback de erro do servidor
         setErrors({ email: ' ', senha: data.message || "Credenciais incorretas" });
         setIsLoading(false);
       }
     } catch (error) {
       console.error("Erro na conexão:", error);
-      alert("Não foi possível conectar ao servidor.");
+      setErrors({ email: 'Erro de conexão', senha: 'Não foi possível conectar ao servidor' });
       setIsLoading(false);
     }
   };
@@ -128,7 +137,7 @@ export default function LoginPage() {
 
           <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-2 group">
-              <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-2">
+              <label className={`text-[11px] font-black uppercase tracking-widest ml-2 ${errors.email ? 'text-red-500' : 'text-slate-400'}`}>
                 E-mail Corporativo <span className="text-red-500">*</span>
               </label>
               <input
@@ -137,14 +146,14 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="nome@empresa.com"
-                className={`w-full px-6 py-4 bg-slate-50 border ${errors.email ? 'border-red-400 focus:ring-red-50' : 'border-slate-100 focus:border-[#C22973] focus:ring-pink-50'} rounded-2xl outline-none focus:bg-white focus:ring-4 transition-all`}
+                className={`w-full px-6 py-4 bg-slate-50 border ${errors.email && email ? 'border-red-400 focus:ring-red-50' : 'border-slate-100 focus:border-[#C22973] focus:ring-pink-50'} rounded-2xl outline-none focus:bg-white focus:ring-4 transition-all font-bold`}
               />
-              {errors.email && <p className="text-[10px] text-red-500 font-bold ml-2 uppercase italic">{errors.email}</p>}
+              {errors.email && email && <p className="text-[10px] text-red-500 font-bold ml-2 uppercase italic">{errors.email}</p>}
             </div>
 
             <div className="space-y-2 group">
               <div className="flex justify-between items-center px-2">
-                <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">
+                <label className={`text-[11px] font-black uppercase tracking-widest ${errors.senha ? 'text-red-500' : 'text-slate-400'}`}>
                   Senha de Acesso <span className="text-red-500">*</span>
                 </label>
                 <Link href="#" className="text-[10px] font-bold text-[#C22973]">Esqueceu?</Link>
@@ -156,7 +165,7 @@ export default function LoginPage() {
                   value={senha}
                   onChange={(e) => setSenha(e.target.value)}
                   placeholder="••••••••"
-                  className={`w-full px-6 py-4 bg-slate-50 border ${errors.senha ? 'border-red-400 focus:ring-red-50' : 'border-slate-100 focus:border-[#C22973] focus:ring-pink-50'} rounded-2xl outline-none focus:bg-white focus:ring-4 transition-all`}
+                  className={`w-full px-6 py-4 bg-slate-50 border ${errors.senha && senha ? 'border-red-400 focus:ring-red-50' : 'border-slate-100 focus:border-[#C22973] focus:ring-pink-50'} rounded-2xl outline-none focus:bg-white focus:ring-4 transition-all font-bold`}
                 />
                 <button
                   type="button"
@@ -166,12 +175,12 @@ export default function LoginPage() {
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
-              {errors.senha && <p className="text-[10px] text-red-500 font-bold ml-2 uppercase italic">{errors.senha}</p>}
+              {errors.senha && senha && <p className="text-[10px] text-red-500 font-bold ml-2 uppercase italic">{errors.senha}</p>}
             </div>
 
             <button
               disabled={isLoading}
-              className="w-full bg-[#C22973] text-white py-5 rounded-[1.5rem] font-black uppercase tracking-[0.2em] shadow-2xl shadow-pink-200 hover:bg-[#a62262] transition-all flex items-center justify-center gap-3 disabled:opacity-70"
+              className="w-full bg-[#C22973] text-white py-5 rounded-[1.5rem] font-black uppercase tracking-[0.2em] shadow-xl shadow-pink-100 hover:bg-[#a62262] transition-all flex items-center justify-center gap-3 disabled:opacity-70 active:scale-95"
             >
               {isLoading ? (
                 <Loader2 className="w-6 h-6 animate-spin" />
