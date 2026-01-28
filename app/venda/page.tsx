@@ -1,6 +1,6 @@
 'use client';
 
-import { Navbar } from '@/components/site/Navbar';
+import { Navbar } from '../site/Navbar';
 import { CreditCard, QrCode, ShieldCheck, Lock } from 'lucide-react';
 import { useState } from 'react';
 
