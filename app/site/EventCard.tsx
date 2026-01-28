@@ -1,56 +1,79 @@
 'use client';
 
 import Link from 'next/link';
-import { Calendar, MapPin, ArrowRight } from 'lucide-react';
+import { Calendar, MapPin, ArrowRight, Ticket } from 'lucide-react';
 
 export function EventCard({ evento }: { evento: any }) {
-  // Função para formatar a data com segurança
   const formatarData = (dataIso: string) => {
     try {
       if (!dataIso) return "Data a definir";
-      return new Date(dataIso).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+      return new Date(dataIso).toLocaleDateString('pt-BR', { 
+        day: '2-digit', 
+        month: 'short' 
+      }).replace('.', ''); // Ex: 12 Out
     } catch (e) {
-      return "Data inválida";
+      return "---";
     }
   };
 
   return (
-    <Link href={`/evento/${evento.id}`} className="group">
-      <div className="bg-white rounded-[2.5rem] overflow-hidden border border-slate-100 hover:shadow-2xl hover:shadow-pink-100 transition-all duration-500">
-        <div className="relative h-60 overflow-hidden">
+    <Link href={`/evento/${evento.id}`} className="group relative block w-full max-w-[280px] mx-auto">
+      {/* CONTAINER PRINCIPAL */}
+      <div className="relative bg-white rounded-[2rem] overflow-hidden transition-all duration-500 hover:-translate-y-2 border border-slate-100 group-hover:shadow-[0_20px_40px_rgba(194,41,115,0.12)]">
+        
+        {/* IMAGEM COM PROPORÇÃO VERTICAL (ESTILO POSTER) */}
+        <div className="relative aspect-[4/5] overflow-hidden">
           <img 
-            /* AJUSTE: Usando imagem_capa que vem do seu Backend */
             src={evento.imagem_capa || "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4"} 
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
             alt={evento.nome}
           />
-          <div className="absolute bottom-4 right-4 bg-[#C22973] text-white px-4 py-2 rounded-2xl font-black text-sm shadow-xl">
-            R$ {evento.preco_minimo ? parseFloat(evento.preco_minimo).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '0,00'}
+          
+          {/* GRADIENTE SOBRE A IMAGEM */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
+
+          {/* BADGE DE DATA (FLUTUANTE) */}
+          <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-xl shadow-sm text-center min-w-[50px]">
+            <p className="text-[10px] font-black uppercase text-[#C22973] leading-none mb-0.5">
+               {formatarData(evento.data_inicio).split(' ')[1]}
+            </p>
+            <p className="text-sm font-black text-slate-900 leading-none">
+               {formatarData(evento.data_inicio).split(' ')[0]}
+            </p>
+          </div>
+
+          {/* PREÇO (FLUTUANTE NO CANTO) */}
+          <div className="absolute bottom-4 left-4">
+             <span className="text-[10px] text-white/80 font-bold uppercase tracking-widest block mb-0.5">A partir de</span>
+             <p className="text-white font-black text-lg">
+                R$ {evento.preco_minimo ? Math.floor(evento.preco_minimo) : '0'}
+             </p>
           </div>
         </div>
         
-        <div className="p-6">
-          <div className="flex items-center gap-2 text-[#C22973] font-bold text-[10px] uppercase tracking-[0.2em] mb-3">
-            {/* AJUSTE: Usando data_inicio do seu banco */}
-            <Calendar size={12} /> {formatarData(evento.data_inicio)}
+        {/* INFO DO EVENTO */}
+        <div className="p-5">
+          <div className="flex items-center gap-1 text-[#C22973] font-bold text-[9px] uppercase tracking-widest mb-2">
+            <Ticket size={10} /> {evento.categoria || 'Evento'}
           </div>
           
-          <h3 className="text-xl font-black text-slate-900 group-hover:text-[#C22973] transition-colors line-clamp-1">
+          <h3 className="text-base font-black text-slate-900 leading-tight mb-2 group-hover:text-[#C22973] transition-colors line-clamp-2 uppercase tracking-tight h-10">
             {evento.nome}
           </h3>
           
-          <p className="flex items-center gap-2 text-slate-400 text-sm mt-2 font-medium mb-6">
-            {/* AJUSTE: Usando local_nome ou cidade/estado como fallback */}
-            <MapPin size={14} /> 
-            {evento.local_nome || (evento.cidade ? `${evento.cidade}, ${evento.estado}` : 'Local a definir')}
-          </p>
-          
-          <div className="flex items-center justify-between pt-4 border-t border-slate-50">
-            <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Ver detalhes</span>
-            <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center group-hover:bg-[#C22973] group-hover:text-white transition-all">
-              <ArrowRight size={14} />
-            </div>
+          <div className="flex items-center gap-1.5 text-slate-400 text-[11px] font-bold">
+            <MapPin size={12} className="text-slate-300" /> 
+            <span className="truncate">
+                {evento.cidade ? `${evento.cidade}, ${evento.estado}` : 'Local a definir'}
+            </span>
           </div>
+        </div>
+
+        {/* OVERLAY DE HOVER (BOTÃO QUE APARECE) */}
+        <div className="absolute inset-0 flex items-center justify-center bg-[#C22973]/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+            <div className="bg-[#C22973] text-white p-3 rounded-full shadow-xl transform scale-50 group-hover:scale-100 transition-transform">
+                <ArrowRight size={20} />
+            </div>
         </div>
       </div>
     </Link>

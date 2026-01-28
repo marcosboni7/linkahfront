@@ -13,7 +13,8 @@ import {
   Search, 
   ChevronRight,
   Zap,
-  Ticket
+  Ticket,
+  Bell
 } from 'lucide-react';
 
 export default function BuyTicketHome() {
@@ -48,7 +49,6 @@ export default function BuyTicketHome() {
     carregarDados();
   }, [categoriaAtiva]);
 
-  // Função para ícones dinâmicos das categorias
   const getIcon = (cat: string) => {
     switch (cat.toLowerCase()) {
       case 'todos': return <LayoutGrid size={18} />;
@@ -61,107 +61,133 @@ export default function BuyTicketHome() {
   };
 
   return (
-    <div className="flex bg-[#030303] min-h-screen text-white font-sans selection:bg-pink-500">
+    <div className="flex bg-[#F8FAFC] min-h-screen text-slate-900 font-sans selection:bg-[#C22973] selection:text-white">
       
-      {/* SIDEBAR FIXA */}
-      <aside className="w-64 fixed h-full border-r border-white/5 bg-[#080808] flex flex-col p-6 z-50">
-        <div className="mb-12 px-2">
-          <h1 className="text-2xl font-black tracking-tighter italic">LINKAH<span className="text-pink-600">.</span></h1>
+      {/* SIDEBAR BRANCA MINIMALISTA */}
+      <aside className="w-64 fixed h-full border-r border-slate-100 bg-white flex flex-col p-8 z-50">
+        <div className="mb-12">
+          <h1 className="text-2xl font-black tracking-tighter italic text-slate-900">
+            LINKAH<span className="text-[#C22973]">.</span>
+          </h1>
         </div>
 
-        <nav className="flex-1 space-y-2">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 mb-4 px-2">Categorias</p>
+        <nav className="flex-1 space-y-1">
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 mb-6 px-3">Menu Principal</p>
           {categoriasExistentes.map((cat) => (
             <button
               key={cat}
               onClick={() => setCategoriaAtiva(cat)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all duration-300 ${
+              className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-bold transition-all duration-300 ${
                 categoriaAtiva === cat 
-                ? 'bg-pink-600 text-white shadow-lg shadow-pink-900/20' 
-                : 'text-zinc-400 hover:bg-white/5 hover:text-white'
+                ? 'bg-[#C22973] text-white shadow-lg shadow-[#C22973]/20 scale-[1.02]' 
+                : 'text-slate-500 hover:bg-slate-50 hover:text-[#C22973]'
               }`}
             >
-              {getIcon(cat)}
+              <span className={categoriaAtiva === cat ? 'text-white' : 'text-slate-400'}>
+                {getIcon(cat)}
+              </span>
               {cat}
             </button>
           ))}
         </nav>
 
-        <div className="mt-auto p-4 bg-gradient-to-br from-pink-600/20 to-transparent rounded-2xl border border-pink-600/20">
-          <p className="text-xs font-black uppercase mb-2">Venda Conosco</p>
-          <p className="text-[10px] text-zinc-400 mb-4">Crie seu evento em minutos e venda mais.</p>
-          <button className="w-full bg-white text-black py-2 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-pink-500 hover:text-white transition-colors">
-            Começar
+        {/* CARD PROMO SIDEBAR */}
+        <div className="mt-auto p-5 bg-pink-50 rounded-[2rem] border border-pink-100">
+          <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center mb-4 shadow-sm text-[#C22973]">
+            <Zap size={20} fill="currentColor" />
+          </div>
+          <p className="text-xs font-black uppercase text-slate-800 mb-1">Linkah PRO</p>
+          <p className="text-[10px] text-slate-500 leading-relaxed mb-4">Acesse pré-vendas exclusivas e taxas reduzidas.</p>
+          <button className="w-full bg-[#C22973] text-white py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-900 transition-colors">
+            Saiba Mais
           </button>
         </div>
       </aside>
 
-      {/* ÁREA DE CONTEÚDO PRINCIPAL (COM MARGIN-LEFT PARA A SIDEBAR) */}
-      <main className="flex-1 ml-64 p-8">
+      {/* ÁREA DE CONTEÚDO */}
+      <main className="flex-1 ml-64 p-10">
         
-        {/* TOP BAR / SEARCH */}
+        {/* HEADER SUPERIOR */}
         <header className="flex items-center justify-between mb-12">
-          <div className="relative w-96 group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-pink-500 transition-colors" size={18} />
+          <div className="relative w-[400px] group">
+            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#C22973] transition-colors" size={18} />
             <input 
               type="text" 
-              placeholder="Buscar por artistas, eventos ou cidades..." 
-              className="w-full bg-[#111] border border-white/5 rounded-2xl py-3 pl-12 pr-4 text-sm focus:outline-none focus:border-pink-500/50 transition-all"
+              placeholder="Pesquisar eventos..." 
+              className="w-full bg-white border border-slate-100 rounded-[1.5rem] py-4 pl-14 pr-6 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-[#C22973]/5 focus:border-[#C22973] transition-all"
             />
           </div>
           
-          <div className="flex items-center gap-4">
-            <div className="text-right mr-4 hidden md:block">
-              <p className="text-[10px] font-black text-pink-500 uppercase tracking-widest">Premium Access</p>
-              <p className="text-xs font-bold text-zinc-400">Olá, Visitante</p>
+          <div className="flex items-center gap-6">
+            <button className="relative p-2 text-slate-400 hover:text-[#C22973] transition-colors">
+              <Bell size={22} />
+              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
+            </button>
+            <div className="flex items-center gap-3 pl-6 border-l border-slate-100">
+              <div className="text-right">
+                <p className="text-xs font-black text-slate-900">Bem-vindo</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Explorar Agora</p>
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-[#C22973]/10 flex items-center justify-center text-[#C22973] font-bold">
+                L
+              </div>
             </div>
-            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-pink-600 to-purple-600" />
           </div>
         </header>
 
-        {/* HERO BANNER - SLIM & ELEGANT */}
-        <section className="relative h-80 rounded-[2.5rem] overflow-hidden mb-16 group">
+        {/* HERO BANNER - WHITE/PINK STYLE */}
+        <section className="relative h-[380px] rounded-[3rem] overflow-hidden mb-16 shadow-xl shadow-pink-100/50">
           <img 
-            src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?q=80&w=2070" 
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
+            src="https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?q=80&w=2074" 
+            className="w-full h-full object-cover"
             alt="Destaque"
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/20 to-transparent flex flex-col justify-center p-12">
-            <span className="flex items-center gap-2 text-pink-500 text-[10px] font-black uppercase tracking-[0.3em] mb-4">
-              <Zap size={14} fill="currentColor" /> Recomendado para você
-            </span>
-            <h2 className="text-5xl font-black italic uppercase tracking-tighter mb-6">
-              Ensaios da Anitta: <br/> <span className="text-pink-500">Rio de Janeiro</span>
+          <div className="absolute inset-0 bg-gradient-to-r from-white via-white/40 to-transparent flex flex-col justify-center p-16">
+            <div className="flex items-center gap-2 bg-[#C22973] text-white w-fit px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-6">
+              <Sparkles size={12} fill="currentColor" /> Destaque do Mês
+            </div>
+            <h2 className="text-6xl font-black text-slate-900 tracking-tighter italic uppercase mb-6 leading-tight">
+              Tour <br/> <span className="text-[#C22973]">Cosmos 2026</span>
             </h2>
-            <button className="flex items-center gap-2 bg-white text-black w-fit px-8 py-4 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-pink-600 hover:text-white transition-all shadow-xl">
-              Ver Ingressos <ChevronRight size={16} />
+            <button className="flex items-center gap-3 bg-slate-900 text-white w-fit px-10 py-5 rounded-2xl font-black uppercase text-xs tracking-[0.2em] hover:bg-[#C22973] transition-all transform hover:-translate-y-1">
+              Comprar Ingressos <ChevronRight size={18} />
             </button>
           </div>
         </section>
 
-        {/* GRID DE EVENTOS */}
-        <div className="space-y-8">
-          <div className="flex items-center justify-between px-2">
-            <h3 className="text-2xl font-black italic uppercase tracking-tighter flex items-center gap-3">
-              <Sparkles size={20} className="text-pink-500" />
-              {categoriaAtiva}
-            </h3>
-            <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">{eventos.length} Eventos encontrados</p>
+        {/* SEÇÃO DE EVENTOS */}
+        <div className="space-y-10">
+          <div className="flex items-end justify-between px-2">
+            <div>
+              <h3 className="text-3xl font-black text-slate-900 italic uppercase tracking-tighter flex items-center gap-3">
+                {categoriaAtiva}
+              </h3>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Os melhores momentos começam aqui</p>
+            </div>
+            <div className="flex gap-2">
+               <button className="p-3 rounded-xl bg-white border border-slate-100 text-[#C22973] hover:bg-pink-50 transition-colors">
+                  <LayoutGrid size={20} />
+               </button>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10">
             {loading ? (
               Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="aspect-[3/4] bg-white/5 rounded-[2rem] animate-pulse" />
+                <div key={i} className="space-y-4">
+                  <div className="aspect-[4/5] bg-white rounded-[2.5rem] animate-pulse shadow-sm" />
+                  <div className="h-4 bg-white rounded-full w-3/4 animate-pulse" />
+                </div>
               ))
             ) : eventos.length > 0 ? (
               eventos.map((evento: any) => (
                 <EventCard key={evento.id} evento={evento} />
               ))
             ) : (
-              <div className="col-span-full py-32 text-center bg-[#080808] rounded-[3rem] border border-white/5">
-                <Ticket className="mx-auto text-zinc-800 mb-4" size={48} />
-                <p className="text-zinc-500 font-bold uppercase text-xs tracking-widest">Nenhum evento em destaque no momento.</p>
+              <div className="col-span-full py-32 text-center bg-white rounded-[4rem] border border-slate-100 shadow-sm">
+                <Ticket className="mx-auto text-slate-100 mb-6" size={60} />
+                <p className="text-slate-400 font-black uppercase text-sm tracking-[0.2em]">Nenhum evento nesta categoria.</p>
+                <button onClick={() => setCategoriaAtiva('Todos')} className="mt-4 text-[#C22973] font-bold">Ver todos os eventos</button>
               </div>
             )}
           </div>
