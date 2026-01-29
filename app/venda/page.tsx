@@ -6,7 +6,7 @@ import { Navbar } from '../site/Navbar';
 import { 
   CreditCard, QrCode, ShieldCheck, Lock, 
   ChevronRight, Loader2, CheckCircle2, 
-  Wallet, Info, ArrowLeft 
+  Wallet, Info, ArrowLeft, Ticket
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -73,27 +73,28 @@ function CheckoutContent() {
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      {/* Botão Voltar Discreto */}
-      <Link href={`/evento/${eventoId}`} className="flex items-center gap-2 text-slate-400 hover:text-slate-900 transition-colors mb-8 text-sm font-bold group">
-        <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
-        Voltar para o evento
-      </Link>
+      {/* HEADER DE NAVEGAÇÃO */}
+      <div className="flex justify-between items-center mb-10">
+        <Link href={`/evento/${eventoId}`} className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors text-sm font-bold">
+          <ArrowLeft size={18} />
+          Voltar para o evento
+        </Link>
+        <div className="hidden md:flex items-center gap-3 text-slate-400">
+           <ShieldCheck size={18} className="text-green-500" />
+           <span className="text-[10px] font-black uppercase tracking-widest">Pagamento 100% Seguro</span>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
         
-        {/* LADO ESQUERDO: FORMULÁRIOS */}
-        <div className="lg:col-span-7 space-y-8">
+        {/* COLUNA ESQUERDA: FORMULÁRIOS */}
+        <div className="lg:col-span-7 space-y-10">
           
           {/* IDENTIFICAÇÃO */}
-          <section className="bg-white p-8 md:p-10 rounded-[2.5rem] border border-slate-100 shadow-[0_10px_40px_-15px_rgba(0,0,0,0.05)]">
-            <div className="flex items-center gap-4 mb-10">
-              <div className="w-12 h-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-lg shadow-slate-200">
-                <CheckCircle2 size={24} />
-              </div>
-              <div>
-                <h2 className="text-xl font-black italic tracking-tight uppercase">Sua Identificação</h2>
-                <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Onde você receberá os ingressos</p>
-              </div>
+          <section className="space-y-8">
+            <div className="flex items-center gap-3">
+              <div className="w-1 h-6 bg-rose-500 rounded-full"></div>
+              <h3 className="text-2xl font-black italic tracking-tighter text-slate-900 uppercase">1. Seus Dados</h3>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -104,7 +105,7 @@ function CheckoutContent() {
                   value={formData.nome}
                   onChange={handleInputChange}
                   placeholder="Nome do titular" 
-                  className="w-full p-4 bg-slate-50 rounded-2xl border-2 border-transparent focus:border-rose-500 focus:bg-white outline-none transition-all font-bold text-slate-700" 
+                  className="w-full p-5 bg-slate-50 rounded-[1.5rem] border-2 border-transparent focus:border-rose-500 focus:bg-white outline-none transition-all font-bold text-slate-700 shadow-sm" 
                 />
               </div>
               <div className="space-y-3">
@@ -114,158 +115,138 @@ function CheckoutContent() {
                   value={formData.email}
                   onChange={handleInputChange}
                   placeholder="exemplo@email.com" 
-                  className="w-full p-4 bg-slate-50 rounded-2xl border-2 border-transparent focus:border-rose-500 focus:bg-white outline-none transition-all font-bold text-slate-700" 
+                  className="w-full p-5 bg-slate-50 rounded-[1.5rem] border-2 border-transparent focus:border-rose-500 focus:bg-white outline-none transition-all font-bold text-slate-700 shadow-sm" 
                 />
               </div>
             </div>
           </section>
 
           {/* PAGAMENTO */}
-          <section className="bg-white p-8 md:p-10 rounded-[2.5rem] border border-slate-100 shadow-[0_10px_40px_-15px_rgba(0,0,0,0.05)]">
-            <div className="flex items-center gap-4 mb-10">
-              <div className="w-12 h-12 rounded-2xl bg-rose-500 text-white flex items-center justify-center shadow-lg shadow-rose-200">
-                <Wallet size={24} />
-              </div>
-              <div>
-                <h2 className="text-xl font-black italic tracking-tight uppercase">Pagamento</h2>
-                <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Escolha o método mais prático</p>
-              </div>
+          <section className="space-y-8">
+            <div className="flex items-center gap-3">
+              <div className="w-1 h-6 bg-rose-500 rounded-full"></div>
+              <h3 className="text-2xl font-black italic tracking-tighter text-slate-900 uppercase">2. Pagamento</h3>
             </div>
             
-            <div className="grid grid-cols-2 gap-4 mb-10">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <button 
                 onClick={() => setMetodo('pix')}
-                className={`relative p-6 rounded-[2rem] border-2 transition-all flex items-center gap-4 ${metodo === 'pix' ? 'border-rose-500 bg-rose-50/30' : 'border-slate-100 hover:border-slate-200'}`}
+                className={`relative p-6 rounded-[2rem] border-2 transition-all flex items-center gap-4 ${metodo === 'pix' ? 'border-rose-500 bg-rose-50/30' : 'border-slate-100 bg-white hover:border-slate-200 shadow-sm'}`}
               >
                 <div className={`p-3 rounded-xl ${metodo === 'pix' ? 'bg-rose-500 text-white' : 'bg-slate-100 text-slate-400'}`}>
                    <QrCode size={20} />
                 </div>
-                <span className={`font-black uppercase text-xs tracking-widest ${metodo === 'pix' ? 'text-rose-600' : 'text-slate-400'}`}>Pix</span>
-                {metodo === 'pix' && <div className="absolute top-3 right-3 w-2 h-2 rounded-full bg-rose-500" />}
+                <span className={`font-black uppercase text-xs tracking-widest ${metodo === 'pix' ? 'text-rose-600' : 'text-slate-500'}`}>Pagar com Pix</span>
               </button>
 
               <button 
                 onClick={() => setMetodo('cartao')}
-                className={`relative p-6 rounded-[2rem] border-2 transition-all flex items-center gap-4 ${metodo === 'cartao' ? 'border-rose-500 bg-rose-50/30' : 'border-slate-100 hover:border-slate-200'}`}
+                className={`relative p-6 rounded-[2rem] border-2 transition-all flex items-center gap-4 ${metodo === 'cartao' ? 'border-rose-500 bg-rose-50/30' : 'border-slate-100 bg-white hover:border-slate-200 shadow-sm'}`}
               >
                 <div className={`p-3 rounded-xl ${metodo === 'cartao' ? 'bg-rose-500 text-white' : 'bg-slate-100 text-slate-400'}`}>
                    <CreditCard size={20} />
                 </div>
-                <span className={`font-black uppercase text-xs tracking-widest ${metodo === 'cartao' ? 'text-rose-600' : 'text-slate-400'}`}>Cartão</span>
-                {metodo === 'cartao' && <div className="absolute top-3 right-3 w-2 h-2 rounded-full bg-rose-500" />}
+                <span className={`font-black uppercase text-xs tracking-widest ${metodo === 'cartao' ? 'text-rose-600' : 'text-slate-500'}`}>Cartão de Crédito</span>
               </button>
             </div>
 
-            {metodo === 'cartao' && (
-              <div className="animate-in slide-in-from-top-4 duration-300 space-y-6">
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Número do Cartão</label>
-                  <div className="relative">
-                    <input 
-                      name="numeroCartao"
-                      value={formData.numeroCartao}
-                      onChange={handleInputChange}
-                      placeholder="0000 0000 0000 0000" 
-                      className="w-full p-4 pl-12 bg-slate-50 rounded-2xl border-2 border-transparent focus:border-rose-500 focus:bg-white outline-none transition-all font-bold" 
-                    />
-                    <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="space-y-3">
-                     <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Validade</label>
-                     <input 
+            <div className="bg-white p-8 md:p-10 rounded-[2.5rem] border border-slate-100 shadow-[0_20px_50px_-20px_rgba(0,0,0,0.05)]">
+               {metodo === 'cartao' ? (
+                 <div className="animate-in fade-in slide-in-from-top-2 duration-500 space-y-6">
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Número do Cartão</label>
+                      <input 
+                        name="numeroCartao"
+                        value={formData.numeroCartao}
+                        onChange={handleInputChange}
+                        placeholder="0000 0000 0000 0000" 
+                        className="w-full p-5 bg-slate-50 rounded-[1.5rem] border-2 border-transparent focus:border-rose-500 focus:bg-white outline-none transition-all font-bold" 
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-6">
+                      <input 
                         name="validade"
                         value={formData.validade}
                         onChange={handleInputChange}
                         placeholder="MM/AA" 
-                        className="w-full p-4 bg-slate-50 rounded-2xl border-2 border-transparent focus:border-rose-500 focus:bg-white outline-none transition-all font-bold" 
-                     />
-                  </div>
-                  <div className="space-y-3">
-                     <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">CVV</label>
-                     <input 
+                        className="w-full p-5 bg-slate-50 rounded-[1.5rem] border-2 border-transparent focus:border-rose-500 focus:bg-white outline-none transition-all font-bold" 
+                      />
+                      <input 
                         name="cvv"
                         value={formData.cvv}
                         onChange={handleInputChange}
-                        placeholder="123" 
-                        className="w-full p-4 bg-slate-50 rounded-2xl border-2 border-transparent focus:border-rose-500 focus:bg-white outline-none transition-all font-bold" 
-                     />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {metodo === 'pix' && (
-              <div className="p-6 bg-slate-50 rounded-[2rem] border border-dashed border-slate-200 flex items-center gap-4">
-                 <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-slate-400">
-                    <Info size={20} />
+                        placeholder="CVV" 
+                        className="w-full p-5 bg-slate-50 rounded-[1.5rem] border-2 border-transparent focus:border-rose-500 focus:bg-white outline-none transition-all font-bold" 
+                      />
+                    </div>
                  </div>
-                 <p className="text-xs font-bold text-slate-500 leading-relaxed uppercase tracking-wider">
-                    O QR Code será gerado após clicar em finalizar. <br/>
-                    A aprovação é instantânea.
-                 </p>
-              </div>
-            )}
+               ) : (
+                 <div className="flex flex-col items-center text-center py-4 space-y-4">
+                    <div className="w-16 h-16 rounded-full bg-rose-50 flex items-center justify-center text-rose-500">
+                       <QrCode size={32} />
+                    </div>
+                    <div className="max-w-xs">
+                       <p className="font-black uppercase tracking-tighter text-slate-900">QR Code Instantâneo</p>
+                       <p className="text-xs text-slate-400 font-bold leading-relaxed mt-2 uppercase tracking-widest">
+                          O código Pix será gerado após a confirmação. A liberação do seu ingresso acontece em segundos.
+                       </p>
+                    </div>
+                 </div>
+               )}
+            </div>
           </section>
         </div>
 
-        {/* LADO DIREITO: RESUMO FLUTUANTE */}
+        {/* COLUNA DIREITA: RESUMO (IGUAL À OUTRA PÁGINA) */}
         <div className="lg:col-span-5">
-          <div className="lg:sticky lg:top-24 space-y-6">
-            <div className="bg-slate-900 rounded-[3rem] p-8 md:p-10 text-white shadow-2xl overflow-hidden relative">
-              {/* Círculos Decorativos */}
-              <div className="absolute -top-10 -right-10 w-40 h-40 bg-rose-500/10 rounded-full blur-3xl" />
-              
-              <h3 className="text-lg font-black uppercase italic tracking-widest mb-10 pb-4 border-b border-slate-800">Resumo da Reserva</h3>
-              
-              <div className="space-y-6 mb-10">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="text-xs font-black uppercase tracking-widest text-slate-500 mb-1">Evento</p>
-                    <p className="font-black text-xl tracking-tighter italic uppercase leading-none">{evento?.nome || 'Processando...'}</p>
+          <div className="sticky top-28 space-y-6">
+            <div className="bg-white rounded-[3rem] border-2 border-slate-100 shadow-[0_40px_80px_-15px_rgba(0,0,0,0.08)] overflow-hidden">
+               <div className="p-8 md:p-10 space-y-8">
+                  <h4 className="font-black text-slate-900 uppercase italic tracking-tighter">Resumo da Compra</h4>
+                  
+                  <div className="space-y-4">
+                     <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                        <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center shadow-sm text-rose-500">
+                           <Ticket size={24} />
+                        </div>
+                        <div className="flex-1">
+                           <p className="font-black text-slate-800 text-sm uppercase italic tracking-tighter line-clamp-1">{evento?.nome || 'Processando...'}</p>
+                           <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{qtd}x Ingressos</p>
+                        </div>
+                     </div>
                   </div>
-                  <span className="bg-slate-800 px-3 py-1 rounded-lg font-black text-xs text-rose-500">{qtd}x</span>
-                </div>
 
-                <div className="flex justify-between text-sm">
-                  <span className="text-slate-500 font-bold uppercase tracking-widest">Subtotal</span>
-                  <span className="font-bold">{(total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
-                </div>
-                
-                <div className="pt-6 border-t border-slate-800 flex justify-between items-center">
-                  <span className="text-slate-400 font-black uppercase tracking-[0.2em] text-xs">Total a Pagar</span>
-                  <span className="text-4xl font-black tracking-tighter text-white">
-                    {total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                  </span>
-                </div>
-              </div>
+                  <div className="pt-6 border-t-2 border-dashed border-slate-100 space-y-4">
+                    <div className="flex justify-between items-end">
+                      <span className="text-slate-400 text-[10px] font-black uppercase tracking-widest pb-1">Total a pagar</span>
+                      <span className="text-4xl font-black text-slate-900 tracking-tighter">
+                        {total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                      </span>
+                    </div>
 
-              <button 
-                onClick={handleFinalizarCompra}
-                disabled={loading || !formData.nome || !formData.email}
-                className="group w-full bg-rose-600 hover:bg-white hover:text-rose-600 py-6 rounded-2xl font-black uppercase text-xs tracking-[0.2em] transition-all flex items-center justify-center gap-3 disabled:opacity-30 disabled:grayscale"
-              >
-                {loading ? (
-                  <Loader2 className="animate-spin" size={20} />
-                ) : (
-                  <>
-                    <Lock size={16} /> Confirmar & Pagar
-                  </>
-                )}
-              </button>
+                    <button 
+                      onClick={handleFinalizarCompra}
+                      disabled={loading || !formData.nome || !formData.email}
+                      className="flex items-center justify-center w-full bg-[#E30031] py-6 rounded-[2rem] font-black text-white transition-all hover:bg-black hover:shadow-2xl shadow-rose-200 uppercase text-xs tracking-[0.2em] gap-3 active:scale-95 disabled:opacity-30"
+                    >
+                      {loading ? (
+                        <Loader2 className="animate-spin" size={20} />
+                      ) : (
+                        <>
+                          <Lock size={18} />
+                          Finalizar Pagamento
+                        </>
+                      )}
+                    </button>
+                  </div>
 
-              <div className="mt-8 flex flex-col items-center gap-4 text-slate-500">
-                 <div className="flex items-center gap-2">
-                    <ShieldCheck size={16} className="text-green-500" />
-                    <span className="text-[9px] font-black uppercase tracking-[0.2em]">Ambiente Criptografado</span>
-                 </div>
-                 <div className="flex gap-4 grayscale opacity-30">
-                    <img src="https://logodownload.org/wp-content/uploads/2014/07/visa-logo-1.png" className="h-3" alt="Visa" />
-                    <img src="https://logodownload.org/wp-content/uploads/2014/07/mastercard-logo.png" className="h-5" alt="Mastercard" />
-                    <img src="https://logodownload.org/wp-content/uploads/2020/02/pix-logo-1.png" className="h-4" alt="Pix" />
-                 </div>
-              </div>
+                  <div className="flex flex-col gap-4">
+                     <div className="flex justify-center items-center gap-2 opacity-40">
+                        <ShieldCheck size={14} />
+                        <span className="text-[9px] font-black uppercase tracking-[0.2em]">Linkah Secure Payment</span>
+                     </div>
+                  </div>
+               </div>
             </div>
           </div>
         </div>
@@ -276,12 +257,11 @@ function CheckoutContent() {
 
 export default function CheckoutPage() {
   return (
-    <div className="bg-[#F8FAFC] min-h-screen text-slate-900">
+    <div className="bg-white min-h-screen text-slate-900">
       <Navbar />
       <Suspense fallback={
-        <div className="flex flex-col items-center justify-center py-40 gap-4">
+        <div className="flex flex-col items-center justify-center py-40">
           <Loader2 className="animate-spin text-rose-500" size={40} />
-          <p className="text-xs font-black uppercase tracking-widest text-slate-400">Preparando checkout seguro...</p>
         </div>
       }>
         <CheckoutContent />
