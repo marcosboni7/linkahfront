@@ -158,13 +158,13 @@ export default function TabelaEventos() {
                 <tr key={evento.id} className="hover:bg-slate-50/30 transition-colors group">
                   <td className="px-8 py-5">
                     <div className="flex items-start gap-4">
-                      <div className="w-14 h-14 rounded-2xl bg-slate-100 overflow-hidden border border-slate-100 shrink-0 shadow-sm">
-                        {evento.imagem_capa ? (
-                          <img src={evento.imagem_capa} className="w-full h-full object-cover" alt="" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-slate-300"><ImageIcon size={20}/></div>
-                        )}
-                      </div>
+                     <div className="w-14 h-14 rounded-2xl bg-slate-100 overflow-hidden border border-slate-100 shrink-0 shadow-sm">
+  {evento.imagem_capa ? (
+    <img src={evento.imagem_capa} className="w-full h-full object-cover" alt="" />
+  ) : (
+    <div className="w-full h-full flex items-center justify-center text-slate-300"><ImageIcon size={20}/></div>
+  )}
+</div>
                       <div className="space-y-1.5">
                         <div>
                           <p className="font-black text-slate-800 text-sm leading-tight uppercase">{evento.nome}</p>
