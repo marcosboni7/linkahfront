@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Navbar } from '../app/site/Navbar';
 import { EventCard } from '../app/site/EventCard';
+import { Footer } from './footer/page';
 import { Search, MapPin, Sparkles, Ticket, ChevronRight } from 'lucide-react';
 
 export default function BuyTicketHome() {
@@ -152,9 +153,7 @@ export default function BuyTicketHome() {
         </div>
       </main>
       
-      <footer className="bg-white border-t border-slate-100 py-12 text-center text-slate-400 text-[10px] font-bold uppercase tracking-[0.3em]">
-        © 2026 LINKAH TICKETS - EXPERIÊNCIAS QUE CONECTAM
-      </footer>
+     <Footer />
     </div>
   );
 }
