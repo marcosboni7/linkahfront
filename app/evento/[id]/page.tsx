@@ -7,7 +7,7 @@ import { Footer } from '../../site/Footer';
 import { 
   Calendar, MapPin, Ticket, ShieldCheck, Share2, 
   Loader2, Plus, Minus, Zap, ChevronLeft, Globe,
-  CheckCircle2, Info, Clock, Heart
+  CheckCircle2, Info, Clock, Heart, Users 
 } from 'lucide-react';
 import Link from 'next/link';
 
