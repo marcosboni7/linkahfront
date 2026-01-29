@@ -19,7 +19,9 @@ export default function DetalhesEvento() {
         const res = await fetch(`https://linkah-api.onrender.com/api/eventos/${id}`);
         if (res.ok) {
           const data = await res.json();
-          console.log("DADOS REAIS DA API:", data); // Olhe isso no F12 do navegador
+          // ESSA LINHA É A MAIS IMPORTANTE: 
+          // Abra o site, aperte F12, vá em 'Console' e veja o que aparece aqui.
+          console.log("CONTEÚDO DA API:", data); 
           setEvento(data);
         }
       } catch (err) {
@@ -39,17 +41,18 @@ export default function DetalhesEvento() {
 
   if (!evento) return <div className="p-20 text-center text-slate-500 font-medium">Evento não encontrado.</div>;
 
-  // --- LÓGICA DE CAPTURA DE PREÇO "À PROVA DE ERROS" ---
-  // Tenta pegar de qualquer campo comum: preco_minimo, preco, valor, price, amount
-  const precoExtraido = 
+  // LÓGICA DE PREÇO MEGA AMPLIADA
+  // Adicionei todos os nomes possíveis que podem estar vindo da sua API
+  const precoBase = Number(
     evento.preco_minimo || 
     evento.preco || 
     evento.valor || 
     evento.price || 
-    evento.amount || 
-    0;
-
-  const precoBase = Number(precoExtraido);
+    evento.preco_venda || 
+    evento.ticket_price ||
+    0
+  );
+  
   const total = precoBase * quantidade;
 
   return (
@@ -69,109 +72,86 @@ export default function DetalhesEvento() {
             <div className="space-y-6">
               <div className="flex items-center justify-between flex-wrap gap-4">
                 <div className="flex items-center gap-4">
-                  <span className="px-3 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-[0.15em] rounded-md">
-                    {evento.categoria || 'Experience'}
+                  <span className="px-3 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase rounded-md">
+                    {evento.categoria || 'Evento'}
                   </span>
-                  {precoBase > 0 && (
-                    <span className="flex items-center gap-1.5 text-rose-500 text-[10px] font-bold uppercase tracking-widest">
-                      <Zap size={12} fill="currentColor" /> Vagas Limitadas
-                    </span>
-                  )}
                 </div>
 
-                {/* BADGE DE PREÇO NO TOPO */}
-                <div className="bg-[#0F172A] text-white px-4 py-2 rounded-full font-bold text-sm shadow-sm">
+                {/* BADGE DE PREÇO - SE CONTINUAR 0, O NOME NA API ESTÁ MUITO DIFERENTE */}
+                <div className="bg-[#0F172A] text-white px-5 py-2.5 rounded-full font-bold text-sm shadow-lg">
                   {precoBase > 0 
                     ? `A partir de ${precoBase.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`
-                    : 'Gratuito'}
+                    : 'Valor sob consulta'}
                 </div>
               </div>
 
-              <h1 className="text-4xl md:text-5xl font-semibold tracking-tight text-slate-900 leading-tight">
+              <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900">
                 {evento.nome}
               </h1>
 
               <div className="flex flex-wrap gap-8 py-8 border-y border-slate-100">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-full bg-rose-50 flex items-center justify-center text-rose-500">
-                    <Calendar size={22} strokeWidth={1.5} />
+                    <Calendar size={22} />
                   </div>
                   <div>
-                    <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Data do Evento</p>
+                    <p className="text-[11px] font-bold text-slate-400 uppercase">Data</p>
                     <p className="text-md font-semibold text-slate-800">
-                       {evento.data_inicio ? new Date(evento.data_inicio).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric', timeZone: 'UTC' }) : 'Data a definir'}
+                       {evento.data_inicio ? new Date(evento.data_inicio).toLocaleDateString('pt-BR') : 'Verificar data'}
                     </p>
                   </div>
                 </div>
-
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-500">
-                    <MapPin size={22} strokeWidth={1.5} />
+                    <MapPin size={22} />
                   </div>
                   <div>
-                    <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Localização</p>
-                    <p className="text-md font-semibold text-slate-800">{evento.cidade || 'Local'}, {evento.estado || ''}</p>
+                    <p className="text-[11px] font-bold text-slate-400 uppercase">Local</p>
+                    <p className="text-md font-semibold text-slate-800">{evento.cidade || 'Local não informado'}</p>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="relative aspect-[21/9] w-full rounded-3xl overflow-hidden bg-slate-100 shadow-md">
+            <div className="relative aspect-[21/9] w-full rounded-3xl overflow-hidden bg-slate-100 shadow-xl border border-slate-100">
               <img 
                 src={evento.imagem_capa || "https://images.unsplash.com/photo-1492684223066-81342ee5ff30"} 
                 className="w-full h-full object-cover"
                 alt={evento.nome}
               />
             </div>
-
-            <div className="max-w-2xl">
-              <h3 className="text-xl font-semibold text-slate-900 mb-4">Sobre o evento</h3>
-              <p className="text-slate-500 leading-relaxed text-lg whitespace-pre-line font-light">
-                {evento.descricao || "Sem descrição disponível."}
-              </p>
-            </div>
           </div>
 
-          {/* LADO DIREITO: CARD DE COMPRA */}
           <div className="lg:col-span-5">
             <div className="sticky top-12">
-              <div className="bg-white rounded-[2rem] border border-slate-100 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.05)] p-8 md:p-10">
-                <div className="flex justify-between items-center mb-8">
-                  <h2 className="text-2xl font-bold text-slate-900">Ingressos</h2>
-                  <button className="text-slate-400 hover:text-rose-500 transition-colors">
-                    <Share2 size={20} strokeWidth={1.5} />
-                  </button>
-                </div>
+              <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-[0_40px_80px_-15px_rgba(0,0,0,0.08)] p-8 md:p-10">
+                <h2 className="text-2xl font-bold text-slate-900 mb-8">Ingressos</h2>
 
-                <div className="space-y-6">
-                  {/* SELETOR DE QUANTIDADE */}
-                  <div className="flex items-center justify-between p-6 bg-slate-50/50 rounded-3xl border border-slate-100">
+                <div className="space-y-8">
+                  <div className="flex items-center justify-between p-6 bg-slate-50 rounded-3xl border border-slate-100">
                     <div>
                       <p className="text-sm font-bold text-slate-900">Quantidade</p>
-                      <p className="text-[11px] text-slate-400 font-medium">Limite de 5 convites</p>
+                      <p className="text-[11px] text-slate-400">Máximo 5 por pessoa</p>
                     </div>
-                    <div className="flex items-center gap-4 bg-white p-2 rounded-xl border border-slate-200 shadow-sm">
-                      <button onClick={() => setQuantidade(Math.max(1, quantidade - 1))} className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-rose-500">
-                        <Minus size={16} />
+                    <div className="flex items-center gap-4 bg-white p-2 rounded-2xl shadow-sm border border-slate-200">
+                      <button onClick={() => setQuantidade(Math.max(1, quantidade - 1))} className="p-1 hover:text-rose-500 transition-colors">
+                        <Minus size={20} />
                       </button>
-                      <span className="text-lg font-bold text-slate-900 w-6 text-center">{quantidade}</span>
-                      <button onClick={() => setQuantidade(Math.min(5, quantidade + 1))} className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-rose-500">
-                        <Plus size={16} />
+                      <span className="text-xl font-bold text-slate-900 min-w-[20px] text-center">{quantidade}</span>
+                      <button onClick={() => setQuantidade(Math.min(5, quantidade + 1))} className="p-1 hover:text-rose-500 transition-colors">
+                        <Plus size={20} />
                       </button>
                     </div>
                   </div>
 
-                  {/* RESUMO DE PREÇO */}
-                  <div className="pt-4 space-y-4">
-                    <div className="flex justify-between text-sm text-slate-400 font-medium">
+                  <div className="space-y-3">
+                    <div className="flex justify-between text-slate-400 font-medium text-sm px-2">
                       <span>Preço unitário</span>
-                      <span className="text-slate-600 font-bold">
-                        {precoBase.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                      </span>
+                      <span>{precoBase.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-base font-bold text-slate-900">Total</span>
-                      <span className="text-4xl font-black text-slate-900 tracking-tighter">
+                    <div className="flex justify-between items-end px-2">
+                      <span className="text-lg font-bold text-slate-900">Total</span>
+                      <span className="text-5xl font-black text-slate-900 tracking-tighter">
                         {total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                       </span>
                     </div>
@@ -179,17 +159,15 @@ export default function DetalhesEvento() {
 
                   <Link 
                     href={`/venda?eventoId=${id}&qtd=${quantidade}`}
-                    className="flex items-center justify-center w-full bg-[#E30031] py-5 rounded-2xl font-bold text-white transition-all hover:brightness-110 shadow-lg active:scale-[0.98] gap-3"
+                    className="flex items-center justify-center w-full bg-[#E30031] py-6 rounded-2xl font-bold text-white transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-rose-100 gap-3 text-lg"
                   >
-                    <Ticket size={20} className="rotate-[-10deg]" />
-                    Comprar Ingressos
+                    <Ticket size={24} className="rotate-[-10deg]" />
+                    Confirmar Reserva
                   </Link>
 
-                  <div className="pt-4 flex justify-center">
-                    <div className="flex items-center gap-2 text-slate-300">
-                      <ShieldCheck size={14} />
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-center">Pagamento processado via Linkah</span>
-                    </div>
+                  <div className="flex justify-center items-center gap-2 text-slate-300 pt-2">
+                    <ShieldCheck size={16} />
+                    <span className="text-[11px] font-bold uppercase tracking-widest">Linkah Secure Pay</span>
                   </div>
                 </div>
               </div>
