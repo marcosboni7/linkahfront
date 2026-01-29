@@ -7,7 +7,6 @@ import { User, PlusCircle, MapPin, Ticket, LogOut } from 'lucide-react';
 export function Navbar() {
   const [usuario, setUsuario] = useState<{ nome: string } | null>(null);
 
-  // Verifica se o usuário está logado ao carregar a página
   useEffect(() => {
     const savedUser = localStorage.getItem('@Linkah:User');
     if (savedUser) {
@@ -40,32 +39,44 @@ export function Navbar() {
       </div>
 
       {/* LADO DIREITO */}
-      <div className="flex items-center gap-1 md:gap-4">
-        <div className="hidden sm:flex items-center border-r border-slate-100 pr-4 mr-2">
-          <Link href="/meus-ingressos" className="flex items-center gap-2 text-slate-400 hover:text-slate-900 px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-colors">
-            <Ticket size={14} /> Meus Ingressos
-          </Link>
-        </div>
+      <div className="flex-center flex items-center gap-1 md:gap-4">
+        
+        {/* SÓ APARECE SE O USUÁRIO ESTIVER LOGADO */}
+        {usuario && (
+          <div className="hidden sm:flex items-center border-r border-slate-100 pr-4 mr-2">
+            <Link 
+              href="/meus-ingressos" 
+              className="flex items-center gap-2 text-slate-500 hover:text-[#d6006d] px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-colors animate-in fade-in slide-in-from-right-4 duration-500"
+            >
+              <Ticket size={14} className="text-[#d6006d]" /> 
+              Meus Ingressos
+            </Link>
+          </div>
+        )}
 
         {usuario ? (
-          // INTERFACE USUÁRIO LOGADO
+          /* INTERFACE USUÁRIO LOGADO */
           <div className="flex items-center gap-3">
              <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-2xl border border-slate-100">
                 <div className="w-6 h-6 rounded-full bg-[#d6006d] flex items-center justify-center text-[10px] text-white font-bold">
                   {usuario.nome.charAt(0).toUpperCase()}
                 </div>
                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-700 hidden md:block">
-                  {usuario.nome.split(' ')[0]}
+                  Olá, {usuario.nome.split(' ')[0]}
                 </span>
              </div>
-             <button onClick={handleLogout} className="p-2 text-slate-300 hover:text-red-500 transition-colors" title="Sair">
+             <button 
+               onClick={handleLogout} 
+               className="p-2 text-slate-300 hover:text-red-500 transition-colors" 
+               title="Sair"
+             >
                 <LogOut size={18} />
              </button>
           </div>
         ) : (
-          // BOTÃO ENTRAR - APONTANDO PARA /site/login
+          /* BOTÃO ENTRAR */
           <Link 
-            href="/site/login" 
+            href="/auth/login" 
             className="text-slate-900 text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-slate-50 px-4 py-3 rounded-2xl transition-all"
           >
             <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
