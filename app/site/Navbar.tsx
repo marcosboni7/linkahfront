@@ -76,7 +76,7 @@ export function Navbar() {
         ) : (
           /* BOTÃO ENTRAR */
           <Link 
-            href="/auth/login" 
+            href="/site/login" 
             className="text-slate-900 text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-slate-50 px-4 py-3 rounded-2xl transition-all"
           >
             <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
