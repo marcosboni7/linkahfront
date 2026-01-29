@@ -11,7 +11,6 @@ export default function NovoEventoOnline() {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
-    produtor_email: typeof window !== 'undefined' ? localStorage.getItem('userEmail') || '' : '',
     nome: '',
     categoria: '',
     link_transmissao: '',
@@ -20,9 +19,7 @@ export default function NovoEventoOnline() {
     hora_inicio: '',
     data_termino: '',
     hora_termino: '',
-    imagem_capa: '',
     status: 'Ativo',
-    tipo: 'Online'
   });
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -30,11 +27,16 @@ export default function NovoEventoOnline() {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        const base64 = reader.result as string;
-        setPreviewImage(base64);
-        setFormData({ ...formData, imagem_capa: base64 });
+        setPreviewImage(reader.result as string);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleChange = (name: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (value.trim() !== "") {
+      setErrors((prev) => ({ ...prev, [name]: false }));
     }
   };
 
@@ -44,69 +46,67 @@ export default function NovoEventoOnline() {
     if (!formData.link_transmissao.trim()) newErrors.link_transmissao = true;
     if (!formData.categoria.trim()) newErrors.categoria = true;
     if (!formData.data_inicio) newErrors.data_inicio = true;
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-const handleSubmit = async (e?: React.FormEvent) => {
-  if (e) e.preventDefault();
-  if (!validate()) {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    return;
-  }
-
-  setLoading(true);
-  try {
-    const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://linkah-api.onrender.com';
-    const dataToSend = new FormData();
-    
-    // 1. Pegar o email do localStorage na hora do envio para garantir
-    const userEmail = localStorage.getItem('userEmail') || '';
-
-    // 2. Adicionar TODOS os textos ANTES da imagem
-    dataToSend.append('produtor_email', userEmail);
-    dataToSend.append('nome', formData.nome);
-    dataToSend.append('categoria', formData.categoria);
-    dataToSend.append('link_transmissao', formData.link_transmissao);
-    dataToSend.append('descricao', formData.descricao || '');
-    dataToSend.append('data_inicio', formData.data_inicio);
-    dataToSend.append('hora_inicio', formData.hora_inicio);
-    dataToSend.append('data_termino', formData.data_termino || '');
-    dataToSend.append('hora_termino', formData.hora_termino || '');
-    dataToSend.append('status', formData.status);
-    dataToSend.append('tipo', 'Online');
-
-    // 3. Adicionar a imagem por ÚLTIMO
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    if (fileInput?.files?.[0]) {
-      dataToSend.append('imagem_capa', fileInput.files[0]);
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!validate()) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
     }
 
-    const res = await fetch(`${apiBaseUrl}/api/eventos/novo-online`, {
-      method: 'POST',
-      body: dataToSend, // Certifique-se de que NÃO existe 'headers' aqui
-    });
+    setLoading(true);
+    try {
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://linkah-api.onrender.com';
+      const emailLogado = localStorage.getItem('userEmail');
 
-    const data = await res.json();
-    
-    if (res.ok) {
-      router.push(`/dashboard/eventos/novo/ingressos/${data.id}`);
-    } else {
-      // Isso vai mostrar exatamente o erro do servidor no alert
-      alert(data.error || data.message || "Erro ao salvar.");
-    }
-  } catch (err) {
-    console.error("Erro na conexão:", err);
-    alert("Não foi possível conectar ao servidor.");
-  } finally {
-    setLoading(false);
-  }
-};
-  const handleChange = (name: string, value: string) => {
-    setFormData({ ...formData, [name]: value });
-    if (value.trim() !== "") {
-      setErrors(prev => ({ ...prev, [name]: false }));
+      if (!emailLogado) {
+        alert("Sua sessão expirou. Por favor, faça login novamente.");
+        router.push('/login');
+        return;
+      }
+
+      const dataToSend = new FormData();
+      
+      // 1. Campos de texto primeiro
+      dataToSend.append('produtor_email', emailLogado);
+      dataToSend.append('nome', formData.nome);
+      dataToSend.append('categoria', formData.categoria);
+      dataToSend.append('link_transmissao', formData.link_transmissao);
+      dataToSend.append('descricao', formData.descricao || '');
+      dataToSend.append('data_inicio', formData.data_inicio);
+      dataToSend.append('hora_inicio', formData.hora_inicio);
+      dataToSend.append('data_termino', formData.data_termino || '');
+      dataToSend.append('hora_termino', formData.hora_termino || '');
+      dataToSend.append('status', formData.status);
+      dataToSend.append('tipo', 'Online');
+
+      // 2. Arquivo por último
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+      if (fileInput?.files?.[0]) {
+        dataToSend.append('imagem_capa', fileInput.files[0]);
+      }
+
+      const res = await fetch(`${apiBaseUrl}/api/eventos/novo-online`, {
+        method: 'POST',
+        body: dataToSend, // O navegador define o Content-Type automaticamente
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        router.push(`/dashboard/eventos/novo/ingressos/${data.id}`);
+      } else {
+        alert(data.error || data.message || "Erro ao salvar evento.");
+      }
+    } catch (err) {
+      console.error("Erro na conexão:", err);
+      alert("Não foi possível conectar ao servidor.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -133,6 +133,7 @@ const handleSubmit = async (e?: React.FormEvent) => {
       </header>
 
       <div className="max-w-6xl mx-auto p-6 md:p-12">
+        {/* Progress Tracker */}
         <div className="flex justify-center items-center mb-16 relative">
           <div className="flex items-center gap-12 md:gap-24 z-10">
             <div className="flex items-center gap-3 bg-white pr-4 py-1">
@@ -245,7 +246,13 @@ const handleSubmit = async (e?: React.FormEvent) => {
                 {previewImage ? (
                   <>
                     <img src={previewImage} className="w-full h-full object-cover" alt="Preview" />
-                    <button onClick={(e) => { e.preventDefault(); setPreviewImage(null); }} className="absolute top-4 right-4 bg-white p-2 rounded-full text-red-500 shadow-lg"><X size={18}/></button>
+                    <button 
+                      type="button"
+                      onClick={(e) => { e.preventDefault(); setPreviewImage(null); }} 
+                      className="absolute top-4 right-4 bg-white p-2 rounded-full text-red-500 shadow-lg z-20"
+                    >
+                      <X size={18}/>
+                    </button>
                   </>
                 ) : (
                   <>
