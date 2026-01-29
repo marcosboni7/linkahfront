@@ -74,7 +74,7 @@ function CheckoutContent() {
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       {/* Botão Voltar Discreto */}
-      <Link href={`/eventos/${eventoId}`} className="flex items-center gap-2 text-slate-400 hover:text-slate-900 transition-colors mb-8 text-sm font-bold group">
+      <Link href={`/evento/${eventoId}`} className="flex items-center gap-2 text-slate-400 hover:text-slate-900 transition-colors mb-8 text-sm font-bold group">
         <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
         Voltar para o evento
       </Link>
