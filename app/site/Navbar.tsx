@@ -30,23 +30,27 @@ export function Navbar() {
     window.location.href = '/'; 
   };
 
-  // FUNÇÃO PARA BUSCAR INGRESSOS (Pode usar o email do usuário logado)
+  // FUNÇÃO QUE BUSCA SÓ OS INGRESSOS DO USUÁRIO LOGADO
   const carregarMeusIngressos = async () => {
-    setIsModalOpen(true);
-    if (meusIngressos.length > 0) return; // Evita buscar de novo se já carregou
+    if (!usuario?.email) return; // Segurança: se não tem email, não busca.
 
+    setIsModalOpen(true);
     setBuscandoTickets(true);
+
     try {
-      // Simulação de Fetch - Aqui você conectaria com sua API
-      // const res = await fetch(`https://linkah-api.onrender.com/api/compras/${usuario?.email}`);
-      setTimeout(() => {
-        setMeusIngressos([
-          { id: 'LK-9982', evento: 'Workshop Finanças Pro', data: '15/05/2026', qtd: 2, status: 'Aprovado' },
-          { id: 'LK-1024', evento: 'Live Experience 2026', data: '20/03/2026', qtd: 1, status: 'Aprovado' }
-        ]);
-        setBuscandoTickets(false);
-      }, 1000);
+      // Faz o fetch passando o email do usuário logado como filtro
+      const response = await fetch(`https://linkah-api.onrender.com/api/compras?email=${usuario.email}`);
+      
+      if (response.ok) {
+        const dados = await response.json();
+        // A API deve retornar apenas o array de compras desse e-mail
+        setMeusIngressos(dados);
+      } else {
+        console.error("Erro ao buscar ingressos");
+      }
     } catch (err) {
+      console.error("Erro de conexão:", err);
+    } finally {
       setBuscandoTickets(false);
     }
   };
@@ -71,7 +75,6 @@ export function Navbar() {
           
           {usuario && (
             <div className="flex items-center animate-in fade-in zoom-in-95 duration-300">
-              {/* TRANSFORMADO EM BOTÃO PARA ABRIR MODAL */}
               <button 
                 onClick={carregarMeusIngressos}
                 className="flex items-center gap-2 text-slate-500 hover:text-[#d6006d] px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-colors border-r border-slate-100 mr-2"
@@ -122,14 +125,17 @@ export function Navbar() {
         </div>
       </nav>
 
-      {/* MODAL DE INGRESSOS (Renderizado fora da nav para não quebrar o layout) */}
+      {/* MODAL DE INGRESSOS */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsModalOpen(false)} />
           
           <div className="relative bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-              <h2 className="text-xl font-black uppercase italic tracking-tighter text-slate-900">🎟️ Meus Ingressos</h2>
+              <div>
+                <h2 className="text-xl font-black uppercase italic tracking-tighter text-slate-900">🎟️ Meus Ingressos</h2>
+                <p className="text-[9px] font-bold text-slate-400 uppercase">{usuario?.email}</p>
+              </div>
               <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-200 rounded-full transition-colors">
                 <X size={20} />
               </button>
@@ -140,7 +146,7 @@ export function Navbar() {
                 {buscandoTickets ? (
                   <div className="flex flex-col items-center py-20 gap-4">
                     <Loader2 className="animate-spin text-[#d6006d]" size={32} />
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Carregando seus tickets...</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Buscando seus ingressos...</p>
                   </div>
                 ) : meusIngressos.length > 0 ? (
                   meusIngressos.map((ticket) => (
@@ -152,7 +158,9 @@ export function Navbar() {
                             <Calendar size={12} /> {ticket.data}
                           </div>
                         </div>
-                        <span className="bg-green-100 text-green-600 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest">
+                        <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
+                          ticket.status === 'Aprovado' ? 'bg-green-100 text-green-600' : 'bg-yellow-100 text-yellow-600'
+                        }`}>
                           {ticket.status}
                         </span>
                       </div>
@@ -162,7 +170,7 @@ export function Navbar() {
                           <span className="text-xs font-mono font-bold text-slate-500">{ticket.id}</span>
                         </div>
                         <div className="text-xs font-black uppercase tracking-tighter">
-                          {ticket.qtd} INGRESSOS
+                          {ticket.qtd} {ticket.qtd > 1 ? 'INGRESSOS' : 'INGRESSO'}
                         </div>
                       </div>
                     </div>
@@ -170,7 +178,7 @@ export function Navbar() {
                 ) : (
                   <div className="text-center py-10 opacity-30">
                     <Ticket size={48} className="mx-auto mb-4" />
-                    <p className="text-xs font-bold uppercase">Você ainda não possui ingressos</p>
+                    <p className="text-xs font-bold uppercase tracking-widest">Nenhum ingresso encontrado para este perfil</p>
                   </div>
                 )}
               </div>
