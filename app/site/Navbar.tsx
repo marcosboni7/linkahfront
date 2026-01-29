@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { User, PlusCircle, MapPin, Ticket, LogOut, X, Calendar, Hash, Loader2 } from 'lucide-react';
+import { User, MapPin, Ticket, LogOut, X, Calendar, Hash, Loader2 } from 'lucide-react';
 
 export function Navbar() {
   const [usuario, setUsuario] = useState<{ nome: string; email?: string; role?: string } | null>(null);
@@ -30,20 +30,17 @@ export function Navbar() {
     window.location.href = '/';
   };
 
-  // FUNÇÃO QUE BUSCA SÓ OS INGRESSOS DO USUÁRIO LOGADO
   const carregarMeusIngressos = async () => {
-    if (!usuario?.email) return; // Segurança: se não tem email, não busca.
+    if (!usuario?.email) return;
 
     setIsModalOpen(true);
     setBuscandoTickets(true);
 
     try {
-      // Faz o fetch passando o email do usuário logado como filtro
       const response = await fetch(`https://linkah-api.onrender.com/api/compras?email=${usuario.email}`);
 
       if (response.ok) {
         const dados = await response.json();
-        // A API deve retornar apenas o array de compras desse e-mail
         setMeusIngressos(dados);
       } else {
         console.error("Erro ao buscar ingressos");
@@ -77,20 +74,12 @@ export function Navbar() {
             <div className="flex items-center animate-in fade-in zoom-in-95 duration-300">
               <button
                 onClick={carregarMeusIngressos}
-                className="flex items-center gap-2 text-slate-500 hover:text-[#d6006d] px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-colors border-r border-slate-100 mr-2"
+                className="flex items-center gap-2 text-slate-500 hover:text-[#d6006d] px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-colors"
               >
                 <Ticket size={14} className="text-[#d6006d]" />
                 <span className="hidden sm:inline">Meus Ingressos</span>
               </button>
-
-              <Link
-                // Se o usuário existir, vai para o formulário. Se não, vai para o login.
-                href={usuario ? "/auth/login" : "/site/login"}
-                className="bg-[#d6006d] text-white text-[10px] font-black uppercase tracking-widest flex items-center gap-2 px-6 py-3.5 rounded-2xl hover:shadow-[0_10px_25px_rgba(214,0,109,0.3)] hover:-translate-y-0.5 transition-all active:scale-95"
-              >
-                <PlusCircle size={18} />
-                <span className="hidden lg:inline">Criar Evento</span>
-              </Link>
+              {/* Botão Criar Evento Removido Daqui */}
             </div>
           )}
 
@@ -126,7 +115,7 @@ export function Navbar() {
         </div>
       </nav>
 
-      {/* MODAL DE INGRESSOS */}
+      {/* MODAL DE INGRESSOS (Mantido sem alterações) */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsModalOpen(false)} />
@@ -134,7 +123,7 @@ export function Navbar() {
           <div className="relative bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50">
               <div>
-                <h2 className="text-xl font-black uppercase italic tracking-tighter text-slate-900">🎟️ Meus Ingressos</h2>
+                <h2 className="text-xl font-black uppercase italic tracking-tighter text-slate-900"> Meus Ingressos</h2>
                 <p className="text-[9px] font-bold text-slate-400 uppercase">{usuario?.email}</p>
               </div>
               <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-200 rounded-full transition-colors">
