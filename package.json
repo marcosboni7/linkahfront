@@ -9,14 +9,17 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.2.2",
     "lucide-react": "^0.563.0",
     "next": "16.1.4",
     "nodemailer": "^7.0.12",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "react-hook-form": "^7.71.1",
     "sweetalert2": "^11.26.17",
     "sweetalert2-react-content": "^5.1.1",
-    "vercel": "^50.5.0"
+    "vercel": "^50.5.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
