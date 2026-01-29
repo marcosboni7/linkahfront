@@ -59,18 +59,22 @@ const handleSubmit = async (e?: React.FormEvent) => {
   setLoading(true);
   try {
     const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://linkah-api.onrender.com';
-    
-    // 🚀 A MUDANÇA COMEÇA AQUI: Usando FormData em vez de JSON
     const dataToSend = new FormData();
     
-    // Adiciona todos os campos de texto
-    Object.keys(formData).forEach(key => {
-      if (key !== 'imagem_capa') {
-        dataToSend.append(key, (formData as any)[key]);
-      }
-    });
+    // 1. Adicionar campos de texto GARANTINDO que não sejam nulos
+    dataToSend.append('produtor_email', formData.produtor_email || localStorage.getItem('userEmail') || '');
+    dataToSend.append('nome', formData.nome);
+    dataToSend.append('categoria', formData.categoria || 'Geral');
+    dataToSend.append('link_transmissao', formData.link_transmissao);
+    dataToSend.append('descricao', formData.descricao || '');
+    dataToSend.append('data_inicio', formData.data_inicio);
+    dataToSend.append('hora_inicio', formData.hora_inicio);
+    dataToSend.append('data_termino', formData.data_termino || '');
+    dataToSend.append('hora_termino', formData.hora_termino || '');
+    dataToSend.append('status', formData.status || 'Ativo');
+    dataToSend.append('tipo', 'Online');
 
-    // Adiciona o arquivo real da imagem (não o Base64)
+    // 2. Adicionar o arquivo físico (O NOME PRECISA SER 'imagem_capa')
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     if (fileInput?.files?.[0]) {
       dataToSend.append('imagem_capa', fileInput.files[0]);
@@ -78,16 +82,21 @@ const handleSubmit = async (e?: React.FormEvent) => {
 
     const res = await fetch(`${apiBaseUrl}/api/eventos/novo-online`, {
       method: 'POST',
-      // IMPORTANTE: Não defina 'Content-Type' manualmente ao usar FormData
-      body: dataToSend, 
+      body: dataToSend, // SEM cabeçalho de Content-Type
     });
 
-    const data = await res.json();
-    if (res.ok) {
-      router.push(`/dashboard/eventos/novo/ingressos/${data.id}`);
-    } else {
-      alert(data.message || "Erro ao salvar evento.");
+    // Se o res não for ok, vamos ver o que o servidor respondeu antes de dar erro no JSON
+    if (!res.ok) {
+      const errorData = await res.json();
+      console.error("Erro do servidor:", errorData);
+      alert(errorData.error || errorData.message || "Erro 400: Verifique os campos.");
+      setLoading(false);
+      return;
     }
+
+    const data = await res.json();
+    router.push(`/dashboard/eventos/novo/ingressos/${data.id}`);
+
   } catch (err) {
     console.error("Erro na conexão:", err);
     alert("Não foi possível conectar ao servidor.");
