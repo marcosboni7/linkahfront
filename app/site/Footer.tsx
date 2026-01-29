@@ -8,7 +8,8 @@ import {
   ShieldCheck, 
   Ticket,
   Mail,
-  MapPin
+  MapPin,
+  Phone
 } from 'lucide-react';
 
 export function Footer() {
@@ -25,7 +26,7 @@ export function Footer() {
               LINKAH<span className="text-pink-300">.</span>
             </Link>
             <p className="text-pink-100/80 text-sm leading-relaxed font-medium">
-              Transformando momentos comuns em experiências extraordinárias. A sua próxima parada começa aqui.
+              Conectando você às melhores experiências. Transformamos eventos em momentos inesquecíveis.
             </p>
             <div className="flex gap-4">
               <Link href="#" className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-white hover:text-[#d6006d] transition-all">
@@ -59,16 +60,13 @@ export function Footer() {
             <h4 className="text-white font-black uppercase text-[10px] tracking-[0.2em] mb-6 opacity-60">Suporte</h4>
             <ul className="space-y-4">
               <li className="flex items-center gap-3 text-sm font-bold">
-                <Mail size={16} className="text-pink-300" /> contato@linkah.com
+                <Mail size={16} className="text-pink-300" /> contato@linkah.com.br
+              </li>
+              <li className="flex items-center gap-3 text-sm font-bold">
+                <Phone size={16} className="text-pink-300" /> +351 912 907 828
               </li>
               <li className="flex items-center gap-3 text-sm font-bold">
                 <MapPin size={16} className="text-pink-300" /> Votuporanga, SP
-              </li>
-              <li>
-                <Link href="#" className="text-white/90 hover:text-pink-200 text-sm font-bold transition-colors">Central de Ajuda</Link>
-              </li>
-              <li>
-                <Link href="#" className="text-white/90 hover:text-pink-200 text-sm font-bold transition-colors">Termos de Uso</Link>
               </li>
             </ul>
           </div>
@@ -97,7 +95,7 @@ export function Footer() {
           </div>
           <div className="flex gap-6">
             <Link href="#" className="text-white/40 text-[9px] font-black uppercase tracking-widest hover:text-white transition-colors">Políticas de Privacidade</Link>
-            <Link href="#" className="text-white/40 text-[9px] font-black uppercase tracking-widest hover:text-white transition-colors">Desenvolvedores</Link>
+            <Link href="#" className="text-white/40 text-[9px] font-black uppercase tracking-widest hover:text-white transition-colors">Vender Evento</Link>
           </div>
         </div>
       </div>
