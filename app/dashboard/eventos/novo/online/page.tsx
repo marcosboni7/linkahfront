@@ -49,37 +49,52 @@ export default function NovoEventoOnline() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
+const handleSubmit = async (e?: React.FormEvent) => {
+  if (e) e.preventDefault();
+  if (!validate()) {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    return;
+  }
+
+  setLoading(true);
+  try {
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://linkah-api.onrender.com';
     
-    if (!validate()) {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://linkah-api.onrender.com';
-      const res = await fetch(`${apiBaseUrl}/api/eventos/novo-online`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        router.push(`/dashboard/eventos/novo/ingressos/${data.id}`);
-      } else {
-        alert(data.message || "Erro ao salvar evento.");
+    // 🚀 A MUDANÇA COMEÇA AQUI: Usando FormData em vez de JSON
+    const dataToSend = new FormData();
+    
+    // Adiciona todos os campos de texto
+    Object.keys(formData).forEach(key => {
+      if (key !== 'imagem_capa') {
+        dataToSend.append(key, (formData as any)[key]);
       }
-    } catch (err) {
-      console.error("Erro na conexão:", err);
-      alert("Não foi possível conectar ao servidor.");
-    } finally {
-      setLoading(false);
-    }
-  };
+    });
 
+    // Adiciona o arquivo real da imagem (não o Base64)
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    if (fileInput?.files?.[0]) {
+      dataToSend.append('imagem_capa', fileInput.files[0]);
+    }
+
+    const res = await fetch(`${apiBaseUrl}/api/eventos/novo-online`, {
+      method: 'POST',
+      // IMPORTANTE: Não defina 'Content-Type' manualmente ao usar FormData
+      body: dataToSend, 
+    });
+
+    const data = await res.json();
+    if (res.ok) {
+      router.push(`/dashboard/eventos/novo/ingressos/${data.id}`);
+    } else {
+      alert(data.message || "Erro ao salvar evento.");
+    }
+  } catch (err) {
+    console.error("Erro na conexão:", err);
+    alert("Não foi possível conectar ao servidor.");
+  } finally {
+    setLoading(false);
+  }
+};
   const handleChange = (name: string, value: string) => {
     setFormData({ ...formData, [name]: value });
     if (value.trim() !== "") {
