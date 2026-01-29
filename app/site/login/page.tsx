@@ -147,7 +147,7 @@ export default function LoginPage() {
           <div className="mt-10 text-center">
              <p className="text-sm font-medium text-slate-400">
                Não tem uma conta? 
-               <Link href="/auth/register" className="text-[#d6006d] font-black uppercase text-xs tracking-widest ml-2 hover:underline decoration-2 underline-offset-4 transition-all">
+               <Link href="/site/register" className="text-[#d6006d] font-black uppercase text-xs tracking-widest ml-2 hover:underline decoration-2 underline-offset-4 transition-all">
                  Cadastre-se agora
                </Link>
              </p>
