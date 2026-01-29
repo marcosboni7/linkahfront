@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { Navbar } from '../../site/Navbar';
-import { Calendar, MapPin, Ticket, ShieldCheck, Share2, Loader2, Info, Plus, Minus, Zap } from 'lucide-react';
+import { Footer } from '../app/site/Footer';
+import { Calendar, MapPin, Ticket, ShieldCheck, Share2, Loader2, Info, Plus, Minus, Zap, ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
 
 export default function DetalhesEvento() {
@@ -31,7 +32,7 @@ export default function DetalhesEvento() {
 
   if (loading) return (
     <div className="h-screen w-full flex items-center justify-center bg-white">
-      <Loader2 className="animate-spin text-[#C22973]" size={32} />
+      <Loader2 className="animate-spin text-rose-500" size={32} />
     </div>
   );
 
@@ -41,141 +42,148 @@ export default function DetalhesEvento() {
   const total = precoBase * quantidade;
 
   return (
-    <div className="bg-[#FCFCFD] min-h-screen font-sans antialiased text-slate-900">
+    <div className="bg-white min-h-screen font-sans antialiased text-slate-900">
       <Navbar />
 
-      {/* BACKGROUND DECORATIVO SUTIL */}
-      <div className="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b from-pink-50/50 to-transparent -z-10" />
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-24">
+        
+        {/* BOTÃO VOLTAR SUTIL */}
+        <Link href="/" className="inline-flex items-center gap-2 text-slate-400 hover:text-rose-500 transition-colors mb-8 text-sm font-medium group">
+          <ChevronLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
+          Voltar para eventos
+        </Link>
 
-      <main className="max-w-6xl mx-auto px-6 pt-12 pb-24">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
           
-          {/* LADO ESQUERDO: CONTEÚDO PRINCIPAL */}
-          <div className="lg:col-span-7 space-y-10">
+          {/* LADO ESQUERDO: CONTEÚDO */}
+          <div className="lg:col-span-7 space-y-12">
             
-            {/* CARD DE IMAGEM COM EFEITO */}
-            <div className="group relative aspect-[16/9] w-full rounded-[2.5rem] overflow-hidden shadow-2xl shadow-pink-200/20">
-              <img 
-                src={evento.imagem_capa || "https://images.unsplash.com/photo-1492684223066-81342ee5ff30"} 
-                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                alt={evento.nome}
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            </div>
-
             <div className="space-y-6">
-              <div className="flex items-center gap-3">
-                <span className="px-4 py-1.5 bg-[#C22973]/10 text-[#C22973] text-[11px] font-black uppercase tracking-widest rounded-full">
-                  {evento.categoria || 'Destaque'}
+              <div className="flex items-center gap-4">
+                <span className="px-3 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-[0.15em] rounded-md">
+                  {evento.categoria || 'Experience'}
                 </span>
-                <span className="flex items-center gap-1.5 text-amber-500 text-[11px] font-black uppercase tracking-widest">
-                  <Zap size={14} fill="currentColor" /> Poucos Ingressos
-                </span>
+                {precoBase > 0 && (
+                   <span className="flex items-center gap-1.5 text-rose-500 text-[10px] font-bold uppercase tracking-widest">
+                    <Zap size={12} fill="currentColor" /> Vagas Limitadas
+                  </span>
+                )}
               </div>
 
-              <h1 className="text-4xl md:text-6xl font-black tracking-tight text-slate-900 leading-[1.1]">
+              <h1 className="text-4xl md:text-5xl font-semibold tracking-tight text-slate-900 leading-tight">
                 {evento.nome}
               </h1>
 
-              <div className="flex flex-wrap gap-y-4 gap-x-8 py-6 border-y border-slate-100">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-white shadow-sm border border-slate-100 flex items-center justify-center text-[#C22973]">
-                    <Calendar size={20} />
+              {/* INFO BAR - CLEAN */}
+              <div className="flex flex-wrap gap-8 py-8 border-y border-slate-100">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full bg-rose-50 flex items-center justify-center text-rose-500">
+                    <Calendar size={22} strokeWidth={1.5} />
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Quando</p>
-                    <p className="text-sm font-bold text-slate-700">
-                       {evento.data_inicio ? new Date(evento.data_inicio).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : 'A definir'}
+                    <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Data do Evento</p>
+                    <p className="text-md font-semibold text-slate-800">
+                       {evento.data_inicio ? new Date(evento.data_inicio).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric', timeZone: 'UTC' }) : 'A definir'}
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-white shadow-sm border border-slate-100 flex items-center justify-center text-[#C22973]">
-                    <MapPin size={20} />
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-500">
+                    <MapPin size={22} strokeWidth={1.5} />
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Onde</p>
-                    <p className="text-sm font-bold text-slate-700">{evento.cidade}, {evento.estado}</p>
+                    <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Localização</p>
+                    <p className="text-md font-semibold text-slate-800">{evento.cidade}, {evento.estado}</p>
                   </div>
                 </div>
               </div>
+            </div>
 
-              <div className="space-y-4">
-                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                  <Info size={20} className="text-[#C22973]" /> Detalhes do evento
-                </h3>
-                <p className="text-slate-600 leading-relaxed text-lg font-medium whitespace-pre-line">
-                  {evento.descricao || "Uma experiência exclusiva preparada especialmente para você. Garanta seu acesso agora."}
-                </p>
-              </div>
+            {/* IMAGEM PRINCIPAL COM CURVATURA SUAVE */}
+            <div className="relative aspect-[21/9] w-full rounded-3xl overflow-hidden bg-slate-100">
+              <img 
+                src={evento.imagem_capa || "https://images.unsplash.com/photo-1492684223066-81342ee5ff30"} 
+                className="w-full h-full object-cover"
+                alt={evento.nome}
+              />
+            </div>
+
+            {/* DESCRIÇÃO */}
+            <div className="max-w-2xl">
+              <h3 className="text-xl font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                Sobre o evento
+              </h3>
+              <p className="text-slate-500 leading-relaxed text-lg whitespace-pre-line font-light">
+                {evento.descricao || "Uma experiência exclusiva preparada especialmente para você. Garanta seu acesso agora e viva momentos inesquecíveis."}
+              </p>
             </div>
           </div>
 
-          {/* LADO DIREITO: CHECKOUT BOX VIVO */}
+          {/* LADO DIREITO: CHECKOUT (MINIMALISTA) */}
           <div className="lg:col-span-5">
-            <div className="sticky top-32">
-              <div className="p-1 w-full bg-gradient-to-br from-[#C22973] to-pink-400 rounded-[2.8rem] shadow-2xl shadow-pink-200/50">
-                <div className="bg-white rounded-[2.6rem] p-8 md:p-10">
-                  <div className="flex justify-between items-start mb-10">
+            <div className="sticky top-12">
+              <div className="bg-white rounded-[2rem] border border-slate-100 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.05)] p-8 md:p-10">
+                <div className="flex justify-between items-center mb-8">
+                  <h3 className="text-xl font-semibold text-slate-900">Ingressos</h3>
+                  <button className="text-slate-400 hover:text-rose-500 transition-colors">
+                    <Share2 size={20} strokeWidth={1.5} />
+                  </button>
+                </div>
+
+                <div className="space-y-6">
+                  {/* SELETOR DE QUANTIDADE */}
+                  <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
                     <div>
-                      <h3 className="text-2xl font-black text-slate-900 tracking-tight">Ingressos</h3>
-                      <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Lote Único</p>
+                      <p className="text-sm font-semibold text-slate-900">Quantidade</p>
+                      <p className="text-[11px] text-slate-400">Limite de 5 convites</p>
                     </div>
-                    <button className="p-3 bg-slate-50 text-slate-400 hover:text-[#C22973] rounded-2xl transition-colors">
-                      <Share2 size={20} />
-                    </button>
+                    <div className="flex items-center gap-4">
+                      <button 
+                        onClick={() => setQuantidade(Math.max(1, quantidade - 1))}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-600 hover:border-rose-500 hover:text-rose-500 transition-all"
+                      >
+                        <Minus size={14} />
+                      </button>
+                      <span className="text-lg font-medium text-slate-900 w-4 text-center">{quantidade}</span>
+                      <button 
+                        onClick={() => setQuantidade(Math.min(5, quantidade + 1))}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-600 hover:border-rose-500 hover:text-rose-500 transition-all"
+                      >
+                        <Plus size={14} />
+                      </button>
+                    </div>
                   </div>
 
-                  <div className="space-y-8">
-                    <div className="flex items-center justify-between p-6 bg-slate-50 rounded-3xl border border-slate-100">
-                      <div className="space-y-1">
-                        <p className="font-bold text-slate-900 text-sm">Quantidade</p>
-                        <p className="text-xs text-slate-500 font-medium">Máx. 5 por pessoa</p>
-                      </div>
-                      <div className="flex items-center gap-4 bg-white rounded-2xl p-2 border border-slate-200 shadow-sm">
-                        <button 
-                          onClick={() => setQuantidade(Math.max(1, quantidade - 1))}
-                          className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-pink-50 text-slate-400 hover:text-[#C22973] transition-all"
-                        >
-                          <Minus size={16} strokeWidth={3} />
-                        </button>
-                        <span className="text-lg font-black text-slate-900 w-4 text-center">{quantidade}</span>
-                        <button 
-                          onClick={() => setQuantidade(quantidade + 1)}
-                          className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-pink-50 text-slate-400 hover:text-[#C22973] transition-all"
-                        >
-                          <Plus size={16} strokeWidth={3} />
-                        </button>
-                      </div>
+                  {/* RESUMO DE PREÇO */}
+                  <div className="py-4 space-y-3">
+                    <div className="flex justify-between text-sm text-slate-400">
+                      <span>Preço unitário</span>
+                      <span>R$ {precoBase.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                     </div>
-
-                    <div className="space-y-2 pt-2">
-                      <div className="flex justify-between items-center text-slate-400 font-bold text-[10px] uppercase tracking-widest px-2">
-                        <span>Valor Unitário</span>
-                        <span>R$ {precoBase.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                      </div>
-                      <div className="flex justify-between items-center px-2">
-                        <span className="text-lg font-black text-slate-900">Total</span>
-                        <span className="text-3xl font-black text-[#C22973] tracking-tighter">
+                    <div className="flex justify-between items-end">
+                      <span className="text-sm font-semibold text-slate-900">Total</span>
+                      <div className="text-right">
+                        <span className="block text-3xl font-bold text-slate-900">
                           R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </span>
                       </div>
                     </div>
+                  </div>
 
-                    <Link 
-                      href={`/venda?eventoId=${id}&qtd=${quantidade}`}
-                      className="group relative flex items-center justify-center w-full bg-[#C22973] py-6 rounded-3xl font-black text-white uppercase tracking-[0.2em] text-sm transition-all duration-300 hover:shadow-[0_20px_40px_-10px_rgba(194,41,115,0.4)] active:scale-95 overflow-hidden"
-                    >
-                      <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-                      <Ticket size={20} className="mr-3" /> Garantir meu lugar
-                    </Link>
+                  {/* BOTÃO DE AÇÃO */}
+                  <Link 
+                    href={`/venda?eventoId=${id}&qtd=${quantidade}`}
+                    className="flex items-center justify-center w-full bg-slate-900 py-5 rounded-2xl font-semibold text-white transition-all hover:bg-rose-600 hover:shadow-lg hover:shadow-rose-200 active:scale-[0.98]"
+                  >
+                    <Ticket size={18} className="mr-2" strokeWidth={1.5} />
+                    Comprar Ingressos
+                  </Link>
 
-                    <div className="flex flex-col gap-3 items-center pt-2">
-                      <div className="flex items-center gap-2 text-emerald-500">
-                        <ShieldCheck size={16} strokeWidth={3} />
-                        <span className="text-[10px] font-black uppercase tracking-widest">Ambiente 100% Seguro</span>
-                      </div>
+                  <div className="pt-4 flex flex-col items-center gap-3">
+                    <div className="flex items-center gap-2 text-slate-400">
+                      <ShieldCheck size={14} />
+                      <span className="text-[10px] font-medium uppercase tracking-widest text-slate-400">Pagamento Processado via Linkah</span>
                     </div>
                   </div>
                 </div>
@@ -185,6 +193,7 @@ export default function DetalhesEvento() {
 
         </div>
       </main>
+      <Footer />
     </div>
   );
 }
