@@ -1,101 +1,146 @@
 'use client';
 
 import { Navbar } from '../site/Navbar';
-import { CreditCard, QrCode, ShieldCheck, Lock } from 'lucide-react';
+import { CreditCard, QrCode, ShieldCheck, Lock, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 
 export default function CheckoutPage() {
   const [metodo, setMetodo] = useState<'pix' | 'cartao'>('pix');
 
   return (
-    <div className="bg-[#F8FAFC] min-h-screen">
+    <div className="bg-[#FBFCFE] min-h-screen text-slate-900">
       <Navbar />
       
-      <main className="max-w-6xl mx-auto px-6 py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
           
-          {/* COLUNA ESQUERDA: DADOS E PAGAMENTO */}
-          <div className="space-y-8">
-            <div className="bg-white p-10 rounded-[2.5rem] shadow-sm border border-slate-100">
-              <h2 className="text-2xl font-black mb-8 flex items-center gap-3">
-                <span className="w-8 h-8 bg-slate-900 text-white rounded-full flex items-center justify-center text-sm">1</span>
-                Seus Dados
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <input placeholder="Nome Completo" className="w-full p-4 bg-slate-50 rounded-2xl border-none outline-none font-bold" />
-                <input placeholder="E-mail para receber o ingresso" className="w-full p-4 bg-slate-50 rounded-2xl border-none outline-none font-bold" />
+          {/* COLUNA ESQUERDA: FLUXO DE PAGAMENTO */}
+          <div className="lg:col-span-7 space-y-6">
+            
+            {/* ETAPA 1: IDENTIFICAÇÃO */}
+            <section className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm">
+              <div className="flex items-center gap-4 mb-8">
+                <div className="w-10 h-10 rounded-full bg-slate-900 text-white flex items-center justify-center text-sm font-bold">
+                  1
+                </div>
+                <h2 className="text-xl font-semibold">Seus Dados</h2>
               </div>
-            </div>
-
-            <div className="bg-white p-10 rounded-[2.5rem] shadow-sm border border-slate-100">
-              <h2 className="text-2xl font-black mb-8 flex items-center gap-3">
-                <span className="w-8 h-8 bg-slate-900 text-white rounded-full flex items-center justify-center text-sm">2</span>
-                Pagamento
-              </h2>
               
-              <div className="flex gap-4 mb-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="space-y-2">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 ml-1">Nome Completo</label>
+                  <input placeholder="Ex: João Silva" className="w-full p-4 bg-slate-50 rounded-xl border border-transparent focus:border-rose-500 focus:bg-white outline-none transition-all font-medium" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 ml-1">E-mail</label>
+                  <input placeholder="seu@email.com" className="w-full p-4 bg-slate-50 rounded-xl border border-transparent focus:border-rose-500 focus:bg-white outline-none transition-all font-medium" />
+                </div>
+              </div>
+            </section>
+
+            {/* ETAPA 2: PAGAMENTO */}
+            <section className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm">
+              <div className="flex items-center gap-4 mb-8">
+                <div className="w-10 h-10 rounded-full bg-slate-900 text-white flex items-center justify-center text-sm font-bold">
+                  2
+                </div>
+                <h2 className="text-xl font-semibold">Forma de Pagamento</h2>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4 mb-8">
                 <button 
                   onClick={() => setMetodo('pix')}
-                  className={`flex-1 py-4 rounded-2xl font-black uppercase text-xs tracking-widest border-2 transition-all flex items-center justify-center gap-2 ${metodo === 'pix' ? 'border-[#C22973] bg-pink-50 text-[#C22973]' : 'border-slate-100 text-slate-400'}`}
+                  className={`relative p-5 rounded-2xl border-2 transition-all flex flex-col gap-3 group ${metodo === 'pix' ? 'border-rose-500 bg-rose-50/30' : 'border-slate-100 hover:border-slate-200'}`}
                 >
-                  <QrCode size={18} /> Pix
+                  <QrCode size={24} className={metodo === 'pix' ? 'text-rose-500' : 'text-slate-400'} />
+                  <span className={`text-sm font-bold ${metodo === 'pix' ? 'text-rose-600' : 'text-slate-500'}`}>Pix</span>
+                  {metodo === 'pix' && <div className="absolute top-3 right-3 w-2 h-2 bg-rose-500 rounded-full" />}
                 </button>
+
                 <button 
                   onClick={() => setMetodo('cartao')}
-                  className={`flex-1 py-4 rounded-2xl font-black uppercase text-xs tracking-widest border-2 transition-all flex items-center justify-center gap-2 ${metodo === 'cartao' ? 'border-[#C22973] bg-pink-50 text-[#C22973]' : 'border-slate-100 text-slate-400'}`}
+                  className={`relative p-5 rounded-2xl border-2 transition-all flex flex-col gap-3 group ${metodo === 'cartao' ? 'border-rose-500 bg-rose-50/30' : 'border-slate-100 hover:border-slate-200'}`}
                 >
-                  <CreditCard size={18} /> Cartão
+                  <CreditCard size={24} className={metodo === 'cartao' ? 'text-rose-500' : 'text-slate-400'} />
+                  <span className={`text-sm font-bold ${metodo === 'cartao' ? 'text-rose-600' : 'text-slate-500'}`}>Cartão</span>
+                  {metodo === 'cartao' && <div className="absolute top-3 right-3 w-2 h-2 bg-rose-500 rounded-full" />}
                 </button>
               </div>
 
-              {metodo === 'pix' ? (
-                <div className="text-center p-8 bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200">
-                  <p className="text-sm font-bold text-slate-500 uppercase tracking-widest">O QR Code será gerado após finalizar</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <input placeholder="Número do Cartão" className="w-full p-4 bg-slate-50 rounded-2xl border-none outline-none font-bold" />
-                  <div className="grid grid-cols-2 gap-4">
-                    <input placeholder="Validade (MM/AA)" className="w-full p-4 bg-slate-50 rounded-2xl border-none outline-none font-bold" />
-                    <input placeholder="CVV" className="w-full p-4 bg-slate-50 rounded-2xl border-none outline-none font-bold" />
+              <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                {metodo === 'pix' ? (
+                  <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100 text-center">
+                    <p className="text-sm text-slate-500 leading-relaxed">
+                      Ao clicar em finalizar, um <strong>QR Code</strong> será gerado para o pagamento. O acesso será enviado após a confirmação.
+                    </p>
                   </div>
-                </div>
-              )}
-            </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 ml-1">Número do Cartão</label>
+                      <input placeholder="0000 0000 0000 0000" className="w-full p-4 bg-slate-50 rounded-xl border border-transparent focus:border-rose-500 focus:bg-white outline-none transition-all font-medium" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 ml-1">Validade</label>
+                        <input placeholder="MM/AA" className="w-full p-4 bg-slate-50 rounded-xl border border-transparent focus:border-rose-500 focus:bg-white outline-none transition-all font-medium" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 ml-1">CVV</label>
+                        <input placeholder="123" className="w-full p-4 bg-slate-50 rounded-xl border border-transparent focus:border-rose-500 focus:bg-white outline-none transition-all font-medium" />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </section>
           </div>
 
-          {/* COLUNA DIREITA: RESUMO */}
-          <div className="lg:sticky lg:top-28 h-fit">
-            <div className="bg-slate-900 text-white p-10 rounded-[3rem] shadow-2xl relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-[#C22973] rounded-full blur-[80px] opacity-30" />
-              
-              <h3 className="text-xl font-black mb-8 uppercase tracking-widest flex items-center gap-2">
-                Resumo do Pedido
+          {/* COLUNA DIREITA: RESUMO (DARK MODE ELEGANTE) */}
+          <div className="lg:col-span-5 lg:sticky lg:top-24">
+            <div className="bg-slate-900 rounded-[2.5rem] p-8 md:p-10 text-white shadow-2xl shadow-slate-200">
+              <h3 className="text-lg font-semibold mb-8 flex items-center justify-between">
+                Resumo da Reserva
+                <span className="text-[10px] bg-white/10 px-2 py-1 rounded uppercase tracking-widest font-bold">Checkout</span>
               </h3>
 
-              <div className="space-y-4 mb-8">
-                <div className="flex justify-between items-center text-slate-400">
-                  <span className="font-bold">2x Pista Premium</span>
-                  <span className="font-black text-white">R$ 500,00</span>
+              <div className="space-y-6">
+                <div className="flex justify-between items-start">
+                  <div className="space-y-1">
+                    <p className="font-medium">2x Pista Premium</p>
+                    <p className="text-xs text-slate-400 uppercase tracking-tight">Ingresso Inteira</p>
+                  </div>
+                  <span className="font-semibold text-slate-200">R$ 500,00</span>
                 </div>
-                <div className="flex justify-between items-center text-slate-400">
-                  <span className="font-bold">Taxa de Serviço</span>
-                  <span className="font-black text-white">R$ 50,00</span>
+
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-slate-400">Taxas de serviço</span>
+                  <span className="text-slate-200">R$ 50,00</span>
                 </div>
-              </div>
 
-              <div className="pt-6 border-t border-white/10 flex justify-between items-end mb-10">
-                <span className="text-xs font-black uppercase text-slate-400">Total</span>
-                <span className="text-4xl font-black text-[#C22973]">R$ 550,00</span>
-              </div>
+                <div className="h-[1px] bg-white/10 w-full my-6" />
 
-              <button className="w-full bg-[#C22973] py-6 rounded-2xl font-black uppercase tracking-[0.2em] shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-3">
-                <Lock size={18} /> Finalizar Compra
-              </button>
+                <div className="flex justify-between items-end">
+                  <div className="space-y-1">
+                    <p className="text-xs text-slate-400 uppercase font-bold">Total a pagar</p>
+                    <p className="text-3xl font-bold tracking-tighter">R$ 550,00</p>
+                  </div>
+                  <ShieldCheck className="text-emerald-400 mb-1" size={24} />
+                </div>
 
-              <div className="mt-8 flex items-center justify-center gap-4 text-[10px] font-black uppercase tracking-[0.1em] text-slate-500">
-                <span className="flex items-center gap-1"><ShieldCheck size={14} className="text-green-500" /> Seguro</span>
-                <span className="flex items-center gap-1">💳 SSL Encrypt</span>
+                <button className="group w-full bg-rose-600 hover:bg-rose-500 py-5 rounded-2xl font-bold text-sm uppercase tracking-widest transition-all shadow-lg shadow-rose-900/20 flex items-center justify-center gap-2 mt-4">
+                  <Lock size={16} /> Finalizar Compra
+                  <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                </button>
+
+                <div className="pt-8 flex flex-wrap justify-center gap-x-6 gap-y-2 opacity-40 grayscale group-hover:grayscale-0 transition-all">
+                   <div className="flex items-center gap-1.5 text-[9px] font-bold">
+                     <ShieldCheck size={12} /> COMPRA SEGURA
+                   </div>
+                   <div className="flex items-center gap-1.5 text-[9px] font-bold">
+                     🔒 SSL ENCRYPTED
+                   </div>
+                </div>
               </div>
             </div>
           </div>
