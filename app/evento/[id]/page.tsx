@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { Navbar } from '../../site/Navbar';
 import { Footer } from '../../site/Footer';
-import { Calendar, MapPin, Ticket, ShieldCheck, Share2, Loader2, Info, Plus, Minus, Zap, ChevronLeft } from 'lucide-react';
+import { Calendar, MapPin, Ticket, ShieldCheck, Share2, Loader2, Plus, Minus, Zap, ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
 
 export default function DetalhesEvento() {
@@ -19,6 +19,7 @@ export default function DetalhesEvento() {
         const res = await fetch(`https://linkah-api.onrender.com/api/eventos/${id}`);
         if (res.ok) {
           const data = await res.json();
+          console.log("Dados do evento:", data);
           setEvento(data);
         }
       } catch (err) {
@@ -38,8 +39,8 @@ export default function DetalhesEvento() {
 
   if (!evento) return <div className="p-20 text-center text-slate-500 font-medium">Evento não encontrado.</div>;
 
-  // LÓGICA DE PREÇO CORRIGIDA
-  const precoBase = evento.preco_minimo ? Number(evento.preco_minimo) : 0;
+  // LÓGICA DE PREÇO (Garante que o valor apareça)
+  const precoBase = Number(evento.preco_minimo || evento.preco || evento.valor || 0);
   const total = precoBase * quantidade;
 
   return (
@@ -55,19 +56,24 @@ export default function DetalhesEvento() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
           
-          {/* LADO ESQUERDO: CONTEÚDO */}
           <div className="lg:col-span-7 space-y-12">
-            
             <div className="space-y-6">
-              <div className="flex items-center gap-4">
-                <span className="px-3 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-[0.15em] rounded-md">
-                  {evento.categoria || 'Experience'}
-                </span>
-                {precoBase > 0 && (
-                   <span className="flex items-center gap-1.5 text-rose-500 text-[10px] font-bold uppercase tracking-widest">
-                    <Zap size={12} fill="currentColor" /> Vagas Limitadas
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <div className="flex items-center gap-4">
+                  <span className="px-3 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-[0.15em] rounded-md">
+                    {evento.categoria || 'Experience'}
                   </span>
-                )}
+                  {precoBase > 0 && (
+                    <span className="flex items-center gap-1.5 text-rose-500 text-[10px] font-bold uppercase tracking-widest">
+                      <Zap size={12} fill="currentColor" /> Vagas Limitadas
+                    </span>
+                  )}
+                </div>
+                
+                {/* VALOR UNITÁRIO EM DESTAQUE NO TOPO */}
+                <div className="bg-slate-900 text-white px-4 py-2 rounded-full font-bold text-sm">
+                  A partir de {precoBase.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                </div>
               </div>
 
               <h1 className="text-4xl md:text-5xl font-semibold tracking-tight text-slate-900 leading-tight">
@@ -99,7 +105,7 @@ export default function DetalhesEvento() {
               </div>
             </div>
 
-            <div className="relative aspect-[21/9] w-full rounded-3xl overflow-hidden bg-slate-100">
+            <div className="relative aspect-[21/9] w-full rounded-3xl overflow-hidden bg-slate-100 shadow-lg">
               <img 
                 src={evento.imagem_capa || "https://images.unsplash.com/photo-1492684223066-81342ee5ff30"} 
                 className="w-full h-full object-cover"
@@ -108,85 +114,75 @@ export default function DetalhesEvento() {
             </div>
 
             <div className="max-w-2xl">
-              <h3 className="text-xl font-semibold text-slate-900 mb-4 flex items-center gap-2">
-                Sobre o evento
-              </h3>
+              <h3 className="text-xl font-semibold text-slate-900 mb-4">Sobre o evento</h3>
               <p className="text-slate-500 leading-relaxed text-lg whitespace-pre-line font-light">
-                {evento.descricao || "Uma experiência exclusiva preparada especialmente para você. Garanta seu acesso agora e viva momentos inesquecíveis."}
+                {evento.descricao || "Uma experiência exclusiva preparada especialmente para você."}
               </p>
             </div>
           </div>
 
-          {/* LADO DIREITO: CHECKOUT */}
           <div className="lg:col-span-5">
             <div className="sticky top-12">
               <div className="bg-white rounded-[2rem] border border-slate-100 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.05)] p-8 md:p-10">
                 <div className="flex justify-between items-center mb-8">
-                  <h3 className="text-xl font-semibold text-slate-900">Ingressos</h3>
+                  <h2 className="text-2xl font-bold text-slate-900">Ingressos</h2>
                   <button className="text-slate-400 hover:text-rose-500 transition-colors">
                     <Share2 size={20} strokeWidth={1.5} />
                   </button>
                 </div>
 
                 <div className="space-y-6">
-                  <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
+                  {/* SELETOR */}
+                  <div className="flex items-center justify-between p-6 bg-slate-50/50 rounded-3xl border border-slate-100">
                     <div>
-                      <p className="text-sm font-semibold text-slate-900">Quantidade</p>
-                      <p className="text-[11px] text-slate-400">Limite de 5 convites</p>
+                      <p className="text-sm font-bold text-slate-900">Quantidade</p>
+                      <p className="text-[11px] text-slate-400 font-medium">Limite de 5 convites</p>
                     </div>
-                    <div className="flex items-center gap-4">
-                      <button 
-                        onClick={() => setQuantidade(Math.max(1, quantidade - 1))}
-                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-600 hover:border-rose-500 hover:text-rose-500 transition-all"
-                      >
-                        <Minus size={14} />
+                    <div className="flex items-center gap-4 bg-white p-2 rounded-xl border border-slate-200 shadow-sm">
+                      <button onClick={() => setQuantidade(Math.max(1, quantidade - 1))} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-rose-50 hover:text-rose-500 transition-all text-slate-400">
+                        <Minus size={16} />
                       </button>
-                      <span className="text-lg font-medium text-slate-900 w-4 text-center">{quantidade}</span>
-                      <button 
-                        onClick={() => setQuantidade(Math.min(5, quantidade + 1))}
-                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-600 hover:border-rose-500 hover:text-rose-500 transition-all"
-                      >
-                        <Plus size={14} />
+                      <span className="text-lg font-bold text-slate-900 w-6 text-center">{quantidade}</span>
+                      <button onClick={() => setQuantidade(Math.min(5, quantidade + 1))} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-rose-50 hover:text-rose-500 transition-all text-slate-400">
+                        <Plus size={16} />
                       </button>
                     </div>
                   </div>
 
-                  <div className="py-4 space-y-3">
-                    <div className="flex justify-between text-sm text-slate-400">
+                  {/* VALORES VISÍVEIS NO CARD */}
+                  <div className="pt-4 space-y-4">
+                    <div className="flex justify-between text-sm text-slate-400 font-medium">
                       <span>Preço unitário</span>
-                      <span className="font-medium text-slate-600">
+                      <span className="text-slate-600">
                         {precoBase.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                       </span>
                     </div>
-                    <div className="flex justify-between items-end">
-                      <span className="text-sm font-semibold text-slate-900">Total</span>
-                      <div className="text-right">
-                        <span className="block text-3xl font-bold text-slate-900">
-                          {total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                        </span>
-                      </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-base font-bold text-slate-900">Total</span>
+                      <span className="text-4xl font-black text-slate-900 tracking-tighter">
+                        {total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                      </span>
                     </div>
                   </div>
 
                   <Link 
                     href={`/venda?eventoId=${id}&qtd=${quantidade}`}
-                    className="flex items-center justify-center w-full bg-slate-900 py-5 rounded-2xl font-semibold text-white transition-all hover:bg-rose-600 hover:shadow-lg hover:shadow-rose-200 active:scale-[0.98]"
+                    className="flex items-center justify-center w-full bg-[#E30031] py-5 rounded-2xl font-bold text-white transition-all hover:brightness-110 hover:shadow-xl hover:shadow-rose-100 active:scale-[0.98] gap-3"
                   >
-                    <Ticket size={18} className="mr-2" strokeWidth={1.5} />
+                    <Ticket size={20} className="rotate-[-10deg]" />
                     Comprar Ingressos
                   </Link>
 
-                  <div className="pt-4 flex flex-col items-center gap-3">
-                    <div className="flex items-center gap-2 text-slate-400">
+                  <div className="pt-4 flex justify-center border-t border-slate-50">
+                    <div className="flex items-center gap-2 text-slate-300 mt-2">
                       <ShieldCheck size={14} />
-                      <span className="text-[10px] font-medium uppercase tracking-widest text-slate-400">Pagamento Processado via Linkah</span>
+                      <span className="text-[10px] font-bold uppercase tracking-widest">Pagamento processado via Linkah</span>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-
         </div>
       </main>
       <Footer />
