@@ -19,7 +19,6 @@ export default function DetalhesEvento() {
         const res = await fetch(`https://linkah-api.onrender.com/api/eventos/${id}`);
         if (res.ok) {
           const data = await res.json();
-          console.log("DADOS REAIS DA API:", data); // Olhe isso no F12 do navegador
           setEvento(data);
         }
       } catch (err) {
@@ -39,17 +38,12 @@ export default function DetalhesEvento() {
 
   if (!evento) return <div className="p-20 text-center text-slate-500 font-medium">Evento não encontrado.</div>;
 
-  // --- LÓGICA DE CAPTURA DE PREÇO "À PROVA DE ERROS" ---
-  // Tenta pegar de qualquer campo comum: preco_minimo, preco, valor, price, amount
-  const precoExtraido = 
-    evento.preco_minimo || 
-    evento.preco || 
-    evento.valor || 
-    evento.price || 
-    evento.amount || 
-    0;
+  // --- NOVA LÓGICA BASEADA NO SEU PRINT ---
+  // Acessa o array 'ingressos', pega o primeiro item e o campo 'preco'
+  const precoBase = evento.ingressos && evento.ingressos.length > 0 
+    ? Number(evento.ingressos[0].preco) 
+    : 0;
 
-  const precoBase = Number(precoExtraido);
   const total = precoBase * quantidade;
 
   return (
@@ -70,13 +64,8 @@ export default function DetalhesEvento() {
               <div className="flex items-center justify-between flex-wrap gap-4">
                 <div className="flex items-center gap-4">
                   <span className="px-3 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-[0.15em] rounded-md">
-                    {evento.categoria || 'Experience'}
+                    {evento.categoria || 'Workshop'}
                   </span>
-                  {precoBase > 0 && (
-                    <span className="flex items-center gap-1.5 text-rose-500 text-[10px] font-bold uppercase tracking-widest">
-                      <Zap size={12} fill="currentColor" /> Vagas Limitadas
-                    </span>
-                  )}
                 </div>
 
                 {/* BADGE DE PREÇO NO TOPO */}
@@ -99,7 +88,7 @@ export default function DetalhesEvento() {
                   <div>
                     <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Data do Evento</p>
                     <p className="text-md font-semibold text-slate-800">
-                       {evento.data_inicio ? new Date(evento.data_inicio).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric', timeZone: 'UTC' }) : 'Data a definir'}
+                       {evento.data_inicio ? new Date(evento.data_inicio).toLocaleDateString('pt-BR') : 'A definir'}
                     </p>
                   </div>
                 </div>
@@ -110,58 +99,48 @@ export default function DetalhesEvento() {
                   </div>
                   <div>
                     <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Localização</p>
-                    <p className="text-md font-semibold text-slate-800">{evento.cidade || 'Local'}, {evento.estado || ''}</p>
+                    <p className="text-md font-semibold text-slate-800">{evento.cidade}, {evento.estado}</p>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="relative aspect-[21/9] w-full rounded-3xl overflow-hidden bg-slate-100 shadow-md">
+            <div className="relative aspect-[21/9] w-full rounded-3xl overflow-hidden bg-slate-100 shadow-lg">
               <img 
                 src={evento.imagem_capa || "https://images.unsplash.com/photo-1492684223066-81342ee5ff30"} 
                 className="w-full h-full object-cover"
                 alt={evento.nome}
               />
             </div>
-
-            <div className="max-w-2xl">
-              <h3 className="text-xl font-semibold text-slate-900 mb-4">Sobre o evento</h3>
-              <p className="text-slate-500 leading-relaxed text-lg whitespace-pre-line font-light">
-                {evento.descricao || "Sem descrição disponível."}
-              </p>
-            </div>
           </div>
 
-          {/* LADO DIREITO: CARD DE COMPRA */}
           <div className="lg:col-span-5">
             <div className="sticky top-12">
               <div className="bg-white rounded-[2rem] border border-slate-100 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.05)] p-8 md:p-10">
                 <div className="flex justify-between items-center mb-8">
                   <h2 className="text-2xl font-bold text-slate-900">Ingressos</h2>
                   <button className="text-slate-400 hover:text-rose-500 transition-colors">
-                    <Share2 size={20} strokeWidth={1.5} />
+                    <Share2 size={20} />
                   </button>
                 </div>
 
                 <div className="space-y-6">
-                  {/* SELETOR DE QUANTIDADE */}
                   <div className="flex items-center justify-between p-6 bg-slate-50/50 rounded-3xl border border-slate-100">
                     <div>
                       <p className="text-sm font-bold text-slate-900">Quantidade</p>
                       <p className="text-[11px] text-slate-400 font-medium">Limite de 5 convites</p>
                     </div>
                     <div className="flex items-center gap-4 bg-white p-2 rounded-xl border border-slate-200 shadow-sm">
-                      <button onClick={() => setQuantidade(Math.max(1, quantidade - 1))} className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-rose-500">
+                      <button onClick={() => setQuantidade(Math.max(1, quantidade - 1))} className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-rose-500 transition-all">
                         <Minus size={16} />
                       </button>
                       <span className="text-lg font-bold text-slate-900 w-6 text-center">{quantidade}</span>
-                      <button onClick={() => setQuantidade(Math.min(5, quantidade + 1))} className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-rose-500">
+                      <button onClick={() => setQuantidade(Math.min(5, quantidade + 1))} className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-rose-500 transition-all">
                         <Plus size={16} />
                       </button>
                     </div>
                   </div>
 
-                  {/* RESUMO DE PREÇO */}
                   <div className="pt-4 space-y-4">
                     <div className="flex justify-between text-sm text-slate-400 font-medium">
                       <span>Preço unitário</span>
@@ -179,17 +158,15 @@ export default function DetalhesEvento() {
 
                   <Link 
                     href={`/venda?eventoId=${id}&qtd=${quantidade}`}
-                    className="flex items-center justify-center w-full bg-[#E30031] py-5 rounded-2xl font-bold text-white transition-all hover:brightness-110 shadow-lg active:scale-[0.98] gap-3"
+                    className="flex items-center justify-center w-full bg-[#E30031] py-5 rounded-2xl font-bold text-white transition-all hover:brightness-110 active:scale-[0.98] gap-3"
                   >
                     <Ticket size={20} className="rotate-[-10deg]" />
                     Comprar Ingressos
                   </Link>
 
-                  <div className="pt-4 flex justify-center">
-                    <div className="flex items-center gap-2 text-slate-300">
-                      <ShieldCheck size={14} />
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-center">Pagamento processado via Linkah</span>
-                    </div>
+                  <div className="pt-4 flex justify-center items-center gap-2 text-slate-300">
+                    <ShieldCheck size={14} />
+                    <span className="text-[10px] font-bold uppercase tracking-widest">Linkah Secure</span>
                   </div>
                 </div>
               </div>
