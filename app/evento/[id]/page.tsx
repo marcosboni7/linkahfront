@@ -4,7 +4,10 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { Navbar } from '../../site/Navbar';
 import { Footer } from '../../site/Footer';
-import { Calendar, MapPin, Ticket, ShieldCheck, Share2, Loader2, Plus, Minus, Zap, ChevronLeft } from 'lucide-react';
+import { 
+  Calendar, MapPin, Ticket, ShieldCheck, Share2, 
+  Loader2, Plus, Minus, Zap, ChevronLeft, Globe 
+} from 'lucide-react';
 import Link from 'next/link';
 
 export default function DetalhesEvento() {
@@ -38,8 +41,6 @@ export default function DetalhesEvento() {
 
   if (!evento) return <div className="p-20 text-center text-slate-500 font-medium">Evento não encontrado.</div>;
 
-  // --- NOVA LÓGICA BASEADA NO SEU PRINT ---
-  // Acessa o array 'ingressos', pega o primeiro item e o campo 'preco'
   const precoBase = evento.ingressos && evento.ingressos.length > 0 
     ? Number(evento.ingressos[0].preco) 
     : 0;
@@ -52,6 +53,7 @@ export default function DetalhesEvento() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-24">
         
+        {/* BOTÃO VOLTAR */}
         <Link href="/" className="inline-flex items-center gap-2 text-slate-400 hover:text-rose-500 transition-colors mb-8 text-sm font-medium group">
           <ChevronLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
           Voltar para eventos
@@ -59,16 +61,22 @@ export default function DetalhesEvento() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
           
+          {/* COLUNA ESQUERDA: INFORMAÇÕES E CONTEÚDO */}
           <div className="lg:col-span-7 space-y-12">
+            
             <div className="space-y-6">
               <div className="flex items-center justify-between flex-wrap gap-4">
                 <div className="flex items-center gap-4">
                   <span className="px-3 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-[0.15em] rounded-md">
-                    {evento.categoria || 'Workshop'}
+                    {evento.categoria || 'Geral'}
                   </span>
+                  {evento.link_transmissao && (
+                    <span className="px-3 py-1 bg-blue-100 text-blue-600 text-[10px] font-bold uppercase tracking-[0.15em] rounded-md flex items-center gap-1">
+                      <Globe size={10} /> Online
+                    </span>
+                  )}
                 </div>
 
-                {/* BADGE DE PREÇO NO TOPO */}
                 <div className="bg-[#0F172A] text-white px-4 py-2 rounded-full font-bold text-sm shadow-sm">
                   {precoBase > 0 
                     ? `A partir de ${precoBase.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`
@@ -80,6 +88,7 @@ export default function DetalhesEvento() {
                 {evento.nome}
               </h1>
 
+              {/* BARRA DE INFOS RÁPIDAS */}
               <div className="flex flex-wrap gap-8 py-8 border-y border-slate-100">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-full bg-rose-50 flex items-center justify-center text-rose-500">
@@ -99,12 +108,15 @@ export default function DetalhesEvento() {
                   </div>
                   <div>
                     <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Localização</p>
-                    <p className="text-md font-semibold text-slate-800">{evento.cidade}, {evento.estado}</p>
+                    <p className="text-md font-semibold text-slate-800">
+                      {evento.link_transmissao ? "Evento Online" : `${evento.cidade}, ${evento.estado}`}
+                    </p>
                   </div>
                 </div>
               </div>
             </div>
 
+            {/* IMAGEM DE CAPA */}
             <div className="relative aspect-[21/9] w-full rounded-3xl overflow-hidden bg-slate-100 shadow-lg">
               <img 
                 src={evento.imagem_capa || "https://images.unsplash.com/photo-1492684223066-81342ee5ff30"} 
@@ -112,14 +124,48 @@ export default function DetalhesEvento() {
                 alt={evento.nome}
               />
             </div>
+
+            {/* DESCRIÇÃO DO EVENTO */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="w-1 h-6 bg-rose-500 rounded-full"></div>
+                <h3 className="text-2xl font-bold text-slate-900">Sobre o evento</h3>
+              </div>
+              <div className="text-slate-600 leading-relaxed text-lg whitespace-pre-line">
+                {evento.descricao || "Nenhuma descrição detalhada disponível para este evento."}
+              </div>
+            </div>
+
+            {/* LINK DE TRANSMISSÃO (Condicional) */}
+            {evento.link_transmissao && (
+              <div className="p-8 bg-blue-50 rounded-[2.5rem] border border-blue-100 space-y-5">
+                <div className="flex items-center gap-3 text-blue-600">
+                  <Zap size={24} fill="currentColor" />
+                  <h3 className="text-xl font-bold italic tracking-tight uppercase">Transmissão Online</h3>
+                </div>
+                <p className="text-blue-700/70 text-sm font-medium leading-relaxed">
+                  Este workshop será transmitido digitalmente. O acesso direto está disponível através do botão abaixo para participantes registrados.
+                </p>
+                <a 
+                  href={evento.link_transmissao} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-3 bg-blue-600 text-white px-8 py-4 rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 active:scale-95"
+                >
+                  Acessar Sala Virtual
+                  <Globe size={18} />
+                </a>
+              </div>
+            )}
           </div>
 
+          {/* COLUNA DIREITA: CARD DE COMPRA */}
           <div className="lg:col-span-5">
             <div className="sticky top-12">
               <div className="bg-white rounded-[2rem] border border-slate-100 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.05)] p-8 md:p-10">
                 <div className="flex justify-between items-center mb-8">
-                  <h2 className="text-2xl font-bold text-slate-900">Ingressos</h2>
-                  <button className="text-slate-400 hover:text-rose-500 transition-colors">
+                  <h2 className="text-2xl font-bold text-slate-900 italic tracking-tight">INGRESSOS</h2>
+                  <button className="text-slate-400 hover:text-rose-500 transition-colors p-2 hover:bg-slate-50 rounded-full">
                     <Share2 size={20} />
                   </button>
                 </div>
@@ -127,15 +173,21 @@ export default function DetalhesEvento() {
                 <div className="space-y-6">
                   <div className="flex items-center justify-between p-6 bg-slate-50/50 rounded-3xl border border-slate-100">
                     <div>
-                      <p className="text-sm font-bold text-slate-900">Quantidade</p>
+                      <p className="text-sm font-bold text-slate-900 uppercase tracking-tighter">Quantidade</p>
                       <p className="text-[11px] text-slate-400 font-medium">Limite de 5 convites</p>
                     </div>
                     <div className="flex items-center gap-4 bg-white p-2 rounded-xl border border-slate-200 shadow-sm">
-                      <button onClick={() => setQuantidade(Math.max(1, quantidade - 1))} className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-rose-500 transition-all">
+                      <button 
+                        onClick={() => setQuantidade(Math.max(1, quantidade - 1))} 
+                        className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-rose-500 transition-all hover:bg-rose-50"
+                      >
                         <Minus size={16} />
                       </button>
                       <span className="text-lg font-bold text-slate-900 w-6 text-center">{quantidade}</span>
-                      <button onClick={() => setQuantidade(Math.min(5, quantidade + 1))} className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-rose-500 transition-all">
+                      <button 
+                        onClick={() => setQuantidade(Math.min(5, quantidade + 1))} 
+                        className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-rose-500 transition-all hover:bg-rose-50"
+                      >
                         <Plus size={16} />
                       </button>
                     </div>
@@ -158,7 +210,7 @@ export default function DetalhesEvento() {
 
                   <Link 
                     href={`/venda?eventoId=${id}&qtd=${quantidade}`}
-                    className="flex items-center justify-center w-full bg-[#E30031] py-5 rounded-2xl font-bold text-white transition-all hover:brightness-110 active:scale-[0.98] gap-3"
+                    className="flex items-center justify-center w-full bg-[#E30031] py-5 rounded-2xl font-bold text-white transition-all hover:brightness-110 hover:shadow-xl hover:shadow-rose-200 active:scale-[0.98] gap-3 uppercase text-sm tracking-widest"
                   >
                     <Ticket size={20} className="rotate-[-10deg]" />
                     Comprar Ingressos
@@ -166,7 +218,7 @@ export default function DetalhesEvento() {
 
                   <div className="pt-4 flex justify-center items-center gap-2 text-slate-300">
                     <ShieldCheck size={14} />
-                    <span className="text-[10px] font-bold uppercase tracking-widest">Linkah Secure</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest">Linkah Secure • Pagamento Seguro</span>
                   </div>
                 </div>
               </div>
