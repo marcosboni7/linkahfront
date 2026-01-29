@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+// Certifique-se de que os caminhos abaixo batem com a sua estrutura de pastas
 import { Navbar } from '../app/site/Navbar'; 
 import { EventCard } from '../app/site/EventCard';
-import { Footer } from '../app/site/Footer'; 
-import { Search, MapPin, Sparkles, Ticket, ChevronRight, X, Calendar, Hash, Loader2 } from 'lucide-react';
+import { Footer } from '../app/site/Footer'; // Ajuste o caminho se necessário
+import { Search, MapPin, Sparkles, Ticket, ChevronRight } from 'lucide-react';
 
 export default function BuyTicketHome() {
   const [eventos, setEventos] = useState([]);
@@ -12,15 +13,8 @@ export default function BuyTicketHome() {
   const [categoriaAtiva, setCategoriaAtiva] = useState('Todos');
   const [categoriasExistentes, setCategoriasExistentes] = useState<string[]>(['Todos']);
 
-  // ESTADOS DO MODAL "MEUS INGRESSOS"
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [emailBusca, setEmailBusca] = useState('');
-  const [buscandoTickets, setBuscandoTickets] = useState(false);
-  const [meusIngressos, setMeusIngressos] = useState<any[]>([]);
-
   const API_URL = 'https://linkah-api.onrender.com/api/eventos/vitrine';
 
-  // CARREGAR EVENTOS DA VITRINE
   useEffect(() => {
     async function carregarDados() {
       setLoading(true);
@@ -46,111 +40,11 @@ export default function BuyTicketHome() {
     carregarDados();
   }, [categoriaAtiva]);
 
-  // FUNÇÃO PARA BUSCAR INGRESSOS COMPRADOS
-  const buscarIngressos = async () => {
-    if (!emailBusca) return alert("Digite seu e-mail");
-    
-    setBuscandoTickets(true);
-    // Simulação de delay de API
-    setTimeout(() => {
-      // Aqui você substituiria por um fetch real na sua API de vendas
-      setMeusIngressos([
-        { id: 'LK-9982', evento: 'Workshop Finanças Pro', data: '15/05/2026', qtd: 2, status: 'Aprovado' },
-        { id: 'LK-1024', evento: 'Live Experience Votuporanga', data: '20/03/2026', qtd: 1, status: 'Aprovado' }
-      ]);
-      setBuscandoTickets(false);
-    }, 1500);
-  };
-
   return (
     <div className="bg-[#FCFCFD] min-h-screen text-slate-800 font-sans">
       <Navbar />
 
-      {/* BOTÃO FLUTUANTE "MEUS INGRESSOS" */}
-      <button 
-        onClick={() => setIsModalOpen(true)}
-        className="fixed bottom-8 right-8 z-50 bg-[#ff0082] text-white px-6 py-4 rounded-2xl shadow-[0_20px_40px_rgba(255,0,130,0.4)] flex items-center gap-3 hover:scale-105 transition-all active:scale-95 group"
-      >
-        <div className="bg-white/20 p-2 rounded-lg">
-          <Ticket size={20} className="group-hover:rotate-12 transition-transform" />
-        </div>
-        <span className="font-black uppercase text-[10px] tracking-widest">Meus Ingressos</span>
-      </button>
-
-      {/* MODAL DE INGRESSOS COMPRADOS */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-md" onClick={() => setIsModalOpen(false)} />
-          
-          <div className="relative bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-              <div>
-                <h2 className="text-2xl font-black uppercase italic tracking-tighter text-slate-900">Meus Pedidos</h2>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Consulte suas compras</p>
-              </div>
-              <button onClick={() => setIsModalOpen(false)} className="p-3 bg-white hover:bg-slate-100 rounded-2xl shadow-sm border border-slate-100 transition-colors">
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="p-8">
-              <div className="flex gap-2 mb-8">
-                <input 
-                  type="email" 
-                  placeholder="Seu e-mail de compra"
-                  value={emailBusca}
-                  onChange={(e) => setEmailBusca(e.target.value)}
-                  className="flex-1 bg-slate-100 border-2 border-transparent rounded-2xl px-5 py-4 text-sm focus:border-[#ff0082] focus:bg-white outline-none transition-all font-medium"
-                />
-                <button 
-                  onClick={buscarIngressos}
-                  disabled={buscandoTickets}
-                  className="bg-slate-900 text-white px-6 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-black transition-all flex items-center justify-center"
-                >
-                  {buscandoTickets ? <Loader2 size={18} className="animate-spin" /> : 'Buscar'}
-                </button>
-              </div>
-
-              <div className="space-y-4 max-h-[380px] overflow-y-auto pr-2 custom-scrollbar">
-                {meusIngressos.length > 0 ? meusIngressos.map((ticket) => (
-                  <div key={ticket.id} className="bg-white border-2 border-slate-100 rounded-[1.5rem] p-6 hover:border-[#ff0082]/20 transition-all relative overflow-hidden group">
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="space-y-1">
-                        <h4 className="font-black text-sm uppercase text-slate-900">{ticket.evento}</h4>
-                        <div className="flex items-center gap-2 text-slate-400 text-[10px] font-bold">
-                          <Calendar size={12} /> {ticket.data}
-                        </div>
-                      </div>
-                      <span className="bg-green-50 text-green-600 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest">
-                        {ticket.status}
-                      </span>
-                    </div>
-                    
-                    <div className="flex items-center justify-between pt-4 border-t border-dashed border-slate-200">
-                      <div className="flex items-center gap-2">
-                        <Hash size={14} className="text-slate-300" />
-                        <span className="text-xs font-mono font-bold text-slate-500">{ticket.id}</span>
-                      </div>
-                      <div className="bg-slate-900 text-white px-3 py-1 rounded-lg text-[10px] font-black">
-                        {ticket.qtd} {ticket.qtd > 1 ? 'INGRESSOS' : 'INGRESSO'}
-                      </div>
-                    </div>
-                  </div>
-                )) : (
-                  !buscandoTickets && (
-                    <div className="text-center py-12 border-2 border-dashed border-slate-100 rounded-[2rem]">
-                      <Ticket size={40} className="mx-auto mb-4 text-slate-200" />
-                      <p className="text-xs font-bold uppercase text-slate-400 tracking-widest">Nenhum ingresso encontrado</p>
-                    </div>
-                  )
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* HERO SECTION */}
+      {/* HERO SECTION - IMPACTO VISUAL */}
       <section className="relative bg-[#0B0121] py-20 px-6 overflow-hidden">
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#ff0082] opacity-10 blur-[120px] rounded-full -translate-y-1/2 translate-x-1/4" />
         
@@ -251,7 +145,7 @@ export default function BuyTicketHome() {
               <p className="text-slate-500 font-black uppercase tracking-[0.2em] text-sm">
                 Nenhum evento em "{categoriaAtiva}" no momento.
               </p>
-              <button onClick={() => setCategoriaAtiva('Todos')} className="mt-4 text-[#ff0082] font-black uppercase text-[10px] tracking-widest hover:underline">
+              <button onClick={() => setCategoriaAtiva('Todos')} className="mt-4 text-[#ff0082] font-black uppercase text-[10px] tracking-widest hover:underline decoration-2 underline-offset-4">
                 Voltar para todos
               </button>
             </div>
@@ -259,6 +153,7 @@ export default function BuyTicketHome() {
         </div>
       </main>
       
+      {/* FOOTER */}
       <Footer />
     </div>
   );
