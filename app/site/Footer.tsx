@@ -5,36 +5,36 @@ import {
   Instagram, 
   Facebook, 
   Twitter, 
-  Youtube, 
   ShieldCheck, 
-  CreditCard, 
-  Smartphone 
+  Ticket,
+  Mail,
+  MapPin
 } from 'lucide-react';
 
 export function Footer() {
   return (
-    <footer className="bg-white border-t border-slate-100 pt-20 pb-10 px-6">
+    <footer className="bg-[#d6006d] text-white pt-20 pb-10 px-6">
       <div className="max-w-6xl mx-auto">
         
         {/* GRID PRINCIPAL */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
           
-          {/* COLUNA 1: LOGO E SOBRE */}
+          {/* COLUNA 1: MARCA */}
           <div className="space-y-6">
-            <Link href="/" className="text-slate-900 text-3xl font-black tracking-tighter italic">
-              LINKAH<span className="text-[#ff0082]">.</span>
+            <Link href="/" className="text-white text-3xl font-black tracking-tighter italic">
+              LINKAH<span className="text-pink-300">.</span>
             </Link>
-            <p className="text-slate-400 text-sm leading-relaxed font-medium">
-              A maior plataforma de experiências e ingressos para quem vive o extraordinário. Conectando você aos melhores momentos.
+            <p className="text-pink-100/80 text-sm leading-relaxed font-medium">
+              Transformando momentos comuns em experiências extraordinárias. A sua próxima parada começa aqui.
             </p>
             <div className="flex gap-4">
-              <Link href="#" className="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center text-slate-400 hover:bg-[#ff0082] hover:text-white transition-all">
+              <Link href="#" className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-white hover:text-[#d6006d] transition-all">
                 <Instagram size={18} />
               </Link>
-              <Link href="#" className="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center text-slate-400 hover:bg-[#ff0082] hover:text-white transition-all">
+              <Link href="#" className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-white hover:text-[#d6006d] transition-all">
                 <Facebook size={18} />
               </Link>
-              <Link href="#" className="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center text-slate-400 hover:bg-[#ff0082] hover:text-white transition-all">
+              <Link href="#" className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-white hover:text-[#d6006d] transition-all">
                 <Twitter size={18} />
               </Link>
             </div>
@@ -42,11 +42,11 @@ export function Footer() {
 
           {/* COLUNA 2: CATEGORIAS */}
           <div>
-            <h4 className="text-slate-900 font-black uppercase text-[10px] tracking-[0.2em] mb-6">Explorar</h4>
+            <h4 className="text-white font-black uppercase text-[10px] tracking-[0.2em] mb-6 opacity-60">Categorias</h4>
             <ul className="space-y-4">
-              {['Shows e Festas', 'Teatro e Cultura', 'Congressos', 'Esportes', 'Cursos e Workshops'].map((item) => (
+              {['Shows e Festas', 'Teatro e Cultura', 'Esportes', 'Congressos', 'Infantil'].map((item) => (
                 <li key={item}>
-                  <Link href="#" className="text-slate-500 hover:text-[#ff0082] text-sm font-bold transition-colors">
+                  <Link href="#" className="text-white/90 hover:text-pink-200 text-sm font-bold transition-colors">
                     {item}
                   </Link>
                 </li>
@@ -54,49 +54,50 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* COLUNA 3: INSTITUCIONAL */}
+          {/* COLUNA 3: SUPORTE */}
           <div>
-            <h4 className="text-slate-900 font-black uppercase text-[10px] tracking-[0.2em] mb-6">Institucional</h4>
+            <h4 className="text-white font-black uppercase text-[10px] tracking-[0.2em] mb-6 opacity-60">Suporte</h4>
             <ul className="space-y-4">
-              {['Sobre a Linkah', 'Central de Ajuda', 'Termos e Políticas', 'Venda com a gente', 'Trabalhe conosco'].map((item) => (
-                <li key={item}>
-                  <Link href="#" className="text-slate-500 hover:text-[#ff0082] text-sm font-bold transition-colors">
-                    {item}
-                  </Link>
-                </li>
-              ))}
+              <li className="flex items-center gap-3 text-sm font-bold">
+                <Mail size={16} className="text-pink-300" /> contato@linkah.com
+              </li>
+              <li className="flex items-center gap-3 text-sm font-bold">
+                <MapPin size={16} className="text-pink-300" /> Votuporanga, SP
+              </li>
+              <li>
+                <Link href="#" className="text-white/90 hover:text-pink-200 text-sm font-bold transition-colors">Central de Ajuda</Link>
+              </li>
+              <li>
+                <Link href="#" className="text-white/90 hover:text-pink-200 text-sm font-bold transition-colors">Termos de Uso</Link>
+              </li>
             </ul>
           </div>
 
-          {/* COLUNA 4: APP & SEGURANÇA */}
+          {/* COLUNA 4: SEGURANÇA */}
           <div className="space-y-8">
-            <div>
-              <h4 className="text-slate-900 font-black uppercase text-[10px] tracking-[0.2em] mb-4">Segurança</h4>
-              <div className="flex items-center gap-3 text-[#ff0082] bg-pink-50 px-4 py-3 rounded-2xl border border-pink-100">
-                <ShieldCheck size={20} />
-                <span className="text-[10px] font-black uppercase text-pink-700">Ambiente 100% Seguro</span>
+            <div className="bg-white/10 p-6 rounded-[2rem] border border-white/10 backdrop-blur-sm">
+              <div className="flex items-center gap-3 mb-4">
+                <ShieldCheck size={24} className="text-pink-300" />
+                <span className="text-[10px] font-black uppercase tracking-widest leading-tight">Plataforma<br/>Segura</span>
               </div>
-            </div>
-            <div>
-              <h4 className="text-slate-900 font-black uppercase text-[10px] tracking-[0.2em] mb-4">Pagamento</h4>
-              <div className="flex flex-wrap gap-3 grayscale opacity-50 hover:grayscale-0 hover:opacity-100 transition-all cursor-not-allowed">
-                <CreditCard size={24} />
-                <Smartphone size={24} />
-                <span className="font-black text-xs">PIX</span>
-              </div>
+              <p className="text-[10px] text-pink-100/70 font-medium">
+                Seus dados e pagamentos são protegidos com criptografia de ponta a ponta.
+              </p>
             </div>
           </div>
         </div>
 
         {/* BARRA FINAL */}
-        <div className="pt-10 border-t border-slate-50 flex flex-col md:flex-row justify-between items-center gap-6">
-          <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.3em] text-center md:text-left leading-relaxed">
-            © 2026 LINKAH TECNOLOGIA EM EVENTOS LTDA.<br/>
-            CNPJ 00.000.000/0001-00 • VOTUPORANGA, SP
-          </p>
-          <div className="flex gap-8">
-            <Link href="#" className="text-slate-400 text-[10px] font-black uppercase tracking-widest hover:text-slate-900 transition-colors">Privacidade</Link>
-            <Link href="#" className="text-slate-400 text-[10px] font-black uppercase tracking-widest hover:text-slate-900 transition-colors">Cookies</Link>
+        <div className="pt-10 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="flex items-center gap-2">
+            <Ticket size={16} className="text-pink-300" />
+            <p className="text-white/50 text-[9px] font-black uppercase tracking-[0.3em]">
+              © 2026 LINKAH TICKETS - CNPJ 00.000.000/0001-00
+            </p>
+          </div>
+          <div className="flex gap-6">
+            <Link href="#" className="text-white/40 text-[9px] font-black uppercase tracking-widest hover:text-white transition-colors">Políticas de Privacidade</Link>
+            <Link href="#" className="text-white/40 text-[9px] font-black uppercase tracking-widest hover:text-white transition-colors">Desenvolvedores</Link>
           </div>
         </div>
       </div>
