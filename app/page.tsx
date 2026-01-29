@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Navbar } from '../app/site/Navbar';
 import { EventCard } from '../app/site/EventCard';
-import { Footer } from './footer/page';
+import { Footer } from '../app/footer/page';
 import { Search, MapPin, Sparkles, Ticket, ChevronRight } from 'lucide-react';
 
 export default function BuyTicketHome() {
