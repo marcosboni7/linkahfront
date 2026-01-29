@@ -51,48 +51,49 @@ export default function NovoEventoOnline() {
     return Object.keys(newErrors).length === 0;
   };
 
- const handleSubmit = async (e?: React.FormEvent) => {
-  if (e) e.preventDefault();
-  if (!validate()) {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    return;
-  }
-
-  setLoading(true);
-  try {
-    const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://linkah-api.onrender.com';
-    
-    // Pegamos o e-mail logado
-    const emailLogado = localStorage.getItem('userEmail');
-
-    // Criamos o objeto JSON simples (igual ao que você fazia antes)
-    const payload = {
-      ...formData,
-      produtor_email: emailLogado,
-      tipo: 'Online'
-    };
-
-    const res = await fetch(`${apiBaseUrl}/api/eventos/novo-online`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json', // Voltamos para JSON
-      },
-      body: JSON.stringify(payload),
-    });
-
-    const data = await res.json();
-    
-    if (res.ok) {
-      router.push(`/dashboard/eventos/novo/ingressos/${data.id}`);
-    } else {
-      alert(data.error || "Erro ao salvar evento.");
+const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!validate()) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
     }
-  } catch (err) {
-    alert("Erro na conexão com o servidor.");
-  } finally {
-    setLoading(false);
-  }
-};
+
+    setLoading(true);
+    try {
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://linkah-api.onrender.com';
+      
+      const emailLogado = localStorage.getItem('userEmail');
+
+      // AJUSTE AQUI: Incluímos a previewImage (Base64) no payload
+      const payload = {
+        ...formData,
+        produtor_email: emailLogado,
+        tipo: 'Online',
+        imagem_capa: previewImage // <-- Envia o texto da imagem para o Back-end
+      };
+
+      const res = await fetch(`${apiBaseUrl}/api/eventos/novo-online`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      
+      if (res.ok) {
+        router.push(`/dashboard/eventos/novo/ingressos/${data.id}`);
+      } else {
+        // Se o erro for 500, o 'data.detalhe' ou 'data.message' vindo do Back corrigido ajudará
+        alert(data.message || data.error || "Erro ao salvar evento.");
+      }
+    } catch (err) {
+      alert("Erro na conexão com o servidor.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
