@@ -51,64 +51,48 @@ export default function NovoEventoOnline() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!validate()) {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
+ const handleSubmit = async (e?: React.FormEvent) => {
+  if (e) e.preventDefault();
+  if (!validate()) {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    return;
+  }
+
+  setLoading(true);
+  try {
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://linkah-api.onrender.com';
+    
+    // Pegamos o e-mail logado
+    const emailLogado = localStorage.getItem('userEmail');
+
+    // Criamos o objeto JSON simples (igual ao que você fazia antes)
+    const payload = {
+      ...formData,
+      produtor_email: emailLogado,
+      tipo: 'Online'
+    };
+
+    const res = await fetch(`${apiBaseUrl}/api/eventos/novo-online`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json', // Voltamos para JSON
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+    
+    if (res.ok) {
+      router.push(`/dashboard/eventos/novo/ingressos/${data.id}`);
+    } else {
+      alert(data.error || "Erro ao salvar evento.");
     }
-
-    setLoading(true);
-    try {
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://linkah-api.onrender.com';
-      const emailLogado = localStorage.getItem('userEmail');
-
-      if (!emailLogado) {
-        alert("Sua sessão expirou. Por favor, faça login novamente.");
-        router.push('/login');
-        return;
-      }
-
-      const dataToSend = new FormData();
-      
-      // 1. Campos de texto primeiro
-      dataToSend.append('produtor_email', emailLogado);
-      dataToSend.append('nome', formData.nome);
-      dataToSend.append('categoria', formData.categoria);
-      dataToSend.append('link_transmissao', formData.link_transmissao);
-      dataToSend.append('descricao', formData.descricao || '');
-      dataToSend.append('data_inicio', formData.data_inicio);
-      dataToSend.append('hora_inicio', formData.hora_inicio);
-      dataToSend.append('data_termino', formData.data_termino || '');
-      dataToSend.append('hora_termino', formData.hora_termino || '');
-      dataToSend.append('status', formData.status);
-      dataToSend.append('tipo', 'Online');
-
-      // 2. Arquivo por último
-      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-      if (fileInput?.files?.[0]) {
-        dataToSend.append('imagem_capa', fileInput.files[0]);
-      }
-
-      const res = await fetch(`${apiBaseUrl}/api/eventos/novo-online`, {
-        method: 'POST',
-        body: dataToSend, // O navegador define o Content-Type automaticamente
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        router.push(`/dashboard/eventos/novo/ingressos/${data.id}`);
-      } else {
-        alert(data.error || data.message || "Erro ao salvar evento.");
-      }
-    } catch (err) {
-      console.error("Erro na conexão:", err);
-      alert("Não foi possível conectar ao servidor.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  } catch (err) {
+    alert("Erro na conexão com o servidor.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
