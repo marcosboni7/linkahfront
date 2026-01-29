@@ -1,33 +1,51 @@
-// components/site/Navbar.tsx
+'use client';
+
 import Link from 'next/link';
-import { Search, User, PlusCircle } from 'lucide-react';
+import { User, PlusCircle, HelpCircle, Ticket, MapPin } from 'lucide-react';
 
 export function Navbar() {
   return (
-    <nav className="bg-[#0B0121] border-b border-white/10 px-6 py-3 flex items-center justify-between sticky top-0 z-50 backdrop-blur-md">
-      <div className="flex items-center gap-8 flex-1">
-        {/* Logo */}
-        <Link href="/" className="text-white text-2xl font-black tracking-tighter italic">
-          buyticket<span className="text-pink-500">.</span>
+    <nav className="bg-white border-b border-slate-100 px-8 py-4 flex items-center justify-between sticky top-0 z-50">
+      
+      {/* LADO ESQUERDO: LOGO E LOCALIZAÇÃO */}
+      <div className="flex items-center gap-10">
+        <Link href="/" className="text-slate-900 text-2xl font-black tracking-tighter italic">
+          LINKAH<span className="text-[#ff0082]">.</span>
         </Link>
 
-        {/* Barra de Pesquisa Centralizada */}
-        <div className="hidden md:flex flex-1 max-w-md relative group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-pink-500 transition-colors" size={18} />
-          <input 
-            type="text" 
-            placeholder="Pesquisar eventos" 
-            className="w-full bg-white rounded-lg py-2.5 pl-12 pr-4 text-sm font-medium text-slate-900 outline-none focus:ring-2 focus:ring-pink-500/50"
-          />
-        </div>
+        {/* Localização Sutil (Estilo Marketplace) */}
+        <button className="hidden lg:flex items-center gap-2 text-slate-500 hover:text-[#ff0082] transition-colors">
+          <MapPin size={16} />
+          <span className="text-xs font-bold uppercase tracking-widest">Brasil</span>
+        </button>
       </div>
 
-      <div className="flex items-center gap-4">
-        <Link href="/auth/login" className="text-white text-sm font-bold flex items-center gap-2 hover:bg-white/10 px-4 py-2 rounded-lg transition-all">
-          <User size={18} /> Entrar
+      {/* LADO DIREITO: LINKS E AÇÕES */}
+      <div className="flex items-center gap-2">
+        
+        {/* Link de Ajuda */}
+        <Link href="/ajuda" className="hidden sm:flex items-center gap-2 text-slate-500 hover:text-slate-900 px-4 py-2 text-xs font-bold uppercase tracking-widest transition-all">
+          <HelpCircle size={18} /> Ajuda
         </Link>
-        <Link href="/dashboard/eventos/novo" className="bg-[#6336FF] text-white text-sm font-bold flex items-center gap-2 px-5 py-2.5 rounded-xl hover:bg-[#5229E0] transition-all shadow-lg shadow-purple-500/20">
-          <PlusCircle size={18} /> Anunciar
+
+        {/* Meus Ingressos (Aumenta retenção) */}
+        <Link href="/meus-ingressos" className="hidden sm:flex items-center gap-2 text-slate-500 hover:text-slate-900 px-4 py-2 text-xs font-bold uppercase tracking-widest transition-all">
+          <Ticket size={18} /> Meus Ingressos
+        </Link>
+
+        <div className="h-6 w-px bg-slate-100 mx-2 hidden sm:block" />
+
+        {/* Login */}
+        <Link href="/auth/login" className="text-slate-900 text-xs font-black uppercase tracking-widest flex items-center gap-2 hover:bg-slate-50 px-4 py-2.5 rounded-xl transition-all">
+          <User size={18} className="text-[#ff0082]" /> Entrar
+        </Link>
+
+        {/* Botão de Destaque (Anunciar) */}
+        <Link 
+          href="/dashboard/eventos/novo" 
+          className="bg-[#ff0082] text-white text-[10px] font-black uppercase tracking-[0.15em] flex items-center gap-2 px-6 py-3 rounded-xl hover:brightness-110 transition-all shadow-lg shadow-[#ff0082]/20 active:scale-95 ml-2"
+        >
+          <PlusCircle size={16} /> Criar Evento
         </Link>
       </div>
     </nav>
