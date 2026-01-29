@@ -66,7 +66,7 @@ export function Footer() {
                 <Phone size={16} className="text-pink-300" /> +351 912 907 828
               </li>
               <li className="flex items-center gap-3 text-sm font-bold">
-                <MapPin size={16} className="text-pink-300" /> Votuporanga, SP
+                <MapPin size={16} className="text-pink-300" /> Florianipolis - SC
               </li>
             </ul>
           </div>
