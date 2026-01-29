@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { Navbar } from '../../site/Navbar';
-import { Footer } from '../app/site/Footer';
+import { Footer } from '../../site/Footer';
 import { Calendar, MapPin, Ticket, ShieldCheck, Share2, Loader2, Info, Plus, Minus, Zap, ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
 
