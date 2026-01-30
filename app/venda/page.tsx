@@ -11,7 +11,7 @@ import Link from 'next/link';
 import { loadStripe } from '@stripe/stripe-js';
 
 // Inicializa o Stripe com sua CHAVE PÚBLICA (pk_live... ou pk_test...)
-const stripePromise = loadStripe('SUA_CHAVE_PUBLICA_AQUI');
+const stripePromise = loadStripe('pk_live_51Sv4VnEFlXyonekdm17FB09ptaqOhnxvBSqtWcX3jZcopNopxn6GgWKX1IOmcdqKTSpVU8bWyg9Wbd4ko6oaxAfv002MdIJCHW');
 
 function CheckoutContent() {
   const searchParams = useSearchParams();
