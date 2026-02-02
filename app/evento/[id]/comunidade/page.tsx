@@ -11,21 +11,19 @@ export default function SalaComunidade() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const usuarioSalvo = localStorage.getItem('user');
-    if (usuarioSalvo) setDadosUsuario(JSON.parse(usuarioSalvo));
-    else setDadosUsuario({ nome: 'Visitante' });
+    const user = localStorage.getItem('user');
+    setDadosUsuario(user ? JSON.parse(user) : { nome: 'Visitante' });
   }, []);
 
   const carregarMensagens = async () => {
     if (!id) return;
     try {
-      const idNumerico = Number(id);
-      const res = await fetch(`https://linkah-api.onrender.com/api/comunidade/${idNumerico}`, {
+      const res = await fetch(`https://linkah-api.onrender.com/api/comunidade/${id}`, {
         cache: 'no-store'
       });
       if (res.ok) {
         const data = await res.json();
-        console.log("MENSAGENS RECEBIDAS:", data);
+        console.log("LISTA ATUALIZADA:", data);
         setMensagens(data);
       }
     } catch (err) {
@@ -45,10 +43,9 @@ export default function SalaComunidade() {
 
   const enviarMensagem = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!novoTexto.trim() || !dadosUsuario) return;
+    if (!novoTexto.trim()) return;
 
-    const textoParaEnviar = novoTexto;
-    const idEvento = Number(id);
+    const textoOld = novoTexto;
     setNovoTexto(''); 
 
     try {
@@ -56,75 +53,55 @@ export default function SalaComunidade() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          evento_id: idEvento,
-          usuario_nome: dadosUsuario.nome,
-          texto: textoParaEnviar
+          evento_id: Number(id),
+          usuario_nome: dadosUsuario?.nome || 'Anônimo',
+          texto: textoOld
         })
       });
 
-      const confirmacao = await res.json();
-      console.log("RESPOSTA DO SERVIDOR:", confirmacao);
-
       if (res.ok) {
-        // Delay para garantir que o insert foi indexado no banco
-        setTimeout(() => carregarMensagens(), 500);
+        setTimeout(carregarMensagens, 500);
       } else {
-        alert("Erro no servidor: " + confirmacao.error);
-        setNovoTexto(textoParaEnviar);
+        setNovoTexto(textoOld);
       }
     } catch (err) {
-      console.error("Erro de conexão:", err);
+      console.error("Erro no envio:", err);
     }
   };
 
   return (
     <div className="flex flex-col h-screen bg-[#e5ddd5]">
-      <header className="bg-[#075e54] p-4 flex items-center justify-between text-white shrink-0 shadow-lg">
-        <div className="flex items-center gap-3">
-          <button onClick={() => router.back()} className="p-1 hover:bg-white/10 rounded-full transition-colors">
-            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" /></svg>
-          </button>
-          <h1 className="font-bold">Chat do Evento #{id}</h1>
-        </div>
-        <span className="text-xs font-semibold bg-white/20 px-3 py-1 rounded-full">{dadosUsuario?.nome}</span>
+      <header className="bg-[#075e54] p-4 flex items-center justify-between text-white shadow-md">
+        <button onClick={() => router.back()} className="font-bold">← Voltar</button>
+        <h1 className="text-sm">Evento #{id}</h1>
+        <span className="text-xs">{dadosUsuario?.nome}</span>
       </header>
 
-      <main className="flex-1 overflow-y-auto p-4 space-y-2 bg-[url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')] bg-repeat">
-        {mensagens.length === 0 ? (
-          <div className="text-center mt-10 text-gray-500 bg-white/60 p-4 rounded-lg shadow-sm">
-            Nenhuma mensagem por aqui ainda.
-          </div>
-        ) : (
-          mensagens.map((msg, idx) => {
-            const souEu = msg.usuario_nome === dadosUsuario?.nome;
-            // O Banco usa criado_em conforme seu log mostrou
-            const dataMsg = msg.criado_em || msg.criado_at; 
-            
-            return (
-              <div key={idx} className={`flex ${souEu ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[80%] px-3 py-1.5 rounded-lg shadow-sm relative ${souEu ? 'bg-[#dcf8c6] rounded-tr-none' : 'bg-white rounded-tl-none'}`}>
-                  {!souEu && <p className="text-[10px] font-bold text-emerald-600 mb-0.5">{msg.usuario_nome}</p>}
-                  <p className="text-sm text-gray-800 pr-10">{msg.texto}</p>
-                  <span className="text-[9px] text-gray-400 absolute bottom-1 right-2">
-                    {dataMsg ? new Date(dataMsg).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
-                  </span>
-                </div>
+      <main className="flex-1 overflow-y-auto p-4 space-y-2">
+        {mensagens.map((msg, idx) => {
+          const souEu = msg.usuario_nome === dadosUsuario?.nome;
+          return (
+            <div key={idx} className={`flex ${souEu ? 'justify-end' : 'justify-start'}`}>
+              <div className={`p-2 rounded-lg max-w-[80%] shadow-sm ${souEu ? 'bg-[#dcf8c6]' : 'bg-white'}`}>
+                {!souEu && <p className="text-[10px] font-bold text-green-700">{msg.usuario_nome}</p>}
+                <p className="text-sm">{msg.texto}</p>
+                <p className="text-[9px] text-right text-gray-400">
+                  {msg.criado_em ? new Date(msg.criado_em).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}
+                </p>
               </div>
-            );
-          })
-        )}
+            </div>
+          );
+        })}
         <div ref={scrollRef} />
       </main>
 
-      <footer className="p-3 bg-[#f0f0f0] border-t shrink-0">
-        <form onSubmit={enviarMensagem} className="flex gap-2 max-w-5xl mx-auto items-center">
+      <footer className="p-3 bg-gray-100">
+        <form onSubmit={enviarMensagem} className="flex gap-2">
           <input 
             type="text" value={novoTexto} onChange={(e) => setNovoTexto(e.target.value)}
-            placeholder="Mensagem" className="flex-1 rounded-full px-5 py-2.5 outline-none text-sm shadow-inner bg-white"
+            className="flex-1 p-2 rounded-full outline-none text-sm px-4" placeholder="Mensagem"
           />
-          <button type="submit" disabled={!novoTexto.trim()} className="bg-[#075e54] text-white p-3 rounded-full hover:scale-105 disabled:opacity-50 transition-all shadow-md">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" /></svg>
-          </button>
+          <button type="submit" className="bg-[#075e54] text-white px-4 rounded-full font-bold">></button>
         </form>
       </footer>
     </div>
