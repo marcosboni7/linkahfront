@@ -4,22 +4,37 @@ import { useEffect, useState } from 'react';
 import { Navbar } from '../app/site/Navbar'; 
 import { EventCard } from '../app/site/EventCard';
 import { Footer } from '../app/site/Footer';
-import { Search, MapPin, Sparkles, Ticket, ChevronRight, Loader2 } from 'lucide-react';
+import { Search, MapPin, Sparkles, Ticket, ChevronRight, Loader2, MessagesSquare, X, ArrowRight } from 'lucide-react';
+import Link from 'next/link';
 
 export default function BuyTicketHome() {
   const [eventos, setEventos] = useState([]);
-  const [eventosFiltrados, setEventosFiltrados] = useState([]); // Estado para o resultado da busca
+  const [eventosFiltrados, setEventosFiltrados] = useState([]);
   const [loading, setLoading] = useState(true);
   const [categoriaAtiva, setCategoriaAtiva] = useState('Todos');
   const [categoriasExistentes, setCategoriasExistentes] = useState<string[]>(['Todos']);
+  
+  // ESTADOS DO MODAL DE AVISO
+  const [showComunidadeModal, setShowComunidadeModal] = useState(false);
 
-  // ESTADOS DA BUSCA
   const [buscaNome, setBuscaNome] = useState('');
   const [buscaCidade, setBuscaCidade] = useState('');
 
   const API_URL = 'https://linkah-api.onrender.com/api/eventos/vitrine';
 
-  // 1. CARREGAR DADOS DA API
+  // 1. CARREGAR DADOS E MOSTRAR MODAL
+  useEffect(() => {
+    // Mostrar o modal de comunidade após 1.5 segundos na primeira visita
+    const avisado = sessionStorage.getItem('@Linkah:AvisoComunidade');
+    if (!avisado) {
+      const timer = setTimeout(() => {
+        setShowComunidadeModal(true);
+        sessionStorage.setItem('@Linkah:AvisoComunidade', 'true');
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
   useEffect(() => {
     async function carregarDados() {
       setLoading(true);
@@ -29,7 +44,7 @@ export default function BuyTicketHome() {
         if (response.ok) {
           const dados = await response.json();
           setEventos(dados);
-          setEventosFiltrados(dados); // Inicialmente, os filtrados são todos
+          setEventosFiltrados(dados);
 
           if (categoriaAtiva === 'Todos') {
             const extrair = dados.map((ev: any) => ev.categoria).filter(Boolean);
@@ -46,17 +61,13 @@ export default function BuyTicketHome() {
     carregarDados();
   }, [categoriaAtiva]);
 
-  // 2. LÓGICA DE FILTRAGEM (Roda sempre que o usuário digita ou os eventos mudam)
   useEffect(() => {
     const resultado = eventos.filter((evento: any) => {
       const nomeMatch = evento.nome.toLowerCase().includes(buscaNome.toLowerCase());
       const cidadeMatch = evento.cidade?.toLowerCase().includes(buscaCidade.toLowerCase()) || 
                           evento.estado?.toLowerCase().includes(buscaCidade.toLowerCase());
-      
-      // Se não digitou nada na cidade, ignora esse filtro
       return buscaCidade === '' ? nomeMatch : (nomeMatch && cidadeMatch);
     });
-
     setEventosFiltrados(resultado);
   }, [buscaNome, buscaCidade, eventos]);
 
@@ -69,6 +80,57 @@ export default function BuyTicketHome() {
   return (
     <div className="bg-[#FCFCFD] min-h-screen text-slate-800 font-sans">
       <Navbar />
+
+      {/* MODAL DE AVISO - NOSSA COMUNIDADE */}
+      {showComunidadeModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-[#0B0121]/80 backdrop-blur-md animate-in fade-in duration-500" 
+            onClick={() => setShowComunidadeModal(false)} 
+          />
+          
+          <div className="relative bg-white w-full max-w-md rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+            {/* Botão Fechar */}
+            <button 
+              onClick={() => setShowComunidadeModal(false)}
+              className="absolute top-6 right-6 p-2 bg-slate-50 hover:bg-slate-100 rounded-full text-slate-400 transition-colors z-10"
+            >
+              <X size={20} />
+            </button>
+
+            <div className="p-10 text-center">
+              <div className="w-20 h-20 bg-pink-50 rounded-[2rem] flex items-center justify-center mx-auto mb-6 relative">
+                <MessagesSquare size={36} className="text-[#ff0082]" />
+                <span className="absolute top-0 right-0 w-4 h-4 bg-emerald-500 rounded-full border-4 border-white animate-pulse"></span>
+              </div>
+
+              <h2 className="text-3xl font-black text-slate-900 leading-tight uppercase italic tracking-tighter mb-4">
+                Chegou a <br/> <span className="text-[#ff0082]">Nossa Comunidade</span>
+              </h2>
+
+              <p className="text-slate-500 font-medium leading-relaxed mb-8">
+                Agora você pode interagir com outras pessoas, tirar dúvidas e sentir a vibe dos eventos antes mesmo de chegar!
+              </p>
+
+              <div className="space-y-3">
+                <Link 
+                  href="/comunidades"
+                  className="flex items-center justify-center gap-3 w-full bg-[#ff0082] text-white py-5 rounded-2xl font-black uppercase text-xs tracking-widest shadow-lg shadow-pink-200 hover:brightness-110 transition-all active:scale-95"
+                >
+                  Explorar Comunidades <ArrowRight size={18} />
+                </Link>
+                
+                <button 
+                  onClick={() => setShowComunidadeModal(false)}
+                  className="w-full py-4 text-slate-400 font-bold uppercase text-[10px] tracking-widest hover:text-slate-600 transition-colors"
+                >
+                  Talvez mais tarde
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* HERO SECTION */}
       <section className="relative bg-[#0B0121] py-20 px-6 overflow-hidden">
@@ -95,7 +157,7 @@ export default function BuyTicketHome() {
               </button>
             </div>
 
-            {/* BOX DE BUSCA COM LÓGICA */}
+            {/* BOX DE BUSCA */}
             <div className="w-full max-w-[480px] bg-white rounded-[2.5rem] p-8 shadow-[0_30px_60px_rgba(0,0,0,0.3)]">
               <h3 className="text-slate-900 font-black uppercase text-xs tracking-widest mb-6 border-b border-slate-100 pb-4">
                 Encontre seu evento
@@ -179,7 +241,7 @@ export default function BuyTicketHome() {
             <div className="col-span-full py-40 text-center border-2 border-dashed border-slate-200 rounded-[3rem] bg-white">
               <Ticket className="mx-auto text-slate-100 mb-6" size={64} />
               <p className="text-slate-500 font-black uppercase tracking-[0.2em] text-sm max-w-xs mx-auto">
-                Não encontramos nada para "{buscaNome}" em "{buscaCidade || 'Qualquer lugar'}".
+                Não encontramos nada.
               </p>
               <button 
                 onClick={handleLimparBusca} 
