@@ -1,267 +1,172 @@
 'use client';
+import { useState, useEffect, useRef } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 
-import { useState } from 'react';
-import { ChevronLeft, Camera, ChevronDown, Loader2, X } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+const gerarCorTag = (nome: string) => {
+  const cores = ['bg-purple-500', 'bg-indigo-500', 'bg-violet-600', 'bg-fuchsia-500', 'bg-blue-500'];
+  let hash = 0;
+  const n = nome || "Visitante";
+  for (let i = 0; i < n.length; i++) hash = n.charCodeAt(i) + ((hash << 5) - hash);
+  return cores[Math.abs(hash) % cores.length];
+};
 
-export default function NovoEventoOnline() {
+export default function SalaComunidade() {
+  const { id } = useParams();
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<{ [key: string]: boolean }>({});
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [mensagens, setMensagens] = useState<any[]>([]);
+  const [novoTexto, setNovoTexto] = useState('');
+  const [dadosUsuario, setDadosUsuario] = useState<any>(null);
+  const [carregando, setCarregando] = useState(true);
+  const [naoAutorizado, setNaoAutorizado] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  const [formData, setFormData] = useState({
-    nome: '',
-    categoria: '',
-    link_transmissao: '',
-    descricao: '',
-    data_inicio: '',
-    hora_inicio: '',
-    data_termino: '',
-    hora_termino: '',
-    status: 'Ativo',
-  });
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleChange = (name: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    if (value.trim() !== "") {
-      setErrors((prev) => ({ ...prev, [name]: false }));
-    }
-  };
-
-  const validate = () => {
-    const newErrors: any = {};
-    if (!formData.nome.trim()) newErrors.nome = true;
-    if (!formData.link_transmissao.trim()) newErrors.link_transmissao = true;
-    if (!formData.categoria.trim()) newErrors.categoria = true;
-    if (!formData.data_inicio) newErrors.data_inicio = true;
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-const handleSubmit = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!validate()) {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://linkah-api.onrender.com';
-      
-      const emailLogado = localStorage.getItem('userEmail');
-
-      // AJUSTE AQUI: Incluímos a previewImage (Base64) no payload
-      const payload = {
-        ...formData,
-        produtor_email: emailLogado,
-        tipo: 'Online',
-        imagem_capa: previewImage // <-- Envia o texto da imagem para o Back-end
-      };
-
-      const res = await fetch(`${apiBaseUrl}/api/eventos/novo-online`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json();
-      
-      if (res.ok) {
-        router.push(`/dashboard/eventos/novo/ingressos/${data.id}`);
-      } else {
-        // Se o erro for 500, o 'data.detalhe' ou 'data.message' vindo do Back corrigido ajudará
-        alert(data.message || data.error || "Erro ao salvar evento.");
+  // 1. LÓGICA DE PROTEÇÃO E CAPTURA DE NOME
+  useEffect(() => {
+    const userStorage = localStorage.getItem('user') || localStorage.getItem('userData');
+    
+    if (userStorage) {
+      try {
+        const user = JSON.parse(userStorage);
+        setDadosUsuario({
+          nome: user.nome || user.name || user.username || "Membro",
+        });
+        setCarregando(false);
+      } catch (e) {
+        console.error("Erro ao ler dados do usuário", e);
+        setNaoAutorizado(true);
       }
-    } catch (err) {
-      alert("Erro na conexão com o servidor.");
-    } finally {
-      setLoading(false);
+    } else {
+      // Se não houver login, bloqueia e redireciona
+      setNaoAutorizado(true);
+      setTimeout(() => {
+        router.push('/login'); // Ajuste para sua rota de login
+      }, 3000);
     }
+  }, [router]);
+
+  // 2. BUSCA DE MENSAGENS
+  const carregarMensagens = async () => {
+    if (!id || naoAutorizado) return;
+    try {
+      const res = await fetch(`https://linkah-api.onrender.com/api/comunidade/${id}?t=${Date.now()}`, { cache: 'no-store' });
+      if (res.ok) setMensagens(await res.json());
+    } catch (err) { console.error(err); }
   };
+
+  useEffect(() => {
+    carregarMensagens();
+    const interval = setInterval(carregarMensagens, 3000);
+    return () => clearInterval(interval);
+  }, [id, naoAutorizado]);
+
+  useEffect(() => {
+    scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [mensagens]);
+
+  // 3. ENVIO DE MENSAGEM
+  const enviarMensagem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!novoTexto.trim() || !dadosUsuario) return;
+    const txt = novoTexto; setNovoTexto('');
+    try {
+      await fetch('https://linkah-api.onrender.com/api/comunidade/enviar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ evento_id: Number(id), usuario_nome: dadosUsuario.nome, texto: txt })
+      });
+      carregarMensagens();
+    } catch (err) { setNovoTexto(txt); }
+  };
+
+  // TELA DE "NÃO LOGADO"
+  if (naoAutorizado) return (
+    <div className="h-screen !bg-white flex flex-col items-center justify-center p-6 text-center">
+      <div className="text-4xl mb-4">🔒</div>
+      <h2 className="text-xl font-bold text-slate-800">Acesso Restrito</h2>
+      <p className="text-slate-500 mt-2">Você precisa estar logado para participar da comunidade.</p>
+      <p className="text-indigo-600 text-sm mt-4 font-medium animate-pulse">Redirecionando para login...</p>
+    </div>
+  );
+
+  if (carregando) return <div className="h-screen !bg-white flex items-center justify-center text-indigo-600 font-bold">Carregando...</div>;
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
-      <header className="bg-white border-b border-slate-100 px-6 py-4 flex justify-between items-center sticky top-0 z-50">
-        <div className="flex items-center gap-6">
-          <button onClick={() => router.back()} className="text-slate-400 hover:text-[#C22973] transition-colors">
-            <ChevronLeft size={24} />
-          </button>
-          <div>
-            <h1 className="text-slate-800 font-black text-xl tracking-tight leading-none">Criar Evento Online</h1>
-            <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mt-1">Passo 1 de 2</p>
+    <div className="flex flex-col h-screen !bg-white !text-slate-900 font-sans overflow-hidden">
+      
+      {/* HEADER CLARO */}
+      <header className="p-4 flex items-center justify-between border-b border-slate-100 !bg-white shadow-sm z-10 shrink-0">
+        <button onClick={() => router.back()} className="p-2 hover:bg-slate-50 rounded-full text-slate-400">
+          <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg>
+        </button>
+        
+        <div className="text-center">
+          <h1 className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600 italic">Linkah Chat</h1>
+          <div className="flex items-center gap-1.5 justify-center">
+             <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+             <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Conectado</span>
           </div>
         </div>
 
-        <button 
-          onClick={() => handleSubmit()}
-          disabled={loading}
-          className="bg-[#C22973] text-white px-8 py-3 rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-[#a12160] transition-all shadow-lg shadow-pink-100 flex items-center gap-2"
-        >
-          {loading ? <Loader2 className="animate-spin" size={16} /> : 'AVANÇAR'}
-        </button>
+        <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-[12px] font-black text-white border-2 border-white shadow-md">
+          {dadosUsuario?.nome?.substring(0,2).toUpperCase()}
+        </div>
       </header>
 
-      <div className="max-w-6xl mx-auto p-6 md:p-12">
-        {/* Progress Tracker */}
-        <div className="flex justify-center items-center mb-16 relative">
-          <div className="flex items-center gap-12 md:gap-24 z-10">
-            <div className="flex items-center gap-3 bg-white pr-4 py-1">
-              <div className="w-10 h-10 rounded-2xl bg-[#C22973] text-white flex items-center justify-center text-sm font-black shadow-lg shadow-pink-200 italic">1</div>
-              <span className="text-xs font-black text-slate-700 tracking-tight">Dados do Evento</span>
-            </div>
-            <div className="flex items-center gap-3 opacity-30">
-              <div className="w-10 h-10 rounded-2xl bg-white border-2 border-slate-200 text-slate-400 flex items-center justify-center text-sm font-black">2</div>
-              <span className="text-xs font-bold text-slate-400 tracking-tight">Ingressos</span>
-            </div>
-          </div>
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 w-64 h-[2px] bg-slate-100 -z-0"></div>
-        </div>
+      {/* ÁREA DE CHAT (FUNDO CINZA LEVE) */}
+      <main className="flex-1 overflow-y-auto p-4 space-y-6 !bg-[#f8fafc] custom-scrollbar">
+        {mensagens.map((msg, idx) => {
+          const meuNome = (dadosUsuario?.nome || "").trim().toLowerCase();
+          const nomeDestaMsg = (msg.usuario_nome || "").trim().toLowerCase();
+          const souEu = meuNome === nomeDestaMsg && meuNome !== "";
 
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-          <div className="lg:col-span-8 space-y-8">
-            <div className="bg-white p-8 md:p-12 rounded-[3rem] shadow-xl shadow-slate-200/50 border border-white space-y-8">
-              <div>
-                <h2 className="text-[#C22973] font-black text-xl tracking-tight">Informações Principais</h2>
-                <p className="text-slate-400 text-xs font-bold">Preencha os detalhes básicos da sua transmissão</p>
+          return (
+            <div key={idx} className={`flex flex-col ${souEu ? 'items-end' : 'items-start'}`}>
+              <div className={`px-2 py-0.5 rounded-md text-[9px] font-black text-white mb-1 shadow-sm ${
+                souEu ? 'bg-indigo-400' : `${gerarCorTag(msg.usuario_nome)}`
+              }`}>
+                {msg.usuario_nome}
               </div>
 
-              <div className="space-y-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Nome do evento <span className="text-red-500">*</span></label>
-                  <input 
-                    className={`w-full bg-slate-50 border ${errors.nome ? 'border-red-400' : 'border-slate-100'} p-5 rounded-3xl outline-none focus:border-[#C22973] focus:bg-white transition-all font-bold text-slate-700`} 
-                    placeholder="Ex: Masterclass de Marketing Digital" 
-                    onChange={(e) => handleChange('nome', e.target.value)} 
-                  />
-                  {errors.nome && <p className="text-[10px] text-red-500 font-bold ml-2 uppercase">Nome é obrigatório</p>}
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Link da Transmissão <span className="text-red-500">*</span></label>
-                  <input 
-                    className={`w-full bg-slate-50 border ${errors.link_transmissao ? 'border-red-400' : 'border-indigo-50'} p-5 rounded-3xl outline-none focus:border-indigo-500 focus:bg-white transition-all font-bold text-indigo-600`} 
-                    placeholder="https://zoom.us/j/..." 
-                    onChange={(e) => handleChange('link_transmissao', e.target.value)} 
-                  />
-                  {errors.link_transmissao && <p className="text-[10px] text-red-500 font-bold ml-2 uppercase">Insira o link da aula/live</p>}
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Categoria <span className="text-red-500">*</span></label>
-                    <div className="relative">
-                      <select 
-                        className={`w-full bg-slate-50 border ${errors.categoria ? 'border-red-400' : 'border-slate-100'} p-5 rounded-3xl outline-none appearance-none font-bold text-slate-700 cursor-pointer`} 
-                        onChange={(e) => handleChange('categoria', e.target.value)}
-                      >
-                        <option value="">Selecione</option>
-                        <option value="Workshop">Workshop</option>
-                        <option value="Mentoria">Mentoria</option>
-                        <option value="Show">Show Online</option>
-                      </select>
-                      <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={20} />
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-pink-400 uppercase ml-2 tracking-widest">Visibilidade</label>
-                    <div className="relative">
-                      <select className="w-full bg-pink-50/30 border border-pink-100 p-5 rounded-3xl outline-none appearance-none font-bold text-[#C22973] cursor-pointer" onChange={(e) => handleChange('status', e.target.value)}>
-                        <option value="Ativo">Publicado (Ativo)</option>
-                        <option value="Rascunho">Privado (Rascunho)</option>
-                      </select>
-                      <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 text-[#C22973] pointer-events-none" size={20} />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Sobre o evento</label>
-                  <textarea rows={5} className="w-full bg-slate-50 border border-slate-100 p-6 rounded-[2rem] outline-none focus:border-[#C22973] focus:bg-white transition-all font-medium text-slate-600 leading-relaxed" placeholder="Conte mais detalhes..." onChange={(e) => handleChange('descricao', e.target.value)} />
-                </div>
-              </div>
-
-              <div className="pt-4">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="h-[2px] w-8 bg-[#C22973]"></div>
-                  <h3 className="text-[#C22973] font-black text-xs uppercase tracking-widest italic">Cronograma <span className="text-red-500">*</span></h3>
-                </div>
-                
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {[
-                    { label: 'Início em', field: 'data_inicio', type: 'date' },
-                    { label: 'Às', field: 'hora_inicio', type: 'time' },
-                    { label: 'Termina em', field: 'data_termino', type: 'date' },
-                    { label: 'Às', field: 'hora_termino', type: 'time' },
-                  ].map((item) => (
-                    <div key={item.field} className={`bg-slate-50 p-4 rounded-2xl border ${errors[item.field] ? 'border-red-400' : 'border-slate-100'}`}>
-                      <label className="text-[9px] font-black text-slate-400 uppercase block mb-1">{item.label}</label>
-                      <input 
-                        type={item.type} 
-                        className="w-full bg-transparent font-bold text-slate-700 outline-none text-xs" 
-                        onChange={(e) => handleChange(item.field, e.target.value)} 
-                      />
-                    </div>
-                  ))}
+              <div className={`px-4 py-2.5 rounded-2xl max-w-[85%] shadow-sm border ${
+                souEu 
+                  ? 'bg-indigo-600 border-indigo-500 text-white rounded-tr-none' 
+                  : '!bg-white border-slate-200 !text-slate-700 rounded-tl-none'
+              }`}>
+                <p className="text-[14px] leading-relaxed font-medium">{msg.texto}</p>
+                <div className={`text-[9px] mt-1 font-bold ${souEu ? 'text-indigo-200 text-right' : 'text-slate-400 text-left'}`}>
+                  {msg.criado_em ? new Date(msg.criado_em).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : ''}
                 </div>
               </div>
             </div>
-          </div>
+          );
+        })}
+        <div ref={scrollRef} className="h-4" />
+      </main>
 
-          <div className="lg:col-span-4 space-y-6">
-            <div className="bg-white p-8 rounded-[3rem] shadow-xl shadow-slate-200/50 border border-white">
-              <label className="text-[10px] font-black text-slate-400 uppercase block mb-4 tracking-widest text-center">Capa do Evento</label>
-              <div className="aspect-square bg-slate-50 rounded-[2.5rem] border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-300 gap-4 group hover:border-[#C22973] hover:bg-pink-50/30 transition-all cursor-pointer relative overflow-hidden">
-                {previewImage ? (
-                  <>
-                    <img src={previewImage} className="w-full h-full object-cover" alt="Preview" />
-                    <button 
-                      type="button"
-                      onClick={(e) => { e.preventDefault(); setPreviewImage(null); }} 
-                      className="absolute top-4 right-4 bg-white p-2 rounded-full text-red-500 shadow-lg z-20"
-                    >
-                      <X size={18}/>
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <div className="w-16 h-16 bg-white rounded-3xl shadow-sm flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <Camera size={28} className="text-slate-300 group-hover:text-[#C22973]" />
-                    </div>
-                    <div className="text-center px-6">
-                      <span className="text-[10px] font-black uppercase tracking-tighter block text-slate-400 group-hover:text-[#C22973]">Upload da Imagem</span>
-                    </div>
-                    <input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleImageChange} />
-                  </>
-                )}
-              </div>
-            </div>
-
-            <div className="bg-[#4B0082] p-8 rounded-[3rem] text-white space-y-4 shadow-xl shadow-indigo-100">
-              <h4 className="font-black text-xs uppercase tracking-[0.2em]">Dica Linkah</h4>
-              <p className="text-[11px] font-medium text-indigo-100 leading-relaxed">
-                Eventos com boas descrições e capas vendem até <span className="text-pink-400 font-black">45% mais</span>.
-              </p>
-            </div>
-          </div>
+      {/* INPUT BRANCO */}
+      <footer className="p-4 !bg-white border-t border-slate-100 shrink-0">
+        <form onSubmit={enviarMensagem} className="flex items-center gap-2 max-w-4xl mx-auto !bg-slate-50 p-1.5 rounded-2xl border border-slate-200 focus-within:!bg-white focus-within:border-indigo-400 transition-all shadow-sm">
+          <input 
+            type="text" 
+            value={novoTexto} 
+            onChange={(e) => setNovoTexto(e.target.value)}
+            className="flex-1 bg-transparent border-none outline-none text-sm px-3 py-2 !text-slate-800 placeholder:text-slate-400 font-medium" 
+            placeholder={`Conversar como ${dadosUsuario?.nome}...`}
+          />
+          <button 
+            type="submit" 
+            disabled={!novoTexto.trim()}
+            className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-30 text-white w-10 h-10 rounded-xl flex items-center justify-center shadow-lg active:scale-90 transition-all"
+          >
+            <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="3.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </button>
         </form>
-      </div>
+      </footer>
+
+      <style jsx>{`
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+      `}</style>
     </div>
   );
 }
