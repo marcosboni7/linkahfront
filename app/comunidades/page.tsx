@@ -8,7 +8,6 @@ export default function ListaComunidades() {
   const [erro, setErro] = useState<string | null>(null);
 
   useEffect(() => {
-    // Usando a rota de vitrine que confirmamos que funciona
     fetch('https://linkah-api.onrender.com/api/eventos/vitrine')
       .then(res => {
         if (!res.ok) throw new Error('Erro ao carregar comunidades');
@@ -19,72 +18,113 @@ export default function ListaComunidades() {
         setLoading(false);
       })
       .catch(err => {
-        console.error("Erro no fetch:", err);
         setErro("O servidor está acordando... tente atualizar em alguns segundos.");
         setLoading(false);
       });
   }, []);
 
   if (loading) return (
-    <div className="flex justify-center items-center h-screen bg-white">
-      <div className="text-center">
-        <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-        <p className="text-xl text-purple-600 font-medium">Buscando comunidades...</p>
+    <div className="flex justify-center items-center h-screen !bg-white">
+      <div className="flex flex-col items-center">
+        <div className="w-16 h-16 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
+        <p className="text-indigo-600 font-bold tracking-widest animate-pulse">CARREGANDO...</p>
       </div>
     </div>
   );
 
   return (
-    <div className="max-w-6xl mx-auto p-6 min-h-screen bg-white text-black">
-      <div className="mb-10 text-center">
-        <h1 className="text-4xl font-extrabold mb-3 bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600">
-          Comunidades Linkah 💬
-        </h1>
-        <p className="text-gray-500 text-lg">
-          Converse com a galera e fique por dentro dos eventos!
-        </p>
-      </div>
-
-      {erro && (
-        <div className="bg-amber-50 text-amber-700 p-4 rounded-xl text-center mb-6 border border-amber-200">
-          {erro}
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {eventos.map((evento: any) => (
-          <div key={evento.id} className="group border rounded-2xl p-5 shadow-sm hover:shadow-xl transition-all duration-300 bg-white border-gray-100 flex flex-col justify-between">
-            <div>
-              {evento.imagem_capa && (
-                <img 
-                  src={evento.imagem_capa} 
-                  alt={evento.nome} 
-                  className="w-full h-44 object-cover rounded-xl mb-4"
-                />
-              )}
-              <h2 className="text-2xl font-bold mb-2 group-hover:text-purple-600 transition-colors">
-                {evento.nome}
-              </h2>
-              <p className="text-gray-500 text-sm mb-6 line-clamp-2">
-                {evento.descricao || "Participe da conversa oficial deste evento e tire suas dúvidas."}
-              </p>
-            </div>
-            
-            <Link 
-              href={`/evento/${evento.id}/comunidade`}
-              className="flex items-center justify-center w-full bg-black text-white py-3 rounded-xl font-bold hover:bg-purple-600 transition-all shadow-lg hover:shadow-purple-200"
-            >
-              Entrar na Sala
-            </Link>
+    <div className="min-h-screen !bg-[#F8FAFC] !text-slate-900 font-sans pb-20">
+      
+      {/* NAVBAR SIMPLIFICADA */}
+      <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200 p-4">
+        <div className="max-w-6xl mx-auto flex justify-between items-center">
+          <span className="text-xl font-black italic text-indigo-600 tracking-tighter">LINKAH.</span>
+          <div className="flex gap-4">
+             <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200"></div>
           </div>
-        ))}
+        </div>
+      </nav>
+
+      <div className="max-w-6xl mx-auto px-6 pt-12">
+        {/* HEADER DA VITRINE */}
+        <div className="mb-12">
+          <span className="text-indigo-600 font-bold text-xs uppercase tracking-[0.3em]">Explorar</span>
+          <h1 className="text-4xl md:text-5xl font-black mt-2 mb-4 tracking-tight">
+            Comunidades <span className="text-indigo-600">Ativas</span>
+          </h1>
+          <p className="text-slate-500 max-w-lg leading-relaxed">
+            Conecte-se com pessoas nos melhores eventos e participe das conversas em tempo real.
+          </p>
+        </div>
+
+        {erro && (
+          <div className="bg-red-50 text-red-600 p-4 rounded-2xl text-center mb-8 border border-red-100 font-medium">
+            {erro}
+          </div>
+        )}
+
+        {/* GRID DE CARDS */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {eventos.map((evento: any) => (
+            <div key={evento.id} className="group relative bg-white border border-slate-200 rounded-3xl overflow-hidden hover:shadow-[0_20px_50px_rgba(79,70,229,0.1)] transition-all duration-500 hover:-translate-y-2">
+              
+              {/* IMAGEM COM OVERLAY */}
+              <div className="relative h-48 overflow-hidden">
+                <img 
+                  src={evento.imagem_capa || 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=800&auto=format&fit=crop'} 
+                  alt={evento.nome} 
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="absolute top-4 left-4">
+                  <span className="bg-white/90 backdrop-blur-sm text-indigo-600 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">
+                    Live Now
+                  </span>
+                </div>
+              </div>
+
+              {/* CONTEÚDO DO CARD */}
+              <div className="p-6">
+                <h2 className="text-xl font-bold mb-2 group-hover:text-indigo-600 transition-colors line-clamp-1">
+                  {evento.nome}
+                </h2>
+                <p className="text-slate-500 text-sm mb-6 line-clamp-2 min-h-[40px]">
+                  {evento.descricao || "Participe da conversa oficial deste evento e tire suas dúvidas com a galera."}
+                </p>
+                
+                <Link 
+                  href={`/evento/${evento.id}/comunidade`}
+                  className="flex items-center justify-center w-full bg-slate-950 text-white py-4 rounded-2xl font-bold hover:bg-indigo-600 transition-all shadow-lg active:scale-95 group-hover:shadow-indigo-200"
+                >
+                  Entrar na Comunidade
+                  <svg className="ml-2 w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                </Link>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* EMPTY STATE */}
+        {eventos.length === 0 && !loading && !erro && (
+          <div className="text-center py-24 bg-white rounded-[40px] border-2 border-dashed border-slate-200">
+            <div className="text-5xl mb-4">💬</div>
+            <h3 className="text-xl font-bold text-slate-800">Nenhuma sala encontrada</h3>
+            <p className="text-slate-500 mt-2">Parece que os servidores estão descansando.</p>
+          </div>
+        )}
       </div>
 
-      {eventos.length === 0 && !loading && !erro && (
-        <div className="text-center p-20 border-2 border-dashed rounded-3xl text-gray-400">
-          Nenhuma comunidade aberta no momento. Que tal criar um evento?
+      {/* FOOTER SIMPLES */}
+      <footer className="mt-20 border-t border-slate-200 bg-white py-12 px-6">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+          <span className="text-2xl font-black italic text-slate-300">LINKAH.</span>
+          <p className="text-slate-400 text-sm">© 2026 Linkah Communities. Todos os direitos reservados.</p>
+          <div className="flex gap-6 text-slate-400 text-sm font-bold uppercase tracking-widest">
+            <a href="#" className="hover:text-indigo-600">Suporte</a>
+            <a href="#" className="hover:text-indigo-600">Privacidade</a>
+          </div>
         </div>
-      )}
+      </footer>
     </div>
   );
 }
