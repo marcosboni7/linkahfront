@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { User, MapPin, Ticket, LogOut, X, Calendar, Hash, Loader2 } from 'lucide-react';
+import { User, MapPin, Ticket, LogOut, X, Calendar, Hash, Loader2, MessagesSquare } from 'lucide-react';
 
 export function Navbar() {
   const [usuario, setUsuario] = useState<{ nome: string; email?: string; role?: string } | null>(null);
@@ -57,19 +57,33 @@ export function Navbar() {
       <nav className="bg-white border-b border-slate-100 px-6 md:px-12 py-4 flex items-center justify-between sticky top-0 z-50 backdrop-blur-md bg-white/90">
 
         {/* LADO ESQUERDO */}
-        <div className="flex items-center gap-8">
+        <div className="flex items-center gap-4 md:gap-8">
           <Link href="/" className="text-slate-900 text-2xl font-black tracking-tighter italic hover:opacity-80 transition-opacity">
             LINKAH<span className="text-[#d6006d]">.</span>
           </Link>
 
-          <button className="hidden lg:flex items-center gap-2 text-slate-400 border border-slate-100 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest bg-slate-50/50 transition-colors hover:border-[#d6006d]/20">
+          {/* BOTÃO DESTAQUE: NOSSA COMUNIDADE */}
+          <Link 
+            href="/comunidades" 
+            className="group relative flex items-center gap-2 bg-[#d6006d]/5 border border-[#d6006d]/10 px-4 py-2.5 rounded-2xl hover:bg-[#d6006d] transition-all duration-500 shadow-sm"
+          >
+            <div className="relative">
+              <MessagesSquare size={16} className="text-[#d6006d] group-hover:text-white transition-colors" />
+              {/* Bolinha pulsante de 'Live' */}
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse border-2 border-white"></span>
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-[0.15em] text-[#d6006d] group-hover:text-white transition-colors">
+              Nossa Comunidade
+            </span>
+          </Link>
+
+          <button className="hidden xl:flex items-center gap-2 text-slate-400 border border-slate-100 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest bg-slate-50/50 transition-colors hover:border-[#d6006d]/20">
             <MapPin size={14} className="text-[#d6006d]" /> Brasil
           </button>
         </div>
 
         {/* LADO DIREITO */}
         <div className="flex items-center gap-2 md:gap-4">
-
           {usuario && (
             <div className="flex items-center animate-in fade-in zoom-in-95 duration-300">
               <button
@@ -79,7 +93,6 @@ export function Navbar() {
                 <Ticket size={14} className="text-[#d6006d]" />
                 <span className="hidden sm:inline">Meus Ingressos</span>
               </button>
-              {/* Botão Criar Evento Removido Daqui */}
             </div>
           )}
 
@@ -115,7 +128,7 @@ export function Navbar() {
         </div>
       </nav>
 
-      {/* MODAL DE INGRESSOS (Mantido sem alterações) */}
+      {/* MODAL DE INGRESSOS */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsModalOpen(false)} />
@@ -148,8 +161,9 @@ export function Navbar() {
                             <Calendar size={12} /> {ticket.data}
                           </div>
                         </div>
-                        <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${ticket.status === 'Aprovado' ? 'bg-green-100 text-green-600' : 'bg-yellow-100 text-yellow-600'
-                          }`}>
+                        <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
+                          ticket.status === 'Aprovado' ? 'bg-green-100 text-green-600' : 'bg-yellow-100 text-yellow-600'
+                        }`}>
                           {ticket.status}
                         </span>
                       </div>
@@ -167,7 +181,7 @@ export function Navbar() {
                 ) : (
                   <div className="text-center py-10 opacity-30">
                     <Ticket size={48} className="mx-auto mb-4" />
-                    <p className="text-xs font-bold uppercase tracking-widest">Nenhum ingresso encontrado para este perfil</p>
+                    <p className="text-xs font-bold uppercase tracking-widest">Nenhum ingresso encontrado</p>
                   </div>
                 )}
               </div>
