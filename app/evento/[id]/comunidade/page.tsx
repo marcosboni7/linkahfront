@@ -25,7 +25,7 @@ export default function SalaComunidade() {
       });
       if (res.ok) {
         const data = await res.json();
-        console.log("MENSAGENS DO BANCO:", data);
+        console.log("MENSAGENS RECEBIDAS:", data);
         setMensagens(data);
       }
     } catch (err) {
@@ -63,11 +63,11 @@ export default function SalaComunidade() {
       });
 
       const confirmacao = await res.json();
-      console.log("RESPOSTA DO SERVIDOR APÓS ENVIAR:", confirmacao);
+      console.log("RESPOSTA DO SERVIDOR:", confirmacao);
 
       if (res.ok) {
-        // Aguarda 600ms para o banco processar e busca a lista
-        setTimeout(() => carregarMensagens(), 600);
+        // Delay para garantir que o insert foi indexado no banco
+        setTimeout(() => carregarMensagens(), 500);
       } else {
         alert("Erro no servidor: " + confirmacao.error);
         setNovoTexto(textoParaEnviar);
@@ -81,27 +81,32 @@ export default function SalaComunidade() {
     <div className="flex flex-col h-screen bg-[#e5ddd5]">
       <header className="bg-[#075e54] p-4 flex items-center justify-between text-white shrink-0 shadow-lg">
         <div className="flex items-center gap-3">
-          <button onClick={() => router.back()} className="p-1 hover:bg-white/10 rounded-full">
+          <button onClick={() => router.back()} className="p-1 hover:bg-white/10 rounded-full transition-colors">
             <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" /></svg>
           </button>
           <h1 className="font-bold">Chat do Evento #{id}</h1>
         </div>
-        <span className="text-xs opacity-80">{dadosUsuario?.nome}</span>
+        <span className="text-xs font-semibold bg-white/20 px-3 py-1 rounded-full">{dadosUsuario?.nome}</span>
       </header>
 
       <main className="flex-1 overflow-y-auto p-4 space-y-2 bg-[url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')] bg-repeat">
         {mensagens.length === 0 ? (
-          <div className="text-center mt-10 text-gray-500 bg-white/60 p-4 rounded-lg">Nada por aqui ainda...</div>
+          <div className="text-center mt-10 text-gray-500 bg-white/60 p-4 rounded-lg shadow-sm">
+            Nenhuma mensagem por aqui ainda.
+          </div>
         ) : (
           mensagens.map((msg, idx) => {
             const souEu = msg.usuario_nome === dadosUsuario?.nome;
+            // O Banco usa criado_em conforme seu log mostrou
+            const dataMsg = msg.criado_em || msg.criado_at; 
+            
             return (
               <div key={idx} className={`flex ${souEu ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[80%] px-3 py-1.5 rounded-lg shadow-sm relative ${souEu ? 'bg-[#dcf8c6] rounded-tr-none' : 'bg-white rounded-tl-none'}`}>
-                  {!souEu && <p className="text-[10px] font-bold text-emerald-600">{msg.usuario_nome}</p>}
-                  <p className="text-sm text-gray-800 pr-8">{msg.texto}</p>
+                  {!souEu && <p className="text-[10px] font-bold text-emerald-600 mb-0.5">{msg.usuario_nome}</p>}
+                  <p className="text-sm text-gray-800 pr-10">{msg.texto}</p>
                   <span className="text-[9px] text-gray-400 absolute bottom-1 right-2">
-                    {msg.criado_at ? new Date(msg.criado_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '...'}
+                    {dataMsg ? new Date(dataMsg).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
                   </span>
                 </div>
               </div>
@@ -112,12 +117,12 @@ export default function SalaComunidade() {
       </main>
 
       <footer className="p-3 bg-[#f0f0f0] border-t shrink-0">
-        <form onSubmit={enviarMensagem} className="flex gap-2 max-w-5xl mx-auto">
+        <form onSubmit={enviarMensagem} className="flex gap-2 max-w-5xl mx-auto items-center">
           <input 
             type="text" value={novoTexto} onChange={(e) => setNovoTexto(e.target.value)}
-            placeholder="Mensagem" className="flex-1 rounded-full px-4 py-2 outline-none text-sm shadow-inner"
+            placeholder="Mensagem" className="flex-1 rounded-full px-5 py-2.5 outline-none text-sm shadow-inner bg-white"
           />
-          <button type="submit" disabled={!novoTexto.trim()} className="bg-[#075e54] text-white p-2.5 rounded-full hover:scale-105 disabled:opacity-50 transition-all">
+          <button type="submit" disabled={!novoTexto.trim()} className="bg-[#075e54] text-white p-3 rounded-full hover:scale-105 disabled:opacity-50 transition-all shadow-md">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" /></svg>
           </button>
         </form>
