@@ -101,7 +101,7 @@ export default function SalaComunidade() {
             type="text" value={novoTexto} onChange={(e) => setNovoTexto(e.target.value)}
             className="flex-1 p-2 rounded-full outline-none text-sm px-4" placeholder="Mensagem"
           />
-          <button type="submit" className="bg-[#075e54] text-white px-4 rounded-full font-bold">></button>
+          <button type="submit" className="bg-[#075e54] text-white px-4 rounded-full font-bold"></button>
         </form>
       </footer>
     </div>
