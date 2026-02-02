@@ -19,14 +19,15 @@ export default function SalaComunidade() {
   const [carregando, setCarregando] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Carregamento inicial
   useEffect(() => {
     const user = localStorage.getItem('user');
     if (user) {
-      const parsed = JSON.parse(user);
-      setDadosUsuario(parsed);
+      setDadosUsuario(JSON.parse(user));
     } else {
-      // Se não houver user, define um provisório para não quebrar a lógica
-      setDadosUsuario({ nome: 'Visitante' });
+      const defaultUser = { nome: 'User_' + Math.floor(Math.random() * 100) };
+      setDadosUsuario(defaultUser);
+      localStorage.setItem('user', JSON.stringify(defaultUser));
     }
     setCarregando(false);
   }, []);
@@ -49,46 +50,57 @@ export default function SalaComunidade() {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [mensagens]);
 
+  const trocarNomeTeste = () => {
+    const novoNome = prompt("Digite um novo nome para testar o chat:");
+    if (novoNome) {
+      const u = { nome: novoNome };
+      setDadosUsuario(u);
+      localStorage.setItem('user', JSON.stringify(u));
+      window.location.reload(); // Recarrega para aplicar a nova identidade
+    }
+  };
+
   const enviarMensagem = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!novoTexto.trim() || !dadosUsuario) return;
-
-    const textoEnvio = novoTexto;
-    const nomeEnvio = dadosUsuario.nome;
-    setNovoTexto(''); 
-
+    const txt = novoTexto; setNovoTexto('');
     try {
-      const res = await fetch('https://linkah-api.onrender.com/api/comunidade/enviar', {
+      await fetch('https://linkah-api.onrender.com/api/comunidade/enviar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ evento_id: Number(id), usuario_nome: nomeEnvio, texto: textoEnvio })
+        body: JSON.stringify({ evento_id: Number(id), usuario_nome: dadosUsuario.nome, texto: txt })
       });
-      if (res.ok) carregarMensagens();
-    } catch (err) { setNovoTexto(textoEnvio); }
+      carregarMensagens();
+    } catch (err) { setNovoTexto(txt); }
   };
 
   if (carregando) return <div className="h-screen bg-[#0f172a] flex items-center justify-center text-white italic">Carregando...</div>;
 
   return (
     <div className="flex flex-col h-screen bg-[#0f172a] text-slate-200 font-sans overflow-hidden">
-      {/* Header */}
+      {/* Header com botão de teste no avatar */}
       <header className="p-4 flex items-center justify-between border-b border-slate-800 bg-slate-900/80 backdrop-blur-md z-10 shrink-0">
-        <button onClick={() => router.back()} className="p-2 hover:bg-slate-800 rounded-full transition-colors text-white">
+        <button onClick={() => router.back()} className="p-2 hover:bg-slate-800 rounded-full text-white">
           <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg>
         </button>
         <div className="text-center">
-          <h1 className="text-xs font-black uppercase tracking-[0.2em] text-indigo-400">Comunidade</h1>
+          <h1 className="text-xs font-black uppercase tracking-[0.2em] text-indigo-400">Comunidade Linkah</h1>
           <div className="flex items-center gap-1.5 justify-center">
              <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping"></span>
              <span className="text-[10px] text-slate-400 font-medium tracking-widest uppercase">Live Chat</span>
           </div>
         </div>
-        <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-[11px] font-black border border-white/20 shadow-xl text-white">
-          {dadosUsuario?.nome?.substring(0,2).toUpperCase() || '??'}
-        </div>
+        <button 
+          onClick={trocarNomeTeste}
+          title="Clique para trocar de nome (Teste)"
+          className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-600 to-purple-600 flex flex-col items-center justify-center text-[10px] font-black border border-white/20 shadow-xl text-white hover:scale-110 transition-transform"
+        >
+          {dadosUsuario?.nome?.substring(0,2).toUpperCase()}
+          <span className="text-[6px] opacity-60">TESTE</span>
+        </button>
       </header>
 
-      {/* Chat */}
+      {/* Main Chat */}
       <main className="flex-1 overflow-y-auto p-4 space-y-6 bg-[#0f172a] custom-scrollbar">
         {mensagens.map((msg, idx) => {
           const meuNome = (dadosUsuario?.nome || "").trim().toLowerCase();
@@ -98,9 +110,9 @@ export default function SalaComunidade() {
           return (
             <div key={idx} className={`flex flex-col ${souEu ? 'items-end' : 'items-start'}`}>
               
-              {/* Tag de Nome: Corrigi o alinhamento aqui */}
+              {/* Tag de Nome ajustada */}
               <div className={`px-2 py-0.5 rounded-md text-[10px] font-bold text-white mb-1 shadow-sm ${
-                souEu ? 'bg-indigo-500/40 mr-1' : `${gerarCorTag(msg.usuario_nome)} ml-1`
+                souEu ? 'bg-indigo-500/40' : `${gerarCorTag(msg.usuario_nome)}`
               }`}>
                 {msg.usuario_nome || "Visitante"}
               </div>
@@ -113,7 +125,7 @@ export default function SalaComunidade() {
               }`}>
                 <div className="flex items-end gap-3">
                   <p className="text-[14px] leading-relaxed font-medium py-0.5">{msg.texto}</p>
-                  <span className={`text-[9px] opacity-50 whitespace-nowrap mb-[-2px] ${souEu ? 'text-indigo-200' : 'text-slate-400'}`}>
+                  <span className={`text-[9px] opacity-40 whitespace-nowrap mb-[-2px] ${souEu ? 'text-indigo-100' : 'text-slate-400'}`}>
                     {msg.criado_em ? new Date(msg.criado_em).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : ''}
                   </span>
                 </div>
@@ -130,11 +142,11 @@ export default function SalaComunidade() {
           <input 
             type="text" value={novoTexto} onChange={(e) => setNovoTexto(e.target.value)}
             className="flex-1 bg-transparent border-none outline-none text-sm px-3 py-2 text-slate-100 placeholder:text-slate-500" 
-            placeholder="Diga algo..."
+            placeholder={`Conversar como ${dadosUsuario?.nome}...`}
           />
           <button 
             type="submit" disabled={!novoTexto.trim()}
-            className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-30 text-white w-10 h-10 rounded-xl flex items-center justify-center transition-all shadow-lg"
+            className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-20 text-white w-10 h-10 rounded-xl flex items-center justify-center transition-all shadow-lg shadow-indigo-600/20"
           >
             <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
           </button>
