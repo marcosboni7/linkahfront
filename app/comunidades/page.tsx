@@ -1,6 +1,9 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+// Importando os componentes da sua pasta site
+import { Navbar } from '../site/Navbar';
+import { Footer } from '../site/Footer';
 
 export default function ListaComunidades() {
   const [eventos, setEventos] = useState([]);
@@ -33,20 +36,12 @@ export default function ListaComunidades() {
   );
 
   return (
-    <div className="min-h-screen !bg-[#F8FAFC] !text-slate-900 font-sans pb-20">
-      
-      {/* NAVBAR SIMPLIFICADA */}
-      <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200 p-4">
-        <div className="max-w-6xl mx-auto flex justify-between items-center">
-          <span className="text-xl font-black italic text-indigo-600 tracking-tighter">LINKAH.</span>
-          <div className="flex gap-4">
-             <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200"></div>
-          </div>
-        </div>
-      </nav>
+    <div className="flex flex-col min-h-screen !bg-[#F8FAFC] !text-slate-900 font-sans">
+      {/* NAVBAR IMPORTADA */}
+      <Navbar />
 
-      <div className="max-w-6xl mx-auto px-6 pt-12">
-        {/* HEADER DA VITRINE */}
+      <main className="flex-1 max-w-6xl mx-auto px-6 pt-12 pb-20 w-full">
+        {/* HEADER */}
         <div className="mb-12">
           <span className="text-indigo-600 font-bold text-xs uppercase tracking-[0.3em]">Explorar</span>
           <h1 className="text-4xl md:text-5xl font-black mt-2 mb-4 tracking-tight">
@@ -67,15 +62,12 @@ export default function ListaComunidades() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {eventos.map((evento: any) => (
             <div key={evento.id} className="group relative bg-white border border-slate-200 rounded-3xl overflow-hidden hover:shadow-[0_20px_50px_rgba(79,70,229,0.1)] transition-all duration-500 hover:-translate-y-2">
-              
-              {/* IMAGEM COM OVERLAY */}
               <div className="relative h-48 overflow-hidden">
                 <img 
                   src={evento.imagem_capa || 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=800&auto=format&fit=crop'} 
                   alt={evento.nome} 
                   className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 <div className="absolute top-4 left-4">
                   <span className="bg-white/90 backdrop-blur-sm text-indigo-600 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">
                     Live Now
@@ -83,13 +75,12 @@ export default function ListaComunidades() {
                 </div>
               </div>
 
-              {/* CONTEÚDO DO CARD */}
               <div className="p-6">
                 <h2 className="text-xl font-bold mb-2 group-hover:text-indigo-600 transition-colors line-clamp-1">
                   {evento.nome}
                 </h2>
                 <p className="text-slate-500 text-sm mb-6 line-clamp-2 min-h-[40px]">
-                  {evento.descricao || "Participe da conversa oficial deste evento e tire suas dúvidas com a galera."}
+                  {evento.descricao || "Participe da conversa oficial deste evento."}
                 </p>
                 
                 <Link 
@@ -109,22 +100,12 @@ export default function ListaComunidades() {
           <div className="text-center py-24 bg-white rounded-[40px] border-2 border-dashed border-slate-200">
             <div className="text-5xl mb-4">💬</div>
             <h3 className="text-xl font-bold text-slate-800">Nenhuma sala encontrada</h3>
-            <p className="text-slate-500 mt-2">Parece que os servidores estão descansando.</p>
           </div>
         )}
-      </div>
+      </main>
 
-      {/* FOOTER SIMPLES */}
-      <footer className="mt-20 border-t border-slate-200 bg-white py-12 px-6">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
-          <span className="text-2xl font-black italic text-slate-300">LINKAH.</span>
-          <p className="text-slate-400 text-sm">© 2026 Linkah Communities. Todos os direitos reservados.</p>
-          <div className="flex gap-6 text-slate-400 text-sm font-bold uppercase tracking-widest">
-            <a href="#" className="hover:text-indigo-600">Suporte</a>
-            <a href="#" className="hover:text-indigo-600">Privacidade</a>
-          </div>
-        </div>
-      </footer>
+      {/* FOOTER IMPORTADO */}
+      <Footer />
     </div>
   );
 }
