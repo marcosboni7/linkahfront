@@ -74,7 +74,7 @@ export default function ListaComunidades() {
             </Link>
             
             <Link 
-              href="/site/cadastro" 
+              href="/site/register" 
               className="flex items-center justify-center gap-2 w-full bg-white text-slate-700 py-4 rounded-2xl font-black uppercase tracking-widest border border-slate-200 hover:bg-slate-50 transition-all active:scale-95"
             >
               <UserPlus size={18} />
