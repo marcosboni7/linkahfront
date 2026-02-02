@@ -22,8 +22,10 @@ export default function SalaComunidade() {
   useEffect(() => {
     const user = localStorage.getItem('user');
     if (user) {
-      setDadosUsuario(JSON.parse(user));
+      const parsed = JSON.parse(user);
+      setDadosUsuario(parsed);
     } else {
+      // Se não houver user, define um provisório para não quebrar a lógica
       setDadosUsuario({ nome: 'Visitante' });
     }
     setCarregando(false);
@@ -32,12 +34,8 @@ export default function SalaComunidade() {
   const carregarMensagens = async () => {
     if (!id) return;
     try {
-      const res = await fetch(`https://linkah-api.onrender.com/api/comunidade/${id}?t=${Date.now()}`, { 
-        cache: 'no-store' 
-      });
-      if (res.ok) {
-        setMensagens(await res.json());
-      }
+      const res = await fetch(`https://linkah-api.onrender.com/api/comunidade/${id}?t=${Date.now()}`, { cache: 'no-store' });
+      if (res.ok) setMensagens(await res.json());
     } catch (err) { console.error(err); }
   };
 
@@ -69,7 +67,7 @@ export default function SalaComunidade() {
     } catch (err) { setNovoTexto(textoEnvio); }
   };
 
-  if (carregando) return <div className="h-screen bg-[#0f172a] flex items-center justify-center text-white italic">Conectando ao chat...</div>;
+  if (carregando) return <div className="h-screen bg-[#0f172a] flex items-center justify-center text-white italic">Carregando...</div>;
 
   return (
     <div className="flex flex-col h-screen bg-[#0f172a] text-slate-200 font-sans overflow-hidden">
@@ -82,32 +80,32 @@ export default function SalaComunidade() {
           <h1 className="text-xs font-black uppercase tracking-[0.2em] text-indigo-400">Comunidade</h1>
           <div className="flex items-center gap-1.5 justify-center">
              <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping"></span>
-             <span className="text-[10px] text-slate-400 font-medium tracking-widest uppercase">Live</span>
+             <span className="text-[10px] text-slate-400 font-medium tracking-widest uppercase">Live Chat</span>
           </div>
         </div>
-        <div className="flex flex-col items-end">
-          <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-[11px] font-black border border-white/20 shadow-xl text-white">
-            {dadosUsuario?.nome?.substring(0,2).toUpperCase() || '??'}
-          </div>
+        <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-[11px] font-black border border-white/20 shadow-xl text-white">
+          {dadosUsuario?.nome?.substring(0,2).toUpperCase() || '??'}
         </div>
       </header>
 
-      {/* Área de Mensagens */}
-      <main className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#0f172a] custom-scrollbar">
+      {/* Chat */}
+      <main className="flex-1 overflow-y-auto p-4 space-y-6 bg-[#0f172a] custom-scrollbar">
         {mensagens.map((msg, idx) => {
           const meuNome = (dadosUsuario?.nome || "").trim().toLowerCase();
-          const nomeDestaMsg = (msg.usuario_nome || "").trim().toLowerCase();
-          const souEu = meuNome === nomeDestaMsg && meuNome !== "";
+          const nomeMsg = (msg.usuario_nome || "").trim().toLowerCase();
+          const souEu = meuNome === nomeMsg && meuNome !== "";
 
           return (
             <div key={idx} className={`flex flex-col ${souEu ? 'items-end' : 'items-start'}`}>
               
-              {/* Nome do Usuário (Sempre visível acima do balão) */}
-              <div className={`px-2 py-0.5 rounded-md text-[10px] font-bold text-white mb-1 shadow-sm ${souEu ? 'bg-indigo-500/50' : gerarCorTag(msg.usuario_nome)}`}>
-                {msg.usuario_nome}
+              {/* Tag de Nome: Corrigi o alinhamento aqui */}
+              <div className={`px-2 py-0.5 rounded-md text-[10px] font-bold text-white mb-1 shadow-sm ${
+                souEu ? 'bg-indigo-500/40 mr-1' : `${gerarCorTag(msg.usuario_nome)} ml-1`
+              }`}>
+                {msg.usuario_nome || "Visitante"}
               </div>
 
-              {/* Balão de Mensagem */}
+              {/* Balão */}
               <div className={`px-4 py-2 rounded-2xl max-w-[85%] shadow-lg border transition-all ${
                 souEu 
                   ? 'bg-indigo-600 border-indigo-500 text-white rounded-tr-none' 
@@ -130,15 +128,12 @@ export default function SalaComunidade() {
       <footer className="p-4 bg-slate-900 border-t border-slate-800 shrink-0">
         <form onSubmit={enviarMensagem} className="flex items-center gap-2 max-w-4xl mx-auto bg-slate-800/60 p-1.5 rounded-2xl border border-slate-700 shadow-2xl focus-within:border-indigo-500/50">
           <input 
-            type="text" 
-            value={novoTexto} 
-            onChange={(e) => setNovoTexto(e.target.value)}
+            type="text" value={novoTexto} onChange={(e) => setNovoTexto(e.target.value)}
             className="flex-1 bg-transparent border-none outline-none text-sm px-3 py-2 text-slate-100 placeholder:text-slate-500" 
             placeholder="Diga algo..."
           />
           <button 
-            type="submit" 
-            disabled={!novoTexto.trim()}
+            type="submit" disabled={!novoTexto.trim()}
             className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-30 text-white w-10 h-10 rounded-xl flex items-center justify-center transition-all shadow-lg"
           >
             <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
