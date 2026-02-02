@@ -10,20 +10,15 @@ export default function SalaComunidade() {
   const [dadosUsuario, setDadosUsuario] = useState<any>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // 1. Pega os dados do produtor logado no LocalStorage
   useEffect(() => {
-    const usuarioSalvo = localStorage.getItem('user'); // Verifique se no seu login você salvou como 'user' ou 'produtor'
+    const usuarioSalvo = localStorage.getItem('user');
     if (usuarioSalvo) {
       setDadosUsuario(JSON.parse(usuarioSalvo));
     } else {
-      // Se não estiver logado e você quiser que seja obrigatório:
-      // router.push('/login'); 
-      // Se for aberto para visitantes, definimos um nome padrão:
       setDadosUsuario({ nome: 'Visitante' });
     }
   }, []);
 
-  // 2. Busca mensagens do banco a cada 4 segundos (Polled Chat)
   const carregarMensagens = async () => {
     try {
       const res = await fetch(`https://linkah-api.onrender.com/api/comunidade/${id}`);
@@ -42,20 +37,30 @@ export default function SalaComunidade() {
     return () => clearInterval(interval);
   }, [id]);
 
-  // 3. Sempre rola o chat para baixo quando chega mensagem nova
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [mensagens]);
 
-  // 4. Envia a mensagem para o Backend
   const enviarMensagem = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!novoTexto.trim() || !dadosUsuario) return;
 
+    // 1. Criamos a mensagem localmente para aparecer instantaneamente
+    const mensagemOtimista = {
+      usuario_nome: dadosUsuario.nome,
+      texto: novoTexto,
+      criado_at: new Date().toISOString(),
+      enviando: true // Marcador visual opcional
+    };
+
+    setMensagens((prev) => [...prev, mensagemOtimista]);
+    const textoParaEnviar = novoTexto;
+    setNovoTexto('');
+
     const payload = {
-      evento_id: id,
-      usuario_nome: dadosUsuario.nome, // Usa o nome automático do login
-      texto: novoTexto
+      evento_id: Number(id), // CONVERSÃO PARA NÚMERO (Importante!)
+      usuario_nome: dadosUsuario.nome,
+      texto: textoParaEnviar
     };
 
     try {
@@ -65,18 +70,22 @@ export default function SalaComunidade() {
         body: JSON.stringify(payload)
       });
 
-      if (res.ok) {
-        setNovoTexto('');
-        carregarMensagens(); // Atualiza a lista na hora
+      if (!res.ok) {
+        const erro = await res.json();
+        alert(`Erro do servidor: ${erro.error || 'Falha ao salvar'}`);
+        // Remove a mensagem otimista se der erro
+        carregarMensagens();
+      } else {
+        carregarMensagens(); // Sincroniza com o banco
       }
     } catch (err) {
-      console.error("Erro ao enviar:", err);
+      console.error("Erro na conexão:", err);
+      alert("Erro de conexão com o servidor!");
     }
   };
 
   return (
     <div className="flex flex-col h-screen bg-[#f0f2f5] text-black">
-      {/* Cabeçalho */}
       <header className="bg-white p-4 shadow-sm border-b flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button onClick={() => router.back()} className="text-purple-600 font-bold">← Voltar</button>
@@ -88,7 +97,6 @@ export default function SalaComunidade() {
         </div>
       </header>
 
-      {/* Área de Mensagens */}
       <main className="flex-1 overflow-y-auto p-4 space-y-3">
         {mensagens.map((msg, index) => {
           const souEu = msg.usuario_nome === dadosUsuario?.nome;
@@ -99,10 +107,10 @@ export default function SalaComunidade() {
                 souEu 
                   ? 'bg-purple-600 text-white rounded-tr-none' 
                   : 'bg-white text-gray-800 rounded-tl-none border border-gray-200'
-              }`}>
+              } ${msg.enviando ? 'opacity-70' : ''}`}>
                 <p className="text-[15px] leading-relaxed">{msg.texto}</p>
                 <p className={`text-[9px] mt-1 text-right ${souEu ? 'text-purple-200' : 'text-gray-400'}`}>
-                  {new Date(msg.criado_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  {msg.criado_at ? new Date(msg.criado_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
                 </p>
               </div>
             </div>
@@ -111,7 +119,6 @@ export default function SalaComunidade() {
         <div ref={scrollRef} />
       </main>
 
-      {/* Rodapé com Input */}
       <footer className="p-4 bg-white border-t">
         <form onSubmit={enviarMensagem} className="flex gap-2 max-w-5xl mx-auto">
           <input 
@@ -124,7 +131,7 @@ export default function SalaComunidade() {
           <button 
             type="submit" 
             disabled={!novoTexto.trim()}
-            className="bg-purple-600 text-white p-3 rounded-full hover:bg-purple-700 transition-all disabled:opacity-50 disabled:bg-gray-400 shadow-md"
+            className="bg-purple-600 text-white p-3 rounded-full hover:bg-purple-700 transition-all disabled:opacity-50 shadow-md"
           >
             <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
               <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
