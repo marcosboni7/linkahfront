@@ -4,7 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { 
   Search, Paperclip, Send, Video, Phone, 
   MoreVertical, Smile, ChevronLeft, X, Image as ImageIcon,
-  Calendar 
+  Calendar, PhoneOff 
 } from 'lucide-react';
 
 export default function SalaLinkahSkype() {
@@ -17,6 +17,9 @@ export default function SalaLinkahSkype() {
   const [dadosUsuario, setDadosUsuario] = useState<any>(null);
   const [carregando, setCarregando] = useState(true);
 
+  // ESTADO PARA CONTROLE DA CHAMADA DE GRUPO
+  const [chamadaAtiva, setChamadaAtiva] = useState(false);
+
   const [novoTexto, setNovoTexto] = useState('');
   const [imagemAnexada, setImagemAnexada] = useState<string | null>(null);
 
@@ -24,20 +27,14 @@ export default function SalaLinkahSkype() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const sinalInterval = useRef<any>(null);
 
-  // FUNÇÃO DE FORMATAÇÃO MELHORADA
+  // FUNÇÃO DE FORMATAÇÃO DE DATA
   const formatarData = (evento: any) => {
     if (!evento) return 'A carregar...';
-    
-    // Tenta encontrar a data em diferentes nomes de campo comuns
     const dataBruta = evento.data || evento.data_evento || evento.criado_em || evento.date;
-    
     if (!dataBruta) return 'Data em breve';
-
     try {
       const data = new Date(dataBruta);
-      // Verifica se a data é válida
       if (isNaN(data.getTime())) return 'Data a definir';
-
       return data.toLocaleDateString('pt-BR', {
         day: '2-digit',
         month: 'long',
@@ -48,6 +45,7 @@ export default function SalaLinkahSkype() {
     }
   };
 
+  // 1. CARREGAR USUÁRIO DO LOCALSTORAGE
   useEffect(() => {
     const savedUser = localStorage.getItem('@Linkah:User');
     if (savedUser) {
@@ -57,6 +55,7 @@ export default function SalaLinkahSkype() {
     }
   }, [router]);
 
+  // 2. LÓGICA DE PRESENÇA E SINCRONIZAÇÃO
   useEffect(() => {
     if (!id || !dadosUsuario?.nome) return;
 
@@ -68,7 +67,7 @@ export default function SalaLinkahSkype() {
           body: JSON.stringify({ 
             evento_id: Number(id), 
             usuario_nome: dadosUsuario.nome, 
-            texto: "system_ping_active",
+            texto: "system_ping_active", 
             tipo: "status" 
           })
         });
@@ -82,11 +81,7 @@ export default function SalaLinkahSkype() {
           fetch(`https://linkah-api.onrender.com/api/comunidade/${id}?t=${Date.now()}`)
         ]);
 
-        if (resEv.ok) {
-          const dadosDoEvento = await resEv.json();
-          // console.log("DADOS DO EVENTO:", dadosDoEvento); // Útil para debugar
-          setDadosEvento(dadosDoEvento);
-        }
+        if (resEv.ok) setDadosEvento(await resEv.json());
 
         if (resMsg.ok) {
           const lista = await resMsg.json();
@@ -123,10 +118,12 @@ export default function SalaLinkahSkype() {
     };
   }, [id, dadosUsuario]);
 
+  // 3. AUTO-SCROLL
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [mensagens]);
 
+  // 4. ENVIO DE MENSAGENS
   const enviarMensagem = async (e: React.FormEvent) => {
     e.preventDefault();
     if ((!novoTexto.trim() && !imagemAnexada) || !dadosUsuario) return;
@@ -162,7 +159,7 @@ export default function SalaLinkahSkype() {
     }
   };
 
-  if (carregando) return <div className="h-screen flex items-center justify-center font-bold text-[#d6006d] animate-pulse">CARREGANDO...</div>;
+  if (carregando) return <div className="h-screen flex items-center justify-center font-bold text-[#d6006d] animate-pulse">CARREGANDO LINKAH...</div>;
 
   return (
     <div className="flex h-screen bg-white text-slate-700 font-sans overflow-hidden">
@@ -181,15 +178,15 @@ export default function SalaLinkahSkype() {
           </div>
           <div className="relative">
             <Search className="absolute left-3 top-2.5 text-slate-400" size={16} />
-            <input type="text" placeholder="Buscar..." className="w-full bg-slate-100 border-none rounded-full py-2 pl-10 pr-4 text-xs outline-none focus:bg-white" />
+            <input type="text" placeholder="Buscar na sala..." className="w-full bg-slate-100 border-none rounded-full py-2 pl-10 pr-4 text-xs outline-none focus:bg-white" />
           </div>
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          <p className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Membros na Sala ({usuariosOnline.length})</p>
+          <p className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Membros Ativos ({usuariosOnline.length})</p>
           <div className="px-2 space-y-0.5">
             {usuariosOnline.map((user, idx) => (
-              <div key={idx} className="flex items-center gap-3 p-3 hover:bg-white rounded-xl transition-all border border-transparent hover:border-slate-100 shadow-sm mb-1">
+              <div key={idx} className="flex items-center gap-3 p-3 hover:bg-white rounded-xl cursor-pointer transition-all border border-transparent hover:border-slate-100 shadow-sm mb-1">
                 <div className="relative shrink-0">
                   <div className="w-11 h-11 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-500 font-bold uppercase">
                     {user.usuario_nome.charAt(0)}
@@ -198,7 +195,7 @@ export default function SalaLinkahSkype() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <h4 className="text-sm font-bold text-slate-700 truncate">{user.usuario_nome}</h4>
-                  <p className="text-[10px] text-green-600 font-bold uppercase">Online</p>
+                  <p className="text-[10px] text-green-600 font-bold uppercase tracking-tighter">Online agora</p>
                 </div>
               </div>
             ))}
@@ -207,7 +204,32 @@ export default function SalaLinkahSkype() {
       </aside>
 
       {/* ÁREA DE CHAT */}
-      <main className="flex-1 flex flex-col bg-white">
+      <main className="flex-1 flex flex-col bg-white relative">
+        
+        {/* INTERFACE DA CHAMADA (MODAL SOBREPOSTO) */}
+        {chamadaAtiva && (
+          <div className="absolute inset-0 z-[100] bg-slate-900 flex flex-col">
+            <div className="p-4 bg-slate-800 flex justify-between items-center border-b border-slate-700 shadow-lg">
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                <span className="text-white font-bold text-sm tracking-tight">Chamada de Grupo: {dadosEvento?.nome}</span>
+              </div>
+              <button 
+                onClick={() => setChamadaAtiva(false)}
+                className="bg-red-500 hover:bg-red-600 text-white px-5 py-2 rounded-full flex items-center gap-2 text-xs font-black transition-all active:scale-95 shadow-lg"
+              >
+                <PhoneOff size={16} /> ENCERRAR MINHA PARTICIPAÇÃO
+              </button>
+            </div>
+            {/* IFRAME DO JITSI PARA VIDEO CONFERENCIA */}
+            <iframe 
+              src={`https://meet.jit.si/Linkah_Room_${id}#userInfo.displayName="${dadosUsuario?.nome}"`}
+              className="flex-1 w-full border-none"
+              allow="camera; microphone; display-capture; autoplay; clipboard-write"
+            />
+          </div>
+        )}
+
         <header className="px-6 py-3 border-b border-slate-100 flex items-center justify-between shadow-sm z-10 bg-white/80 backdrop-blur-md">
           <div className="flex items-center gap-3">
              <button onClick={() => router.back()} className="lg:hidden text-slate-400"><ChevronLeft /></button>
@@ -215,9 +237,7 @@ export default function SalaLinkahSkype() {
                 {dadosEvento?.nome?.charAt(0) || 'L'}
              </div>
              <div>
-                <h3 className="font-bold text-slate-800 text-sm">{dadosEvento?.nome || 'Sala'}</h3>
-                
-                {/* DATA DO EVENTO COM MULTIPLOS TESTES DE CAMPO */}
+                <h3 className="font-bold text-slate-800 text-sm">{dadosEvento?.nome}</h3>
                 <div className="flex items-center gap-2">
                   <div className="flex items-center gap-1">
                     <Calendar size={10} className="text-slate-400" />
@@ -234,8 +254,17 @@ export default function SalaLinkahSkype() {
              </div>
           </div>
           <div className="flex items-center gap-4 text-sky-500">
-             <Video size={20} className="cursor-pointer hover:bg-sky-50 rounded-full p-0.5" />
-             <Phone size={18} className="cursor-pointer hover:bg-sky-50 rounded-full p-0.5" />
+             {/* BOTÕES DE CALL */}
+             <Video 
+                size={20} 
+                className="cursor-pointer hover:bg-sky-50 rounded-full p-0.5 transition-colors" 
+                onClick={() => setChamadaAtiva(true)}
+             />
+             <Phone 
+                size={18} 
+                className="cursor-pointer hover:bg-sky-50 rounded-full p-0.5 transition-colors" 
+                onClick={() => setChamadaAtiva(true)}
+             />
              <MoreVertical size={20} className="text-slate-300" />
           </div>
         </header>
@@ -243,10 +272,11 @@ export default function SalaLinkahSkype() {
         <div className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-6 bg-slate-50/30">
           {mensagens.map((msg, idx) => {
             if (msg.texto === "system_ping_active") return null;
+
             const souEu = dadosUsuario?.nome === msg.usuario_nome;
             return (
               <div key={idx} className={`flex gap-3 ${souEu ? 'flex-row-reverse' : 'flex-row'} items-start animate-in fade-in slide-in-from-bottom-2`}>
-                <div className="w-9 h-9 rounded-full bg-slate-200 flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-slate-500 uppercase border border-white">
+                <div className="w-9 h-9 rounded-full bg-slate-200 flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-slate-500 uppercase border border-white shadow-sm">
                   {msg.usuario_nome.charAt(0)}
                 </div>
                 <div className={`flex flex-col ${souEu ? 'items-end' : 'items-start'} max-w-[75%]`}>
@@ -254,7 +284,7 @@ export default function SalaLinkahSkype() {
                   <div className={`px-4 py-2 rounded-2xl text-[14px] shadow-sm ${
                     souEu ? 'bg-[#d6006d] text-white rounded-tr-none' : 'bg-white text-slate-700 rounded-tl-none border border-slate-100'
                   }`}>
-                    {msg.imagem && <img src={msg.imagem} className="rounded-lg mb-2 max-h-72 w-full object-cover" />}
+                    {msg.imagem && <img src={msg.imagem} className="rounded-lg mb-2 max-h-72 w-full object-cover shadow-sm border border-slate-100" />}
                     {msg.texto && <p className="leading-relaxed">{msg.texto}</p>}
                   </div>
                 </div>
@@ -266,30 +296,30 @@ export default function SalaLinkahSkype() {
 
         <footer className="p-4 bg-white border-t border-slate-100">
           <form onSubmit={enviarMensagem} className="max-w-4xl mx-auto flex items-end gap-2">
-            <div className="flex-1 bg-[#F3F4F6] rounded-2xl p-2 flex flex-col focus-within:bg-white border border-transparent focus-within:border-slate-200">
+            <div className="flex-1 bg-[#F3F4F6] rounded-2xl p-2 flex flex-col focus-within:bg-white transition-all border border-transparent focus-within:border-slate-200">
               
               {imagemAnexada && (
                 <div className="p-2 relative inline-block">
                   <img src={imagemAnexada} className="h-20 w-20 object-cover rounded-lg border-2 border-white shadow-md" />
-                  <button type="button" onClick={() => setImagemAnexada(null)} className="absolute -top-1 -right-1 bg-slate-800 text-white rounded-full p-0.5 shadow-md">
+                  <button type="button" onClick={() => setImagemAnexada(null)} className="absolute -top-1 -right-1 bg-slate-800 text-white rounded-full p-0.5 shadow-md hover:bg-red-500 transition-colors">
                     <X size={12} />
                   </button>
                 </div>
               )}
 
               <div className="flex items-center gap-2">
-                <button type="button" onClick={() => fileInputRef.current?.click()} className="p-2 text-slate-400 hover:text-[#d6006d]">
+                <button type="button" onClick={() => fileInputRef.current?.click()} className="p-2 text-slate-400 hover:text-[#d6006d] transition-colors">
                   <Paperclip size={20} />
                 </button>
                 <input type="file" accept="image/*" hidden ref={fileInputRef} onChange={handleFile} />
                 <input 
                   type="text" value={novoTexto} onChange={(e) => setNovoTexto(e.target.value)}
-                  placeholder="Escreva uma mensagem..." className="flex-1 bg-transparent border-none outline-none py-2 text-sm text-slate-700" 
+                  placeholder="Escreva uma mensagem..." className="flex-1 bg-transparent border-none outline-none py-2 text-sm text-slate-700 placeholder:text-slate-400" 
                 />
-                <Smile size={20} className="text-slate-400 cursor-pointer" />
+                <Smile size={20} className="text-slate-400 cursor-pointer hover:text-yellow-500 transition-colors" />
               </div>
             </div>
-            <button type="submit" className="bg-[#d6006d] text-white p-3 rounded-full shadow-lg hover:bg-[#b0005a] transition-all">
+            <button type="submit" className="bg-[#d6006d] text-white p-3 rounded-full shadow-lg shadow-pink-100 hover:bg-[#b0005a] hover:scale-105 active:scale-95 transition-all">
               <Send size={20} fill="currentColor" />
             </button>
           </form>

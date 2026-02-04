@@ -17,6 +17,8 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-hook-form": "^7.71.1",
+    "simple-peer": "^9.11.1",
+    "socket.io-client": "^4.8.3",
     "stripe": "^20.3.0",
     "sweetalert2": "^11.26.17",
     "sweetalert2-react-content": "^5.1.1",
