@@ -4,7 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { 
   Search, Paperclip, Send, Video, Phone, 
   MoreVertical, Smile, ChevronLeft, X, Image as ImageIcon,
-  Calendar, PhoneOff, Check, Ban
+  Calendar, PhoneOff, Check, Ban 
 } from 'lucide-react';
 
 export default function SalaLinkahSkype() {
@@ -20,9 +20,7 @@ export default function SalaLinkahSkype() {
   // ESTADOS DE CHAMADA
   const [chamadaAtiva, setChamadaAtiva] = useState(false);
   const [nomeSalaCall, setNomeSalaCall] = useState(''); 
-  
-  // ESTADO DO CONVITE RECEBIDO (MODAL)
-  const [conviteRecebido, setConviteRecebido] = useState<{ de: string, sala: string } | null>(null);
+  const [conviteRecebido, setConviteRecebido] = useState<{ de: string, sala: string, idMsg: any } | null>(null);
 
   const [novoTexto, setNovoTexto] = useState('');
   const [imagemAnexada, setImagemAnexada] = useState<string | null>(null);
@@ -78,17 +76,28 @@ export default function SalaLinkahSkype() {
           const lista = await resMsg.json();
           setMensagens(lista);
 
-          // LÓGICA DE CAPTAR O CONVITE PRIVADO
-          const ultimoMsg = lista[lista.length - 1];
-          if (ultimoMsg?.tipo === "status" && ultimoMsg?.texto?.startsWith("CALL_INVITE|")) {
-            const [_, paraQuem, salaSugerida] = ultimoMsg.texto.split("|");
-            // Se for para mim, se eu não for quem enviou e se eu já não estiver em call
-            if (paraQuem === dadosUsuario.nome && ultimoMsg.usuario_nome !== dadosUsuario.nome && !chamadaAtiva) {
-                setConviteRecebido({ de: ultimoMsg.usuario_nome, sala: salaSugerida });
-            }
-          }
-
           const AGORA = Date.now();
+          const LIMITE_RECENTE = 15000; // 15 segundos para o convite ser válido
+
+          // BUSCA POR CONVITES NAS MENSAGENS RECENTES
+          lista.forEach((msg: any) => {
+            if (msg.tipo === "status" && msg.texto?.startsWith("CALL_INVITE|")) {
+              const [_, paraQuem, salaSugerida] = msg.texto.split("|");
+              const dataMsg = new Date(msg.criado_em).getTime();
+              
+              // Se o convite é pra mim, é recente e eu não sou o autor
+              if (
+                paraQuem === dadosUsuario.nome && 
+                (AGORA - dataMsg) < LIMITE_RECENTE &&
+                msg.usuario_nome !== dadosUsuario.nome &&
+                !chamadaAtiva && 
+                conviteRecebido?.idMsg !== msg.id // Evita repetir o mesmo convite
+              ) {
+                setConviteRecebido({ de: msg.usuario_nome, sala: salaSugerida, idMsg: msg.id });
+              }
+            }
+          });
+
           const ativosAgora = lista.reduce((acc: any[], curr: any) => {
             const dataInteracao = new Date(curr.criado_em).getTime();
             if ((AGORA - dataInteracao) < 35000) {
@@ -109,13 +118,12 @@ export default function SalaLinkahSkype() {
     const chatInt = setInterval(atualizarDados, 4000);
     sinalInterval.current = setInterval(enviarSinalVida, 10000);
     return () => { clearInterval(chatInt); clearInterval(sinalInterval.current); };
-  }, [id, dadosUsuario, chamadaAtiva]);
+  }, [id, dadosUsuario, chamadaAtiva, conviteRecebido]);
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [mensagens]);
 
-  // FUNÇÕES DE CHAMADA
   const iniciarCallGrupo = () => {
     setNomeSalaCall(`Linkah_Group_Room_${id}`);
     setChamadaAtiva(true);
@@ -168,27 +176,30 @@ export default function SalaLinkahSkype() {
   return (
     <div className="flex h-screen bg-white text-slate-700 font-sans overflow-hidden">
       
-      {/* MODAL DE CONVITE ENTRANTE */}
+      {/* MODAL DE CONVITE ENTRANTE - AGORA COM INDEX ALTO */}
       {conviteRecebido && (
-        <div className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl text-center animate-in zoom-in duration-300">
-            <div className="w-20 h-20 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4 text-[#d6006d] animate-bounce">
-              <Phone size={40} />
+        <div className="fixed inset-0 z-[999] bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-white rounded-[32px] p-8 max-w-sm w-full shadow-2xl text-center animate-in fade-in zoom-in duration-300 border border-pink-100">
+            <div className="relative mx-auto mb-6">
+               <div className="w-24 h-24 bg-pink-50 rounded-full flex items-center justify-center mx-auto text-[#d6006d]">
+                  <Phone size={48} className="animate-pulse" />
+               </div>
+               <div className="absolute -top-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-4 border-white"></div>
             </div>
-            <h2 className="text-xl font-black text-slate-800 mb-2">Chamada Privada</h2>
-            <p className="text-slate-500 mb-8 font-medium"><b>{conviteRecebido.de}</b> está chamando você...</p>
-            <div className="flex gap-4">
-              <button 
-                onClick={() => setConviteRecebido(null)}
-                className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 py-4 rounded-2xl font-bold transition-all flex items-center justify-center gap-2"
-              >
-                <Ban size={18} /> RECUSAR
-              </button>
+            <h2 className="text-2xl font-black text-slate-800 mb-2">Chamada Privada</h2>
+            <p className="text-slate-500 mb-8 px-4"><b>{conviteRecebido.de}</b> quer iniciar uma conversa de vídeo com você.</p>
+            <div className="flex flex-col gap-3">
               <button 
                 onClick={aceitarChamada}
-                className="flex-1 bg-[#d6006d] hover:bg-[#b0005a] text-white py-4 rounded-2xl font-bold shadow-lg shadow-pink-200 transition-all flex items-center justify-center gap-2"
+                className="w-full bg-[#d6006d] hover:bg-[#b0005a] text-white py-4 rounded-2xl font-black shadow-lg shadow-pink-200 transition-all flex items-center justify-center gap-2 active:scale-95"
               >
-                <Check size={18} /> ACEITAR
+                <Check size={20} /> ACEITAR CHAMADA
+              </button>
+              <button 
+                onClick={() => setConviteRecebido(null)}
+                className="w-full bg-slate-100 hover:bg-slate-200 text-slate-500 py-4 rounded-2xl font-bold transition-all flex items-center justify-center gap-2"
+              >
+                <X size={18} /> AGORA NÃO
               </button>
             </div>
           </div>
@@ -288,7 +299,7 @@ export default function SalaLinkahSkype() {
                 <div className={`flex flex-col ${souEu ? 'items-end' : 'items-start'} max-w-[75%]`}>
                   <span className="text-[11px] font-bold text-slate-400 mb-1 px-1">{msg.usuario_nome}</span>
                   <div className={`px-4 py-2 rounded-2xl text-[14px] shadow-sm ${souEu ? 'bg-[#d6006d] text-white rounded-tr-none' : 'bg-white text-slate-700 rounded-tl-none border border-slate-100'}`}>
-                    {msg.imagem && <img src={msg.imagem} className="rounded-lg mb-2 max-h-72 w-full object-cover" />}
+                    {msg.imagem && <img src={msg.imagem} className="rounded-lg mb-2 max-h-72 w-full object-cover shadow-sm" />}
                     {msg.texto && <p className="leading-relaxed">{msg.texto}</p>}
                   </div>
                 </div>
