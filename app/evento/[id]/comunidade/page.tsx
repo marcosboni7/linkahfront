@@ -4,7 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { 
   Search, Paperclip, Send, Video, Phone, 
   MoreVertical, Smile, ChevronLeft, X, Image as ImageIcon,
-  Calendar, PhoneOff 
+  Calendar, PhoneOff, Check, Ban
 } from 'lucide-react';
 
 export default function SalaLinkahSkype() {
@@ -20,6 +20,9 @@ export default function SalaLinkahSkype() {
   // ESTADOS DE CHAMADA
   const [chamadaAtiva, setChamadaAtiva] = useState(false);
   const [nomeSalaCall, setNomeSalaCall] = useState(''); 
+  
+  // ESTADO DO CONVITE RECEBIDO (MODAL)
+  const [conviteRecebido, setConviteRecebido] = useState<{ de: string, sala: string } | null>(null);
 
   const [novoTexto, setNovoTexto] = useState('');
   const [imagemAnexada, setImagemAnexada] = useState<string | null>(null);
@@ -38,14 +41,12 @@ export default function SalaLinkahSkype() {
     } catch (e) { return 'Data a definir'; }
   };
 
-  // 1. CARREGAR USUÁRIO
   useEffect(() => {
     const savedUser = localStorage.getItem('@Linkah:User');
     if (savedUser) setDadosUsuario(JSON.parse(savedUser));
     else router.push('/site/login');
   }, [router]);
 
-  // 2. SINCRONIZAÇÃO E LÓGICA DE CONVITES
   useEffect(() => {
     if (!id || !dadosUsuario?.nome) return;
 
@@ -77,15 +78,13 @@ export default function SalaLinkahSkype() {
           const lista = await resMsg.json();
           setMensagens(lista);
 
-          // VERIFICAR SE HÁ CONVITE PRIVADO PARA MIM
+          // LÓGICA DE CAPTAR O CONVITE PRIVADO
           const ultimoMsg = lista[lista.length - 1];
           if (ultimoMsg?.tipo === "status" && ultimoMsg?.texto?.startsWith("CALL_INVITE|")) {
             const [_, paraQuem, salaSugerida] = ultimoMsg.texto.split("|");
-            if (paraQuem === dadosUsuario.nome && !chamadaAtiva) {
-              if (window.confirm(`${ultimoMsg.usuario_nome} está te chamando para uma conversa privada. Aceitar?`)) {
-                setNomeSalaCall(salaSugerida);
-                setChamadaAtiva(true);
-              }
+            // Se for para mim, se eu não for quem enviou e se eu já não estiver em call
+            if (paraQuem === dadosUsuario.nome && ultimoMsg.usuario_nome !== dadosUsuario.nome && !chamadaAtiva) {
+                setConviteRecebido({ de: ultimoMsg.usuario_nome, sala: salaSugerida });
             }
           }
 
@@ -112,6 +111,10 @@ export default function SalaLinkahSkype() {
     return () => { clearInterval(chatInt); clearInterval(sinalInterval.current); };
   }, [id, dadosUsuario, chamadaAtiva]);
 
+  useEffect(() => {
+    scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [mensagens]);
+
   // FUNÇÕES DE CHAMADA
   const iniciarCallGrupo = () => {
     setNomeSalaCall(`Linkah_Group_Room_${id}`);
@@ -121,9 +124,8 @@ export default function SalaLinkahSkype() {
   const iniciarCallPrivada = async (nomeDestino: string) => {
     if (nomeDestino === dadosUsuario.nome) return;
     const par = [dadosUsuario.nome, nomeDestino].sort();
-    const salaPrivada = `Linkah_Priv_${par[0]}_${par[1]}`;
+    const salaPrivada = `Linkah_Priv_${par[0].replace(/\s/g, '_')}_${par[1].replace(/\s/g, '_')}`;
     
-    // Envia convite via status
     await fetch('https://linkah-api.onrender.com/api/comunidade/enviar', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -137,6 +139,14 @@ export default function SalaLinkahSkype() {
 
     setNomeSalaCall(salaPrivada);
     setChamadaAtiva(true);
+  };
+
+  const aceitarChamada = () => {
+    if (conviteRecebido) {
+      setNomeSalaCall(conviteRecebido.sala);
+      setChamadaAtiva(true);
+      setConviteRecebido(null);
+    }
   };
 
   const enviarMensagem = async (e: React.FormEvent) => {
@@ -153,20 +163,38 @@ export default function SalaLinkahSkype() {
     } catch (err) { setNovoTexto(bkpTexto); setImagemAnexada(bkpImg); }
   };
 
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setImagemAnexada(reader.result as string);
-      reader.readAsDataURL(file);
-    }
-  };
-
-  if (carregando) return <div className="h-screen flex items-center justify-center font-bold text-[#d6006d] animate-pulse">CARREGANDO LINKAH...</div>;
+  if (carregando) return <div className="h-screen flex items-center justify-center font-bold text-[#d6006d]">CARREGANDO...</div>;
 
   return (
     <div className="flex h-screen bg-white text-slate-700 font-sans overflow-hidden">
       
+      {/* MODAL DE CONVITE ENTRANTE */}
+      {conviteRecebido && (
+        <div className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl text-center animate-in zoom-in duration-300">
+            <div className="w-20 h-20 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4 text-[#d6006d] animate-bounce">
+              <Phone size={40} />
+            </div>
+            <h2 className="text-xl font-black text-slate-800 mb-2">Chamada Privada</h2>
+            <p className="text-slate-500 mb-8 font-medium"><b>{conviteRecebido.de}</b> está chamando você...</p>
+            <div className="flex gap-4">
+              <button 
+                onClick={() => setConviteRecebido(null)}
+                className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 py-4 rounded-2xl font-bold transition-all flex items-center justify-center gap-2"
+              >
+                <Ban size={18} /> RECUSAR
+              </button>
+              <button 
+                onClick={aceitarChamada}
+                className="flex-1 bg-[#d6006d] hover:bg-[#b0005a] text-white py-4 rounded-2xl font-bold shadow-lg shadow-pink-200 transition-all flex items-center justify-center gap-2"
+              >
+                <Check size={18} /> ACEITAR
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* SIDEBAR */}
       <aside className="w-80 bg-[#f8f9fa] border-r border-slate-200 flex flex-col hidden lg:flex shrink-0">
         <div className="p-4 bg-white border-b border-slate-100 shadow-sm">
@@ -201,7 +229,7 @@ export default function SalaLinkahSkype() {
                     {user.emCall ? 'Em chamada' : 'Disponível'}
                   </p>
                 </div>
-                <Video size={16} className="text-slate-300 group-hover:text-[#d6006d] transition-colors" />
+                <Video size={16} className="text-slate-300 group-hover:text-[#d6006d]" />
               </div>
             ))}
           </div>
@@ -211,17 +239,17 @@ export default function SalaLinkahSkype() {
       {/* ÁREA DE CHAT */}
       <main className="flex-1 flex flex-col bg-white relative">
         
-        {/* MODAL DE CHAMADA */}
+        {/* INTERFACE DA CHAMADA ATIVA */}
         {chamadaAtiva && (
           <div className="absolute inset-0 z-[100] bg-slate-900 flex flex-col animate-in fade-in duration-300">
             <div className="p-4 bg-slate-800 flex justify-between items-center border-b border-slate-700 shadow-lg">
               <div className="flex items-center gap-3">
                 <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                <span className="text-white font-bold text-xs uppercase tracking-tight">Chamada Ativa: {nomeSalaCall.includes('Priv') ? 'Privada' : 'Grupo'}</span>
+                <span className="text-white font-bold text-xs uppercase tracking-tight">Em Chamada</span>
               </div>
               <button 
                 onClick={() => setChamadaAtiva(false)}
-                className="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-full flex items-center gap-2 text-[10px] font-black transition-all shadow-lg"
+                className="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-full flex items-center gap-2 text-[10px] font-black transition-all"
               >
                 <PhoneOff size={14} /> DESCONECTAR
               </button>
@@ -239,21 +267,13 @@ export default function SalaLinkahSkype() {
              <button onClick={() => router.back()} className="lg:hidden text-slate-400"><ChevronLeft /></button>
              <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-[#d6006d] font-black border border-slate-200 uppercase">{dadosEvento?.nome?.charAt(0) || 'L'}</div>
              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="font-bold text-slate-800 text-sm">{dadosEvento?.nome}</h3>
-                  {usuariosOnline.filter(u => u.emCall).length > 0 && (
-                    <div className="flex items-center gap-1.5 bg-pink-50 px-2 py-0.5 rounded-full border border-pink-100">
-                       <span className="w-1.5 h-1.5 bg-[#d6006d] rounded-full animate-pulse"></span>
-                       <span className="text-[9px] font-black text-[#d6006d] uppercase">{usuariosOnline.filter(u => u.emCall).length} na call</span>
-                    </div>
-                  )}
-                </div>
-                <p className="text-[10px] text-slate-500 font-medium uppercase tracking-tighter">{formatarData(dadosEvento)} • Sincronizado</p>
+                <h3 className="font-bold text-slate-800 text-sm">{dadosEvento?.nome}</h3>
+                <p className="text-[10px] text-slate-500 font-medium uppercase">{formatarData(dadosEvento)} • Sincronizado</p>
              </div>
           </div>
           <div className="flex items-center gap-4 text-sky-500">
-             <Video size={20} className="cursor-pointer hover:text-[#d6006d] transition-colors" onClick={iniciarCallGrupo} />
-             <Phone size={18} className="cursor-pointer hover:text-[#d6006d] transition-colors" onClick={iniciarCallGrupo} />
+             <Video size={20} className="cursor-pointer hover:text-[#d6006d]" onClick={iniciarCallGrupo} />
+             <Phone size={18} className="cursor-pointer hover:text-[#d6006d]" onClick={iniciarCallGrupo} />
              <MoreVertical size={20} className="text-slate-300" />
           </div>
         </header>
@@ -268,7 +288,7 @@ export default function SalaLinkahSkype() {
                 <div className={`flex flex-col ${souEu ? 'items-end' : 'items-start'} max-w-[75%]`}>
                   <span className="text-[11px] font-bold text-slate-400 mb-1 px-1">{msg.usuario_nome}</span>
                   <div className={`px-4 py-2 rounded-2xl text-[14px] shadow-sm ${souEu ? 'bg-[#d6006d] text-white rounded-tr-none' : 'bg-white text-slate-700 rounded-tl-none border border-slate-100'}`}>
-                    {msg.imagem && <img src={msg.imagem} className="rounded-lg mb-2 max-h-72 w-full object-cover shadow-sm" />}
+                    {msg.imagem && <img src={msg.imagem} className="rounded-lg mb-2 max-h-72 w-full object-cover" />}
                     {msg.texto && <p className="leading-relaxed">{msg.texto}</p>}
                   </div>
                 </div>
@@ -283,25 +303,24 @@ export default function SalaLinkahSkype() {
             <div className="flex-1 bg-[#F3F4F6] rounded-2xl p-2 flex flex-col focus-within:bg-white transition-all border border-transparent focus-within:border-slate-200">
               {imagemAnexada && (
                 <div className="p-2 relative inline-block">
-                  <img src={imagemAnexada} className="h-20 w-20 object-cover rounded-lg border-2 border-white shadow-md" />
-                  <button type="button" onClick={() => setImagemAnexada(null)} className="absolute -top-1 -right-1 bg-slate-800 text-white rounded-full p-0.5 shadow-md hover:bg-red-500">
-                    <X size={12} />
-                  </button>
+                  <img src={imagemAnexada} className="h-20 w-20 object-cover rounded-lg border-2 border-white" />
+                  <button type="button" onClick={() => setImagemAnexada(null)} className="absolute -top-1 -right-1 bg-slate-800 text-white rounded-full p-0.5"><X size={12} /></button>
                 </div>
               )}
               <div className="flex items-center gap-2">
                 <button type="button" onClick={() => fileInputRef.current?.click()} className="p-2 text-slate-400 hover:text-[#d6006d]"><Paperclip size={20} /></button>
-                <input type="file" accept="image/*" hidden ref={fileInputRef} onChange={handleFile} />
+                <input type="file" accept="image/*" hidden ref={fileInputRef} onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) { const r = new FileReader(); r.onloadend = () => setImagemAnexada(r.result as string); r.readAsDataURL(f); }
+                }} />
                 <input 
                   type="text" value={novoTexto} onChange={(e) => setNovoTexto(e.target.value)}
-                  placeholder="Escreva uma mensagem..." className="flex-1 bg-transparent border-none outline-none py-2 text-sm text-slate-700" 
+                  placeholder="Escreva uma mensagem..." className="flex-1 bg-transparent border-none outline-none py-2 text-sm" 
                 />
                 <Smile size={20} className="text-slate-400 cursor-pointer" />
               </div>
             </div>
-            <button type="submit" className="bg-[#d6006d] text-white p-3 rounded-full shadow-lg hover:scale-105 active:scale-95 transition-all">
-              <Send size={20} fill="currentColor" />
-            </button>
+            <button type="submit" className="bg-[#d6006d] text-white p-3 rounded-full shadow-lg hover:scale-105 transition-all"><Send size={20} /></button>
           </form>
         </footer>
       </main>
