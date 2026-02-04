@@ -237,8 +237,9 @@ export default function SalaLinkahSkype() {
                 <PhoneOff size={16} /> SAIR DA CHAMADA
               </button>
             </div>
+            {/* AJUSTE NA URL PARA PULAR LOGIN E MODERADOR */}
             <iframe 
-              src={`https://meet.jit.si/Linkah_Room_${id}#userInfo.displayName="${dadosUsuario?.nome}"`}
+              src={`https://meet.jit.si/Linkah_Exclusiva_Privada_Sala_${id}#userInfo.displayName="${dadosUsuario?.nome}"&config.prejoinPageEnabled=false&config.requireDisplayName=false&config.startWithAudioMuted=false`}
               className="flex-1 w-full border-none"
               allow="camera; microphone; display-capture; autoplay; clipboard-write"
             />
