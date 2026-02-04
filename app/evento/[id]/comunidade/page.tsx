@@ -3,7 +3,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { 
   Search, Paperclip, Send, Video, Phone, 
-  MoreVertical, Smile, ChevronLeft, X, Image as ImageIcon 
+  MoreVertical, Smile, ChevronLeft, X, Image as ImageIcon,
+  Calendar // Importei o ícone de calendário
 } from 'lucide-react';
 
 export default function SalaLinkahSkype() {
@@ -23,7 +24,17 @@ export default function SalaLinkahSkype() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const sinalInterval = useRef<any>(null);
 
-  // 1. CARREGAR USUÁRIO DO LOCALSTORAGE
+  // Função para formatar a data do evento
+  const formatarData = (dataStr: string) => {
+    if (!dataStr) return '';
+    const data = new Date(dataStr);
+    return data.toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric'
+    });
+  };
+
   useEffect(() => {
     const savedUser = localStorage.getItem('@Linkah:User');
     if (savedUser) {
@@ -33,11 +44,9 @@ export default function SalaLinkahSkype() {
     }
   }, [router]);
 
-  // 2. LÓGICA DE PRESENÇA REAL-TIME (HEARTBEAT)
   useEffect(() => {
     if (!id || !dadosUsuario?.nome) return;
 
-    // Função que diz ao servidor: "Ainda estou com a aba aberta!"
     const enviarSinalVida = async () => {
       try {
         await fetch('https://linkah-api.onrender.com/api/comunidade/enviar', {
@@ -46,7 +55,7 @@ export default function SalaLinkahSkype() {
           body: JSON.stringify({ 
             evento_id: Number(id), 
             usuario_nome: dadosUsuario.nome, 
-            texto: "system_ping_active", // Texto chave para o filtro
+            texto: "system_ping_active",
             tipo: "status" 
           })
         });
@@ -65,8 +74,6 @@ export default function SalaLinkahSkype() {
           const lista = await resMsg.json();
           setMensagens(lista);
 
-          // FILTRO DE PRESENÇA REAL:
-          // Só mostramos quem interagiu (mensagem ou ping) nos últimos 35 segundos
           const AGORA = Date.now();
           const LIMITE_ONLINE = 35 * 1000; 
 
@@ -86,13 +93,11 @@ export default function SalaLinkahSkype() {
       } catch (err) { console.error("Erro na sincronização:", err); }
     };
 
-    // Execução inicial
     enviarSinalVida();
     atualizarDados();
 
-    // Intervalos
-    const chatInt = setInterval(atualizarDados, 4000); // Atualiza chat e lista lateral
-    sinalInterval.current = setInterval(enviarSinalVida, 15000); // Manda sinal a cada 15s
+    const chatInt = setInterval(atualizarDados, 4000);
+    sinalInterval.current = setInterval(enviarSinalVida, 15000);
 
     return () => {
       clearInterval(chatInt);
@@ -100,12 +105,10 @@ export default function SalaLinkahSkype() {
     };
   }, [id, dadosUsuario]);
 
-  // 3. AUTO-SCROLL
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [mensagens]);
 
-  // 4. ENVIO DE MENSAGEM
   const enviarMensagem = async (e: React.FormEvent) => {
     e.preventDefault();
     if ((!novoTexto.trim() && !imagemAnexada) || !dadosUsuario) return;
@@ -146,7 +149,7 @@ export default function SalaLinkahSkype() {
   return (
     <div className="flex h-screen bg-white text-slate-700 font-sans overflow-hidden">
       
-      {/* SIDEBAR (SKYPE STYLE) */}
+      {/* SIDEBAR */}
       <aside className="w-80 bg-[#f8f9fa] border-r border-slate-200 flex flex-col hidden lg:flex shrink-0">
         <div className="p-4 bg-white border-b border-slate-100 shadow-sm">
           <div className="flex items-center gap-3 mb-4">
@@ -195,9 +198,19 @@ export default function SalaLinkahSkype() {
              </div>
              <div>
                 <h3 className="font-bold text-slate-800 text-sm">{dadosEvento?.nome}</h3>
-                <div className="flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Sincronizado</p>
+                {/* DATA DO EVENTO ADICIONADA AQUI */}
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
+                    <Calendar size={10} className="text-slate-400" />
+                    <p className="text-[10px] text-slate-500 font-medium">
+                      {dadosEvento?.data ? formatarData(dadosEvento.data) : 'Data não definida'}
+                    </p>
+                  </div>
+                  <span className="text-slate-300">|</span>
+                  <div className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Sincronizado</p>
+                  </div>
                 </div>
              </div>
           </div>
@@ -210,9 +223,7 @@ export default function SalaLinkahSkype() {
 
         <div className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-6 bg-slate-50/30">
           {mensagens.map((msg, idx) => {
-            // NÃO MOSTRA OS PINGS DE SISTEMA NO CHAT
             if (msg.texto === "system_ping_active") return null;
-
             const souEu = dadosUsuario?.nome === msg.usuario_nome;
             return (
               <div key={idx} className={`flex gap-3 ${souEu ? 'flex-row-reverse' : 'flex-row'} items-start animate-in fade-in slide-in-from-bottom-2`}>
