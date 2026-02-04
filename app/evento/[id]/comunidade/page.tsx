@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 
 export default function SalaLinkahSkype() {
-  const { id } = useParams(); // ID da sala atual
+  const { id } = useParams();
   const router = useRouter();
   
   const [mensagens, setMensagens] = useState<any[]>([]);
@@ -24,16 +24,18 @@ export default function SalaLinkahSkype() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const jaEnviouEntrada = useRef(false);
 
+  // 1. CARREGAR UTILIZADOR
   useEffect(() => {
     const savedUser = localStorage.getItem('@Linkah:User');
     if (savedUser) setDadosUsuario(JSON.parse(savedUser));
     else router.push('/site/login');
   }, [router]);
 
+  // 2. LÓGICA DE PRESENÇA (ENTRADA E SAÍDA INSTANTÂNEA)
   useEffect(() => {
     if (!id || !dadosUsuario?.nome) return;
 
-    // Avisa a entrada ESPECIFICA nesta sala
+    // AVISAR ENTRADA
     const avisarEntrada = async () => {
       if (jaEnviouEntrada.current) return;
       jaEnviouEntrada.current = true;
@@ -44,39 +46,49 @@ export default function SalaLinkahSkype() {
           body: JSON.stringify({ 
             evento_id: Number(id), 
             usuario_nome: dadosUsuario.nome, 
-            texto: "📢 entrou", // Sinal curto para o sistema
+            texto: "📢 entrou", 
             tipo: "presenca" 
           })
         });
-      } catch (e) { console.error("Erro presença"); }
+      } catch (e) { console.error(e); }
+    };
+
+    // AVISAR SAÍDA (QUANDO FECHA A ABA OU SAI DA PÁGINA)
+    const avisarSaida = () => {
+      const url = 'https://linkah-api.onrender.com/api/comunidade/enviar';
+      const payload = JSON.stringify({
+        evento_id: Number(id),
+        usuario_nome: dadosUsuario.nome,
+        texto: "❌ saiu",
+        tipo: "presenca"
+      });
+      // sendBeacon é o comando especial para enviar dados mesmo ao fechar a aba
+      navigator.sendBeacon(url, payload);
     };
 
     const atualizarDados = async () => {
       try {
-        // Busca info da sala
         const resEv = await fetch(`https://linkah-api.onrender.com/api/eventos/${id}`);
         if (resEv.ok) setDadosEvento(await resEv.json());
 
-        // Busca mensagens desta sala
         const resMsg = await fetch(`https://linkah-api.onrender.com/api/comunidade/${id}?t=${Date.now()}`);
         if (resMsg.ok) {
           const lista = await resMsg.json();
           setMensagens(lista);
 
-          // FILTRO RIGOROSO: Só quem deu sinal NESTA sala (evento_id) nos últimos 4 minutos
-          const AGORA = Date.now();
-          const LIMITE = 4 * 60 * 1000;
+          // FILTRO DE QUEM ESTÁ REALMENTE ONLINE
+          // Regra: Pegamos a ÚLTIMA mensagem de cada utilizador nesta sala. 
+          // Se for "entrou" ou uma mensagem comum, está online. Se for "saiu", removemos.
+          const ultimosSinais: any = {};
+          lista.forEach((m: any) => {
+            ultimosSinais[m.usuario_nome] = m.texto;
+          });
 
-          const ativosDestaSala = lista.reduce((acc: any[], curr: any) => {
-            const horario = new Date(curr.criado_em).getTime();
-            // A API já filtra por ID na URL, mas garantimos a lógica de tempo aqui
-            if ((AGORA - horario) < LIMITE && !acc.find(u => u.usuario_nome === curr.usuario_nome)) {
-              acc.push({ usuario_nome: curr.usuario_nome });
-            }
-            return acc;
-          }, []);
+          const ativos = Object.keys(ultimosSinais)
+            .filter(nome => !ultimosSinais[nome].includes("❌ saiu"))
+            .map(nome => ({ usuario_nome: nome }));
 
-          setUsuariosOnline(ativosDestaSala);
+          setUsuariosOnline(ativos);
         }
         setCarregando(false);
       } catch (err) { console.error(err); }
@@ -84,8 +96,16 @@ export default function SalaLinkahSkype() {
 
     avisarEntrada();
     atualizarDados();
-    const interval = setInterval(atualizarDados, 4000);
-    return () => clearInterval(interval);
+    const interval = setInterval(atualizarDados, 3000);
+
+    // Adiciona o evento de fechar janela
+    window.addEventListener('beforeunload', avisarSaida);
+
+    return () => {
+      avisarSaida(); // Avisa saída se mudar de rota dentro do app
+      window.removeEventListener('beforeunload', avisarSaida);
+      clearInterval(interval);
+    };
   }, [id, dadosUsuario]);
 
   useEffect(() => { scrollRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [mensagens]);
@@ -109,72 +129,63 @@ export default function SalaLinkahSkype() {
   return (
     <div className="flex h-screen bg-white text-slate-700 font-sans overflow-hidden">
       
-      {/* SIDEBAR - SÓ APARECE QUEM ESTÁ NA SALA ATUAL */}
+      {/* SIDEBAR - LISTA DINÂMICA */}
       <aside className="w-80 bg-[#f8f9fa] border-r border-slate-200 flex flex-col hidden lg:flex shrink-0">
         <div className="p-4 bg-white border-b border-slate-100">
           <div className="flex items-center gap-3 mb-4">
             <div className="relative">
-              <div className="w-10 h-10 rounded-full bg-[#d6006d] flex items-center justify-center text-white font-bold border-2 border-white uppercase">
+              <div className="w-10 h-10 rounded-full bg-[#d6006d] flex items-center justify-center text-white font-bold border-2 border-white shadow-sm uppercase">
                 {dadosUsuario?.nome?.charAt(0)}
               </div>
               <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
             </div>
             <div className="font-bold text-sm truncate">{dadosUsuario?.nome}</div>
           </div>
-          <div className="text-[11px] font-bold text-slate-400 uppercase tracking-tighter mb-2">
-            Sala: {dadosEvento?.nome}
-          </div>
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Utilizadores na Sala ({usuariosOnline.length})</p>
         </div>
 
-        <div className="flex-1 overflow-y-auto">
-          <p className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Nesta sala ({usuariosOnline.length})</p>
-          <div className="px-2 space-y-0.5">
-            {usuariosOnline.map((user, idx) => (
-              <div key={idx} className="flex items-center gap-3 p-3 hover:bg-slate-200/50 rounded-xl transition-all">
-                <div className="relative shrink-0">
-                  <div className="w-11 h-11 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-500 font-bold uppercase">
-                    {user.usuario_nome.charAt(0)}
-                  </div>
-                  <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-[#f8f9fa] rounded-full"></div>
+        <div className="flex-1 overflow-y-auto px-2 py-2">
+          {usuariosOnline.map((user, idx) => (
+            <div key={idx} className="flex items-center gap-3 p-3 hover:bg-white rounded-xl transition-all border border-transparent hover:border-slate-100 shadow-sm mb-1">
+              <div className="relative shrink-0">
+                <div className="w-11 h-11 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-500 font-bold uppercase">
+                  {user.usuario_nome.charAt(0)}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-sm font-bold text-slate-700 truncate">{user.usuario_nome}</h4>
-                  <p className="text-[10px] text-green-600 font-bold">Online aqui</p>
-                </div>
+                <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-[#f8f9fa] rounded-full"></div>
               </div>
-            ))}
-          </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="text-sm font-bold text-slate-700 truncate">{user.usuario_nome}</h4>
+                <p className="text-[10px] text-green-600 font-bold uppercase">No Chat</p>
+              </div>
+            </div>
+          ))}
         </div>
       </aside>
 
-      {/* CHAT PRINCIPAL */}
+      {/* CHAT */}
       <main className="flex-1 flex flex-col bg-white">
-        <header className="px-6 py-3 border-b border-slate-100 flex items-center justify-between">
+        <header className="px-6 py-3 border-b border-slate-100 flex items-center justify-between shadow-sm">
           <div className="flex items-center gap-3">
              <button onClick={() => router.back()} className="lg:hidden text-slate-400"><ChevronLeft /></button>
              <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-[#d6006d] font-black border border-slate-200 uppercase">
                 {dadosEvento?.nome?.charAt(0) || 'L'}
              </div>
              <div>
-                <h3 className="font-bold text-slate-800 text-sm">{dadosEvento?.nome}</h3>
-                <p className="text-[10px] text-green-500 font-bold uppercase tracking-widest">Chat da Sala</p>
+                <h3 className="font-bold text-slate-800 text-sm tracking-tight">{dadosEvento?.nome}</h3>
+                <p className="text-[10px] text-green-500 font-bold uppercase tracking-widest">Sincronizado</p>
              </div>
           </div>
-          <div className="flex items-center gap-4 text-sky-500">
-             <Video size={20} className="cursor-pointer" />
-             <Phone size={18} className="cursor-pointer" />
-             <MoreVertical size={20} className="text-slate-300" />
-          </div>
+          <MoreVertical size={20} className="text-slate-300" />
         </header>
 
         <div className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-6 bg-slate-50/20">
           {mensagens.map((msg, idx) => {
             const souEu = dadosUsuario?.nome === msg.usuario_nome;
-            const ehPresenca = msg.texto?.includes("📢");
+            const ehPresenca = msg.texto?.includes("📢") || msg.texto?.includes("❌");
 
             if (ehPresenca) return (
               <div key={idx} className="flex justify-center my-2">
-                <span className="text-[9px] text-slate-300 font-bold uppercase tracking-widest">
+                <span className="text-[9px] text-slate-300 font-bold uppercase tracking-widest bg-white px-2 py-0.5 rounded-full border border-slate-100">
                   {msg.usuario_nome} {msg.texto}
                 </span>
               </div>
@@ -215,7 +226,7 @@ export default function SalaLinkahSkype() {
                 }} />
                 <input 
                   type="text" value={novoTexto} onChange={(e) => setNovoTexto(e.target.value)}
-                  placeholder="Envie uma mensagem..." className="flex-1 bg-transparent border-none outline-none py-2 text-sm text-slate-700" 
+                  placeholder="Escreva sua mensagem..." className="flex-1 bg-transparent border-none outline-none py-2 text-sm text-slate-700" 
                 />
               </div>
             </div>
