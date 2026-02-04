@@ -55,7 +55,7 @@ export default function SalaLinkahSkype() {
     }
   }, [router]);
 
-  // 2. LÓGICA DE PRESENÇA E SINCRONIZAÇÃO
+  // 2. LÓGICA DE PRESENÇA E SINCRONIZAÇÃO (ADAPTADO PARA STATUS DE CALL)
   useEffect(() => {
     if (!id || !dadosUsuario?.nome) return;
 
@@ -67,7 +67,8 @@ export default function SalaLinkahSkype() {
           body: JSON.stringify({ 
             evento_id: Number(id), 
             usuario_nome: dadosUsuario.nome, 
-            texto: "system_ping_active", 
+            // Se o usuário estiver na call, manda um ping especial
+            texto: chamadaAtiva ? "system_ping_on_call" : "system_ping_active", 
             tipo: "status" 
           })
         });
@@ -90,12 +91,20 @@ export default function SalaLinkahSkype() {
           const AGORA = Date.now();
           const LIMITE_ONLINE = 35 * 1000; 
 
+          // Mapeia usuários ativos e verifica se estão em call
           const ativosAgora = lista.reduce((acc: any[], curr: any) => {
             const dataInteracao = new Date(curr.criado_em).getTime();
             const estaAtivo = (AGORA - dataInteracao) < LIMITE_ONLINE;
 
-            if (estaAtivo && !acc.find((u: any) => u.usuario_nome === curr.usuario_nome)) {
-              acc.push({ usuario_nome: curr.usuario_nome });
+            if (estaAtivo) {
+               const index = acc.findIndex((u: any) => u.usuario_nome === curr.usuario_nome);
+               const statusCall = curr.texto === "system_ping_on_call";
+
+               if (index === -1) {
+                 acc.push({ usuario_nome: curr.usuario_nome, emCall: statusCall });
+               } else if (statusCall) {
+                 acc[index].emCall = true; // Se qualquer ping recente for de call, marca como em call
+               }
             }
             return acc;
           }, []);
@@ -110,13 +119,13 @@ export default function SalaLinkahSkype() {
     atualizarDados();
 
     const chatInt = setInterval(atualizarDados, 4000);
-    sinalInterval.current = setInterval(enviarSinalVida, 15000);
+    sinalInterval.current = setInterval(enviarSinalVida, 10000); // Ping mais rápido quando em call
 
     return () => {
       clearInterval(chatInt);
       clearInterval(sinalInterval.current);
     };
-  }, [id, dadosUsuario]);
+  }, [id, dadosUsuario, chamadaAtiva]); // Adicionado chamadaAtiva para atualizar o ping na hora
 
   // 3. AUTO-SCROLL
   useEffect(() => {
@@ -186,16 +195,23 @@ export default function SalaLinkahSkype() {
           <p className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Membros Ativos ({usuariosOnline.length})</p>
           <div className="px-2 space-y-0.5">
             {usuariosOnline.map((user, idx) => (
-              <div key={idx} className="flex items-center gap-3 p-3 hover:bg-white rounded-xl cursor-pointer transition-all border border-transparent hover:border-slate-100 shadow-sm mb-1">
+              <div key={idx} className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all border shadow-sm mb-1 ${user.emCall ? 'bg-pink-50/50 border-pink-100' : 'hover:bg-white border-transparent hover:border-slate-100'}`}>
                 <div className="relative shrink-0">
-                  <div className="w-11 h-11 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-500 font-bold uppercase">
+                  <div className={`w-11 h-11 rounded-full border flex items-center justify-center font-bold uppercase ${user.emCall ? 'bg-[#d6006d] text-white border-white' : 'bg-white text-slate-500 border-slate-200'}`}>
                     {user.usuario_nome.charAt(0)}
                   </div>
-                  <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-[#f8f9fa] rounded-full"></div>
+                  <div className={`absolute bottom-0 right-0 w-3 h-3 border-2 rounded-full ${user.emCall ? 'bg-[#d6006d] border-white animate-pulse' : 'bg-green-500 border-[#f8f9fa]'}`}></div>
                 </div>
                 <div className="flex-1 min-w-0">
                   <h4 className="text-sm font-bold text-slate-700 truncate">{user.usuario_nome}</h4>
-                  <p className="text-[10px] text-green-600 font-bold uppercase tracking-tighter">Online agora</p>
+                  {user.emCall ? (
+                    <p className="text-[10px] text-[#d6006d] font-black uppercase flex items-center gap-1">
+                       <span className="w-1 h-1 bg-[#d6006d] rounded-full animate-ping"></span>
+                       Em chamada
+                    </p>
+                  ) : (
+                    <p className="text-[10px] text-green-600 font-bold uppercase tracking-tighter">Online agora</p>
+                  )}
                 </div>
               </div>
             ))}
@@ -218,10 +234,9 @@ export default function SalaLinkahSkype() {
                 onClick={() => setChamadaAtiva(false)}
                 className="bg-red-500 hover:bg-red-600 text-white px-5 py-2 rounded-full flex items-center gap-2 text-xs font-black transition-all active:scale-95 shadow-lg"
               >
-                <PhoneOff size={16} /> ENCERRAR MINHA PARTICIPAÇÃO
+                <PhoneOff size={16} /> SAIR DA CHAMADA
               </button>
             </div>
-            {/* IFRAME DO JITSI PARA VIDEO CONFERENCIA */}
             <iframe 
               src={`https://meet.jit.si/Linkah_Room_${id}#userInfo.displayName="${dadosUsuario?.nome}"`}
               className="flex-1 w-full border-none"
@@ -237,13 +252,22 @@ export default function SalaLinkahSkype() {
                 {dadosEvento?.nome?.charAt(0) || 'L'}
              </div>
              <div>
-                <h3 className="font-bold text-slate-800 text-sm">{dadosEvento?.nome}</h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-slate-800 text-sm">{dadosEvento?.nome}</h3>
+                  {/* INDICADOR DE PESSOAS NA CALL NO HEADER */}
+                  {usuariosOnline.filter(u => u.emCall).length > 0 && (
+                    <div className="flex items-center gap-1.5 bg-pink-50 px-2 py-0.5 rounded-full border border-pink-100 animate-in fade-in zoom-in">
+                       <span className="w-1.5 h-1.5 bg-[#d6006d] rounded-full animate-pulse"></span>
+                       <span className="text-[9px] font-black text-[#d6006d] uppercase">
+                         {usuariosOnline.filter(u => u.emCall).length} na call
+                       </span>
+                    </div>
+                  )}
+                </div>
                 <div className="flex items-center gap-2">
                   <div className="flex items-center gap-1">
                     <Calendar size={10} className="text-slate-400" />
-                    <p className="text-[10px] text-slate-500 font-medium">
-                      {formatarData(dadosEvento)}
-                    </p>
+                    <p className="text-[10px] text-slate-500 font-medium">{formatarData(dadosEvento)}</p>
                   </div>
                   <span className="text-slate-300">|</span>
                   <div className="flex items-center gap-1">
@@ -254,15 +278,14 @@ export default function SalaLinkahSkype() {
              </div>
           </div>
           <div className="flex items-center gap-4 text-sky-500">
-             {/* BOTÕES DE CALL */}
              <Video 
                 size={20} 
-                className="cursor-pointer hover:bg-sky-50 rounded-full p-0.5 transition-colors" 
+                className={`cursor-pointer rounded-full p-0.5 transition-all ${chamadaAtiva ? 'bg-pink-100 text-[#d6006d]' : 'hover:bg-sky-50'}`} 
                 onClick={() => setChamadaAtiva(true)}
              />
              <Phone 
                 size={18} 
-                className="cursor-pointer hover:bg-sky-50 rounded-full p-0.5 transition-colors" 
+                className={`cursor-pointer rounded-full p-0.5 transition-all ${chamadaAtiva ? 'bg-pink-100 text-[#d6006d]' : 'hover:bg-sky-50'}`} 
                 onClick={() => setChamadaAtiva(true)}
              />
              <MoreVertical size={20} className="text-slate-300" />
@@ -271,7 +294,7 @@ export default function SalaLinkahSkype() {
 
         <div className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-6 bg-slate-50/30">
           {mensagens.map((msg, idx) => {
-            if (msg.texto === "system_ping_active") return null;
+            if (msg.texto === "system_ping_active" || msg.texto === "system_ping_on_call") return null;
 
             const souEu = dadosUsuario?.nome === msg.usuario_nome;
             return (
@@ -297,7 +320,6 @@ export default function SalaLinkahSkype() {
         <footer className="p-4 bg-white border-t border-slate-100">
           <form onSubmit={enviarMensagem} className="max-w-4xl mx-auto flex items-end gap-2">
             <div className="flex-1 bg-[#F3F4F6] rounded-2xl p-2 flex flex-col focus-within:bg-white transition-all border border-transparent focus-within:border-slate-200">
-              
               {imagemAnexada && (
                 <div className="p-2 relative inline-block">
                   <img src={imagemAnexada} className="h-20 w-20 object-cover rounded-lg border-2 border-white shadow-md" />
@@ -306,7 +328,6 @@ export default function SalaLinkahSkype() {
                   </button>
                 </div>
               )}
-
               <div className="flex items-center gap-2">
                 <button type="button" onClick={() => fileInputRef.current?.click()} className="p-2 text-slate-400 hover:text-[#d6006d] transition-colors">
                   <Paperclip size={20} />
