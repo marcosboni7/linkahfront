@@ -2,9 +2,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { 
-  Search, Paperclip, Send, Calendar, Video, Phone, 
+  Search, Paperclip, Send, Video, Phone, 
   MoreVertical, Smile, Mic, ChevronLeft, Settings, 
-  Users, X, Plus, Heart, Image as ImageIcon 
+  Users, X, Plus, Image as ImageIcon 
 } from 'lucide-react';
 
 export default function SalaLinkahSkype() {
@@ -22,15 +22,36 @@ export default function SalaLinkahSkype() {
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const jaEnviouEntrada = useRef(false);
 
+  // 1. CARREGAR USUÁRIO
   useEffect(() => {
     const savedUser = localStorage.getItem('@Linkah:User');
     if (savedUser) setDadosUsuario(JSON.parse(savedUser));
     else router.push('/site/login');
   }, [router]);
 
+  // 2. LOGICA DE ENTRADA E SINCRONIZAÇÃO
   useEffect(() => {
-    if (!id) return;
+    if (!id || !dadosUsuario?.nome) return;
+
+    // Função para avisar que o usuário entrou (para ele aparecer na lista na hora)
+    const avisarEntrada = async () => {
+      if (jaEnviouEntrada.current) return;
+      jaEnviouEntrada.current = true;
+      try {
+        await fetch('https://linkah-api.onrender.com/api/comunidade/enviar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            evento_id: Number(id), 
+            usuario_nome: dadosUsuario.nome, 
+            texto: "📢 Entrou na sala", // Isso registra a presença no banco
+            tipo: "sistema" 
+          })
+        });
+      } catch (e) { console.error("Erro ao registrar entrada"); }
+    };
 
     const atualizarDados = async () => {
       try {
@@ -42,16 +63,15 @@ export default function SalaLinkahSkype() {
           const lista = await resMsg.json();
           setMensagens(lista);
 
-          // --- LÓGICA DE "SAIR DA SALA" POR TEMPO ---
+          // LÓGICA DE ONLINE (Aparece quem entrou ou falou nos últimos 10 min)
           const AGORA = Date.now();
-          const CINCO_MINUTOS = 5 * 60 * 1000;
+          const DEZ_MINUTOS = 10 * 60 * 1000;
 
-          // Filtra usuários que mandaram mensagem recentemente
           const ativos = lista.reduce((acc: any[], curr: any) => {
-            const horarioMensagem = new Date(curr.criado_em).getTime();
-            const estaAtivo = (AGORA - horarioMensagem) < CINCO_MINUTOS;
+            const horario = new Date(curr.criado_em).getTime();
+            const estaRecente = (AGORA - horario) < DEZ_MINUTOS;
 
-            if (estaAtivo && !acc.find(u => u.usuario_nome === curr.usuario_nome)) {
+            if (estaRecente && !acc.find(u => u.usuario_nome === curr.usuario_nome)) {
               acc.push({ usuario_nome: curr.usuario_nome });
             }
             return acc;
@@ -63,10 +83,11 @@ export default function SalaLinkahSkype() {
       } catch (err) { console.error(err); }
     };
 
+    avisarEntrada();
     atualizarDados();
-    const interval = setInterval(atualizarDados, 5000);
+    const interval = setInterval(atualizarDados, 4000);
     return () => clearInterval(interval);
-  }, [id]);
+  }, [id, dadosUsuario]);
 
   useEffect(() => { scrollRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [mensagens]);
 
@@ -84,22 +105,21 @@ export default function SalaLinkahSkype() {
     } catch (err) { setNovoTexto(bt); setImagemAnexada(bi); }
   };
 
-  if (carregando) return <div className="h-screen flex items-center justify-center font-bold text-[#d6006d]">CARREGANDO SALA...</div>;
+  if (carregando) return <div className="h-screen flex items-center justify-center font-bold text-[#d6006d]">CONECTANDO...</div>;
 
   return (
     <div className="flex h-screen bg-white text-slate-700 font-sans overflow-hidden">
-      
       {/* SIDEBAR */}
       <aside className="w-80 bg-[#f8f9fa] border-r border-slate-200 flex flex-col hidden lg:flex shrink-0">
         <div className="p-4 bg-white border-b border-slate-100">
           <div className="flex items-center gap-3 mb-4">
             <div className="relative">
-              <div className="w-10 h-10 rounded-full bg-[#d6006d] flex items-center justify-center text-white font-bold border-2 border-white shadow-sm uppercase">
+              <div className="w-10 h-10 rounded-full bg-[#d6006d] flex items-center justify-center text-white font-bold border-2 border-white uppercase">
                 {dadosUsuario?.nome?.charAt(0)}
               </div>
               <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
             </div>
-            <div className="font-bold text-sm truncate">{dadosUsuario?.nome}</div>
+            <div className="font-bold text-sm">{dadosUsuario?.nome}</div>
           </div>
           <div className="relative">
             <Search className="absolute left-3 top-2.5 text-slate-400" size={16} />
@@ -109,13 +129,13 @@ export default function SalaLinkahSkype() {
 
         <div className="flex-1 overflow-y-auto">
           <p className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-            Ativos nos últimos 5 min ({usuariosOnline.length})
+            Na sala agora ({usuariosOnline.length})
           </p>
           <div className="px-2 space-y-0.5">
             {usuariosOnline.map((user, idx) => (
-              <div key={idx} className="flex items-center gap-3 p-3 hover:bg-slate-200/50 rounded-xl cursor-pointer transition-all">
+              <div key={idx} className="flex items-center gap-3 p-3 hover:bg-slate-200/50 rounded-xl cursor-pointer">
                 <div className="relative shrink-0">
-                  <div className="w-11 h-11 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-500 font-bold uppercase">
+                  <div className="w-11 h-11 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-500 font-bold uppercase shadow-sm">
                     {user.usuario_nome.charAt(0)}
                   </div>
                   <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-[#f8f9fa] rounded-full"></div>
@@ -134,13 +154,12 @@ export default function SalaLinkahSkype() {
       <main className="flex-1 flex flex-col bg-white">
         <header className="px-6 py-3 border-b border-slate-100 flex items-center justify-between shadow-sm">
           <div className="flex items-center gap-3">
-             <button onClick={() => router.back()} className="lg:hidden text-slate-400"><ChevronLeft /></button>
              <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-[#d6006d] font-black border border-slate-200 uppercase">
                 {dadosEvento?.nome?.charAt(0) || 'L'}
              </div>
              <div>
                 <h3 className="font-bold text-slate-800 text-sm">{dadosEvento?.nome || 'Comunidade'}</h3>
-                <p className="text-[10px] text-slate-400 font-bold uppercase">Chat Ativo</p>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest italic animate-pulse text-green-500">Ao vivo</p>
              </div>
           </div>
           <div className="flex items-center gap-4 text-sky-500">
@@ -150,18 +169,28 @@ export default function SalaLinkahSkype() {
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-6">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-6 bg-slate-50/30">
           {mensagens.map((msg, idx) => {
             const souEu = dadosUsuario?.nome === msg.usuario_nome;
+            const ehSistema = msg.texto?.includes("📢");
+
+            if (ehSistema) return (
+              <div key={idx} className="flex justify-center my-2">
+                <span className="bg-slate-100 text-slate-400 text-[10px] px-3 py-1 rounded-full font-bold uppercase tracking-widest border border-slate-200/50">
+                  {msg.usuario_nome} {msg.texto}
+                </span>
+              </div>
+            );
+
             return (
               <div key={idx} className={`flex gap-3 ${souEu ? 'flex-row-reverse' : 'flex-row'} items-start`}>
-                <div className="w-9 h-9 rounded-full bg-slate-200 flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-slate-500 uppercase">
+                <div className="w-9 h-9 rounded-full bg-slate-200 flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-slate-500 uppercase border border-slate-100">
                   {msg.usuario_nome.charAt(0)}
                 </div>
                 <div className={`flex flex-col ${souEu ? 'items-end' : 'items-start'} max-w-[75%]`}>
                   <span className="text-[11px] font-bold text-slate-400 mb-1 px-1">{msg.usuario_nome}</span>
                   <div className={`px-4 py-2 rounded-2xl text-[14px] shadow-sm ${
-                    souEu ? 'bg-[#d6006d] text-white rounded-tr-none' : 'bg-[#F3F4F6] text-slate-700 rounded-tl-none border border-slate-100'
+                    souEu ? 'bg-[#d6006d] text-white rounded-tr-none' : 'bg-white text-slate-700 rounded-tl-none border border-slate-100'
                   }`}>
                     {msg.imagem && <img src={msg.imagem} className="rounded-lg mb-2 max-h-72 w-full object-cover" />}
                     {msg.texto && <p>{msg.texto}</p>}
@@ -175,24 +204,26 @@ export default function SalaLinkahSkype() {
 
         <footer className="p-4 bg-white border-t border-slate-100">
           <form onSubmit={enviarMensagem} className="max-w-4xl mx-auto flex items-end gap-2">
-            <div className="flex-1 bg-[#F3F4F6] rounded-2xl p-2 flex flex-col focus-within:bg-white transition-all">
+            <div className="flex-1 bg-[#F3F4F6] rounded-2xl p-2 flex flex-col focus-within:bg-white transition-all border border-transparent focus-within:border-slate-200">
               <div className="flex items-center gap-2">
                 <button type="button" onClick={() => fileInputRef.current?.click()} className="p-2 text-slate-400"><Paperclip size={20} /></button>
                 <input type="file" accept="image/*" hidden ref={fileInputRef} onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    const reader = new FileReader();
-                    reader.onloadend = () => setImagemAnexada(reader.result as string);
-                    reader.readAsDataURL(file);
-                  }
+                    const file = e.target.files?.[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onloadend = () => setImagemAnexada(reader.result as string);
+                        reader.readAsDataURL(file);
+                    }
                 }} />
                 <input 
                   type="text" value={novoTexto} onChange={(e) => setNovoTexto(e.target.value)}
-                  placeholder="Envie uma mensagem..." className="flex-1 bg-transparent border-none outline-none py-2 text-sm text-slate-700" 
+                  placeholder="Escreva sua mensagem..." className="flex-1 bg-transparent border-none outline-none py-2 text-sm text-slate-700" 
                 />
               </div>
             </div>
-            <button type="submit" className="bg-[#d6006d] text-white p-3 rounded-full shadow-lg"><Send size={20} fill="currentColor" /></button>
+            <button type="submit" className="bg-[#d6006d] text-white p-3 rounded-full shadow-lg hover:scale-105 active:scale-95 transition-all">
+              <Send size={20} fill="currentColor" />
+            </button>
           </form>
         </footer>
       </main>
