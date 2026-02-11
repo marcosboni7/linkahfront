@@ -5,9 +5,8 @@ import { useSearchParams } from 'next/navigation';
 import { Navbar } from '../site/Navbar';
 import { 
   CreditCard, ShieldCheck, Lock, 
-  Loader2, ArrowLeft, Ticket
-} from 'lucide-center'; // Certifique-se que o nome do pacote está correto (lucide-react)
-import { Ticket as TicketIcon } from 'lucide-react';
+  Loader2, ArrowLeft, Ticket as TicketIcon 
+} from 'lucide-react';
 import Link from 'next/link';
 
 function CheckoutContent() {
@@ -23,22 +22,28 @@ function CheckoutContent() {
     email: '',
   });
 
-  // Busca os detalhes do evento
+  // 1. Log inicial para conferir se os parâmetros da URL chegaram
   useEffect(() => {
+    console.log("🔍 Parâmetros da URL:", { eventoId, quantidade: qtd });
+    
     async function carregarEvento() {
       if (!eventoId) return;
       try {
+        console.log("⏳ Buscando dados do evento no backend...");
         const res = await fetch(`https://linkah-api.onrender.com/api/eventos/${eventoId}`);
         if (res.ok) {
           const data = await res.json();
+          console.log("✅ Dados do evento carregados:", data);
           setEvento(data);
+        } else {
+          console.error("❌ Erro ao buscar evento:", res.status);
         }
       } catch (err) {
-        console.error("Erro ao carregar evento:", err);
+        console.error("❌ Falha na requisição do evento:", err);
       }
     }
     carregarEvento();
-  }, [eventoId]);
+  }, [eventoId, qtd]);
 
   const precoBase = evento?.ingressos?.[0]?.preco ? Number(evento.ingressos[0].preco) : 0;
   const total = precoBase * qtd;
@@ -48,9 +53,11 @@ function CheckoutContent() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  // A FUNÇÃO QUE ESTAVA DANDO ERRO, AGORA CORRIGIDA
   const handleFinalizarCompra = async () => {
+    console.log("--- 🚀 INICIANDO PROCESSO DE CHECKOUT ---");
+    
     if (!formData.email || !formData.nome) {
+      console.warn("⚠️ Tentativa de compra com campos vazios.");
       alert("Por favor, preencha seus dados.");
       return;
     }
@@ -58,40 +65,48 @@ function CheckoutContent() {
     setLoading(true);
 
     try {
-      // 1. Chamada para o seu Backend no Render
+      const payload = {
+        evento: {
+          id: eventoId,
+          titulo: evento?.nome,
+          preco: precoBase,
+        },
+        usuarioEmail: formData.email,
+        quantidade: qtd
+      };
+
+      console.log("📤 Enviando payload para o Backend:", payload);
+
       const response = await fetch('https://linkah-api.onrender.com/api/pagamentos/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          evento: {
-            id: eventoId,
-            titulo: evento?.nome,
-            preco: precoBase,
-          },
-          usuarioEmail: formData.email,
-          quantidade: qtd
-        }),
+        body: JSON.stringify(payload),
       });
 
+      console.log("📥 Resposta do Backend recebida. Status:", response.status);
+
       const data = await response.json();
+      console.log("📄 Conteúdo da resposta (data):", data);
 
       if (!response.ok) {
         throw new Error(data.details || data.error || 'Erro ao processar checkout');
       }
 
-      // 2. REDIRECIONAMENTO DIRETO (Solução para o erro de IntegrationError)
+      // Redirecionamento Direto via URL da Stripe
       if (data.url) {
-        // Isso abre a página da Stripe sem precisar da biblioteca no Frontend
+        console.log("🔄 URL de checkout encontrada! Redirecionando navegador...");
         window.location.href = data.url; 
       } else {
+        console.error("❌ Erro: O campo 'url' não veio no JSON do backend.");
         throw new Error("URL de pagamento não recebida do servidor.");
       }
 
     } catch (err: any) {
-      console.error("Erro no checkout:", err);
+      console.error("❌ ERRO NO FLUXO DE COMPRA:", err);
       alert(`Ops! ${err.message}`);
     } finally {
       setLoading(false);
+      console.log("--- 🏁 FIM DA EXECUÇÃO DO HANDLE ---");
     }
   };
 
@@ -109,7 +124,6 @@ function CheckoutContent() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-        {/* Coluna da Esquerda: Formulário */}
         <div className="lg:col-span-7 space-y-10">
           <section className="space-y-8">
             <h3 className="text-2xl font-black italic tracking-tighter text-slate-900 uppercase">1. Seus Dados</h3>
@@ -143,7 +157,6 @@ function CheckoutContent() {
           </section>
         </div>
 
-        {/* Coluna da Direita: Resumo */}
         <div className="lg:col-span-5">
           <div className="bg-slate-900 p-8 md:p-10 rounded-[3rem] text-white shadow-2xl sticky top-10">
             <h4 className="font-black uppercase italic tracking-tighter mb-8 text-xl">Resumo</h4>
