@@ -9,6 +9,8 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
+// --- AQUI NÃO PODE TER NENHUM IMPORT DO @STRIPE/STRIPE-JS ---
+
 function CheckoutContent() {
   const searchParams = useSearchParams();
   const eventoId = searchParams.get('eventoId');
@@ -22,28 +24,21 @@ function CheckoutContent() {
     email: '',
   });
 
-  // 1. Log inicial para conferir se os parâmetros da URL chegaram
   useEffect(() => {
-    console.log("🔍 Parâmetros da URL:", { eventoId, quantidade: qtd });
-    
     async function carregarEvento() {
       if (!eventoId) return;
       try {
-        console.log("⏳ Buscando dados do evento no backend...");
         const res = await fetch(`https://linkah-api.onrender.com/api/eventos/${eventoId}`);
         if (res.ok) {
           const data = await res.json();
-          console.log("✅ Dados do evento carregados:", data);
           setEvento(data);
-        } else {
-          console.error("❌ Erro ao buscar evento:", res.status);
         }
       } catch (err) {
-        console.error("❌ Falha na requisição do evento:", err);
+        console.error("Erro ao carregar evento:", err);
       }
     }
     carregarEvento();
-  }, [eventoId, qtd]);
+  }, [eventoId]);
 
   const precoBase = evento?.ingressos?.[0]?.preco ? Number(evento.ingressos[0].preco) : 0;
   const total = precoBase * qtd;
@@ -54,10 +49,10 @@ function CheckoutContent() {
   };
 
   const handleFinalizarCompra = async () => {
-    console.log("--- 🚀 INICIANDO PROCESSO DE CHECKOUT ---");
+    // 1. LOG DE INÍCIO
+    console.log("🚀 Iniciando handleFinalizarCompra...");
     
     if (!formData.email || !formData.nome) {
-      console.warn("⚠️ Tentativa de compra com campos vazios.");
       alert("Por favor, preencha seus dados.");
       return;
     }
@@ -65,53 +60,50 @@ function CheckoutContent() {
     setLoading(true);
 
     try {
-      const payload = {
-        evento: {
-          id: eventoId,
-          titulo: evento?.nome,
-          preco: precoBase,
-        },
-        usuarioEmail: formData.email,
-        quantidade: qtd
-      };
-
-      console.log("📤 Enviando payload para o Backend:", payload);
-
+      console.log("⏳ Chamando API no Render...");
+      
       const response = await fetch('https://linkah-api.onrender.com/api/pagamentos/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          evento: {
+            id: eventoId,
+            titulo: evento?.nome,
+            preco: precoBase,
+          },
+          usuarioEmail: formData.email,
+          quantidade: qtd
+        }),
       });
 
-      console.log("📥 Resposta do Backend recebida. Status:", response.status);
-
       const data = await response.json();
-      console.log("📄 Conteúdo da resposta (data):", data);
+      console.log("📥 Resposta do Backend:", data);
 
       if (!response.ok) {
-        throw new Error(data.details || data.error || 'Erro ao processar checkout');
+        throw new Error(data.details || data.error || 'Erro no servidor');
       }
 
-      // Redirecionamento Direto via URL da Stripe
+      // 2. REDIRECIONAMENTO NATIVO (SEM STRIPE.JS)
       if (data.url) {
-        console.log("🔄 URL de checkout encontrada! Redirecionando navegador...");
-        window.location.href = data.url; 
+        console.log("🔗 Redirecionando para Stripe:", data.url);
+        // O segredo está aqui: usamos o redirecionamento padrão do browser
+        window.location.href = data.url;
       } else {
-        console.error("❌ Erro: O campo 'url' não veio no JSON do backend.");
-        throw new Error("URL de pagamento não recebida do servidor.");
+        console.error("❌ Erro: URL não encontrada no objeto 'data'");
+        throw new Error("Link de pagamento não gerado.");
       }
 
     } catch (err: any) {
-      console.error("❌ ERRO NO FLUXO DE COMPRA:", err);
-      alert(`Ops! ${err.message}`);
+      // 3. LOG DE ERRO (AQUI É ONDE O INTEGRATION ERROR MORRE)
+      console.error("❌ Erro capturado no Catch:", err.message);
+      alert(`Erro: ${err.message}`);
     } finally {
       setLoading(false);
-      console.log("--- 🏁 FIM DA EXECUÇÃO DO HANDLE ---");
     }
   };
 
   return (
-    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 bg-white min-h-screen">
       <div className="flex justify-between items-center mb-10">
         <Link href={`/evento/${eventoId}`} className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors text-sm font-bold">
           <ArrowLeft size={18} />
@@ -119,7 +111,7 @@ function CheckoutContent() {
         </Link>
         <div className="hidden md:flex items-center gap-3 text-slate-400">
            <ShieldCheck size={18} className="text-green-500" />
-           <span className="text-[10px] font-black uppercase tracking-widest text-slate-900">Pagamento Seguro</span>
+           <span className="text-[10px] font-black uppercase tracking-widest text-slate-900">Pagamento Seguro via Stripe</span>
         </div>
       </div>
 
@@ -150,8 +142,8 @@ function CheckoutContent() {
             <h3 className="text-2xl font-black italic tracking-tighter text-slate-900 uppercase">2. Pagamento</h3>
             <div className="bg-slate-50 p-8 rounded-3xl text-center border-2 border-dashed border-slate-200">
               <CreditCard size={32} className="mx-auto mb-4 text-slate-400" />
-              <p className="font-bold text-slate-600 uppercase text-xs tracking-widest">
-                Você será redirecionado para a Stripe
+              <p className="font-bold text-slate-600 uppercase text-xs tracking-widest text-center px-4">
+                Você será redirecionado para o ambiente seguro da Stripe para finalizar.
               </p>
             </div>
           </section>
@@ -189,11 +181,11 @@ function CheckoutContent() {
 
 export default function CheckoutPage() {
   return (
-    <div className="bg-white min-h-screen">
+    <>
       <Navbar />
-      <Suspense fallback={<div className="p-20 text-center font-bold">Carregando...</div>}>
+      <Suspense fallback={<div className="p-20 text-center font-bold">Carregando formulário...</div>}>
         <CheckoutContent />
       </Suspense>
-    </div>
+    </>
   );
 }
