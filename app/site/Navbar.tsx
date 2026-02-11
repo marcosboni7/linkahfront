@@ -37,23 +37,13 @@ export function Navbar() {
     setBuscandoTickets(true);
 
     try {
-      // Faz a chamada para a sua API no Render buscando pelo e-mail do usuário logado
+      // Chamada para sua API no Render com o filtro de email
       const response = await fetch(`https://linkah-api.onrender.com/api/compras?email=${usuario.email}`);
 
       if (response.ok) {
         const dados = await response.json();
-        
-        // MAPEAMENTO: Ajustamos os nomes que vêm do banco para o que o HTML espera
-        const formatados = dados.map((item: any) => ({
-          id: item.id,
-          evento: item.evento_nome || 'Evento Linkah',
-          // Formata a data do banco (ISO) para o padrão brasileiro
-          data: item.criado_at ? new Date(item.criado_at).toLocaleDateString('pt-BR') : 'Disponível',
-          status: item.status || 'Aprovado',
-          qtd: item.quantidade || 1
-        }));
-
-        setMeusIngressos(formatados);
+        // O Back-end já envia: id, evento, data (formatada), qtd, status
+        setMeusIngressos(dados);
       } else {
         console.error("Erro ao buscar ingressos na API");
       }
@@ -166,15 +156,17 @@ export function Navbar() {
                     <div key={ticket.id} className="bg-white border-2 border-slate-100 rounded-2xl p-5 hover:border-[#d6006d]/20 transition-all group">
                       <div className="flex justify-between items-start mb-4">
                         <div>
+                          {/* Usa 'ticket.evento' vindo do 'as evento' no SQL */}
                           <h4 className="font-black text-sm uppercase leading-tight text-slate-900">{ticket.evento}</h4>
                           <div className="flex items-center gap-2 text-slate-400 text-[10px] mt-1 font-bold">
+                            {/* Usa 'ticket.data' vindo do 'TO_CHAR' no SQL */}
                             <Calendar size={12} /> {ticket.data}
                           </div>
                         </div>
                         <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
                           ticket.status === 'Aprovado' || ticket.status === 'completed' ? 'bg-green-100 text-green-600' : 'bg-yellow-100 text-yellow-600'
                         }`}>
-                          {ticket.status === 'completed' ? 'Aprovado' : ticket.status}
+                          {ticket.status === 'completed' ? 'Aprovado' : ticket.status || 'Aprovado'}
                         </span>
                       </div>
                       <div className="flex items-center justify-between pt-4 border-t border-dashed border-slate-100">
@@ -185,6 +177,7 @@ export function Navbar() {
                           </span>
                         </div>
                         <div className="text-xs font-black uppercase tracking-tighter text-[#d6006d]">
+                          {/* Usa 'ticket.qtd' vindo do 'as qtd' no SQL */}
                           {ticket.qtd} {ticket.qtd > 1 ? 'INGRESSOS' : 'INGRESSO'}
                         </div>
                       </div>
