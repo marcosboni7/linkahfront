@@ -17,7 +17,8 @@ function SucessoContent() {
       if (!sessionId) return;
       try {
         // 🚨 COLOQUE A URL DO SEU BACKEND AQUI
-        const res = await fetch(`https://seu-backend.render.com/api/pagamentos/detalhes/${sessionId}`);
+  // Dentro do useEffect, mude para:
+const res = await fetch(`https://linkah-backend.onrender.com/api/pagamentos/detalhes/${sessionId}`);
         const data = await res.json();
         if (res.ok) setCompra(data);
       } catch (err) {
