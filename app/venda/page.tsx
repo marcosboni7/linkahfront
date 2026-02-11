@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Navbar } from '../site/Navbar';
 import { 
-  CreditCard, QrCode, ShieldCheck, Lock, 
+  CreditCard, ShieldCheck, Lock, 
   Loader2, ArrowLeft, Ticket
 } from 'lucide-react';
 import Link from 'next/link';
@@ -19,7 +19,7 @@ function CheckoutContent() {
   const qtd = parseInt(searchParams.get('qtd') || '1');
 
   const [loading, setLoading] = useState(false);
-  const [evento, setEvento] = useState(null);
+  const [evento, setEvento] = useState<any>(null);
   
   const [formData, setFormData] = useState({
     nome: '',
@@ -45,7 +45,7 @@ function CheckoutContent() {
   const precoBase = evento?.ingressos?.[0]?.preco ? Number(evento.ingressos[0].preco) : 0;
   const total = precoBase * qtd;
 
-  const handleInputChange = (e) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
@@ -59,7 +59,7 @@ function CheckoutContent() {
     setLoading(true);
 
     try {
-      // 1. Chamada ao backend para criar a sessão
+      // 1. Chamada ao seu backend no Render
       const response = await fetch('https://linkah-api.onrender.com/api/pagamentos/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -80,28 +80,22 @@ function CheckoutContent() {
         throw new Error(data.details || data.error || 'Erro ao processar checkout');
       }
 
-      // 2. Verifica se o ID da sessão existe (O que vimos no log do Render)
-      if (!data.id) {
-        throw new Error("Sessão não encontrada. Tente novamente.");
-      }
-
-      // 3. Redirecionamento para o ambiente seguro do Stripe
+      // 2. Redirecionamento seguro
       const stripe = await stripePromise;
       
-      if (!stripe) {
-        throw new Error("Erro ao carregar o Stripe. Verifique sua conexão.");
+      if (stripe && data.id) {
+        // O (stripe as any) resolve o erro de tipo Property 'redirectToCheckout' does not exist
+        const { error } = await (stripe as any).redirectToCheckout({
+          sessionId: data.id,
+        });
+
+        if (error) throw new Error(error.message);
+      } else {
+        throw new Error("Falha ao inicializar o Stripe ou ID da sessão ausente.");
       }
 
-      const { error } = await stripe.redirectToCheckout({
-        sessionId: data.id,
-      });
-
-      if (error) {
-        throw new Error(error.message);
-      }
-
-    } catch (err) {
-      console.error("Erro completo:", err);
+    } catch (err: any) {
+      console.error("Erro completo no checkout:", err);
       alert(`Ops! ${err.message}`);
     } finally {
       setLoading(false);
