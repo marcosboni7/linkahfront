@@ -10,7 +10,7 @@ import {
 import Link from 'next/link';
 import { loadStripe } from '@stripe/stripe-js';
 
-// Inicializa o Stripe com sua CHAVE PÚBLICA (pk_live... ou pk_test...)
+// Inicializa o Stripe com sua CHAVE PÚBLICA REAL
 const stripePromise = loadStripe('pk_live_51Sv4VnEFlXyonekdm17FB09ptaqOhnxvBSqtWcX3jZcopNopxn6GgWKX1IOmcdqKTSpVU8bWyg9Wbd4ko6oaxAfv002MdIJCHW');
 
 function CheckoutContent() {
@@ -18,9 +18,8 @@ function CheckoutContent() {
   const eventoId = searchParams.get('eventoId');
   const qtd = parseInt(searchParams.get('qtd') || '1');
 
-  const [metodo, setMetodo] = useState<'pix' | 'cartao'>('pix');
   const [loading, setLoading] = useState(false);
-  const [evento, setEvento] = useState<any>(null);
+  const [evento, setEvento] = useState(null);
   
   const [formData, setFormData] = useState({
     nome: '',
@@ -37,7 +36,7 @@ function CheckoutContent() {
           setEvento(data);
         }
       } catch (err) {
-        console.error("Erro ao carregar evento no checkout:", err);
+        console.error("Erro ao carregar evento:", err);
       }
     }
     carregarEvento();
@@ -46,12 +45,12 @@ function CheckoutContent() {
   const precoBase = evento?.ingressos?.[0]?.preco ? Number(evento.ingressos[0].preco) : 0;
   const total = precoBase * qtd;
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-const handleFinalizarCompra = async () => {
+  const handleFinalizarCompra = async () => {
     if (!formData.email || !formData.nome) {
       alert("Por favor, preencha seus dados.");
       return;
@@ -60,7 +59,7 @@ const handleFinalizarCompra = async () => {
     setLoading(true);
 
     try {
-      // 1. Chama seu backend para criar a sessão de checkout
+      // 1. Chamada ao backend para criar a sessão
       const response = await fetch('https://linkah-api.onrender.com/api/pagamentos/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -75,32 +74,40 @@ const handleFinalizarCompra = async () => {
         }),
       });
 
-      const session = await response.json();
+      const data = await response.json();
 
-      if (!response.ok) throw new Error(session.error || 'Erro ao iniciar checkout');
-
-      // 2. Redireciona para o Stripe (Aqui está a correção do erro de tipo)
-      const stripe = await stripePromise;
-      
-      if (stripe) {
-        // Usamos o redirecionamento direto via sessionId
-        const { error } = await (stripe as any).redirectToCheckout({
-          sessionId: session.id,
-        });
-
-        if (error) {
-          console.error("Stripe Error:", error);
-          alert(error.message);
-        }
+      if (!response.ok) {
+        throw new Error(data.details || data.error || 'Erro ao processar checkout');
       }
 
-    } catch (err: any) {
-      console.error("Erro no processo de compra:", err);
-      alert("Não foi possível processar o pagamento. Tente novamente.");
+      // 2. Verifica se o ID da sessão existe (O que vimos no log do Render)
+      if (!data.id) {
+        throw new Error("Sessão não encontrada. Tente novamente.");
+      }
+
+      // 3. Redirecionamento para o ambiente seguro do Stripe
+      const stripe = await stripePromise;
+      
+      if (!stripe) {
+        throw new Error("Erro ao carregar o Stripe. Verifique sua conexão.");
+      }
+
+      const { error } = await stripe.redirectToCheckout({
+        sessionId: data.id,
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+    } catch (err) {
+      console.error("Erro completo:", err);
+      alert(`Ops! ${err.message}`);
     } finally {
       setLoading(false);
     }
   };
+
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       <div className="flex justify-between items-center mb-10">
@@ -150,16 +157,16 @@ const handleFinalizarCompra = async () => {
           <section className="space-y-8">
             <div className="flex items-center gap-3">
               <div className="w-1 h-6 bg-rose-500 rounded-full"></div>
-              <h3 className="text-2xl font-black italic tracking-tighter text-slate-900 uppercase">2. Método de Pagamento</h3>
+              <h3 className="text-2xl font-black italic tracking-tighter text-slate-900 uppercase">2. Pagamento</h3>
             </div>
             
             <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm text-center space-y-4">
               <div className="flex justify-center gap-4 text-slate-300">
                 <CreditCard size={32} />
-                <QrCode size={32} />
+                <Lock size={32} />
               </div>
-              <p className="text-sm font-bold text-slate-500 uppercase tracking-widest">
-                Você será redirecionado para o ambiente seguro do Stripe para escolher entre Cartão, PIX ou Boleto.
+              <p className="text-sm font-bold text-slate-500 uppercase tracking-widest px-4">
+                Você será redirecionado para o ambiente seguro da Stripe para finalizar com seu cartão.
               </p>
             </div>
           </section>
