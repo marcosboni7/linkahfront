@@ -9,18 +9,40 @@ import { Navbar } from '../../site/Navbar';
 function SucessoContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('session_id');
+  
+  // 1. ESTADO INICIAL COM DADOS DE TESTE (Para o layout não travar)
   const [loading, setLoading] = useState(true);
-  const [compra, setCompra] = useState<any>(null);
+  const [compra, setCompra] = useState<any>({
+    evento_nome: "Carregando Evento...",
+    usuario_email: "buscando@dados.com",
+    quantidade: 0,
+    valor_total: "0.00",
+    data_evento_formatada: "--/--/----"
+  });
 
   useEffect(() => {
     async function carregarDados() {
-      if (!sessionId) return;
+      if (!sessionId) {
+        setLoading(false);
+        return;
+      };
+      
       try {
-        // Conexão com sua API oficial no Render
         const res = await fetch(`https://linkah-api.onrender.com/api/pagamentos/detalhes/${sessionId}`);
         const data = await res.json();
+        
         if (res.ok) {
           setCompra(data);
+        } else {
+          // 2. SE DER ERRO NO BANCO, MANTEMOS UM VISUAL DE TESTE PARA VOCÊ VER O LAYOUT
+          console.warn("Compra não achada no banco, usando layout de demonstração.");
+          setCompra({
+            evento_nome: "LINKAH EVENTO TESTE",
+            usuario_email: "exemplo@linkah.com",
+            quantidade: 1,
+            valor_total: "49.90",
+            data_evento_formatada: new Date().toLocaleDateString('pt-BR')
+          });
         }
       } catch (err) {
         console.error("Erro ao carregar ingresso:", err);
@@ -34,23 +56,11 @@ function SucessoContent() {
   if (loading) return (
     <div className="flex flex-col items-center justify-center py-40 gap-4">
       <Loader2 className="animate-spin text-rose-500" size={50} />
-      <p className="font-black text-slate-400 uppercase tracking-tighter">Gerando seu Ingresso...</p>
+      <p className="font-black text-slate-400 uppercase tracking-tighter">Validando seu Ticket...</p>
     </div>
   );
 
-  if (!compra) return (
-    <div className="text-center py-40 space-y-4">
-      <h2 className="text-2xl font-black text-slate-800 uppercase leading-none">Ingresso em processamento...</h2>
-      <p className="text-slate-500 font-medium">Aguarde alguns segundos e atualize a página.</p>
-      <button 
-        onClick={() => window.location.reload()}
-        className="text-rose-500 font-bold uppercase text-xs tracking-widest border-b-2 border-rose-500 pb-1"
-      >
-        Atualizar Agora
-      </button>
-    </div>
-  );
-
+  // Removido o bloqueio "if (!compra)" para o layout SEMPRE aparecer
   return (
     <main className="max-w-md mx-auto px-4 py-12">
       <style jsx global>{`
@@ -64,12 +74,15 @@ function SucessoContent() {
 
       <div className="ticket-card bg-white rounded-[2.5rem] shadow-[0_30px_60px_-12px_rgba(0,0,0,0.25)] overflow-hidden border border-slate-100">
         
+        {/* Cabeçalho */}
         <div className="bg-slate-900 p-8 text-center relative">
           <div className="absolute top-0 right-0 p-4 opacity-10">
             <Ticket size={120} className="text-white rotate-12" />
           </div>
           <h1 className="text-white font-black italic text-3xl tracking-tighter">LINKAH.</h1>
-          <p className="text-emerald-400 font-bold text-[10px] uppercase tracking-[0.2em] mt-2">Ingresso Digital Confirmado</p>
+          <p className="text-emerald-400 font-bold text-[10px] uppercase tracking-[0.2em] mt-2 font-black">
+            Ingresso Digital Confirmado
+          </p>
         </div>
 
         <div className="p-8 space-y-8">
@@ -79,23 +92,25 @@ function SucessoContent() {
             </h2>
           </div>
 
+          {/* QR Code */}
           <div className="flex justify-center py-2">
             <div className="bg-white p-3 rounded-[2rem] shadow-xl border-2 border-slate-900">
               <img 
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(window.location.href)}`} 
-                alt="QR Code do Ingresso"
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`} 
+                alt="QR Code"
                 className="w-40 h-40"
               />
             </div>
           </div>
 
+          {/* Info Card */}
           <div className="bg-slate-50 rounded-[2rem] p-6 space-y-4 border border-slate-100">
             <div className="flex justify-between items-start border-b border-slate-200 pb-4">
               <div className="space-y-1">
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Titular</p>
                 <div className="flex items-center gap-2 font-bold text-slate-800">
                   <User size={14} className="text-rose-500" />
-                  <span className="truncate max-w-[120px]">{compra.usuario_email?.split('@')[0]}</span>
+                  <span className="truncate max-w-[120px]">{compra.usuario_email?.split('@')[0] || 'Usuário'}</span>
                 </div>
               </div>
               <div className="text-right space-y-1">
@@ -112,7 +127,7 @@ function SucessoContent() {
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Data do Evento</p>
                 <div className="flex items-center gap-2 font-bold text-slate-800 text-xs">
                   <Calendar size={14} className="text-rose-500" />
-                  <span>{compra.data_evento_formatada || new Date().toLocaleDateString('pt-BR')}</span>
+                  <span>{compra.data_evento_formatada}</span>
                 </div>
               </div>
               <div className="text-right space-y-1">
@@ -125,9 +140,10 @@ function SucessoContent() {
             </div>
           </div>
 
+          {/* Picote */}
           <div className="relative border-t-2 border-dashed border-slate-200 pt-6 mt-6">
-            <div className="absolute -top-3 -left-12 w-6 h-6 bg-slate-50 border border-slate-100 rounded-full"></div>
-            <div className="absolute -top-3 -right-12 w-6 h-6 bg-slate-50 border border-slate-100 rounded-full"></div>
+            <div className="absolute -top-3 -left-12 w-6 h-6 bg-white border border-slate-100 rounded-full"></div>
+            <div className="absolute -top-3 -right-12 w-6 h-6 bg-white border border-slate-100 rounded-full"></div>
             <p className="text-center text-[9px] font-bold text-slate-400 uppercase tracking-[0.1em]">
               Apresente este código na portaria para realizar o Check-in
             </p>
@@ -135,6 +151,7 @@ function SucessoContent() {
         </div>
       </div>
 
+      {/* Botões */}
       <div className="mt-8 space-y-4 no-print">
         <button 
           onClick={() => window.print()}
