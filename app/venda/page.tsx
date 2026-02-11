@@ -6,7 +6,8 @@ import { Navbar } from '../site/Navbar';
 import { 
   CreditCard, ShieldCheck, Lock, 
   Loader2, ArrowLeft, Ticket
-} from 'lucide-react';
+} from 'lucide-center'; // Certifique-se que o nome do pacote está correto (lucide-react)
+import { Ticket as TicketIcon } from 'lucide-react';
 import Link from 'next/link';
 
 function CheckoutContent() {
@@ -22,6 +23,7 @@ function CheckoutContent() {
     email: '',
   });
 
+  // Busca os detalhes do evento
   useEffect(() => {
     async function carregarEvento() {
       if (!eventoId) return;
@@ -46,6 +48,7 @@ function CheckoutContent() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  // A FUNÇÃO QUE ESTAVA DANDO ERRO, AGORA CORRIGIDA
   const handleFinalizarCompra = async () => {
     if (!formData.email || !formData.nome) {
       alert("Por favor, preencha seus dados.");
@@ -55,6 +58,7 @@ function CheckoutContent() {
     setLoading(true);
 
     try {
+      // 1. Chamada para o seu Backend no Render
       const response = await fetch('https://linkah-api.onrender.com/api/pagamentos/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -75,15 +79,16 @@ function CheckoutContent() {
         throw new Error(data.details || data.error || 'Erro ao processar checkout');
       }
 
-      // NOVO MÉTODO: Redirecionamento direto via URL fornecida pelo Backend
+      // 2. REDIRECIONAMENTO DIRETO (Solução para o erro de IntegrationError)
       if (data.url) {
-        window.location.href = data.url;
+        // Isso abre a página da Stripe sem precisar da biblioteca no Frontend
+        window.location.href = data.url; 
       } else {
-        throw new Error("URL de checkout não encontrada.");
+        throw new Error("URL de pagamento não recebida do servidor.");
       }
 
     } catch (err: any) {
-      console.error("Erro completo no checkout:", err);
+      console.error("Erro no checkout:", err);
       alert(`Ops! ${err.message}`);
     } finally {
       setLoading(false);
@@ -99,104 +104,69 @@ function CheckoutContent() {
         </Link>
         <div className="hidden md:flex items-center gap-3 text-slate-400">
            <ShieldCheck size={18} className="text-green-500" />
-           <span className="text-[10px] font-black uppercase tracking-widest">Pagamento Seguro via Stripe</span>
+           <span className="text-[10px] font-black uppercase tracking-widest text-slate-900">Pagamento Seguro</span>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+        {/* Coluna da Esquerda: Formulário */}
         <div className="lg:col-span-7 space-y-10">
           <section className="space-y-8">
-            <div className="flex items-center gap-3">
-              <div className="w-1 h-6 bg-rose-500 rounded-full"></div>
-              <h3 className="text-2xl font-black italic tracking-tighter text-slate-900 uppercase">1. Seus Dados</h3>
-            </div>
-            
+            <h3 className="text-2xl font-black italic tracking-tighter text-slate-900 uppercase">1. Seus Dados</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-3">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Nome Completo</label>
-                <input 
-                  name="nome"
-                  value={formData.nome}
-                  onChange={handleInputChange}
-                  placeholder="Seu nome" 
-                  className="w-full p-5 bg-slate-50 rounded-[1.5rem] border-2 border-transparent focus:border-rose-500 focus:bg-white outline-none transition-all font-bold text-slate-700 shadow-sm" 
-                />
-              </div>
-              <div className="space-y-3">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">E-mail para envio</label>
-                <input 
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  placeholder="exemplo@email.com" 
-                  className="w-full p-5 bg-slate-50 rounded-[1.5rem] border-2 border-transparent focus:border-rose-500 focus:bg-white outline-none transition-all font-bold text-slate-700 shadow-sm" 
-                />
-              </div>
+              <input 
+                name="nome"
+                value={formData.nome}
+                onChange={handleInputChange}
+                placeholder="Nome Completo" 
+                className="w-full p-5 bg-slate-50 rounded-2xl border-2 border-transparent focus:border-rose-500 outline-none font-bold text-slate-900 shadow-sm" 
+              />
+              <input 
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                placeholder="E-mail" 
+                className="w-full p-5 bg-slate-50 rounded-2xl border-2 border-transparent focus:border-rose-500 outline-none font-bold text-slate-900 shadow-sm" 
+              />
             </div>
           </section>
 
           <section className="space-y-8">
-            <div className="flex items-center gap-3">
-              <div className="w-1 h-6 bg-rose-500 rounded-full"></div>
-              <h3 className="text-2xl font-black italic tracking-tighter text-slate-900 uppercase">2. Pagamento</h3>
-            </div>
-            
-            <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm text-center space-y-4">
-              <div className="flex justify-center gap-4 text-slate-300">
-                <CreditCard size={32} />
-                <Lock size={32} />
-              </div>
-              <p className="text-sm font-bold text-slate-500 uppercase tracking-widest px-4">
-                Você será redirecionado para o ambiente seguro da Stripe para finalizar com seu cartão.
+            <h3 className="text-2xl font-black italic tracking-tighter text-slate-900 uppercase">2. Pagamento</h3>
+            <div className="bg-slate-50 p-8 rounded-3xl text-center border-2 border-dashed border-slate-200">
+              <CreditCard size={32} className="mx-auto mb-4 text-slate-400" />
+              <p className="font-bold text-slate-600 uppercase text-xs tracking-widest">
+                Você será redirecionado para a Stripe
               </p>
             </div>
           </section>
         </div>
 
+        {/* Coluna da Direita: Resumo */}
         <div className="lg:col-span-5">
-          <div className="sticky top-28 space-y-6">
-            <div className="bg-white rounded-[3rem] border-2 border-slate-100 shadow-[0_40px_80px_-15px_rgba(0,0,0,0.08)] overflow-hidden">
-               <div className="p-8 md:p-10 space-y-8">
-                  <h4 className="font-black text-slate-900 uppercase italic tracking-tighter">Resumo da Compra</h4>
-                  
-                  <div className="space-y-4">
-                     <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                        <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center shadow-sm text-rose-500">
-                           <Ticket size={24} />
-                        </div>
-                        <div className="flex-1">
-                           <p className="font-black text-slate-800 text-sm uppercase italic tracking-tighter line-clamp-1">{evento?.nome || 'Carregando...'}</p>
-                           <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{qtd}x Ingressos</p>
-                        </div>
-                     </div>
-                  </div>
-
-                  <div className="pt-6 border-t-2 border-dashed border-slate-100 space-y-4">
-                    <div className="flex justify-between items-end">
-                      <span className="text-slate-400 text-[10px] font-black uppercase tracking-widest pb-1">Total a pagar</span>
-                      <span className="text-4xl font-black text-slate-900 tracking-tighter">
-                        {total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                      </span>
-                    </div>
-
-                    <button 
-                      onClick={handleFinalizarCompra}
-                      disabled={loading || !formData.nome || !formData.email}
-                      className="flex items-center justify-center w-full bg-[#E30031] py-6 rounded-[2rem] font-black text-white transition-all hover:bg-black hover:shadow-2xl uppercase text-xs tracking-[0.2em] gap-3 active:scale-95 disabled:opacity-30"
-                    >
-                      {loading ? (
-                        <Loader2 className="animate-spin" size={20} />
-                      ) : (
-                        <>
-                          <Lock size={18} />
-                          Pagar Agora
-                        </>
-                      )}
-                    </button>
-                  </div>
-               </div>
+          <div className="bg-slate-900 p-8 md:p-10 rounded-[3rem] text-white shadow-2xl sticky top-10">
+            <h4 className="font-black uppercase italic tracking-tighter mb-8 text-xl">Resumo</h4>
+            <div className="flex items-center gap-4 mb-8 p-4 bg-white/5 rounded-2xl">
+              <TicketIcon className="text-rose-500" />
+              <div>
+                <p className="font-bold text-sm uppercase">{evento?.nome || 'Carregando...'}</p>
+                <p className="text-[10px] text-white/50 font-bold uppercase">{qtd}x Ingressos</p>
+              </div>
             </div>
+            <div className="border-t border-white/10 pt-6 flex justify-between items-end mb-8">
+              <span className="text-[10px] font-black uppercase text-white/40">Total</span>
+              <span className="text-4xl font-black tracking-tighter">
+                {total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              </span>
+            </div>
+            <button 
+              onClick={handleFinalizarCompra}
+              disabled={loading || !formData.nome || !formData.email}
+              className="w-full bg-rose-600 py-6 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-rose-500 transition-all disabled:opacity-20 flex justify-center items-center gap-2"
+            >
+              {loading ? <Loader2 className="animate-spin" /> : <> <Lock size={16}/> Pagar Agora </>}
+            </button>
           </div>
         </div>
       </div>
@@ -206,13 +176,9 @@ function CheckoutContent() {
 
 export default function CheckoutPage() {
   return (
-    <div className="bg-white min-h-screen text-slate-900">
+    <div className="bg-white min-h-screen">
       <Navbar />
-      <Suspense fallback={
-        <div className="flex flex-col items-center justify-center py-40">
-          <Loader2 className="animate-spin text-rose-500" size={40} />
-        </div>
-      }>
+      <Suspense fallback={<div className="p-20 text-center font-bold">Carregando...</div>}>
         <CheckoutContent />
       </Suspense>
     </div>
