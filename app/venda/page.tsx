@@ -8,10 +8,6 @@ import {
   Loader2, ArrowLeft, Ticket
 } from 'lucide-react';
 import Link from 'next/link';
-import { loadStripe } from '@stripe/stripe-js';
-
-// Inicializa o Stripe com sua CHAVE PÚBLICA REAL
-const stripePromise = loadStripe('pk_live_51Sv4VnEFlXyonekdm17FB09ptaqOhnxvBSqtWcX3jZcopNopxn6GgWKX1IOmcdqKTSpVU8bWyg9Wbd4ko6oaxAfv002MdIJCHW');
 
 function CheckoutContent() {
   const searchParams = useSearchParams();
@@ -59,7 +55,6 @@ function CheckoutContent() {
     setLoading(true);
 
     try {
-      // 1. Chamada ao seu backend no Render
       const response = await fetch('https://linkah-api.onrender.com/api/pagamentos/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -80,18 +75,11 @@ function CheckoutContent() {
         throw new Error(data.details || data.error || 'Erro ao processar checkout');
       }
 
-      // 2. Redirecionamento seguro
-      const stripe = await stripePromise;
-      
-      if (stripe && data.id) {
-        // O (stripe as any) resolve o erro de tipo Property 'redirectToCheckout' does not exist
-        const { error } = await (stripe as any).redirectToCheckout({
-          sessionId: data.id,
-        });
-
-        if (error) throw new Error(error.message);
+      // NOVO MÉTODO: Redirecionamento direto via URL fornecida pelo Backend
+      if (data.url) {
+        window.location.href = data.url;
       } else {
-        throw new Error("Falha ao inicializar o Stripe ou ID da sessão ausente.");
+        throw new Error("URL de checkout não encontrada.");
       }
 
     } catch (err: any) {
