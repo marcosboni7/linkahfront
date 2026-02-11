@@ -38,7 +38,7 @@ export function Navbar() {
 
     try {
       // Chamada para sua API no Render com o filtro de email
-      const response = await fetch(`https://linkah-api.onrender.com/api/compras?email=${usuario.email}`);
+   const response = await fetch(`https://linkah-api.onrender.com/api/compras/meus-ingressos?email=${usuario.email}`);
 
       if (response.ok) {
         const dados = await response.json();
