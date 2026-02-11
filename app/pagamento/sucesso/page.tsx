@@ -16,13 +16,14 @@ function SucessoContent() {
     async function carregarDados() {
       if (!sessionId) return;
       try {
-        // 🚨 COLOQUE A URL DO SEU BACKEND AQUI
-  // Dentro do useEffect, mude para:
-const res = await fetch(`https://linkah-backend.onrender.com/api/pagamentos/detalhes/${sessionId}`);
+        // Conexão com sua API oficial no Render
+        const res = await fetch(`https://linkah-api.onrender.com/api/pagamentos/detalhes/${sessionId}`);
         const data = await res.json();
-        if (res.ok) setCompra(data);
+        if (res.ok) {
+          setCompra(data);
+        }
       } catch (err) {
-        console.error("Erro ao carregar ingresso", err);
+        console.error("Erro ao carregar ingresso:", err);
       } finally {
         setLoading(false);
       }
@@ -39,14 +40,19 @@ const res = await fetch(`https://linkah-backend.onrender.com/api/pagamentos/deta
 
   if (!compra) return (
     <div className="text-center py-40 space-y-4">
-      <h2 className="text-2xl font-black text-slate-800 uppercase">Ingresso em processamento...</h2>
-      <p className="text-slate-500">Aguarde alguns segundos e atualize a página.</p>
+      <h2 className="text-2xl font-black text-slate-800 uppercase leading-none">Ingresso em processamento...</h2>
+      <p className="text-slate-500 font-medium">Aguarde alguns segundos e atualize a página.</p>
+      <button 
+        onClick={() => window.location.reload()}
+        className="text-rose-500 font-bold uppercase text-xs tracking-widest border-b-2 border-rose-500 pb-1"
+      >
+        Atualizar Agora
+      </button>
     </div>
   );
 
   return (
     <main className="max-w-md mx-auto px-4 py-12">
-      {/* Estilos para o PDF sair perfeito */}
       <style jsx global>{`
         @media print {
           nav, .no-print { display: none !important; }
@@ -58,7 +64,6 @@ const res = await fetch(`https://linkah-backend.onrender.com/api/pagamentos/deta
 
       <div className="ticket-card bg-white rounded-[2.5rem] shadow-[0_30px_60px_-12px_rgba(0,0,0,0.25)] overflow-hidden border border-slate-100">
         
-        {/* Topo / Header do Ticket */}
         <div className="bg-slate-900 p-8 text-center relative">
           <div className="absolute top-0 right-0 p-4 opacity-10">
             <Ticket size={120} className="text-white rotate-12" />
@@ -67,16 +72,13 @@ const res = await fetch(`https://linkah-backend.onrender.com/api/pagamentos/deta
           <p className="text-emerald-400 font-bold text-[10px] uppercase tracking-[0.2em] mt-2">Ingresso Digital Confirmado</p>
         </div>
 
-        {/* Corpo do Ingresso */}
         <div className="p-8 space-y-8">
-          
           <div className="text-center space-y-2">
             <h2 className="text-4xl font-black text-slate-900 leading-none uppercase italic tracking-tighter">
               {compra.evento_nome}
             </h2>
           </div>
 
-          {/* QR Code central - Agora envia para a URL da página para validação */}
           <div className="flex justify-center py-2">
             <div className="bg-white p-3 rounded-[2rem] shadow-xl border-2 border-slate-900">
               <img 
@@ -87,14 +89,13 @@ const res = await fetch(`https://linkah-backend.onrender.com/api/pagamentos/deta
             </div>
           </div>
 
-          {/* Dados do Evento Estilizados */}
           <div className="bg-slate-50 rounded-[2rem] p-6 space-y-4 border border-slate-100">
             <div className="flex justify-between items-start border-b border-slate-200 pb-4">
               <div className="space-y-1">
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Titular</p>
                 <div className="flex items-center gap-2 font-bold text-slate-800">
                   <User size={14} className="text-rose-500" />
-                  <span className="truncate max-w-[120px]">{compra.usuario_email.split('@')[0]}</span>
+                  <span className="truncate max-w-[120px]">{compra.usuario_email?.split('@')[0]}</span>
                 </div>
               </div>
               <div className="text-right space-y-1">
@@ -108,10 +109,10 @@ const res = await fetch(`https://linkah-backend.onrender.com/api/pagamentos/deta
 
             <div className="flex justify-between items-start pt-2">
               <div className="space-y-1">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Data da Compra</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Data do Evento</p>
                 <div className="flex items-center gap-2 font-bold text-slate-800 text-xs">
                   <Calendar size={14} className="text-rose-500" />
-                  <span>{new Date().toLocaleDateString('pt-BR')}</span>
+                  <span>{compra.data_evento_formatada || new Date().toLocaleDateString('pt-BR')}</span>
                 </div>
               </div>
               <div className="text-right space-y-1">
@@ -124,7 +125,6 @@ const res = await fetch(`https://linkah-backend.onrender.com/api/pagamentos/deta
             </div>
           </div>
 
-          {/* Picote Visual Estilo Ticket de Cinema */}
           <div className="relative border-t-2 border-dashed border-slate-200 pt-6 mt-6">
             <div className="absolute -top-3 -left-12 w-6 h-6 bg-slate-50 border border-slate-100 rounded-full"></div>
             <div className="absolute -top-3 -right-12 w-6 h-6 bg-slate-50 border border-slate-100 rounded-full"></div>
@@ -135,7 +135,6 @@ const res = await fetch(`https://linkah-backend.onrender.com/api/pagamentos/deta
         </div>
       </div>
 
-      {/* Botões - Sumirão ao salvar em PDF */}
       <div className="mt-8 space-y-4 no-print">
         <button 
           onClick={() => window.print()}
