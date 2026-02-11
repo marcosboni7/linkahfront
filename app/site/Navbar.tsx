@@ -37,16 +37,28 @@ export function Navbar() {
     setBuscandoTickets(true);
 
     try {
+      // Faz a chamada para a sua API no Render buscando pelo e-mail do usuário logado
       const response = await fetch(`https://linkah-api.onrender.com/api/compras?email=${usuario.email}`);
 
       if (response.ok) {
         const dados = await response.json();
-        setMeusIngressos(dados);
+        
+        // MAPEAMENTO: Ajustamos os nomes que vêm do banco para o que o HTML espera
+        const formatados = dados.map((item: any) => ({
+          id: item.id,
+          evento: item.evento_nome || 'Evento Linkah',
+          // Formata a data do banco (ISO) para o padrão brasileiro
+          data: item.criado_at ? new Date(item.criado_at).toLocaleDateString('pt-BR') : 'Disponível',
+          status: item.status || 'Aprovado',
+          qtd: item.quantidade || 1
+        }));
+
+        setMeusIngressos(formatados);
       } else {
-        console.error("Erro ao buscar ingressos");
+        console.error("Erro ao buscar ingressos na API");
       }
     } catch (err) {
-      console.error("Erro de conexão:", err);
+      console.error("Erro de conexão ao buscar ingressos:", err);
     } finally {
       setBuscandoTickets(false);
     }
@@ -62,14 +74,12 @@ export function Navbar() {
             LINKAH<span className="text-[#d6006d]">.</span>
           </Link>
 
-          {/* BOTÃO DESTAQUE: NOSSA COMUNIDADE */}
           <Link 
             href="/comunidades" 
             className="group relative flex items-center gap-2 bg-[#d6006d]/5 border border-[#d6006d]/10 px-4 py-2.5 rounded-2xl hover:bg-[#d6006d] transition-all duration-500 shadow-sm"
           >
             <div className="relative">
               <MessagesSquare size={16} className="text-[#d6006d] group-hover:text-white transition-colors" />
-              {/* Bolinha pulsante de 'Live' */}
               <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse border-2 border-white"></span>
             </div>
             <span className="text-[10px] font-black uppercase tracking-[0.15em] text-[#d6006d] group-hover:text-white transition-colors">
@@ -162,17 +172,19 @@ export function Navbar() {
                           </div>
                         </div>
                         <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
-                          ticket.status === 'Aprovado' ? 'bg-green-100 text-green-600' : 'bg-yellow-100 text-yellow-600'
+                          ticket.status === 'Aprovado' || ticket.status === 'completed' ? 'bg-green-100 text-green-600' : 'bg-yellow-100 text-yellow-600'
                         }`}>
-                          {ticket.status}
+                          {ticket.status === 'completed' ? 'Aprovado' : ticket.status}
                         </span>
                       </div>
                       <div className="flex items-center justify-between pt-4 border-t border-dashed border-slate-100">
                         <div className="flex items-center gap-2">
                           <Hash size={14} className="text-slate-300" />
-                          <span className="text-xs font-mono font-bold text-slate-500">{ticket.id}</span>
+                          <span className="text-[10px] font-mono font-bold text-slate-500 uppercase">
+                            {ticket.id.toString().substring(0, 12)}...
+                          </span>
                         </div>
-                        <div className="text-xs font-black uppercase tracking-tighter">
+                        <div className="text-xs font-black uppercase tracking-tighter text-[#d6006d]">
                           {ticket.qtd} {ticket.qtd > 1 ? 'INGRESSOS' : 'INGRESSO'}
                         </div>
                       </div>
@@ -185,6 +197,12 @@ export function Navbar() {
                   </div>
                 )}
               </div>
+            </div>
+            
+            <div className="p-6 bg-slate-50 border-t border-slate-100 text-center">
+                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">
+                    Apresente seu documento na entrada do evento
+                </p>
             </div>
           </div>
         </div>
