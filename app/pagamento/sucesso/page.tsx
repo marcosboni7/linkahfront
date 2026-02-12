@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Ticket, Download, ArrowRight, Loader2, Calendar, User, Hash, Wallet, AlertCircle, ShieldCheck } from 'lucide-react';
+import { Ticket, Download, ArrowRight, Loader2, Calendar, User, Hash, Wallet, AlertCircle, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 
 function TicketVisual() {
@@ -56,104 +56,135 @@ function TicketVisual() {
   };
 
   if (loading) return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-[#0a0a0a] gap-4">
-      <Loader2 className="animate-spin text-amber-500" size={40} />
-      <p className="font-black text-amber-500 uppercase tracking-widest italic animate-pulse">Autenticando Ticket...</p>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-white gap-4">
+      <Loader2 className="animate-spin text-rose-500" size={40} />
+      <p className="font-black text-slate-400 uppercase tracking-widest italic animate-pulse">Gerando seu ingresso...</p>
     </div>
   );
 
   if (erro || !compra) return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-[#0a0a0a] px-6 text-center gap-4">
-      <AlertCircle className="text-amber-500" size={40} />
-      <h3 className="font-black text-white uppercase italic">Ticket não encontrado</h3>
-      <p className="text-slate-400 text-sm">Ainda não recebemos a confirmação. Aguarde um instante e atualize.</p>
-      <Link href="/" className="mt-4 text-amber-500 font-bold uppercase text-xs border-b-2 border-amber-500">Voltar para a Home</Link>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 px-6 text-center gap-4">
+      <AlertCircle className="text-rose-500" size={40} />
+      <h3 className="font-black text-slate-800 uppercase italic">Ticket não encontrado</h3>
+      <p className="text-slate-500 text-sm">Aguarde um instante e atualize a página.</p>
+      <Link href="/" className="mt-4 text-rose-500 font-bold uppercase text-xs border-b-2 border-rose-500">Voltar para a Home</Link>
     </div>
   );
 
   return (
-    <main className="max-w-md mx-auto px-4 py-12 min-h-screen bg-[#050505]">
+    <main className="max-w-2xl mx-auto px-4 py-8 min-h-screen bg-white">
       <style jsx global>{`
-        @media print { .no-print { display: none !important; } body { background: white; } }
+        @media print { .no-print { display: none !important; } body { background: white; } .ticket-card { border: 2px solid #f43f5e !important; box-shadow: none !important; } }
         .ticket-mask {
-          mask-image: radial-gradient(circle at 0 75%, transparent 15px, black 16px), 
-                      radial-gradient(circle at 100% 75%, transparent 15px, black 16px);
+          mask-image: radial-gradient(circle at 0 70%, transparent 20px, black 21px), 
+                      radial-gradient(circle at 100% 70%, transparent 20px, black 21px);
         }
       `}</style>
 
-      {/* CARD DO INGRESSO */}
-      <div className="ticket-card ticket-mask bg-gradient-to-b from-[#1a1a1a] to-[#0f0f0f] rounded-[2.5rem] shadow-2xl overflow-hidden border border-white/10 relative">
+      {/* HEADER DA PÁGINA */}
+      <div className="text-center mb-8 no-print">
+        <div className="inline-flex items-center gap-2 bg-rose-50 text-rose-600 px-4 py-2 rounded-full mb-4">
+          <CheckCircle2 size={16} />
+          <span className="font-bold text-xs uppercase tracking-wider">Pagamento Aprovado</span>
+        </div>
+        <h1 className="text-slate-900 font-black text-2xl italic tracking-tighter uppercase">Seu Ingresso Chegou!</h1>
+      </div>
+
+      {/* CARD DO INGRESSO - ESTILO BRANCO E ROSA */}
+      <div className="ticket-card ticket-mask bg-white rounded-[3rem] shadow-[0_40px_80px_-15px_rgba(244,63,94,0.2)] overflow-hidden border border-rose-100 relative mb-8">
         
-        {/* TOPO PREMIUM */}
-        <div className="bg-gradient-to-r from-amber-600 via-amber-400 to-amber-600 p-8 text-center relative">
-          <div className="flex justify-center items-center gap-2 mb-2">
-            <ShieldCheck size={14} className="text-black" />
-            <span className="text-black font-black text-[10px] uppercase tracking-[0.3em]">Acesso Confirmado</span>
+        {/* TOPO COM NOME DO EVENTO */}
+        <div className="bg-rose-500 p-10 text-center relative overflow-hidden">
+          {/* Decoração de fundo */}
+          <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none flex flex-wrap gap-4 p-2">
+            {[...Array(20)].map((_, i) => <Ticket key={i} size={40} className="-rotate-12" />)}
           </div>
-          <h1 className="text-black font-black italic text-4xl tracking-tighter">LINKAH.</h1>
+          
+          <h1 className="text-white font-black italic text-5xl tracking-tighter relative z-10 mb-2">LINKAH.</h1>
+          <p className="text-rose-100 font-bold text-[10px] uppercase tracking-[0.5em] relative z-10">Official Event Ticket</p>
         </div>
 
-        <div className="p-8 space-y-8">
-          {/* NOME DO EVENTO */}
-          <div className="text-center space-y-2">
-            <p className="text-amber-500 font-bold text-[10px] uppercase tracking-[0.4em]">Ingresso Exclusive VIP</p>
-            <h2 className="text-4xl font-black text-white uppercase italic tracking-tighter leading-tight drop-shadow-md">
-              {compra.evento_nome || 'Evento Linkah'}
+        <div className="p-10 space-y-10">
+          {/* NOME DO EVENTO EM DESTAQUE */}
+          <div className="text-center space-y-3">
+            <h2 className="text-5xl font-black text-slate-900 uppercase italic tracking-tighter leading-none">
+              {compra.evento_nome || 'SHOW DA LINKAH'}
             </h2>
+            <div className="h-1 w-20 bg-rose-500 mx-auto rounded-full"></div>
           </div>
 
-          {/* BOX DE INFORMAÇÕES GLASSMORPISM */}
-          <div className="bg-white/5 rounded-[2rem] p-6 space-y-6 border border-white/10 backdrop-blur-md">
-            <div className="flex justify-between border-b pb-4 border-white/10">
-              <div>
-                <p className="text-[9px] font-black text-amber-500/60 uppercase tracking-widest mb-1">Titular</p>
-                <p className="font-bold text-white flex items-center gap-2 text-sm uppercase">
-                  <User size={14} className="text-amber-500"/> {compra.usuario_email?.split('@')[0] || 'Marcos'}
-                </p>
+          {/* GRID DE INFORMAÇÕES - MAIS LARGO */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-rose-50/50 rounded-[2.5rem] p-8 border border-rose-100">
+            <div className="flex items-center gap-4">
+              <div className="bg-rose-500 p-3 rounded-2xl shadow-md shadow-rose-200">
+                <User size={24} className="text-white" />
               </div>
-              <div className="text-right">
-                <p className="text-[9px] font-black text-amber-500/60 uppercase tracking-widest mb-1">Quantidade</p>
-                <p className="font-bold text-white flex items-center justify-end gap-2 text-sm">
-                  <Hash size={14} className="text-amber-500"/> {compra.quantidade || 1}x
+              <div>
+                <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest">Titular</p>
+                <p className="font-black text-slate-800 text-lg uppercase truncate">
+                   {compra.usuario_email?.split('@')[0] || 'MarcosPhara'}
                 </p>
               </div>
             </div>
-            
-            <div className="flex justify-between pt-2">
+
+            <div className="flex items-center gap-4">
+              <div className="bg-rose-500 p-3 rounded-2xl shadow-md shadow-rose-200">
+                <Hash size={24} className="text-white" />
+              </div>
               <div>
-                <p className="text-[9px] font-black text-amber-500/60 uppercase tracking-widest mb-1">Data</p>
-                <p className="font-bold text-white flex items-center gap-2 text-xs">
-                  <Calendar size={14} className="text-amber-500"/> {compra.data_evento_formatada || '12/02/2026'}
+                <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest">Quantidade</p>
+                <p className="font-black text-slate-800 text-lg uppercase">
+                  {compra.quantidade || 1} Unidade(s)
                 </p>
               </div>
-              <div className="text-right">
-                <p className="text-[9px] font-black text-amber-500/60 uppercase tracking-widest mb-1">Total Pago</p>
-                <p className="font-black text-white flex items-center justify-end gap-1 text-lg italic">
-                  <Wallet size={16} className="text-amber-500"/> R$ {formatarMoeda(compra.valor_total)}
+            </div>
+
+            <div className="flex items-center gap-4">
+              <div className="bg-rose-500 p-3 rounded-2xl shadow-md shadow-rose-200">
+                <Calendar size={24} className="text-white" />
+              </div>
+              <div>
+                <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest">Data do Evento</p>
+                <p className="font-black text-slate-800 text-lg uppercase">
+                  {compra.data_evento_formatada || '12/02/2026'}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <div className="bg-emerald-500 p-3 rounded-2xl shadow-md shadow-emerald-100">
+                <Wallet size={24} className="text-white" />
+              </div>
+              <div>
+                <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Total Pago</p>
+                <p className="font-black text-emerald-600 text-xl uppercase italic">
+                  R$ {formatarMoeda(compra.valor_total)}
                 </p>
               </div>
             </div>
           </div>
 
-          {/* RODAPÉ COM EFEITO DE CORTE */}
-          <div className="relative border-t border-dashed border-white/20 pt-6 text-center">
-            <p className="text-[9px] font-bold text-slate-500 uppercase tracking-[0.3em]">
-              Apresente este ticket na portaria
+          {/* RODAPÉ DO INGRESSO */}
+          <div className="relative border-t-2 border-dashed border-rose-200 pt-8 text-center space-y-2">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">
+              Apresente este ticket na portaria para check-in
             </p>
-            <p className="text-[8px] text-white/20 mt-2 font-mono uppercase">
-              ID: {sessionId?.slice(-12).toUpperCase()}
-            </p>
+            <div className="bg-slate-100 inline-block px-4 py-1 rounded-lg">
+               <p className="text-[9px] font-mono font-bold text-slate-500 uppercase tracking-tighter">
+                ID: {sessionId?.slice(-16).toUpperCase() || 'LINKAH-VALID-2026'}
+              </p>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* BOTÕES DE AÇÃO */}
-      <div className="mt-8 space-y-3 no-print">
-        <button onClick={() => window.print()} className="w-full bg-gradient-to-r from-amber-500 to-amber-600 text-black py-5 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 shadow-xl hover:brightness-110 transition-all active:scale-95">
-          <Download size={18}/> Salvar PDF
+      {/* BOTÕES DE AÇÃO - MAIS LARGOS */}
+      <div className="space-y-4 no-print max-w-lg mx-auto">
+        <button onClick={() => window.print()} className="w-full bg-rose-500 text-white py-6 rounded-3xl font-black uppercase text-sm tracking-[0.2em] flex items-center justify-center gap-3 shadow-xl shadow-rose-200 hover:bg-rose-600 transition-all active:scale-[0.98]">
+          <Download size={20}/> Baixar Ingresso PDF
         </button>
-        <Link href="/" className="w-full bg-white/5 border border-white/10 text-white py-5 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 hover:bg-white/10 transition-all">
-          Voltar ao Início <ArrowRight size={18}/>
+        <Link href="/" className="w-full bg-white border-2 border-slate-100 text-slate-400 py-6 rounded-3xl font-black uppercase text-sm tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-slate-50 transition-all">
+          Voltar ao Início <ArrowRight size={20}/>
         </Link>
       </div>
     </main>
@@ -162,7 +193,12 @@ function TicketVisual() {
 
 export default function PaginaSucesso() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center font-black text-amber-500 animate-pulse uppercase italic">Carregando...</div>}>
+    <Suspense fallback={
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-4">
+        <Loader2 className="animate-spin text-rose-500" size={50} />
+        <p className="font-black text-rose-500 uppercase tracking-widest animate-pulse italic text-sm">Carregando Ticket...</p>
+      </div>
+    }>
       <TicketVisual />
     </Suspense>
   );
