@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Ticket, Download, ArrowRight, Loader2, Calendar, User, Hash, Wallet, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Ticket, Download, ArrowRight, Loader2, Calendar, User, Hash, Wallet, AlertCircle, CheckCircle2, MapPin, Clock } from 'lucide-react';
 import Link from 'next/link';
 
 function TicketVisual() {
@@ -51,7 +51,6 @@ function TicketVisual() {
   const formatarMoeda = (valor: any) => {
     let num = parseFloat(valor);
     if (isNaN(num)) return "0,00";
-    if (num > 1000) num = num / 100; 
     return num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
@@ -66,7 +65,7 @@ function TicketVisual() {
     <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 px-6 text-center gap-4">
       <AlertCircle className="text-rose-500" size={40} />
       <h3 className="font-black text-slate-800 uppercase italic">Ticket não encontrado</h3>
-      <p className="text-slate-500 text-sm">Aguarde um instante e atualize a página.</p>
+      <p className="text-slate-500 text-sm">Aguarde um instante ou verifique sua conexão.</p>
       <Link href="/" className="mt-4 text-rose-500 font-bold uppercase text-xs border-b-2 border-rose-500">Voltar para a Home</Link>
     </div>
   );
@@ -74,117 +73,123 @@ function TicketVisual() {
   return (
     <main className="max-w-2xl mx-auto px-4 py-8 min-h-screen bg-white">
       <style jsx global>{`
-        @media print { .no-print { display: none !important; } body { background: white; } .ticket-card { border: 2px solid #f43f5e !important; box-shadow: none !important; } }
+        @media print { .no-print { display: none !important; } body { background: white; } .ticket-card { border: 2px solid #f43f5e !important; box-shadow: none !important; margin: 0; } }
         .ticket-mask {
-          mask-image: radial-gradient(circle at 0 70%, transparent 20px, black 21px), 
-                      radial-gradient(circle at 100% 70%, transparent 20px, black 21px);
+          mask-image: radial-gradient(circle at 0 72%, transparent 20px, black 21px), 
+                      radial-gradient(circle at 100% 72%, transparent 20px, black 21px);
         }
       `}</style>
 
       {/* HEADER DA PÁGINA */}
       <div className="text-center mb-8 no-print">
-        <div className="inline-flex items-center gap-2 bg-rose-50 text-rose-600 px-4 py-2 rounded-full mb-4">
+        <div className="inline-flex items-center gap-2 bg-emerald-50 text-emerald-600 px-4 py-2 rounded-full mb-4">
           <CheckCircle2 size={16} />
-          <span className="font-bold text-xs uppercase tracking-wider">Pagamento Aprovado</span>
+          <span className="font-bold text-xs uppercase tracking-wider">Pagamento Confirmado</span>
         </div>
         <h1 className="text-slate-900 font-black text-2xl italic tracking-tighter uppercase">Seu Ingresso Chegou!</h1>
       </div>
 
-      {/* CARD DO INGRESSO - ESTILO BRANCO E ROSA */}
-      <div className="ticket-card ticket-mask bg-white rounded-[3rem] shadow-[0_40px_80px_-15px_rgba(244,63,94,0.2)] overflow-hidden border border-rose-100 relative mb-8">
+      {/* CARD DO INGRESSO */}
+      <div className="ticket-card ticket-mask bg-white rounded-[3rem] shadow-[0_40px_80px_-15px_rgba(244,63,94,0.15)] overflow-hidden border border-rose-100 relative mb-8">
         
-        {/* TOPO COM NOME DO EVENTO */}
-        <div className="bg-rose-500 p-10 text-center relative overflow-hidden">
-          {/* Decoração de fundo */}
+        {/* TOPO */}
+        <div className="bg-rose-500 p-8 text-center relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none flex flex-wrap gap-4 p-2">
-            {[...Array(20)].map((_, i) => <Ticket key={i} size={40} className="-rotate-12" />)}
+            {[...Array(15)].map((_, i) => <Ticket key={i} size={30} className="-rotate-12" />)}
           </div>
-          
-          <h1 className="text-white font-black italic text-5xl tracking-tighter relative z-10 mb-2">LINKAH.</h1>
-          <p className="text-rose-100 font-bold text-[10px] uppercase tracking-[0.5em] relative z-10">Official Event Ticket</p>
+          <h1 className="text-white font-black italic text-4xl tracking-tighter relative z-10 mb-1">LINKAH.</h1>
+          <p className="text-rose-100 font-bold text-[9px] uppercase tracking-[0.5em] relative z-10">Ticket Digital Oficial</p>
         </div>
 
-        <div className="p-10 space-y-10">
-          {/* NOME DO EVENTO EM DESTAQUE */}
-          <div className="text-center space-y-3">
-            <h2 className="text-5xl font-black text-slate-900 uppercase italic tracking-tighter leading-none">
-              {compra.evento_nome || 'SHOW DA LINKAH'}
+        <div className="p-8 space-y-8">
+          {/* NOME DO EVENTO */}
+          <div className="text-center space-y-2">
+            <h2 className="text-4xl font-black text-slate-900 uppercase italic tracking-tighter leading-none">
+              {compra.evento_nome}
             </h2>
-            <div className="h-1 w-20 bg-rose-500 mx-auto rounded-full"></div>
+            <div className="h-1 w-16 bg-rose-500 mx-auto rounded-full"></div>
           </div>
 
-          {/* GRID DE INFORMAÇÕES - MAIS LARGO */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-rose-50/50 rounded-[2.5rem] p-8 border border-rose-100">
-            <div className="flex items-center gap-4">
-              <div className="bg-rose-500 p-3 rounded-2xl shadow-md shadow-rose-200">
-                <User size={24} className="text-white" />
+          {/* GRID DE INFORMAÇÕES */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 rounded-[2rem] p-6 border border-slate-100">
+            <div className="flex items-center gap-3">
+              <div className="bg-white p-2.5 rounded-xl shadow-sm border border-slate-100">
+                <User size={20} className="text-rose-500" />
               </div>
               <div>
-                <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest">Titular</p>
-                <p className="font-black text-slate-800 text-lg uppercase truncate">
-                   {compra.usuario_email?.split('@')[0] || 'MarcosPhara'}
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Titular</p>
+                <p className="font-bold text-slate-700 text-sm uppercase truncate max-w-[150px]">
+                   {compra.usuario_email?.split('@')[0]}
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
-              <div className="bg-rose-500 p-3 rounded-2xl shadow-md shadow-rose-200">
-                <Hash size={24} className="text-white" />
+            <div className="flex items-center gap-3">
+              <div className="bg-white p-2.5 rounded-xl shadow-sm border border-slate-100">
+                <Hash size={20} className="text-rose-500" />
               </div>
               <div>
-                <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest">Quantidade</p>
-                <p className="font-black text-slate-800 text-lg uppercase">
-                  {compra.quantidade || 1} Unidade(s)
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Entradas</p>
+                <p className="font-bold text-slate-700 text-sm uppercase">
+                  {compra.quantidade} Unidade(s)
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
-              <div className="bg-rose-500 p-3 rounded-2xl shadow-md shadow-rose-200">
-                <Calendar size={24} className="text-white" />
+            <div className="flex items-center gap-3">
+              <div className="bg-white p-2.5 rounded-xl shadow-sm border border-slate-100">
+                <Calendar size={20} className="text-rose-500" />
               </div>
               <div>
-                <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest">Data do Evento</p>
-                <p className="font-black text-slate-800 text-lg uppercase">
-                  {compra.data_evento_formatada || '12/02/2026'}
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Data e Hora</p>
+                <p className="font-bold text-slate-700 text-sm uppercase">
+                  {compra.data_evento_formatada} às {compra.hora_evento || '20:00'}
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
-              <div className="bg-emerald-500 p-3 rounded-2xl shadow-md shadow-emerald-100">
-                <Wallet size={24} className="text-white" />
+            <div className="flex items-center gap-3">
+              <div className="bg-white p-2.5 rounded-xl shadow-sm border border-slate-100">
+                <MapPin size={20} className="text-rose-500" />
               </div>
               <div>
-                <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Total Pago</p>
-                <p className="font-black text-emerald-600 text-xl uppercase italic">
-                  R$ {formatarMoeda(compra.valor_total)}
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Local</p>
+                <p className="font-bold text-slate-700 text-sm uppercase truncate max-w-[150px]">
+                  {compra.local_evento || 'A Definir'}
                 </p>
               </div>
             </div>
           </div>
 
-          {/* RODAPÉ DO INGRESSO */}
-          <div className="relative border-t-2 border-dashed border-rose-200 pt-8 text-center space-y-2">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">
-              Apresente este ticket na portaria para check-in
-            </p>
-            <div className="bg-slate-100 inline-block px-4 py-1 rounded-lg">
-               <p className="text-[9px] font-mono font-bold text-slate-500 uppercase tracking-tighter">
-                ID: {sessionId?.slice(-16).toUpperCase() || 'LINKAH-VALID-2026'}
-              </p>
+          {/* ÁREA DO QR CODE */}
+          <div className="relative border-t-2 border-dashed border-slate-200 pt-8 flex flex-col items-center space-y-4">
+            <div className="bg-white p-4 rounded-3xl border-2 border-slate-100 shadow-inner">
+               {/* Gerador de QR Code Simples usando API pública */}
+               <img 
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://linkah.com.br/validar/${sessionId}`} 
+                alt="QR Code Ingresso"
+                className="w-32 h-32"
+               />
+            </div>
+            <div className="text-center">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-2">
+                  Apresente para Check-in
+                </p>
+                <code className="text-[10px] bg-slate-100 px-3 py-1 rounded-full text-slate-500 font-bold uppercase">
+                  ID: {sessionId?.slice(-12).toUpperCase()}
+                </code>
             </div>
           </div>
         </div>
       </div>
 
-      {/* BOTÕES DE AÇÃO - MAIS LARGOS */}
-      <div className="space-y-4 no-print max-w-lg mx-auto">
-        <button onClick={() => window.print()} className="w-full bg-rose-500 text-white py-6 rounded-3xl font-black uppercase text-sm tracking-[0.2em] flex items-center justify-center gap-3 shadow-xl shadow-rose-200 hover:bg-rose-600 transition-all active:scale-[0.98]">
-          <Download size={20}/> Baixar Ingresso PDF
+      {/* AÇÕES */}
+      <div className="space-y-3 no-print max-w-md mx-auto">
+        <button onClick={() => window.print()} className="w-full bg-rose-500 text-white py-5 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-3 shadow-lg shadow-rose-100 hover:bg-rose-600 transition-all active:scale-95">
+          <Download size={18}/> Salvar Ingresso (PDF)
         </button>
-        <Link href="/" className="w-full bg-white border-2 border-slate-100 text-slate-400 py-6 rounded-3xl font-black uppercase text-sm tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-slate-50 transition-all">
-          Voltar ao Início <ArrowRight size={20}/>
+        <Link href="/" className="w-full bg-slate-50 text-slate-500 py-5 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-3 hover:bg-slate-100 transition-all">
+          Voltar para Home <ArrowRight size={18}/>
         </Link>
       </div>
     </main>
@@ -196,7 +201,7 @@ export default function PaginaSucesso() {
     <Suspense fallback={
       <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-4">
         <Loader2 className="animate-spin text-rose-500" size={50} />
-        <p className="font-black text-rose-500 uppercase tracking-widest animate-pulse italic text-sm">Carregando Ticket...</p>
+        <p className="font-black text-rose-500 uppercase tracking-widest animate-pulse italic text-sm">Validando Pagamento...</p>
       </div>
     }>
       <TicketVisual />
