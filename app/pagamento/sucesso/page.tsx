@@ -2,51 +2,85 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Ticket, Download, ArrowRight, Loader2, Calendar, User, Hash, Wallet } from 'lucide-react';
+import { Ticket, Download, ArrowRight, Loader2, Calendar, User, Hash, Wallet, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 
 function TicketVisual() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('session_id');
   const [loading, setLoading] = useState(true);
+  const [erro, setErro] = useState(false);
   
-  // DADOS DEFAULT: Dados de fallback caso a API ainda não tenha registrado a compra
-  const [compra, setCompra] = useState<any>({
-    evento_nome: "INGRESSO LINKAH",
-    usuario_email: "cliente@linkah.com",
-    quantidade: 1,
-    valor_total: "0.00",
-    data_evento_formatada: new Date().toLocaleDateString('pt-BR')
-  });
+  // Começamos como null para não exibir dados fakes de "0.00"
+  const [compra, setCompra] = useState<any>(null);
 
   useEffect(() => {
+    let tentativas = 0;
+    const maxTentativas = 3;
+
     async function buscar() {
-      if (!sessionId) { setLoading(false); return; }
+      if (!sessionId) { 
+        setLoading(false); 
+        setErro(true);
+        return; 
+      }
+
       try {
         const res = await fetch(`https://linkah-api.onrender.com/api/pagamentos/detalhes/${sessionId}`);
-        const data = await res.json();
+        
         if (res.ok) {
+          const data = await res.json();
           setCompra(data);
+          setLoading(false);
+        } else {
+          // Se a API falhar (venda ainda não processada no banco), tenta de novo
+          if (tentativas < maxTentativas) {
+            tentativas++;
+            setTimeout(buscar, 2500); // Espera 2.5 segundos e tenta de novo
+          } else {
+            setLoading(false);
+            setErro(true);
+          }
         }
       } catch (e) {
-        console.log("API offline ou erro na busca, usando dados de fallback");
-      } finally {
+        console.error("Erro na busca da API:", e);
         setLoading(false);
+        setErro(true);
       }
     }
+
     buscar();
   }, [sessionId]);
 
-  // Função para formatar o valor caso venha como número
+  // Formata o valor tratando centavos (se vier 10000 vira 100,00)
   const formatarMoeda = (valor: any) => {
-    const num = parseFloat(valor);
-    return isNaN(num) ? valor : num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    let num = parseFloat(valor);
+    if (isNaN(num)) return "0,00";
+    
+    // Se o valor for muito alto (ex: 10000 para representar 100 reais), dividimos por 100
+    // Remova o "/ 100" se o seu banco já salvar como decimal (100.00)
+    if (num > 1000) num = num / 100; 
+
+    return num.toLocaleString('pt-BR', { 
+      minimumFractionDigits: 2, 
+      maximumFractionDigits: 2 
+    });
   };
 
   if (loading) return (
     <div className="flex flex-col items-center justify-center py-40 gap-4">
       <Loader2 className="animate-spin text-rose-500" size={40} />
-      <p className="font-black text-slate-400 uppercase tracking-tighter">Gerando seu Ticket...</p>
+      <p className="font-black text-slate-400 uppercase tracking-tighter italic">Validando seu pagamento...</p>
+      <p className="text-[10px] text-slate-300">Aguardando confirmação do Stripe</p>
+    </div>
+  );
+
+  if (erro || !compra) return (
+    <div className="flex flex-col items-center justify-center py-40 px-6 text-center gap-4">
+      <AlertCircle className="text-amber-500" size={40} />
+      <h3 className="font-black text-slate-800 uppercase italic">Ticket não encontrado</h3>
+      <p className="text-slate-500 text-sm">Ainda não recebemos a confirmação do pagamento. Se você já pagou, aguarde 1 minuto e atualize a página.</p>
+      <Link href="/" className="mt-4 text-rose-500 font-bold uppercase text-xs border-b-2 border-rose-500">Voltar para a Home</Link>
     </div>
   );
 
@@ -67,7 +101,7 @@ function TicketVisual() {
 
         <div className="p-8 space-y-8">
           <h2 className="text-3xl font-black text-slate-900 text-center uppercase italic tracking-tighter leading-tight">
-            {compra.evento_nome}
+            {compra.evento_nome || 'Evento Linkah'}
           </h2>
 
           <div className="flex justify-center">
@@ -85,13 +119,13 @@ function TicketVisual() {
               <div>
                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Titular</p>
                 <p className="font-bold text-slate-800 flex items-center gap-1 text-sm uppercase">
-                  <User size={12} className="text-rose-500"/> {compra.usuario_email?.split('@')[0]}
+                  <User size={12} className="text-rose-500"/> {compra.usuario_email?.split('@')[0] || 'Usuário'}
                 </p>
               </div>
               <div className="text-right">
                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Qtd</p>
                 <p className="font-bold text-slate-800 flex items-center justify-end gap-1 text-sm">
-                  <Hash size={12} className="text-rose-500"/> {compra.quantidade}x
+                  <Hash size={12} className="text-rose-500"/> {compra.quantidade || 1}x
                 </p>
               </div>
             </div>
@@ -100,7 +134,7 @@ function TicketVisual() {
               <div>
                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Data</p>
                 <p className="font-bold text-slate-800 flex items-center gap-1 text-xs">
-                  <Calendar size={12} className="text-rose-500"/> {compra.data_evento_formatada}
+                  <Calendar size={12} className="text-rose-500"/> {compra.data_evento_formatada || new Date().toLocaleDateString('pt-BR')}
                 </p>
               </div>
               <div className="text-right">
@@ -136,7 +170,7 @@ function TicketVisual() {
 
 export default function PaginaSucesso() {
   return (
-    <Suspense fallback={<div className="py-40 text-center font-black text-slate-300 uppercase">Carregando...</div>}>
+    <Suspense fallback={<div className="py-40 text-center font-black text-slate-300 uppercase italic animate-pulse">Carregando...</div>}>
       <TicketVisual />
     </Suspense>
   );
