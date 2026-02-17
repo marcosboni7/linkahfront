@@ -1,14 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Navbar } from './Navbar'; 
-import { EventCard } from './EventCard';
-import { Footer } from './Footer';
-
-// Nossos novos componentes centralizados e compactos
-import { CategoryFilter } from './CategoryFilter';
-import { SectionHeader } from './SectionHeader';
-
+import { Navbar } from '../app/site/Navbar'; 
+import { EventCard } from '../app/site/EventCard';
+import { Footer } from '../app/site/Footer';
+import { CategoryFilter } from './site/CategoryFilter';
+import { SectionHeader } from './site/SectionHeader';
 import { 
   Search, MapPin, Ticket, Loader2, 
   Music, Mic2, Theater, Gamepad2, 
