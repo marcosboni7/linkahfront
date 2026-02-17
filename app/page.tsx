@@ -56,30 +56,25 @@ export default function BuyTicketHome() {
     carregarDados();
   }, []);
 
-  // --- LÓGICA DE DATAS ---
   const hojeObj = new Date();
   const hojeStr = hojeObj.toLocaleDateString('en-CA');
 
-  // 1. Filtrar eventos para HOJE
   const oQueFazerHoje = eventos.filter(ev => {
     if (!ev.data_inicio) return false;
     const dataEvStr = new Date(ev.data_inicio).toLocaleDateString('en-CA');
     return dataEvStr === hojeStr;
   });
 
-  // 2. Filtrar eventos para ÚLTIMA CHAMADA
   const ultimaChamada = eventos.filter(ev => {
     if (!ev.data_inicio) return false;
     const dataEv = new Date(ev.data_inicio);
     const dataEvStr = dataEv.toLocaleDateString('en-CA');
     if (dataEvStr === hojeStr) return false;
-
     const diffTime = dataEv.getTime() - hojeObj.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays >= 1 && diffDays <= 2;
   });
 
-  // 3. VITRINE GERAL COM BUSCA MELHORADA
   const vitrineFiltrada = eventos.filter(ev => {
     const nomeMatch = ev.nome.toLowerCase().includes(buscaNome.toLowerCase());
     const catMatch = categoriaAtiva === 'Todos' || ev.categoria === categoriaAtiva;
@@ -87,11 +82,12 @@ export default function BuyTicketHome() {
   });
 
   return (
-    <div className="bg-[#F3F4F6] min-h-screen text-slate-900 font-sans pb-20">
+    /* AJUSTE AQUI: flex flex-col e min-h-screen para o footer nunca sobrar */
+    <div className="flex flex-col min-h-screen bg-[#F3F4F6] text-slate-900 font-sans">
       <Navbar />
 
       {/* HERO / CARROSSEL */}
-      <section className="relative h-[520px] flex items-center justify-center overflow-hidden bg-black">
+      <section className="relative h-[520px] flex items-center justify-center overflow-hidden bg-black shrink-0">
         {SLIDES.map((slide, index) => (
           <div key={slide.id} className={`absolute inset-0 transition-opacity duration-1000 ${index === currentSlide ? 'opacity-100' : 'opacity-0'}`}>
             <div className="absolute inset-0 bg-cover bg-center transition-transform duration-[5000ms]" style={{ backgroundImage: `url('${slide.url}')`, transform: index === currentSlide ? 'scale(1.1)' : 'scale(1)' }}>
@@ -106,7 +102,6 @@ export default function BuyTicketHome() {
           </div>
         ))}
         
-        {/* BARRA DE BUSCA MELHORADA */}
         <div className="absolute bottom-10 z-30 w-full px-6">
           <div className="bg-white/95 backdrop-blur-md p-2 rounded-2xl md:rounded-full shadow-2xl flex flex-col md:flex-row items-center max-w-5xl mx-auto border border-white/40">
             <div className="flex-1 flex items-center px-5 py-3 w-full border-b md:border-b-0 md:border-r border-slate-200">
@@ -149,9 +144,8 @@ export default function BuyTicketHome() {
         />
       </div>
 
-      <main className="max-w-7xl mx-auto px-6 py-10 space-y-20">
-        
-        {/* SÓ MOSTRA HOJE E ÚLTIMA CHAMADA SE NÃO ESTIVER BUSCANDO POR NOME (Melhora o foco da busca) */}
+      {/* AJUSTE AQUI: flex-1 faz o conteúdo principal "empurrar" o footer para o fundo */}
+      <main className="flex-1 max-w-7xl mx-auto px-6 py-10 space-y-20 w-full">
         {!buscaNome && (
           <>
             {oQueFazerHoje.length > 0 && (
@@ -181,7 +175,6 @@ export default function BuyTicketHome() {
           </>
         )}
 
-        {/* VITRINE GERAL / RESULTADOS DA BUSCA */}
         <section id="vitrine-principal">
           <SectionHeader 
             title={buscaNome ? `Resultados para "${buscaNome}"` : (categoriaAtiva === 'Todos' ? 'Perto de você' : categoriaAtiva)} 
@@ -216,8 +209,9 @@ export default function BuyTicketHome() {
             </div>
           )}
         </section>
-
       </main>
+
+      {/* Footer agora sempre "colado" no final */}
       <Footer />
     </div>
   );
