@@ -23,7 +23,6 @@ const iconMap: { [key: string]: any } = {
   'Infantil': Heart,
 };
 
-// Dados dos Banners do Carrossel
 const SLIDES = [
   {
     id: 1,
@@ -53,13 +52,10 @@ export default function BuyTicketHome() {
   const [categoriasExistentes, setCategoriasExistentes] = useState<string[]>(['Todos']);
   const [buscaNome, setBuscaNome] = useState('');
   const [buscaCidade, setBuscaCidade] = useState('');
-  
-  // Estado do Carrossel
   const [currentSlide, setCurrentSlide] = useState(0);
 
   const API_URL = 'https://linkah-api.onrender.com/api/eventos/vitrine';
 
-  // Lógica do Timer do Carrossel
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev === SLIDES.length - 1 ? 0 : prev + 1));
@@ -116,7 +112,6 @@ export default function BuyTicketHome() {
               index === currentSlide ? 'opacity-100' : 'opacity-0'
             }`}
           >
-            {/* Imagem de Fundo com Zoom suave quando ativo */}
             <div 
               className={`absolute inset-0 bg-cover bg-center transition-transform duration-[5000ms] ${index === currentSlide ? 'scale-110' : 'scale-100'}`}
               style={{ backgroundImage: `url('${slide.url}')` }}
@@ -124,7 +119,6 @@ export default function BuyTicketHome() {
               <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/20 to-[#F8F9FA]" />
             </div>
 
-            {/* Texto do Slide */}
             <div className="relative z-10 h-full flex flex-col items-center justify-center text-center px-6">
               <span className="inline-block bg-[#ff0082] text-white text-[10px] font-bold uppercase tracking-[0.3em] px-4 py-1.5 rounded-full mb-6 shadow-lg shadow-pink-500/20">
                 Linkah Experience
@@ -136,7 +130,7 @@ export default function BuyTicketHome() {
           </div>
         ))}
 
-        {/* Controles do Carrossel (Setas) */}
+        {/* Setas de Controle */}
         <button 
           onClick={() => setCurrentSlide(currentSlide === 0 ? SLIDES.length - 1 : currentSlide - 1)}
           className="absolute left-6 z-20 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-sm transition-all hidden md:block"
@@ -150,7 +144,7 @@ export default function BuyTicketHome() {
           <ChevronRight size={32} />
         </button>
 
-        {/* Barra de Busca (Flutuando no final do Hero) */}
+        {/* Busca Floating Glass */}
         <div className="absolute bottom-16 z-30 w-full px-6">
           <div className="bg-white/90 backdrop-blur-xl p-2 rounded-2xl md:rounded-full shadow-2xl border border-white/50 flex flex-col md:flex-row items-center max-w-3xl mx-auto">
             <div className="flex-1 flex items-center px-6 py-3 w-full border-b md:border-b-0 md:border-r border-slate-200/50">
@@ -179,7 +173,7 @@ export default function BuyTicketHome() {
           </div>
         </div>
 
-        {/* Indicadores de Slide (Dots) */}
+        {/* Dots */}
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30 flex gap-2">
           {SLIDES.map((_, i) => (
             <button 
@@ -191,15 +185,15 @@ export default function BuyTicketHome() {
         </div>
       </section>
 
-      {/* CATEGORIAS - PILLS */}
+      {/* CATEGORIAS CENTRALIZADAS */}
       <section className="max-w-6xl mx-auto px-6 -mt-10 relative z-40">
-        <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 p-6 border border-slate-100">
-          <div className="flex items-center gap-3 mb-6 px-2">
+        <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 p-6 border border-slate-100 text-center">
+          <div className="flex items-center justify-center gap-3 mb-6 px-2">
             <Sparkles size={16} className="text-[#ff0082]" />
             <h3 className="text-xs font-black uppercase tracking-widest text-slate-400">Filtrar por Vibe</h3>
           </div>
           
-          <div className="flex items-center gap-3 overflow-x-auto no-scrollbar pb-2">
+          <div className="flex flex-wrap items-center justify-center gap-3 pb-2">
             {categoriasExistentes.map((cat) => {
               const Icon = iconMap[cat] || Ticket;
               const isAtiva = categoriaAtiva === cat;
