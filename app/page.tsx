@@ -5,8 +5,8 @@ import { Navbar } from '../app/site/Navbar';
 import { EventCard } from '../app/site/EventCard';
 import { Footer } from '../app/site/Footer';
 import { 
-  Search, MapPin, Sparkles, Ticket, Loader2, 
-  MessagesSquare, X, ArrowRight, Music, Mic2, Theater, 
+  Search, MapPin, Ticket, Loader2, 
+  MessagesSquare, Music, Mic2, Theater, 
   Gamepad2, Utensils, GraduationCap, PartyPopper, Heart
 } from 'lucide-react';
 import Link from 'next/link';
@@ -34,17 +34,6 @@ export default function BuyTicketHome() {
   const [buscaCidade, setBuscaCidade] = useState('');
 
   const API_URL = 'https://linkah-api.onrender.com/api/eventos/vitrine';
-
-  useEffect(() => {
-    const avisado = sessionStorage.getItem('@Linkah:AvisoComunidade');
-    if (!avisado) {
-      const timer = setTimeout(() => {
-        setShowComunidadeModal(true);
-        sessionStorage.setItem('@Linkah:AvisoComunidade', 'true');
-      }, 1500);
-      return () => clearTimeout(timer);
-    }
-  }, []);
 
   useEffect(() => {
     async function carregarDados() {
@@ -86,50 +75,59 @@ export default function BuyTicketHome() {
     <div className="bg-white min-h-screen text-slate-900 font-sans">
       <Navbar />
 
-      {/* HERO CLEAN - FOCO TOTAL NA BUSCA */}
-      <section className="pt-32 pb-16 px-6">
-        <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-slate-900 mb-10">
-            Descubra eventos incríveis.
+      {/* BANNER DE FUNDO COM OVERLAY */}
+      <section className="relative h-[500px] flex items-center justify-center px-6 overflow-hidden">
+        {/* Imagem de Fundo (Pode trocar a URL pela sua imagem da Linkah) */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: `url('https://images.unsplash.com/photo-1492684223066-81342ee5ff30?q=80&w=2070&auto=format&fit=crop')` }}
+        >
+          {/* Overlay Rosa/Preto para dar contraste */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-white" />
+        </div>
+
+        <div className="max-w-4xl w-full mx-auto text-center relative z-10">
+          <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-white mb-8 drop-shadow-md">
+            Sua próxima experiência <br /> começa aqui.
           </h1>
 
-          {/* BARRA DE BUSCA MINIMALISTA */}
-          <div className="flex flex-col md:flex-row items-center bg-white border border-slate-200 rounded-full p-2 shadow-sm hover:shadow-md transition-shadow duration-300">
-            <div className="flex-1 flex items-center px-6 py-2 w-full">
-              <Search size={18} className="text-slate-400 mr-3" />
+          {/* BUSCA CLEAN SOBRE O BANNER */}
+          <div className="flex flex-col md:flex-row items-center bg-white/95 backdrop-blur-md rounded-2xl md:rounded-full p-2 shadow-2xl border border-white/20">
+            <div className="flex-1 flex items-center px-6 py-3 w-full">
+              <Search size={20} className="text-[#ff0082] mr-3" />
               <input 
                 type="text" 
                 value={buscaNome}
                 onChange={(e) => setBuscaNome(e.target.value)}
-                placeholder="Nome do evento" 
-                className="w-full bg-transparent outline-none text-sm text-slate-700"
+                placeholder="O que você quer viver hoje?" 
+                className="w-full bg-transparent outline-none text-sm font-medium text-slate-700 placeholder:text-slate-400"
               />
             </div>
-            <div className="hidden md:block w-[1px] h-8 bg-slate-100" />
-            <div className="flex-1 flex items-center px-6 py-2 w-full">
-              <MapPin size={18} className="text-slate-400 mr-3" />
+            <div className="hidden md:block w-[1px] h-8 bg-slate-200" />
+            <div className="flex-1 flex items-center px-6 py-3 w-full">
+              <MapPin size={20} className="text-slate-400 mr-3" />
               <input 
                 type="text" 
                 value={buscaCidade}
                 onChange={(e) => setBuscaCidade(e.target.value)}
-                placeholder="Localização" 
-                className="w-full bg-transparent outline-none text-sm text-slate-700"
+                placeholder="Em qual cidade?" 
+                className="w-full bg-transparent outline-none text-sm font-medium text-slate-700 placeholder:text-slate-400"
               />
             </div>
-            <button className="bg-[#ff0082] text-white p-3 rounded-full hover:bg-[#e60076] transition-colors">
-              <Search size={20} />
+            <button className="bg-[#ff0082] hover:bg-[#e60076] text-white px-8 py-4 rounded-xl md:rounded-full font-bold text-sm transition-all shadow-lg active:scale-95 w-full md:w-auto">
+              Buscar
             </button>
           </div>
         </div>
       </section>
 
-      {/* CATEGORIAS CLEAN - CENTRALIZADAS */}
-      <section className="max-w-6xl mx-auto px-6 py-8">
-        <div className="text-center mb-8">
-          <span className="text-xs font-bold uppercase tracking-widest text-slate-400">Explore categorias</span>
+      {/* CATEGORIAS CENTRALIZADAS */}
+      <section className="max-w-6xl mx-auto px-6 py-12">
+        <div className="text-center mb-10">
+          <h3 className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em]">Explore por categoria</h3>
         </div>
         
-        <div className="flex flex-wrap justify-center gap-8 md:gap-12">
+        <div className="flex flex-wrap justify-center gap-10 md:gap-16">
           {categoriasExistentes.map((cat) => {
             const Icon = iconMap[cat] || Ticket;
             const isAtiva = categoriaAtiva === cat;
@@ -137,12 +135,12 @@ export default function BuyTicketHome() {
               <button
                 key={cat}
                 onClick={() => setCategoriaAtiva(cat)}
-                className="group flex flex-col items-center gap-3 transition-all"
+                className="group flex flex-col items-center gap-3"
               >
-                <div className={`transition-all duration-300 ${isAtiva ? 'text-[#ff0082] scale-110' : 'text-slate-400 group-hover:text-slate-600'}`}>
-                  <Icon size={24} strokeWidth={isAtiva ? 2.5 : 2} />
+                <div className={`transition-all duration-300 p-4 rounded-2xl ${isAtiva ? 'bg-pink-50 text-[#ff0082] shadow-sm scale-110' : 'text-slate-400 group-hover:text-slate-600 group-hover:bg-slate-50'}`}>
+                  <Icon size={26} strokeWidth={isAtiva ? 2.5 : 2} />
                 </div>
-                <span className={`text-xs font-medium transition-colors ${isAtiva ? 'text-slate-900 border-b-2 border-[#ff0082] pb-1' : 'text-slate-400 group-hover:text-slate-600'}`}>
+                <span className={`text-[11px] font-bold uppercase tracking-wider transition-colors ${isAtiva ? 'text-slate-900' : 'text-slate-400 group-hover:text-slate-600'}`}>
                   {cat}
                 </span>
               </button>
@@ -151,20 +149,21 @@ export default function BuyTicketHome() {
         </div>
       </section>
 
-      <hr className="max-w-6xl mx-auto border-slate-100" />
+      <hr className="max-w-5xl mx-auto border-slate-100" />
 
-      {/* GRID DE EVENTOS */}
-      <main id="vitrine" className="max-w-6xl mx-auto px-6 py-16">
-        <div className="mb-10">
-          <h2 className="text-2xl font-bold text-slate-900">
-            {categoriaAtiva === 'Todos' ? 'Eventos recentes' : categoriaAtiva}
+      {/* VITRINE */}
+      <main id="vitrine" className="max-w-6xl mx-auto px-6 py-20">
+        <div className="mb-12 flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-slate-800">
+            {categoriaAtiva === 'Todos' ? 'Eventos em Destaque' : categoriaAtiva}
           </h2>
+          <span className="text-xs font-medium text-slate-400">{eventosFiltrados.length} eventos</span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {loading ? (
             Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="animate-pulse bg-slate-50 rounded-2xl h-72" />
+              <div key={i} className="animate-pulse bg-slate-50 rounded-3xl h-80" />
             ))
           ) : (
             eventosFiltrados.map((evento: any) => (
@@ -175,21 +174,6 @@ export default function BuyTicketHome() {
       </main>
 
       <Footer />
-
-      {/* MODAL MINIMALISTA */}
-      {showComunidadeModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/20 backdrop-blur-sm" onClick={() => setShowComunidadeModal(false)} />
-          <div className="relative bg-white w-full max-w-md rounded-3xl shadow-xl p-8 text-center border border-slate-100">
-            <h2 className="text-xl font-bold text-slate-900 mb-2">Comunidade Linkah</h2>
-            <p className="text-slate-500 text-sm mb-6">Conecte-se com pessoas que vão aos mesmos eventos que você.</p>
-            <Link href="/comunidades" className="block w-full bg-slate-900 text-white py-3 rounded-xl font-bold text-sm transition-opacity hover:opacity-90">
-              Conhecer agora
-            </Link>
-            <button onClick={() => setShowComunidadeModal(false)} className="mt-4 text-slate-400 text-xs font-medium">Lembrar depois</button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
