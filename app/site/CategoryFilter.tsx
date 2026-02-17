@@ -1,4 +1,5 @@
-// components/site/CategoryFilter.tsx
+'use client';
+
 import { Sparkles, Ticket } from 'lucide-react';
 
 interface CategoryFilterProps {
@@ -8,7 +9,7 @@ interface CategoryFilterProps {
   iconMap: Record<string, any>;
 }
 
-export const CategoryFilter = ({ categories, activeCategory, onSelect, iconMap }: CategoryFilterProps) => {
+export function CategoryFilter({ categories, activeCategory, onSelect, iconMap }: CategoryFilterProps) {
   return (
     <section className="max-w-5xl mx-auto px-6 -mt-8 relative z-40">
       <div className="bg-white rounded-2xl shadow-xl shadow-slate-300/10 p-5 border border-slate-50 text-center">
@@ -25,7 +26,7 @@ export const CategoryFilter = ({ categories, activeCategory, onSelect, iconMap }
               <button
                 key={cat}
                 onClick={() => onSelect(cat)}
-                className={`flex items-center gap-2 px-5 py-2 rounded-full border transition-all duration-300 ${
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-full border transition-all duration-300 ${
                   isAtiva 
                   ? 'bg-[#ff0082] border-[#ff0082] text-white shadow-md shadow-pink-200 scale-105' 
                   : 'bg-slate-50 border-slate-100 text-slate-500 hover:bg-white hover:border-pink-200 hover:text-[#ff0082]'
@@ -40,4 +41,4 @@ export const CategoryFilter = ({ categories, activeCategory, onSelect, iconMap }
       </div>
     </section>
   );
-};
+}
