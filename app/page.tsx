@@ -1,9 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Navbar } from '../app/site/Navbar'; 
-import { EventCard } from '../app/site/EventCard';
-import { Footer } from '../app/site/Footer';
+import { Navbar } from './Navbar'; 
+import { EventCard } from './EventCard';
+import { Footer } from './Footer';
+
+// Nossos novos componentes centralizados e compactos
+import { CategoryFilter } from './CategoryFilter';
+import { SectionHeader } from './SectionHeader';
+
 import { 
   Search, MapPin, Ticket, Loader2, 
   Music, Mic2, Theater, Gamepad2, 
@@ -11,6 +16,7 @@ import {
   ChevronLeft, ChevronRight
 } from 'lucide-react';
 
+// Mapeamento de ícones para as categorias do back-end
 const iconMap: { [key: string]: any } = {
   'Todos': Ticket,
   'Show': Music,
@@ -23,6 +29,7 @@ const iconMap: { [key: string]: any } = {
   'Infantil': Heart,
 };
 
+// Dados dos Banners do Carrossel
 const SLIDES = [
   { id: 1, url: 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?q=80&w=2070&auto=format&fit=crop', title: 'Descubra o seu', highlight: 'próximo momento' },
   { id: 2, url: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=2070&auto=format&fit=crop', title: 'Sinta a vibe dos', highlight: 'melhores shows' },
@@ -41,7 +48,7 @@ export default function BuyTicketHome() {
 
   const API_URL = 'https://linkah-api.onrender.com/api/eventos/vitrine';
 
-  // Timer do Carrossel
+  // Lógica do Timer do Carrossel (Troca a cada 5s)
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev === SLIDES.length - 1 ? 0 : prev + 1));
@@ -49,6 +56,7 @@ export default function BuyTicketHome() {
     return () => clearInterval(interval);
   }, []);
 
+  // Busca dados da API baseada na categoria
   useEffect(() => {
     async function carregarDados() {
       setLoading(true);
@@ -67,7 +75,7 @@ export default function BuyTicketHome() {
           }
         }
       } catch (error) {
-        console.error("Erro ao carregar:", error);
+        console.error("Erro ao carregar back-end:", error);
       } finally {
         setLoading(false);
       }
@@ -75,6 +83,7 @@ export default function BuyTicketHome() {
     carregarDados();
   }, [categoriaAtiva]);
 
+  // Filtro de busca local (Nome e Cidade)
   useEffect(() => {
     const resultado = eventos.filter((evento: any) => {
       const nomeMatch = evento.nome.toLowerCase().includes(buscaNome.toLowerCase());
@@ -89,7 +98,7 @@ export default function BuyTicketHome() {
     <div className="bg-[#F3F4F6] min-h-screen text-slate-900 font-sans">
       <Navbar />
 
-      {/* CARROSSEL HERO RECUPERADO */}
+      {/* SEÇÃO HERO - CARROSSEL COM ZOOM E BUSCA GLASSMORPHISM */}
       <section className="relative h-[480px] flex items-center justify-center overflow-hidden bg-black">
         {SLIDES.map((slide, index) => (
           <div
@@ -116,7 +125,7 @@ export default function BuyTicketHome() {
           </div>
         ))}
 
-        {/* Setas de Controle */}
+        {/* Controles de Navegação do Carrossel */}
         <button 
           onClick={() => setCurrentSlide(currentSlide === 0 ? SLIDES.length - 1 : currentSlide - 1)}
           className="absolute left-4 z-30 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-sm transition-all hidden md:block"
@@ -130,7 +139,7 @@ export default function BuyTicketHome() {
           <ChevronRight size={28} />
         </button>
 
-        {/* Busca Compacta Integrada */}
+        {/* BARRA DE BUSCA FLUTUANTE */}
         <div className="absolute bottom-10 z-30 w-full px-6">
           <div className="bg-white/95 backdrop-blur-md p-1.5 rounded-2xl md:rounded-full shadow-2xl flex flex-col md:flex-row items-center max-w-4xl mx-auto border border-white/20">
             <div className="flex-1 flex items-center px-5 py-2 w-full border-b md:border-b-0 md:border-r border-slate-100">
@@ -140,7 +149,7 @@ export default function BuyTicketHome() {
                 value={buscaNome}
                 onChange={(e) => setBuscaNome(e.target.value)}
                 placeholder="Encontre sua vibe..." 
-                className="w-full bg-transparent outline-none text-sm font-semibold text-slate-800"
+                className="w-full bg-transparent outline-none text-sm font-semibold text-slate-800 placeholder:text-slate-400"
               />
             </div>
             <div className="flex-1 flex items-center px-5 py-2 w-full">
@@ -149,17 +158,17 @@ export default function BuyTicketHome() {
                 type="text" 
                 value={buscaCidade}
                 onChange={(e) => setBuscaCidade(e.target.value)}
-                placeholder="Onde?" 
-                className="w-full bg-transparent outline-none text-sm font-semibold text-slate-800"
+                placeholder="Onde você está?" 
+                className="w-full bg-transparent outline-none text-sm font-semibold text-slate-800 placeholder:text-slate-400"
               />
             </div>
-            <button className="bg-slate-900 hover:bg-[#ff0082] text-white px-8 py-3 rounded-xl md:rounded-full font-black text-xs uppercase tracking-widest transition-all w-full md:w-auto">
+            <button className="bg-slate-900 hover:bg-[#ff0082] text-white px-8 py-3 rounded-xl md:rounded-full font-black text-xs uppercase tracking-widest transition-all w-full md:w-auto active:scale-95">
               Buscar
             </button>
           </div>
         </div>
 
-        {/* Dots do Carrossel */}
+        {/* Indicadores de Slide */}
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex gap-2">
           {SLIDES.map((_, i) => (
             <button 
@@ -171,50 +180,28 @@ export default function BuyTicketHome() {
         </div>
       </section>
 
-      {/* CATEGORIAS - CENTRALIZADAS E COMPACTAS */}
-      <section className="max-w-5xl mx-auto px-6 -mt-8 relative z-40">
-        <div className="bg-white rounded-2xl shadow-xl shadow-slate-300/10 p-5 border border-slate-50">
-          <div className="flex flex-wrap items-center justify-center gap-2">
-            {categoriasExistentes.map((cat) => {
-              const Icon = iconMap[cat] || Ticket;
-              const isAtiva = categoriaAtiva === cat;
-              return (
-                <button
-                  key={cat}
-                  onClick={() => setCategoriaAtiva(cat)}
-                  className={`flex items-center gap-2 px-5 py-2 rounded-full border transition-all duration-300 ${
-                    isAtiva 
-                    ? 'bg-[#ff0082] border-[#ff0082] text-white shadow-md shadow-pink-200 scale-105' 
-                    : 'bg-slate-50 border-slate-100 text-slate-500 hover:bg-white hover:border-pink-200 hover:text-[#ff0082]'
-                  }`}
-                >
-                  <Icon size={14} strokeWidth={isAtiva ? 3 : 2} />
-                  <span className="text-[11px] font-bold uppercase tracking-wider">{cat}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </section>
+      {/* COMPONENTE: FILTRO DE CATEGORIAS (CENTRALIZADO) */}
+      <CategoryFilter 
+        categories={categoriasExistentes}
+        activeCategory={categoriaAtiva}
+        onSelect={setCategoriaAtiva}
+        iconMap={iconMap}
+      />
 
-      {/* VITRINE */}
+      {/* VITRINE DE EVENTOS */}
       <main id="vitrine" className="max-w-7xl mx-auto px-6 py-10">
-        <div className="flex items-center justify-between mb-8 border-b border-slate-100 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="h-5 w-1 bg-[#ff0082] rounded-full" />
-            <h2 className="text-2xl font-black text-slate-800 uppercase italic tracking-tighter">
-              {categoriaAtiva === 'Todos' ? 'Perto de você' : categoriaAtiva}
-            </h2>
-          </div>
-          <span className="text-[10px] font-bold text-slate-400 bg-white px-3 py-1 rounded-full border border-slate-100">
-            {eventosFiltrados.length} EVENTOS
-          </span>
-        </div>
+        
+        {/* COMPONENTE: HEADER DA SEÇÃO */}
+        <SectionHeader 
+          title={categoriaAtiva === 'Todos' ? 'Perto de você' : categoriaAtiva} 
+          count={eventosFiltrados.length}
+        />
 
+        {/* Grid de Eventos com Skeleton Loading */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {loading ? (
-            Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="animate-pulse bg-white rounded-2xl h-[360px] border border-slate-100" />
+            Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="animate-pulse bg-white rounded-2xl h-[360px] border border-slate-100 shadow-sm" />
             ))
           ) : (
             eventosFiltrados.map((evento: any) => (
@@ -222,6 +209,14 @@ export default function BuyTicketHome() {
             ))
           )}
         </div>
+
+        {/* Estado vazio */}
+        {!loading && eventosFiltrados.length === 0 && (
+          <div className="text-center py-20">
+            <Ticket size={48} className="mx-auto text-slate-200 mb-4" />
+            <h3 className="text-lg font-bold text-slate-400">Nenhum evento encontrado nesta vibe.</h3>
+          </div>
+        )}
       </main>
 
       <Footer />
