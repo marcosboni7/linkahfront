@@ -41,6 +41,7 @@ export default function BuyTicketHome() {
 
   const API_URL = 'https://linkah-api.onrender.com/api/eventos/vitrine';
 
+  // Timer do Carrossel
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev === SLIDES.length - 1 ? 0 : prev + 1));
@@ -88,8 +89,8 @@ export default function BuyTicketHome() {
     <div className="bg-[#F3F4F6] min-h-screen text-slate-900 font-sans">
       <Navbar />
 
-      {/* CARROSSEL HERO - Ligeiramente menor para compactar */}
-      <section className="relative h-[500px] flex items-center justify-center overflow-hidden bg-black">
+      {/* CARROSSEL HERO RECUPERADO */}
+      <section className="relative h-[480px] flex items-center justify-center overflow-hidden bg-black">
         {SLIDES.map((slide, index) => (
           <div
             key={slide.id}
@@ -101,10 +102,10 @@ export default function BuyTicketHome() {
               className={`absolute inset-0 bg-cover bg-center transition-transform duration-[5000ms] ${index === currentSlide ? 'scale-110' : 'scale-100'}`}
               style={{ backgroundImage: `url('${slide.url}')` }}
             >
-              <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/10 to-[#F3F4F6]" />
+              <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-[#F3F4F6]" />
             </div>
 
-            <div className="relative z-10 h-full flex flex-col items-center justify-center text-center px-6 pb-20">
+            <div className="relative z-10 h-full flex flex-col items-center justify-center text-center px-6 pb-12">
               <span className="inline-block bg-[#ff0082] text-white text-[10px] font-bold uppercase tracking-[0.3em] px-4 py-1.5 rounded-full mb-4 shadow-lg shadow-pink-500/20">
                 Linkah Experience
               </span>
@@ -115,8 +116,22 @@ export default function BuyTicketHome() {
           </div>
         ))}
 
-        {/* Busca - Integrada mais acima para reduzir o branco abaixo */}
-        <div className="absolute bottom-12 z-30 w-full px-6">
+        {/* Setas de Controle */}
+        <button 
+          onClick={() => setCurrentSlide(currentSlide === 0 ? SLIDES.length - 1 : currentSlide - 1)}
+          className="absolute left-4 z-30 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-sm transition-all hidden md:block"
+        >
+          <ChevronLeft size={28} />
+        </button>
+        <button 
+          onClick={() => setCurrentSlide(currentSlide === SLIDES.length - 1 ? 0 : currentSlide + 1)}
+          className="absolute right-4 z-30 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-sm transition-all hidden md:block"
+        >
+          <ChevronRight size={28} />
+        </button>
+
+        {/* Busca Compacta Integrada */}
+        <div className="absolute bottom-10 z-30 w-full px-6">
           <div className="bg-white/95 backdrop-blur-md p-1.5 rounded-2xl md:rounded-full shadow-2xl flex flex-col md:flex-row items-center max-w-4xl mx-auto border border-white/20">
             <div className="flex-1 flex items-center px-5 py-2 w-full border-b md:border-b-0 md:border-r border-slate-100">
               <Search size={18} className="text-[#ff0082] mr-3" />
@@ -124,7 +139,7 @@ export default function BuyTicketHome() {
                 type="text" 
                 value={buscaNome}
                 onChange={(e) => setBuscaNome(e.target.value)}
-                placeholder="O que você busca?" 
+                placeholder="Encontre sua vibe..." 
                 className="w-full bg-transparent outline-none text-sm font-semibold text-slate-800"
               />
             </div>
@@ -143,16 +158,22 @@ export default function BuyTicketHome() {
             </button>
           </div>
         </div>
+
+        {/* Dots do Carrossel */}
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex gap-2">
+          {SLIDES.map((_, i) => (
+            <button 
+              key={i}
+              onClick={() => setCurrentSlide(i)}
+              className={`h-1 rounded-full transition-all duration-500 ${currentSlide === i ? 'w-6 bg-[#ff0082]' : 'w-1.5 bg-white/40'}`}
+            />
+          ))}
+        </div>
       </section>
 
-      {/* CATEGORIAS - COMPACTO E CENTRALIZADO */}
+      {/* CATEGORIAS - CENTRALIZADAS E COMPACTAS */}
       <section className="max-w-5xl mx-auto px-6 -mt-8 relative z-40">
-        <div className="bg-white rounded-2xl shadow-xl shadow-slate-300/20 p-5 border border-slate-50">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <Sparkles size={14} className="text-[#ff0082]" />
-            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Filtrar por Vibe</h3>
-          </div>
-          
+        <div className="bg-white rounded-2xl shadow-xl shadow-slate-300/10 p-5 border border-slate-50">
           <div className="flex flex-wrap items-center justify-center gap-2">
             {categoriasExistentes.map((cat) => {
               const Icon = iconMap[cat] || Ticket;
@@ -161,9 +182,9 @@ export default function BuyTicketHome() {
                 <button
                   key={cat}
                   onClick={() => setCategoriaAtiva(cat)}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-full border transition-all duration-300 ${
+                  className={`flex items-center gap-2 px-5 py-2 rounded-full border transition-all duration-300 ${
                     isAtiva 
-                    ? 'bg-[#ff0082] border-[#ff0082] text-white shadow-md shadow-pink-200' 
+                    ? 'bg-[#ff0082] border-[#ff0082] text-white shadow-md shadow-pink-200 scale-105' 
                     : 'bg-slate-50 border-slate-100 text-slate-500 hover:bg-white hover:border-pink-200 hover:text-[#ff0082]'
                   }`}
                 >
@@ -176,24 +197,24 @@ export default function BuyTicketHome() {
         </div>
       </section>
 
-      {/* VITRINE - GRID MAIS COMPACTO */}
-      <main id="vitrine" className="max-w-7xl mx-auto px-6 py-12">
-        <div className="flex items-center justify-between mb-8 border-b border-slate-200 pb-4">
+      {/* VITRINE */}
+      <main id="vitrine" className="max-w-7xl mx-auto px-6 py-10">
+        <div className="flex items-center justify-between mb-8 border-b border-slate-100 pb-4">
           <div className="flex items-center gap-3">
-            <div className="h-6 w-1 bg-[#ff0082] rounded-full" />
-            <h2 className="text-2xl font-black text-slate-900 uppercase italic tracking-tighter">
-              {categoriaAtiva === 'Todos' ? 'Eventos em destaque' : categoriaAtiva}
+            <div className="h-5 w-1 bg-[#ff0082] rounded-full" />
+            <h2 className="text-2xl font-black text-slate-800 uppercase italic tracking-tighter">
+              {categoriaAtiva === 'Todos' ? 'Perto de você' : categoriaAtiva}
             </h2>
           </div>
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 px-3 py-1 rounded-md">
-            {eventosFiltrados.length} encontrados
-          </p>
+          <span className="text-[10px] font-bold text-slate-400 bg-white px-3 py-1 rounded-full border border-slate-100">
+            {eventosFiltrados.length} EVENTOS
+          </span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {loading ? (
             Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="animate-pulse bg-white rounded-2xl h-[350px] shadow-sm border border-slate-100" />
+              <div key={i} className="animate-pulse bg-white rounded-2xl h-[360px] border border-slate-100" />
             ))
           ) : (
             eventosFiltrados.map((evento: any) => (
