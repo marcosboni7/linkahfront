@@ -6,10 +6,9 @@ import { EventCard } from '../app/site/EventCard';
 import { Footer } from '../app/site/Footer';
 import { 
   Search, MapPin, Ticket, Loader2, 
-  MessagesSquare, Music, Mic2, Theater, 
-  Gamepad2, Utensils, GraduationCap, PartyPopper, Heart
+  Music, Mic2, Theater, Gamepad2, 
+  Utensils, GraduationCap, PartyPopper, Heart, Sparkles
 } from 'lucide-react';
-import Link from 'next/link';
 
 const iconMap: { [key: string]: any } = {
   'Todos': Ticket,
@@ -29,7 +28,6 @@ export default function BuyTicketHome() {
   const [loading, setLoading] = useState(true);
   const [categoriaAtiva, setCategoriaAtiva] = useState('Todos');
   const [categoriasExistentes, setCategoriasExistentes] = useState<string[]>(['Todos']);
-  const [showComunidadeModal, setShowComunidadeModal] = useState(false);
   const [buscaNome, setBuscaNome] = useState('');
   const [buscaCidade, setBuscaCidade] = useState('');
 
@@ -72,98 +70,106 @@ export default function BuyTicketHome() {
   }, [buscaNome, buscaCidade, eventos]);
 
   return (
-    <div className="bg-white min-h-screen text-slate-900 font-sans">
+    <div className="bg-[#F8F9FA] min-h-screen text-slate-900 font-sans">
       <Navbar />
 
-      {/* BANNER DE FUNDO COM OVERLAY */}
-      <section className="relative h-[500px] flex items-center justify-center px-6 overflow-hidden">
-        {/* Imagem de Fundo (Pode trocar a URL pela sua imagem da Linkah) */}
+      {/* BANNER FICTÍCIO COM FOCO CENTRAL */}
+      <section className="relative h-[550px] flex items-center justify-center overflow-hidden">
+        {/* Imagem de Fundo - Estilo Festival Clean */}
         <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: `url('https://images.unsplash.com/photo-1492684223066-81342ee5ff30?q=80&w=2070&auto=format&fit=crop')` }}
+          className="absolute inset-0 bg-cover bg-center transition-transform duration-1000 hover:scale-105"
+          style={{ backgroundImage: `url('https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?q=80&w=2070&auto=format&fit=crop')` }}
         >
-          {/* Overlay Rosa/Preto para dar contraste */}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-white" />
+          {/* Gradiente de proteção para o texto e transição suave para o conteúdo */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/20 to-[#F8F9FA]" />
         </div>
 
-        <div className="max-w-4xl w-full mx-auto text-center relative z-10">
-          <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-white mb-8 drop-shadow-md">
-            Sua próxima experiência <br /> começa aqui.
+        <div className="relative z-10 max-w-4xl px-6 text-center">
+          <span className="inline-block bg-[#ff0082] text-white text-[10px] font-bold uppercase tracking-[0.3em] px-4 py-1.5 rounded-full mb-6 shadow-lg shadow-pink-500/20">
+            Linkah Experience
+          </span>
+          <h1 className="text-5xl md:text-7xl font-black text-white mb-8 tracking-tight uppercase italic">
+            Descubra o seu <br /> <span className="text-[#ff0082]">próximo momento</span>
           </h1>
 
-          {/* BUSCA CLEAN SOBRE O BANNER */}
-          <div className="flex flex-col md:flex-row items-center bg-white/95 backdrop-blur-md rounded-2xl md:rounded-full p-2 shadow-2xl border border-white/20">
-            <div className="flex-1 flex items-center px-6 py-3 w-full">
-              <Search size={20} className="text-[#ff0082] mr-3" />
+          {/* BARRA DE BUSCA FLOATING GLASS */}
+          <div className="bg-white/90 backdrop-blur-xl p-2 rounded-2xl md:rounded-full shadow-2xl border border-white/50 flex flex-col md:flex-row items-center max-w-3xl mx-auto">
+            <div className="flex-1 flex items-center px-6 py-3 w-full border-b md:border-b-0 md:border-r border-slate-200/50">
+              <Search size={18} className="text-[#ff0082] mr-3" />
               <input 
                 type="text" 
                 value={buscaNome}
                 onChange={(e) => setBuscaNome(e.target.value)}
-                placeholder="O que você quer viver hoje?" 
-                className="w-full bg-transparent outline-none text-sm font-medium text-slate-700 placeholder:text-slate-400"
+                placeholder="O que você busca?" 
+                className="w-full bg-transparent outline-none text-sm font-semibold text-slate-800 placeholder:text-slate-400"
               />
             </div>
-            <div className="hidden md:block w-[1px] h-8 bg-slate-200" />
             <div className="flex-1 flex items-center px-6 py-3 w-full">
-              <MapPin size={20} className="text-slate-400 mr-3" />
+              <MapPin size={18} className="text-slate-400 mr-3" />
               <input 
                 type="text" 
                 value={buscaCidade}
                 onChange={(e) => setBuscaCidade(e.target.value)}
-                placeholder="Em qual cidade?" 
-                className="w-full bg-transparent outline-none text-sm font-medium text-slate-700 placeholder:text-slate-400"
+                placeholder="Onde?" 
+                className="w-full bg-transparent outline-none text-sm font-semibold text-slate-800 placeholder:text-slate-400"
               />
             </div>
-            <button className="bg-[#ff0082] hover:bg-[#e60076] text-white px-8 py-4 rounded-xl md:rounded-full font-bold text-sm transition-all shadow-lg active:scale-95 w-full md:w-auto">
-              Buscar
+            <button className="bg-slate-900 hover:bg-[#ff0082] text-white px-10 py-4 rounded-xl md:rounded-full font-black text-xs uppercase tracking-widest transition-all active:scale-95 w-full md:w-auto">
+              Explorar
             </button>
           </div>
         </div>
       </section>
 
-      {/* CATEGORIAS CENTRALIZADAS */}
-      <section className="max-w-6xl mx-auto px-6 py-12">
-        <div className="text-center mb-10">
-          <h3 className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em]">Explore por categoria</h3>
-        </div>
-        
-        <div className="flex flex-wrap justify-center gap-10 md:gap-16">
-          {categoriasExistentes.map((cat) => {
-            const Icon = iconMap[cat] || Ticket;
-            const isAtiva = categoriaAtiva === cat;
-            return (
-              <button
-                key={cat}
-                onClick={() => setCategoriaAtiva(cat)}
-                className="group flex flex-col items-center gap-3"
-              >
-                <div className={`transition-all duration-300 p-4 rounded-2xl ${isAtiva ? 'bg-pink-50 text-[#ff0082] shadow-sm scale-110' : 'text-slate-400 group-hover:text-slate-600 group-hover:bg-slate-50'}`}>
-                  <Icon size={26} strokeWidth={isAtiva ? 2.5 : 2} />
-                </div>
-                <span className={`text-[11px] font-bold uppercase tracking-wider transition-colors ${isAtiva ? 'text-slate-900' : 'text-slate-400 group-hover:text-slate-600'}`}>
-                  {cat}
-                </span>
-              </button>
-            );
-          })}
+      {/* CATEGORIAS - MODELO PILLS (MUITO CLEAN) */}
+      <section className="max-w-6xl mx-auto px-6 -mt-10 relative z-20">
+        <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 p-6 border border-slate-100">
+          <div className="flex items-center gap-3 mb-6 px-2">
+            <Sparkles size={16} className="text-[#ff0082]" />
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-400">Filtrar por Vibe</h3>
+          </div>
+          
+          <div className="flex items-center gap-3 overflow-x-auto no-scrollbar pb-2">
+            {categoriasExistentes.map((cat) => {
+              const Icon = iconMap[cat] || Ticket;
+              const isAtiva = categoriaAtiva === cat;
+              return (
+                <button
+                  key={cat}
+                  onClick={() => setCategoriaAtiva(cat)}
+                  className={`flex items-center gap-2 px-6 py-3 rounded-full border transition-all duration-300 whitespace-nowrap ${
+                    isAtiva 
+                    ? 'bg-[#ff0082] border-[#ff0082] text-white shadow-lg shadow-pink-200 scale-105' 
+                    : 'bg-slate-50 border-slate-100 text-slate-500 hover:bg-white hover:border-pink-200 hover:text-[#ff0082]'
+                  }`}
+                >
+                  <Icon size={16} strokeWidth={isAtiva ? 3 : 2} />
+                  <span className="text-xs font-bold uppercase tracking-wider">{cat}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </section>
 
-      <hr className="max-w-5xl mx-auto border-slate-100" />
-
-      {/* VITRINE */}
+      {/* VITRINE DE EVENTOS */}
       <main id="vitrine" className="max-w-6xl mx-auto px-6 py-20">
-        <div className="mb-12 flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-slate-800">
-            {categoriaAtiva === 'Todos' ? 'Eventos em Destaque' : categoriaAtiva}
-          </h2>
-          <span className="text-xs font-medium text-slate-400">{eventosFiltrados.length} eventos</span>
+        <div className="flex items-center justify-between mb-12">
+          <div className="flex items-center gap-4">
+            <div className="h-8 w-1.5 bg-[#ff0082] rounded-full" />
+            <h2 className="text-3xl font-black text-slate-900 uppercase italic tracking-tighter">
+              {categoriaAtiva === 'Todos' ? 'Perto de você' : categoriaAtiva}
+            </h2>
+          </div>
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+            {eventosFiltrados.length} encontrados
+          </p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {loading ? (
             Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="animate-pulse bg-slate-50 rounded-3xl h-80" />
+              <div key={i} className="animate-pulse bg-white border border-slate-100 rounded-3xl h-[400px]" />
             ))
           ) : (
             eventosFiltrados.map((evento: any) => (
