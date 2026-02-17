@@ -7,13 +7,13 @@ import { Footer } from '../app/site/Footer';
 import { 
   Search, MapPin, Sparkles, Ticket, Loader2, 
   MessagesSquare, X, ArrowRight, Music, Mic2, Theater, 
-  Gamepad2, Utensils, GraduationCap, PartyPopper, Heart, Star
+  Gamepad2, Utensils, GraduationCap, PartyPopper, Heart, Star,
+  Compass, Calendar, Zap
 } from 'lucide-react';
 import Link from 'next/link';
 
-// Mapeamento de ícones para as categorias
 const iconMap: { [key: string]: any } = {
-  'Todos': Ticket,
+  'Todos': Zap,
   'Show': Music,
   'Mentoria': Mic2,
   'Teatro': Theater,
@@ -84,112 +84,136 @@ export default function BuyTicketHome() {
   }, [buscaNome, buscaCidade, eventos]);
 
   return (
-    <div className="bg-[#FDFDFF] min-h-screen text-slate-900 font-sans">
+    <div className="bg-[#f8f9fc] min-h-screen text-slate-900 font-sans selection:bg-[#ff0082] selection:text-white">
       <Navbar />
 
-      {/* HERO - WHITE & PINK ENERGY */}
-      <section className="relative pt-24 pb-32 px-6 overflow-hidden bg-white">
-        {/* Detalhes de fundo suaves */}
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#ff0082]/5 blur-[100px] rounded-full -translate-y-1/2 translate-x-1/4" />
-        <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-blue-500/5 blur-[80px] rounded-full translate-y-1/2 -translate-x-1/4" />
+      {/* HERO SECTION - STYLE "LINKAH MAGAZINE" */}
+      <section className="relative pt-20 pb-40 overflow-hidden bg-white">
+        {/* Background Gradients */}
+        <div className="absolute -top-24 -right-24 w-[600px] h-[600px] bg-gradient-to-br from-[#ff0082]/20 to-blue-500/10 blur-[120px] rounded-full opacity-50" />
+        <div className="absolute -bottom-24 -left-24 w-[400px] h-[400px] bg-blue-500/10 blur-[100px] rounded-full opacity-30" />
 
-        <div className="max-w-6xl mx-auto relative z-10 text-center">
-          <div className="inline-flex items-center gap-2 bg-pink-50 border border-pink-100 px-4 py-2 rounded-full mb-8">
-            <Star size={14} className="text-[#ff0082] fill-[#ff0082]" />
-            <span className="text-[#ff0082] text-[10px] font-black uppercase tracking-[0.2em]">A sua melhor conexão</span>
-          </div>
-          
-          <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter leading-none uppercase mb-12">
-            Sinta a <span className="text-[#ff0082]">Vibe</span> <br/>
-            Viva o <span className="underline decoration-blue-500 underline-offset-8">Momento</span>
-          </h1>
+        <div className="max-w-6xl mx-auto px-6 relative z-10">
+          <div className="flex flex-col items-center text-center space-y-8">
+            <div className="flex items-center gap-3 bg-slate-900 text-white px-5 py-2 rounded-2xl rotate-[-1deg] shadow-xl">
+              <Zap size={18} className="text-yellow-400 fill-yellow-400" />
+              <span className="text-[11px] font-black uppercase tracking-[0.3em]">Live Experience 2026</span>
+            </div>
 
-          {/* BUSCA HORIZONTAL - LIMPA */}
-          <div className="max-w-5xl mx-auto bg-white rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.08)] p-3 border border-slate-100">
-            <div className="flex flex-col md:flex-row items-center gap-2">
-              <div className="flex-[1.5] flex items-center px-5 py-3 w-full border-b md:border-b-0 md:border-r border-slate-50">
-                <Search className="text-[#ff0082] mr-4" size={22} />
-                <input 
-                  type="text" 
-                  value={buscaNome}
-                  onChange={(e) => setBuscaNome(e.target.value)}
-                  placeholder="Procurar evento ou artista..." 
-                  className="w-full bg-transparent outline-none font-bold text-slate-700 placeholder:text-slate-300"
-                />
+            <h1 className="text-6xl md:text-9xl font-black tracking-[ -0.05em] leading-[0.85] uppercase italic">
+              VIVA A <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#ff0082] via-[#ff0082] to-blue-600">CONEXÃO.</span>
+            </h1>
+
+            <p className="max-w-xl text-slate-500 font-medium text-lg md:text-xl leading-relaxed">
+              Descubra eventos que combinam com você e entre para a nossa comunidade exclusiva.
+            </p>
+
+            {/* SEARCH BAR - NEUMORPHIC STYLE */}
+            <div className="w-full max-w-4xl mt-12">
+              <div className="bg-white/80 backdrop-blur-xl p-2 rounded-[2.5rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)] border border-white flex flex-col md:flex-row items-center">
+                <div className="flex-1 flex items-center px-6 py-4 w-full">
+                  <Search className="text-[#ff0082] mr-3" size={24} />
+                  <input 
+                    type="text" 
+                    value={buscaNome}
+                    onChange={(e) => setBuscaNome(e.target.value)}
+                    placeholder="Qual a sua próxima vibe?" 
+                    className="w-full bg-transparent outline-none font-bold text-lg placeholder:text-slate-300"
+                  />
+                </div>
+                <div className="hidden md:block w-px h-10 bg-slate-100" />
+                <div className="flex-1 flex items-center px-6 py-4 w-full">
+                  <MapPin className="text-blue-500 mr-3" size={24} />
+                  <input 
+                    type="text" 
+                    value={buscaCidade}
+                    onChange={(e) => setBuscaCidade(e.target.value)}
+                    placeholder="Perto de onde?" 
+                    className="w-full bg-transparent outline-none font-bold text-lg placeholder:text-slate-300"
+                  />
+                </div>
+                <button className="bg-slate-900 text-white px-10 py-5 rounded-[2rem] font-black uppercase text-xs tracking-[0.2em] hover:bg-[#ff0082] transition-all shadow-lg active:scale-95 w-full md:w-auto">
+                  {loading ? <Loader2 className="animate-spin" /> : 'Explorar'}
+                </button>
               </div>
-              <div className="flex-1 flex items-center px-5 py-3 w-full">
-                <MapPin className="text-slate-300 mr-4" size={22} />
-                <input 
-                  type="text" 
-                  value={buscaCidade}
-                  onChange={(e) => setBuscaCidade(e.target.value)}
-                  placeholder="Onde?" 
-                  className="w-full bg-transparent outline-none font-bold text-slate-700 placeholder:text-slate-300"
-                />
-              </div>
-              <button 
-                onClick={() => document.getElementById('vitrine')?.scrollIntoView({ behavior: 'smooth' })}
-                className="bg-[#ff0082] hover:bg-[#d6006d] text-white px-12 py-5 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-lg shadow-pink-200 active:scale-95 w-full md:w-auto"
-              >
-                {loading ? <Loader2 className="animate-spin mx-auto" size={20} /> : 'Buscar'}
-              </button>
             </div>
           </div>
         </div>
       </section>
 
-      {/* CATEGORIAS - CARDS CRIATIVOS (Fundo Branco, Ícones Rosa) */}
-      <section className="max-w-6xl mx-auto px-6 -mt-12 relative z-20">
-        <div className="flex gap-4 overflow-x-auto no-scrollbar py-6">
-          {categoriasExistentes.map((cat) => {
-            const Icon = iconMap[cat] || Ticket;
-            const isAtiva = categoriaAtiva === cat;
-            return (
-              <button
-                key={cat}
-                onClick={() => setCategoriaAtiva(cat)}
-                className={`flex flex-col items-center justify-center min-w-[120px] h-[120px] rounded-[2.5rem] transition-all duration-500 border shadow-sm ${
-                  isAtiva 
-                  ? 'bg-white border-[#ff0082] shadow-pink-100 shadow-2xl scale-110' 
-                  : 'bg-white border-slate-50 hover:border-pink-200 text-slate-400'
-                }`}
-              >
-                <div className={`p-3 rounded-2xl mb-2 transition-colors ${isAtiva ? 'bg-pink-50' : 'bg-slate-50 group-hover:bg-pink-50'}`}>
-                  <Icon size={28} className={isAtiva ? 'text-[#ff0082]' : 'text-slate-300'} />
-                </div>
-                <span className={`text-[10px] font-black uppercase tracking-widest ${isAtiva ? 'text-slate-900' : 'text-slate-400'}`}>
-                  {cat}
-                </span>
-              </button>
-            );
-          })}
+      {/* CATEGORIES SECTION - UNIQUE GRID */}
+      <section className="max-w-6xl mx-auto px-6 -mt-20 relative z-20">
+        <div className="bg-white rounded-[3.5rem] p-10 shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-slate-50">
+          <div className="flex items-center justify-between mb-10 px-4">
+            <h2 className="text-2xl font-black uppercase italic tracking-tighter">
+              Explore <span className="text-[#ff0082]">Categorias</span>
+            </h2>
+            <div className="hidden sm:flex gap-2">
+              <div className="w-2 h-2 rounded-full bg-pink-100" />
+              <div className="w-2 h-2 rounded-full bg-pink-200" />
+              <div className="w-8 h-2 rounded-full bg-[#ff0082]" />
+            </div>
+          </div>
+
+          <div className="flex flex-wrap justify-center gap-6">
+            {categoriasExistentes.map((cat) => {
+              const Icon = iconMap[cat] || Ticket;
+              const isAtiva = categoriaAtiva === cat;
+              return (
+                <button
+                  key={cat}
+                  onClick={() => setCategoriaAtiva(cat)}
+                  className={`group relative flex flex-col items-center justify-center min-w-[130px] h-[140px] rounded-[3rem] transition-all duration-500 ${
+                    isAtiva 
+                    ? 'bg-slate-900 text-white scale-110 shadow-2xl shadow-pink-200' 
+                    : 'bg-slate-50 text-slate-400 hover:bg-white hover:shadow-xl hover:border-slate-100 border border-transparent'
+                  }`}
+                >
+                  <div className={`mb-3 p-4 rounded-full transition-all duration-500 ${isAtiva ? 'bg-[#ff0082]' : 'bg-white shadow-sm group-hover:bg-pink-50'}`}>
+                    <Icon size={28} className={isAtiva ? 'text-white' : 'text-slate-400 group-hover:text-[#ff0082]'} />
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-widest">{cat}</span>
+                  {isAtiva && (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full border-2 border-white animate-pulse" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </section>
 
-      {/* VITRINE DE EVENTOS */}
-      <main id="vitrine" className="max-w-6xl mx-auto px-6 py-20">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-12">
+      {/* VITRINE */}
+      <main id="vitrine" className="max-w-6xl mx-auto px-6 py-24">
+        <div className="flex items-end justify-between mb-16 border-b border-slate-100 pb-8">
           <div>
-            <h2 className="text-3xl font-black text-slate-900 uppercase italic tracking-tighter flex items-center gap-3">
-              <Sparkles className="text-[#ff0082]" size={28} />
-              {buscaNome ? `Resultados: ${buscaNome}` : (categoriaAtiva === 'Todos' ? 'Eventos em Destaque' : categoriaAtiva)}
+            <div className="flex items-center gap-2 text-[#ff0082] mb-2">
+              <Compass size={20} />
+              <span className="text-xs font-black uppercase tracking-widest">Descobertas</span>
+            </div>
+            <h2 className="text-4xl font-black text-slate-900 uppercase italic tracking-tighter">
+              {buscaNome ? `Buscando por: ${buscaNome}` : 'Destaques da Semana'}
             </h2>
-            <div className="h-1.5 w-20 bg-[#ff0082] rounded-full mt-2" />
           </div>
-          
-          <div className="bg-white border border-slate-100 px-6 py-2 rounded-full text-[10px] font-black uppercase text-slate-400 tracking-widest shadow-sm">
-            {eventosFiltrados.length} Eventos encontrados
+          <div className="hidden md:flex gap-4">
+            <div className="text-right">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Resultados</p>
+              <p className="text-xl font-black text-slate-900">{eventosFiltrados.length}</p>
+            </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-12">
           {loading ? (
             Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="animate-pulse bg-slate-50 border border-slate-100 rounded-[2.5rem] h-80 shadow-sm" />
+              <div key={i} className="animate-pulse bg-white rounded-[2.5rem] h-[400px] border border-slate-100" />
             ))
           ) : (
             eventosFiltrados.map((evento: any) => (
-              <EventCard key={evento.id} evento={evento} />
+              <div key={evento.id} className="group cursor-pointer">
+                <EventCard evento={evento} />
+              </div>
             ))
           )}
         </div>
@@ -197,20 +221,27 @@ export default function BuyTicketHome() {
 
       <Footer />
 
-      {/* MODAL COMUNIDADE - BRANCO E ROSA */}
+      {/* UNIQUE MODAL COMUNIDADE */}
       {showComunidadeModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-md" onClick={() => setShowComunidadeModal(false)} />
-          <div className="relative bg-white w-full max-w-sm rounded-[3rem] shadow-2xl overflow-hidden p-10 text-center border border-pink-50">
-            <div className="w-16 h-16 bg-pink-50 rounded-2xl flex items-center justify-center mx-auto mb-6">
-              <MessagesSquare size={32} className="text-[#ff0082]" />
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowComunidadeModal(false)} />
+          <div className="relative bg-[#ff0082] text-white w-full max-w-lg rounded-[4rem] overflow-hidden shadow-[0_50px_100px_rgba(255,0,130,0.3)]">
+            <div className="p-12 text-center relative">
+              <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10" />
+              <div className="relative z-10">
+                <div className="w-20 h-20 bg-white/20 backdrop-blur-md rounded-3xl flex items-center justify-center mx-auto mb-8 rotate-3">
+                  <MessagesSquare size={40} />
+                </div>
+                <h2 className="text-4xl font-black uppercase italic tracking-tighter mb-4">A vibe começa no chat.</h2>
+                <p className="text-white/80 font-medium mb-10 text-lg">Junte-se a milhares de pessoas nas nossas comunidades exclusivas de eventos.</p>
+                <Link href="/comunidades" className="inline-flex items-center gap-4 bg-white text-[#ff0082] px-10 py-5 rounded-[2rem] font-black uppercase text-xs tracking-widest hover:scale-105 transition-all shadow-2xl">
+                  Bora pro chat <ArrowRight size={18} />
+                </Link>
+                <button onClick={() => setShowComunidadeModal(false)} className="block w-full mt-6 text-white/50 text-[10px] font-black uppercase tracking-[0.3em] hover:text-white transition-colors">
+                  FECHAR JANELA
+                </button>
+              </div>
             </div>
-            <h2 className="text-2xl font-black text-slate-900 mb-2 uppercase italic tracking-tighter">Entra na <br/><span className="text-[#ff0082]">Nossa Vibe</span></h2>
-            <p className="text-slate-500 text-sm font-medium mb-8">Converse com a galera antes do evento começar.</p>
-            <Link href="/comunidades" className="block w-full bg-[#ff0082] text-white py-5 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-pink-200">
-              Explorar agora
-            </Link>
-            <button onClick={() => setShowComunidadeModal(false)} className="mt-4 text-slate-300 text-[10px] font-bold uppercase tracking-widest hover:text-slate-500">Fechar</button>
           </div>
         </div>
       )}
