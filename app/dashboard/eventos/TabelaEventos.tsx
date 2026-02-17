@@ -20,6 +20,14 @@ export default function TabelaEventos() {
 
   const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://linkah-api.onrender.com';
 
+  // FUNÇÃO AUXILIAR PARA FORMATAR DATA SEM ERRO DE FUSO
+  const formatarDataLocal = (dataString: string) => {
+    if (!dataString) return 'S/D';
+    // Criamos o objeto de data e forçamos o formato PT-BR ignorando a distorção do fuso
+    const data = new Date(dataString);
+    return data.toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+  };
+
   const carregarEventos = async () => {
     const email = localStorage.getItem('userEmail');
     if (!email) {
@@ -171,7 +179,6 @@ export default function TabelaEventos() {
                           <p className="text-[10px] text-pink-500 font-black uppercase tracking-widest mt-0.5">{evento.categoria}</p>
                         </div>
 
-                        {/* BADGES DOS INGRESSOS */}
                         <div className="flex flex-wrap gap-1.5 mt-2">
                           {evento.ingressos && evento.ingressos.length > 0 ? (
                             evento.ingressos.map((ing: any, idx: number) => (
@@ -198,12 +205,12 @@ export default function TabelaEventos() {
 
                   <td className="px-4 py-5">
                     <div className="flex flex-col">
-                      <span className="text-xs font-bold text-slate-700">{new Date(evento.data_inicio).toLocaleDateString('pt-BR')}</span>
+                      {/* AQUI ESTÁ O AJUSTE DA DATA */}
+                      <span className="text-xs font-bold text-slate-700">{formatarDataLocal(evento.data_inicio)}</span>
                       <span className="text-[10px] text-slate-400 font-bold uppercase">{evento.hora_inicio?.slice(0, 5)}h</span>
                     </div>
                   </td>
 
-                  {/* COLUNA VENDIDOS/TOTAL COM BARRA ROSA */}
                   <td className="px-4 py-5">
                     <div className="flex flex-col gap-1">
                       <span className="text-[10px] font-black text-slate-700 uppercase">
@@ -251,6 +258,7 @@ export default function TabelaEventos() {
         </table>
       </div>
 
+      {/* FOOTER DA TABELA */}
       <div className="p-6 bg-slate-50/50 border-t border-slate-50 flex justify-between items-center text-slate-400 text-[10px] font-black uppercase tracking-widest">
         <span>Mostrando {eventos.length} eventos</span>
         <div className="flex gap-4">
