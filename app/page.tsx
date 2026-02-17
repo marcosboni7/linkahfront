@@ -10,7 +10,7 @@ import {
   Search, MapPin, Ticket, 
   Music, Mic2, Theater, Gamepad2, 
   Utensils, GraduationCap, PartyPopper, Heart,
-  ChevronLeft, ChevronRight, Clock, CalendarDays
+  ChevronLeft, ChevronRight, Clock
 } from 'lucide-react';
 
 const iconMap: { [key: string]: any } = {
@@ -31,7 +31,6 @@ export default function BuyTicketHome() {
   const [categoriaAtiva, setCategoriaAtiva] = useState('Todos');
   const [categoriasExistentes, setCategoriasExistentes] = useState<string[]>(['Todos']);
   const [buscaNome, setBuscaNome] = useState('');
-  const [buscaCidade, setBuscaCidade] = useState('');
   const [currentSlide, setCurrentSlide] = useState(0);
 
   const API_URL = 'https://linkah-api.onrender.com/api/eventos/vitrine';
@@ -52,7 +51,7 @@ export default function BuyTicketHome() {
           const extrair = dados.map((ev: any) => ev.categoria).filter(Boolean);
           setCategoriasExistentes(['Todos', ...Array.from(new Set(extrair)) as string[]]);
         }
-      } catch (error) { console.error(error); } finally { setLoading(false); }
+      } catch (error) { console.error("Erro API:", error); } finally { setLoading(false); }
     }
     carregarDados();
   }, []);
@@ -88,17 +87,27 @@ export default function BuyTicketHome() {
       <section className="relative h-[480px] flex items-center justify-center overflow-hidden bg-black">
         {SLIDES.map((slide, index) => (
           <div key={slide.id} className={`absolute inset-0 transition-opacity duration-1000 ${index === currentSlide ? 'opacity-100' : 'opacity-0'}`}>
-            <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url('${slide.url}')` }}>
+            <div className="absolute inset-0 bg-cover bg-center transition-transform duration-[5000ms]" style={{ backgroundImage: `url('${slide.url}')`, transform: index === currentSlide ? 'scale(1.1)' : 'scale(1)' }}>
               <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-[#F3F4F6]" />
+            </div>
+            <div className="relative z-10 text-center px-6">
+              <span className="inline-block bg-[#ff0082] text-white text-[10px] font-bold uppercase tracking-[0.3em] px-4 py-1.5 rounded-full mb-4 shadow-lg shadow-pink-500/20">Linkah Experience</span>
+              <h1 className="text-4xl md:text-6xl font-black text-white mb-6 uppercase italic tracking-tight">
+                {slide.title} <br /> <span className="text-[#ff0082]">{slide.highlight}</span>
+              </h1>
             </div>
           </div>
         ))}
-        {/* BUSCA */}
+        
         <div className="absolute bottom-10 z-30 w-full px-6">
-          <div className="bg-white/95 p-1.5 rounded-2xl md:rounded-full shadow-2xl flex flex-col md:flex-row items-center max-w-4xl mx-auto border border-white/20">
+          <div className="bg-white/95 backdrop-blur-md p-1.5 rounded-2xl md:rounded-full shadow-2xl flex flex-col md:flex-row items-center max-w-4xl mx-auto border border-white/20">
             <div className="flex-1 flex items-center px-5 py-2 w-full border-b md:border-b-0 md:border-r border-slate-100">
               <Search size={18} className="text-[#ff0082] mr-3" />
-              <input type="text" value={buscaNome} onChange={(e) => setBuscaNome(e.target.value)} placeholder="Encontre sua vibe..." className="w-full bg-transparent outline-none text-sm font-semibold" />
+              <input type="text" value={buscaNome} onChange={(e) => setBuscaNome(e.target.value)} placeholder="Encontre sua vibe..." className="w-full bg-transparent outline-none text-sm font-semibold text-slate-800" />
+            </div>
+            <div className="flex-1 flex items-center px-5 py-2 w-full">
+              <MapPin size={18} className="text-slate-400 mr-3" />
+              <input type="text" placeholder="Onde você está?" className="w-full bg-transparent outline-none text-sm font-semibold text-slate-800" />
             </div>
             <button className="bg-slate-900 hover:bg-[#ff0082] text-white px-8 py-3 rounded-xl md:rounded-full font-black text-xs uppercase tracking-widest transition-all w-full md:w-auto">Buscar</button>
           </div>
@@ -109,7 +118,7 @@ export default function BuyTicketHome() {
 
       <main className="max-w-7xl mx-auto px-6 py-10 space-y-16">
         
-        {/* SEÇÃO 1: O QUE FAZER HOJE (Apenas se houver eventos hoje) */}
+        {/* SEÇÃO 1: O QUE FAZER HOJE */}
         {oQueFazerHoje.length > 0 && (
           <section>
             <SectionHeader title="O que fazer" highlight="hoje" />
@@ -119,12 +128,12 @@ export default function BuyTicketHome() {
           </section>
         )}
 
-        {/* SEÇÃO 2: ÚLTIMA CHAMADA (Faltando 1 ou 2 dias) */}
+        {/* SEÇÃO 2: ÚLTIMA CHAMADA */}
         {ultimaChamada.length > 0 && (
-          <section className="bg-pink-50/50 p-6 rounded-3xl border border-pink-100">
-            <div className="flex items-center gap-2 mb-6">
-              <Clock className="text-[#ff0082] animate-pulse" size={20} />
-              <h2 className="text-xl font-black text-slate-800 uppercase italic tracking-tighter">
+          <section className="bg-pink-50/30 p-8 rounded-[2rem] border border-pink-100/50">
+            <div className="flex items-center gap-2 mb-8">
+              <Clock className="text-[#ff0082] animate-pulse" size={24} />
+              <h2 className="text-2xl font-black text-slate-800 uppercase italic tracking-tighter">
                 Última <span className="text-[#ff0082]">Chamada</span>
               </h2>
             </div>
@@ -136,10 +145,15 @@ export default function BuyTicketHome() {
 
         {/* SEÇÃO 3: VITRINE GERAL */}
         <section>
-          <SectionHeader title={categoriaAtiva === 'Todos' ? 'Perto de você' : categoriaAtiva} count={vitrineGeral.length} />
+          <SectionHeader 
+            title={categoriaAtiva === 'Todos' ? 'Perto de você' : categoriaAtiva} 
+            count={vitrineGeral.length} 
+          />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {loading ? (
-              <div className="col-span-full text-center py-10">Carregando eventos...</div>
+              Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="animate-pulse bg-white rounded-2xl h-[360px] border border-slate-100" />
+              ))
             ) : (
               vitrineGeral.map(ev => <EventCard key={ev.id} evento={ev} />)
             )}
