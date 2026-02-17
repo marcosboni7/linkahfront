@@ -7,10 +7,11 @@ import { Footer } from '../app/site/Footer';
 import { 
   Search, MapPin, Sparkles, Ticket, Loader2, 
   MessagesSquare, X, ArrowRight, Music, Mic2, Theater, 
-  Gamepad2, Utensils, GraduationCap, PartyPopper, Heart, Filter
+  Gamepad2, Utensils, GraduationCap, PartyPopper, Heart, Star
 } from 'lucide-react';
 import Link from 'next/link';
 
+// Mapeamento de ícones para as categorias
 const iconMap: { [key: string]: any } = {
   'Todos': Ticket,
   'Show': Music,
@@ -83,94 +84,108 @@ export default function BuyTicketHome() {
   }, [buscaNome, buscaCidade, eventos]);
 
   return (
-    <div className="bg-[#050505] min-h-screen text-white font-sans selection:bg-purple-500">
+    <div className="bg-[#FDFDFF] min-h-screen text-slate-900 font-sans">
       <Navbar />
 
-      {/* HERO SECTION - DARK GRADIENT */}
-      <section className="relative pt-32 pb-20 px-6 overflow-hidden">
-        {/* Orbes de luz decorativas */}
-        <div className="absolute top-0 -left-20 w-[500px] h-[500px] bg-purple-600/20 blur-[120px] rounded-full" />
-        <div className="absolute bottom-0 -right-20 w-[400px] h-[400px] bg-blue-600/10 blur-[100px] rounded-full" />
+      {/* HERO - WHITE & PINK ENERGY */}
+      <section className="relative pt-24 pb-32 px-6 overflow-hidden bg-white">
+        {/* Detalhes de fundo suaves */}
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#ff0082]/5 blur-[100px] rounded-full -translate-y-1/2 translate-x-1/4" />
+        <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-blue-500/5 blur-[80px] rounded-full translate-y-1/2 -translate-x-1/4" />
 
         <div className="max-w-6xl mx-auto relative z-10 text-center">
-          <h1 className="text-5xl md:text-8xl font-black tracking-tighter mb-6 bg-gradient-to-b from-white to-gray-500 bg-clip-text text-transparent">
-            LINKAH <span className="italic">2026</span>
+          <div className="inline-flex items-center gap-2 bg-pink-50 border border-pink-100 px-4 py-2 rounded-full mb-8">
+            <Star size={14} className="text-[#ff0082] fill-[#ff0082]" />
+            <span className="text-[#ff0082] text-[10px] font-black uppercase tracking-[0.2em]">A sua melhor conexão</span>
+          </div>
+          
+          <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter leading-none uppercase mb-12">
+            Sinta a <span className="text-[#ff0082]">Vibe</span> <br/>
+            Viva o <span className="underline decoration-blue-500 underline-offset-8">Momento</span>
           </h1>
-          <p className="text-gray-400 text-lg md:text-xl mb-12 max-w-2xl mx-auto font-medium">
-            Sua conexão direta com as melhores experiências e comunidades exclusivas.
-          </p>
 
-          {/* SEARCH BOX - GLASSMORPHISM */}
-          <div className="max-w-3xl mx-auto p-1.5 bg-white/5 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl">
-            <div className="flex flex-col md:flex-row gap-2">
-              <div className="flex-1 flex items-center px-4 py-3 bg-black/20 rounded-xl">
-                <Search className="text-purple-500 mr-3" size={20} />
+          {/* BUSCA HORIZONTAL - LIMPA */}
+          <div className="max-w-5xl mx-auto bg-white rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.08)] p-3 border border-slate-100">
+            <div className="flex flex-col md:flex-row items-center gap-2">
+              <div className="flex-[1.5] flex items-center px-5 py-3 w-full border-b md:border-b-0 md:border-r border-slate-50">
+                <Search className="text-[#ff0082] mr-4" size={22} />
                 <input 
                   type="text" 
                   value={buscaNome}
                   onChange={(e) => setBuscaNome(e.target.value)}
-                  placeholder="O que você quer viver?" 
-                  className="bg-transparent outline-none w-full text-sm font-semibold placeholder:text-gray-600"
+                  placeholder="Procurar evento ou artista..." 
+                  className="w-full bg-transparent outline-none font-bold text-slate-700 placeholder:text-slate-300"
                 />
               </div>
-              <div className="flex-1 flex items-center px-4 py-3 bg-black/20 rounded-xl">
-                <MapPin className="text-purple-500 mr-3" size={20} />
+              <div className="flex-1 flex items-center px-5 py-3 w-full">
+                <MapPin className="text-slate-300 mr-4" size={22} />
                 <input 
                   type="text" 
                   value={buscaCidade}
                   onChange={(e) => setBuscaCidade(e.target.value)}
-                  placeholder="Em qual cidade?" 
-                  className="bg-transparent outline-none w-full text-sm font-semibold placeholder:text-gray-600"
+                  placeholder="Onde?" 
+                  className="w-full bg-transparent outline-none font-bold text-slate-700 placeholder:text-slate-300"
                 />
               </div>
-              <button className="bg-gradient-to-r from-purple-600 to-blue-600 hover:scale-105 transition-transform px-8 py-4 rounded-xl font-bold text-xs uppercase tracking-widest">
-                {loading ? <Loader2 className="animate-spin" size={20} /> : 'Explorar'}
+              <button 
+                onClick={() => document.getElementById('vitrine')?.scrollIntoView({ behavior: 'smooth' })}
+                className="bg-[#ff0082] hover:bg-[#d6006d] text-white px-12 py-5 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-lg shadow-pink-200 active:scale-95 w-full md:w-auto"
+              >
+                {loading ? <Loader2 className="animate-spin mx-auto" size={20} /> : 'Buscar'}
               </button>
             </div>
           </div>
         </div>
       </section>
 
-      {/* CATEGORIES - HORIZONTAL SCROLL CARDS */}
-      <section className="max-w-6xl mx-auto px-6 py-10">
-        <div className="flex items-center gap-2 mb-6 text-gray-400">
-          <Filter size={16} />
-          <span className="text-xs font-bold uppercase tracking-widest">Categorias</span>
-        </div>
-        <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4">
+      {/* CATEGORIAS - CARDS CRIATIVOS (Fundo Branco, Ícones Rosa) */}
+      <section className="max-w-6xl mx-auto px-6 -mt-12 relative z-20">
+        <div className="flex gap-4 overflow-x-auto no-scrollbar py-6">
           {categoriasExistentes.map((cat) => {
             const Icon = iconMap[cat] || Ticket;
+            const isAtiva = categoriaAtiva === cat;
             return (
               <button
                 key={cat}
                 onClick={() => setCategoriaAtiva(cat)}
-                className={`flex flex-col items-center justify-center min-w-[100px] h-[100px] rounded-3xl transition-all duration-500 border ${
-                  categoriaAtiva === cat 
-                  ? 'bg-purple-600 border-purple-400 shadow-[0_0_30px_rgba(147,51,234,0.3)]' 
-                  : 'bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/20'
+                className={`flex flex-col items-center justify-center min-w-[120px] h-[120px] rounded-[2.5rem] transition-all duration-500 border shadow-sm ${
+                  isAtiva 
+                  ? 'bg-white border-[#ff0082] shadow-pink-100 shadow-2xl scale-110' 
+                  : 'bg-white border-slate-50 hover:border-pink-200 text-slate-400'
                 }`}
               >
-                <Icon size={28} className={categoriaAtiva === cat ? 'text-white' : 'text-purple-500'} />
-                <span className="text-[10px] font-bold mt-2 uppercase">{cat}</span>
+                <div className={`p-3 rounded-2xl mb-2 transition-colors ${isAtiva ? 'bg-pink-50' : 'bg-slate-50 group-hover:bg-pink-50'}`}>
+                  <Icon size={28} className={isAtiva ? 'text-[#ff0082]' : 'text-slate-300'} />
+                </div>
+                <span className={`text-[10px] font-black uppercase tracking-widest ${isAtiva ? 'text-slate-900' : 'text-slate-400'}`}>
+                  {cat}
+                </span>
               </button>
             );
           })}
         </div>
       </section>
 
-      {/* GRID SECTION */}
-      <main className="max-w-6xl mx-auto px-6 py-20">
-        <div className="flex items-center justify-between mb-12">
-          <h2 className="text-3xl font-bold tracking-tight">
-            {categoriaAtiva === 'Todos' ? 'Próximos Eventos' : categoriaAtiva}
-          </h2>
-          <div className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent ml-8" />
+      {/* VITRINE DE EVENTOS */}
+      <main id="vitrine" className="max-w-6xl mx-auto px-6 py-20">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-12">
+          <div>
+            <h2 className="text-3xl font-black text-slate-900 uppercase italic tracking-tighter flex items-center gap-3">
+              <Sparkles className="text-[#ff0082]" size={28} />
+              {buscaNome ? `Resultados: ${buscaNome}` : (categoriaAtiva === 'Todos' ? 'Eventos em Destaque' : categoriaAtiva)}
+            </h2>
+            <div className="h-1.5 w-20 bg-[#ff0082] rounded-full mt-2" />
+          </div>
+          
+          <div className="bg-white border border-slate-100 px-6 py-2 rounded-full text-[10px] font-black uppercase text-slate-400 tracking-widest shadow-sm">
+            {eventosFiltrados.length} Eventos encontrados
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {loading ? (
             Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="animate-pulse bg-white/5 rounded-3xl h-80" />
+              <div key={i} className="animate-pulse bg-slate-50 border border-slate-100 rounded-[2.5rem] h-80 shadow-sm" />
             ))
           ) : (
             eventosFiltrados.map((evento: any) => (
@@ -181,20 +196,21 @@ export default function BuyTicketHome() {
       </main>
 
       <Footer />
-      
-      {/* MODAL - GLASS STYLE */}
+
+      {/* MODAL COMUNIDADE - BRANCO E ROSA */}
       {showComunidadeModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-xl">
-          <div className="bg-gradient-to-b from-gray-900 to-black border border-white/10 w-full max-w-sm rounded-[3rem] p-10 text-center shadow-2xl">
-            <div className="w-16 h-16 bg-purple-600/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
-              <MessagesSquare size={30} className="text-purple-500" />
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-md" onClick={() => setShowComunidadeModal(false)} />
+          <div className="relative bg-white w-full max-w-sm rounded-[3rem] shadow-2xl overflow-hidden p-10 text-center border border-pink-50">
+            <div className="w-16 h-16 bg-pink-50 rounded-2xl flex items-center justify-center mx-auto mb-6">
+              <MessagesSquare size={32} className="text-[#ff0082]" />
             </div>
-            <h2 className="text-2xl font-bold mb-4">Comunidade VIP</h2>
-            <p className="text-gray-400 text-sm mb-8 leading-relaxed">Não vá sozinho. Conheça pessoas, compartilhe caronas e viva a vibe antes do show.</p>
-            <Link href="/comunidades" className="block w-full bg-white text-black py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-purple-500 hover:text-white transition-all">
-              Entrar no Chat
+            <h2 className="text-2xl font-black text-slate-900 mb-2 uppercase italic tracking-tighter">Entra na <br/><span className="text-[#ff0082]">Nossa Vibe</span></h2>
+            <p className="text-slate-500 text-sm font-medium mb-8">Converse com a galera antes do evento começar.</p>
+            <Link href="/comunidades" className="block w-full bg-[#ff0082] text-white py-5 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-pink-200">
+              Explorar agora
             </Link>
-            <button onClick={() => setShowComunidadeModal(false)} className="mt-4 text-gray-600 text-[10px] font-bold uppercase tracking-widest hover:text-white">Agora não</button>
+            <button onClick={() => setShowComunidadeModal(false)} className="mt-4 text-slate-300 text-[10px] font-bold uppercase tracking-widest hover:text-slate-500">Fechar</button>
           </div>
         </div>
       )}
