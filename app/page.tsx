@@ -14,16 +14,17 @@ export default function BuyTicketHome() {
   const [categoriaAtiva, setCategoriaAtiva] = useState('Todos');
   const [categoriasExistentes, setCategoriasExistentes] = useState<string[]>(['Todos']);
   
+  // ESTADOS DO MODAL DE AVISO
   const [showComunidadeModal, setShowComunidadeModal] = useState(false);
+
   const [buscaNome, setBuscaNome] = useState('');
   const [buscaCidade, setBuscaCidade] = useState('');
 
   const API_URL = 'https://linkah-api.onrender.com/api/eventos/vitrine';
 
-  // Cores Sympla-Style Customizadas (Roxo)
-  const primaryColor = "#6D28D9"; // Roxo vibrante
-
+  // 1. CARREGAR DADOS E MOSTRAR MODAL
   useEffect(() => {
+    // Mostrar o modal de comunidade após 1.5 segundos na primeira visita
     const avisado = sessionStorage.getItem('@Linkah:AvisoComunidade');
     if (!avisado) {
       const timer = setTimeout(() => {
@@ -77,29 +78,53 @@ export default function BuyTicketHome() {
   };
 
   return (
-    <div className="bg-[#F8F9FA] min-h-screen text-slate-800 font-sans">
+    <div className="bg-[#FCFCFD] min-h-screen text-slate-800 font-sans">
       <Navbar />
 
-      {/* MODAL DE AVISO - ESTILO CLEAN */}
+      {/* MODAL DE AVISO - NOSSA COMUNIDADE */}
       {showComunidadeModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={() => setShowComunidadeModal(false)} />
-          <div className="relative bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden p-8 animate-in zoom-in-95 duration-300">
-            <button onClick={() => setShowComunidadeModal(false)} className="absolute top-4 right-4 p-2 text-slate-400 hover:bg-slate-100 rounded-full">
+          <div 
+            className="absolute inset-0 bg-[#0B0121]/80 backdrop-blur-md animate-in fade-in duration-500" 
+            onClick={() => setShowComunidadeModal(false)} 
+          />
+          
+          <div className="relative bg-white w-full max-w-md rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+            {/* Botão Fechar */}
+            <button 
+              onClick={() => setShowComunidadeModal(false)}
+              className="absolute top-6 right-6 p-2 bg-slate-50 hover:bg-slate-100 rounded-full text-slate-400 transition-colors z-10"
+            >
               <X size={20} />
             </button>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-violet-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <MessagesSquare size={30} className="text-violet-600" />
+
+            <div className="p-10 text-center">
+              <div className="w-20 h-20 bg-pink-50 rounded-[2rem] flex items-center justify-center mx-auto mb-6 relative">
+                <MessagesSquare size={36} className="text-[#ff0082]" />
+                <span className="absolute top-0 right-0 w-4 h-4 bg-emerald-500 rounded-full border-4 border-white animate-pulse"></span>
               </div>
-              <h2 className="text-2xl font-bold text-slate-900 mb-2">Comunidade Linkah</h2>
-              <p className="text-slate-500 mb-8">Conecte-se com outras pessoas e tire dúvidas sobre os eventos.</p>
+
+              <h2 className="text-3xl font-black text-slate-900 leading-tight uppercase italic tracking-tighter mb-4">
+                Chegou a <br/> <span className="text-[#ff0082]">Nossa Comunidade</span>
+              </h2>
+
+              <p className="text-slate-500 font-medium leading-relaxed mb-8">
+                Agora você pode interagir com outras pessoas, tirar dúvidas e sentir a vibe dos eventos antes mesmo de chegar!
+              </p>
+
               <div className="space-y-3">
-                <Link href="/comunidades" className="block w-full bg-violet-600 text-white py-3 rounded-lg font-semibold hover:bg-violet-700 transition-all">
-                  Explorar Comunidades
+                <Link 
+                  href="/comunidades"
+                  className="flex items-center justify-center gap-3 w-full bg-[#ff0082] text-white py-5 rounded-2xl font-black uppercase text-xs tracking-widest shadow-lg shadow-pink-200 hover:brightness-110 transition-all active:scale-95"
+                >
+                  Explorar Comunidades <ArrowRight size={18} />
                 </Link>
-                <button onClick={() => setShowComunidadeModal(false)} className="w-full py-2 text-slate-400 font-medium hover:text-slate-600 text-sm">
-                  Agora não
+                
+                <button 
+                  onClick={() => setShowComunidadeModal(false)}
+                  className="w-full py-4 text-slate-400 font-bold uppercase text-[10px] tracking-widest hover:text-slate-600 transition-colors"
+                >
+                  Talvez mais tarde
                 </button>
               </div>
             </div>
@@ -107,57 +132,81 @@ export default function BuyTicketHome() {
         </div>
       )}
 
-      {/* HERO BUSCA - ESTILO SYMPLA */}
-      <section className="bg-white pt-12 pb-16 px-6 border-b border-slate-100">
-        <div className="max-w-6xl mx-auto">
-          <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-8 tracking-tight">
-            Olá, viva o <span className="text-violet-600">agora</span>
-          </h1>
+      {/* HERO SECTION */}
+      <section className="relative bg-[#0B0121] py-20 px-6 overflow-hidden">
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#ff0082] opacity-10 blur-[120px] rounded-full -translate-y-1/2 translate-x-1/4" />
+        
+        <div className="max-w-6xl mx-auto relative z-10">
+          <div className="flex flex-col lg:flex-row items-center gap-16">
+            <div className="flex-1 text-center lg:text-left">
+              <div className="inline-flex items-center gap-2 bg-white/5 border border-white/10 px-4 py-1.5 rounded-full mb-6">
+                <span className="w-2 h-2 bg-[#ff0082] rounded-full animate-pulse" />
+                <span className="text-white text-[10px] font-black uppercase tracking-widest">Live Experience 2026</span>
+              </div>
+              <h1 className="text-white text-5xl md:text-7xl font-black italic tracking-tighter leading-none uppercase mb-8">
+                Sinta a <br/> <span className="text-[#ff0082]">Vibe Única</span>
+              </h1>
+              <p className="text-slate-400 text-lg mb-10 max-w-md mx-auto lg:mx-0 font-medium">
+                Os melhores shows, festas e teatros estão aqui. Garanta seu lugar.
+              </p>
+              <button 
+                onClick={() => window.scrollTo({ top: 600, behavior: 'smooth' })}
+                className="bg-white text-black px-10 py-4 rounded-xl font-black uppercase text-[10px] tracking-[0.2em] hover:bg-[#ff0082] hover:text-white transition-all shadow-2xl flex items-center gap-2 mx-auto lg:mx-0 active:scale-95"
+              >
+                Explorar Tudo <ChevronRight size={16} />
+              </button>
+            </div>
 
-          {/* BARRA DE BUSCA HORIZONTAL */}
-          <div className="flex flex-col md:flex-row bg-white rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-slate-200 p-2 gap-2">
-            <div className="flex-[1.5] relative border-b md:border-b-0 md:border-r border-slate-100">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-              <input 
-                type="text" 
-                value={buscaNome}
-                onChange={(e) => setBuscaNome(e.target.value)}
-                placeholder="Nomes, artistas ou eventos" 
-                className="w-full py-4 pl-12 pr-4 outline-none text-slate-700"
-              />
+            {/* BOX DE BUSCA */}
+            <div className="w-full max-w-[480px] bg-white rounded-[2.5rem] p-8 shadow-[0_30px_60px_rgba(0,0,0,0.3)]">
+              <h3 className="text-slate-900 font-black uppercase text-xs tracking-widest mb-6 border-b border-slate-100 pb-4">
+                Encontre seu evento
+              </h3>
+              <div className="space-y-4">
+                <div className="relative group">
+                  <Search className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors ${buscaNome ? 'text-[#ff0082]' : 'text-slate-400'}`} size={18} />
+                  <input 
+                    type="text" 
+                    value={buscaNome}
+                    onChange={(e) => setBuscaNome(e.target.value)}
+                    placeholder="Nome do evento ou artista" 
+                    className="w-full bg-slate-50 border border-slate-100 rounded-xl py-4 pl-12 pr-4 text-sm outline-none focus:border-[#ff0082] focus:bg-white transition-all font-bold"
+                  />
+                </div>
+                <div className="relative group">
+                  <MapPin className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors ${buscaCidade ? 'text-[#ff0082]' : 'text-slate-400'}`} size={18} />
+                  <input 
+                    type="text" 
+                    value={buscaCidade}
+                    onChange={(e) => setBuscaCidade(e.target.value)}
+                    placeholder="Em qual cidade ou estado?" 
+                    className="w-full bg-slate-50 border border-slate-100 rounded-xl py-4 pl-12 pr-4 text-sm outline-none focus:border-[#ff0082] focus:bg-white transition-all font-bold"
+                  />
+                </div>
+                <button 
+                  onClick={() => document.getElementById('vitrine')?.scrollIntoView({ behavior: 'smooth' })}
+                  className="w-full bg-[#ff0082] text-white py-4 rounded-xl font-black uppercase text-xs tracking-[0.2em] shadow-lg shadow-pink-500/30 hover:brightness-110 transition-all active:scale-95"
+                >
+                  {loading ? <Loader2 className="animate-spin mx-auto" size={18} /> : 'Ver Resultados'}
+                </button>
+              </div>
             </div>
-            <div className="flex-1 relative">
-              <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-              <input 
-                type="text" 
-                value={buscaCidade}
-                onChange={(e) => setBuscaCidade(e.target.value)}
-                placeholder="São Paulo, SP" 
-                className="w-full py-4 pl-12 pr-4 outline-none text-slate-700"
-              />
-            </div>
-            <button 
-              onClick={() => document.getElementById('vitrine')?.scrollIntoView({ behavior: 'smooth' })}
-              className="bg-violet-600 text-white px-8 py-4 rounded-lg font-bold hover:bg-violet-700 transition-all flex items-center justify-center gap-2"
-            >
-              {loading ? <Loader2 className="animate-spin" size={20} /> : 'Buscar'}
-            </button>
           </div>
         </div>
       </section>
 
-      {/* CATEGORIAS - NAVEGAÇÃO POR ABAS */}
-      <nav className="bg-white sticky top-0 z-40 border-b border-slate-200 shadow-sm">
+      {/* CATEGORIAS */}
+      <nav className="bg-white border-b border-slate-100 sticky top-0 z-40 shadow-sm">
         <div className="max-w-6xl mx-auto px-6">
-          <div className="flex gap-8 overflow-x-auto no-scrollbar">
+          <div className="flex gap-4 overflow-x-auto no-scrollbar py-5">
             {categoriasExistentes.map((cat) => (
               <button
                 key={cat}
                 onClick={() => { setCategoriaAtiva(cat); setBuscaNome(''); }}
-                className={`py-4 text-sm font-bold transition-all whitespace-nowrap border-b-2 ${
+                className={`px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-[0.15em] transition-all whitespace-nowrap border ${
                   categoriaAtiva === cat 
-                  ? 'border-violet-600 text-violet-600' 
-                  : 'border-transparent text-slate-500 hover:text-slate-800'
+                  ? 'bg-[#ff0082] text-white border-[#ff0082] shadow-lg shadow-pink-500/20 scale-105' 
+                  : 'bg-slate-50 text-slate-400 border-slate-100 hover:bg-slate-100 hover:text-slate-600'
                 }`}
               >
                 {cat}
@@ -168,35 +217,37 @@ export default function BuyTicketHome() {
       </nav>
 
       {/* GRID DE EVENTOS */}
-      <main id="vitrine" className="max-w-6xl mx-auto px-6 py-12">
-        <div className="flex items-center justify-between mb-8">
-          <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-            <Sparkles className="text-violet-600" size={20} />
-            {buscaNome ? `Resultados para "${buscaNome}"` : 'Eventos em destaque'}
+      <main id="vitrine" className="max-w-6xl mx-auto px-6 py-20">
+        <div className="flex items-center justify-between mb-12">
+          <h2 className="text-3xl font-black text-slate-900 flex items-center gap-3 uppercase italic tracking-tighter">
+            <Sparkles className="text-[#ff0082]" size={28} />
+            {buscaNome ? `Resultados para "${buscaNome}"` : (categoriaAtiva === 'Todos' ? 'Eventos em Destaque' : categoriaAtiva)}
           </h2>
-          <span className="text-sm text-slate-400 font-medium">
-            {eventosFiltrados.length} eventos encontrados
-          </span>
+          <div className="bg-white px-4 py-1.5 rounded-full border border-slate-200 text-[10px] font-black uppercase text-slate-400 tracking-widest">
+            {eventosFiltrados.length} Encontrados
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {loading ? (
             Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="animate-pulse bg-slate-200 rounded-xl h-72 shadow-sm" />
+              <div key={i} className="animate-pulse bg-slate-100 rounded-[2rem] h-80 shadow-sm" />
             ))
           ) : eventosFiltrados.length > 0 ? (
             eventosFiltrados.map((evento: any) => (
               <EventCard key={evento.id} evento={evento} />
             ))
           ) : (
-            <div className="col-span-full py-32 text-center bg-white rounded-2xl border border-slate-100 shadow-sm">
-              <Ticket className="mx-auto text-slate-200 mb-4" size={48} />
-              <p className="text-slate-500 font-medium mb-6">Nenhum evento encontrado para essa busca.</p>
+            <div className="col-span-full py-40 text-center border-2 border-dashed border-slate-200 rounded-[3rem] bg-white">
+              <Ticket className="mx-auto text-slate-100 mb-6" size={64} />
+              <p className="text-slate-500 font-black uppercase tracking-[0.2em] text-sm max-w-xs mx-auto">
+                Não encontramos nada.
+              </p>
               <button 
                 onClick={handleLimparBusca} 
-                className="text-violet-600 font-bold border border-violet-600 px-6 py-2 rounded-lg hover:bg-violet-50 transition-colors"
+                className="mt-6 bg-slate-900 text-white px-8 py-3 rounded-full font-black uppercase text-[10px] tracking-widest hover:bg-[#ff0082] transition-colors"
               >
-                Ver todos os eventos
+                Limpar filtros e voltar
               </button>
             </div>
           )}
