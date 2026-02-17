@@ -10,7 +10,7 @@ import {
   Search, MapPin, Ticket, 
   Music, Mic2, Theater, Gamepad2, 
   Utensils, GraduationCap, PartyPopper, Heart,
-  ChevronLeft, ChevronRight, Clock
+  Clock
 } from 'lucide-react';
 
 const iconMap: { [key: string]: any } = {
@@ -56,23 +56,34 @@ export default function BuyTicketHome() {
     carregarDados();
   }, []);
 
-  // --- LÓGICA DE FILTROS TEMPORAIS ---
-  const hoje = new Date();
-  hoje.setHours(0,0,0,0);
+  // --- LÓGICA DE FILTROS TEMPORAIS (À prova de fuso horário) ---
+  const hojeObj = new Date();
+  const hojeStr = hojeObj.toLocaleDateString('en-CA'); // Retorna "YYYY-MM-DD" local
 
+  // 1. Filtrar eventos para HOJE
   const oQueFazerHoje = eventos.filter(ev => {
-    const dataEv = new Date(ev.data_evento);
-    dataEv.setHours(0,0,0,0);
-    return dataEv.getTime() === hoje.getTime();
+    if (!ev.data_inicio) return false;
+    const dataEvStr = new Date(ev.data_inicio).toLocaleDateString('en-CA');
+    return dataEvStr === hojeStr;
   });
 
+  // 2. Filtrar eventos para ÚLTIMA CHAMADA (Próximos 1 ou 2 dias)
   const ultimaChamada = eventos.filter(ev => {
-    const dataEv = new Date(ev.data_evento);
-    const diffTime = dataEv.getTime() - hoje.getTime();
+    if (!ev.data_inicio) return false;
+    
+    const dataEv = new Date(ev.data_inicio);
+    const dataEvStr = dataEv.toLocaleDateString('en-CA');
+    
+    // Se for hoje, não mostra na última chamada para não duplicar
+    if (dataEvStr === hojeStr) return false;
+
+    const diffTime = dataEv.getTime() - hojeObj.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays > 0 && diffDays <= 2; // Faltando 1 ou 2 dias
+    
+    return diffDays >= 1 && diffDays <= 2;
   });
 
+  // 3. Vitrine Geral
   const vitrineGeral = eventos.filter(ev => {
     const nomeMatch = ev.nome.toLowerCase().includes(buscaNome.toLowerCase());
     const catMatch = categoriaAtiva === 'Todos' || ev.categoria === categoriaAtiva;
@@ -99,6 +110,7 @@ export default function BuyTicketHome() {
           </div>
         ))}
         
+        {/* BUSCA */}
         <div className="absolute bottom-10 z-30 w-full px-6">
           <div className="bg-white/95 backdrop-blur-md p-1.5 rounded-2xl md:rounded-full shadow-2xl flex flex-col md:flex-row items-center max-w-4xl mx-auto border border-white/20">
             <div className="flex-1 flex items-center px-5 py-2 w-full border-b md:border-b-0 md:border-r border-slate-100">
