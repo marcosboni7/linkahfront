@@ -73,4 +73,33 @@ export default function StaffLogin() {
 
           <div className="space-y-2">
             <label className="text-[10px] font-black uppercase text-slate-400 ml-4 italic">Senha</label>
-            <div className="relative
+            <div className="relative">
+              <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+              <input 
+                type="password" 
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pl-14 pr-6 outline-none focus:border-[#ff0082] transition-all font-medium text-slate-700"
+                placeholder="••••••••"
+              />
+            </div>
+          </div>
+
+          <button 
+            type="submit"
+            disabled={loading}
+            className="w-full bg-slate-900 hover:bg-[#ff0082] text-white font-black py-5 rounded-2xl uppercase tracking-widest flex items-center justify-center gap-2 transition-all active:scale-95 mt-4 shadow-lg disabled:opacity-50"
+          >
+            {loading ? 'Validando...' : 'Entrar no Painel'}
+            <ArrowRight size={18} />
+          </button>
+        </form>
+
+        <p className="text-center mt-8 text-slate-400 text-[10px] font-medium uppercase tracking-tighter">
+          Linkah Ecosystem &copy; 2026
+        </p>
+      </div>
+    </div>
+  );
+}
