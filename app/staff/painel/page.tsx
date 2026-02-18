@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, Users, Ticket, Settings, LogOut, 
   Search, Bell, MoreHorizontal, ArrowUpRight, 
-  Calendar, DollarSign, Trash2, Edit, Loader2 
+  Calendar, DollarSign, Trash2, Edit, Loader2, MapPin, Clock 
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 
@@ -13,7 +13,7 @@ export default function PainelStaff() {
   const [loading, setLoading] = useState(true);
   const apiBaseUrl = 'https://linkah-api.onrender.com';
 
-  // 1. BUSCAR EVENTOS DO BACK-END
+  // 1. CARREGAR EVENTOS DO BACK-END
   const carregarEventos = async () => {
     try {
       setLoading(true);
@@ -36,12 +36,12 @@ export default function PainelStaff() {
   // 2. FUNÇÃO PARA APAGAR EVENTO
   const handleDeletar = async (id: number, nome: string) => {
     const confirmacao = await Swal.fire({
-      title: 'Tem certeza?',
-      text: `Você está prestes a excluir o evento: ${nome}`,
+      title: 'Tens a certeza?',
+      text: `Vais excluir permanentemente o evento: ${nome}`,
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: '#d33',
-      cancelButtonColor: '#3085d6',
+      confirmButtonColor: '#C22973',
+      cancelButtonColor: '#cbd5e1',
       confirmButtonText: 'Sim, apagar!',
       cancelButtonText: 'Cancelar'
     });
@@ -53,10 +53,10 @@ export default function PainelStaff() {
         });
 
         if (res.ok) {
-          Swal.fire('Deletado!', 'O evento foi removido com sucesso.', 'success');
-          carregarEventos(); // Atualiza a lista
+          Swal.fire('Eliminado!', 'O evento foi removido.', 'success');
+          carregarEventos(); 
         } else {
-          Swal.fire('Erro', 'Não foi possível deletar o evento.', 'error');
+          Swal.fire('Erro', 'Não foi possível eliminar o evento.', 'error');
         }
       } catch (error) {
         Swal.fire('Erro', 'Falha na conexão com o servidor.', 'error');
@@ -64,9 +64,9 @@ export default function PainelStaff() {
     }
   };
 
-  // 3. FUNÇÃO PARA EDITAR (Redireciona para a página de edição)
+  // 3. FUNÇÃO PARA EDITAR
   const handleEditar = (id: number) => {
-    // Aqui você redireciona para a rota de edição que criou antes
+    // Redireciona para a tua página de edição existente
     window.location.href = `/dashboard/eventos/novo?edit=${id}`;
   };
 
@@ -74,7 +74,7 @@ export default function PainelStaff() {
     <div className="flex min-h-screen bg-[#F8FAFC] font-sans text-slate-900">
       
       {/* SIDEBAR */}
-      <aside className="w-64 bg-white border-r border-slate-200 hidden md:flex flex-col">
+      <aside className="w-64 bg-white border-r border-slate-200 hidden md:flex flex-col sticky h-screen top-0">
         <div className="p-6">
           <h1 className="text-xl font-black text-slate-800 tracking-tighter uppercase italic">
             Linkah <span className="text-[#C22973]">Staff</span>
@@ -87,6 +87,9 @@ export default function PainelStaff() {
           <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm text-slate-500 hover:bg-slate-50 transition-all">
             <Calendar size={18} /> Eventos
           </button>
+          <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm text-slate-500 hover:bg-slate-50 transition-all">
+            <Users size={18} /> Utilizadores
+          </button>
         </nav>
         <div className="p-4 border-t border-slate-100">
           <button onClick={() => window.location.href = '/'} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm text-red-500 hover:bg-red-50 transition-all">
@@ -95,79 +98,127 @@ export default function PainelStaff() {
         </div>
       </aside>
 
-      {/* CONTEÚDO */}
+      {/* CONTEÚDO PRINCIPAL */}
       <main className="flex-1 flex flex-col">
-        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8">
+        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 sticky top-0 z-20">
           <div className="relative w-96">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-            <input type="text" placeholder="Buscar eventos..." className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2 pl-10 pr-4 text-sm outline-none focus:border-[#C22973]" />
+            <input 
+              type="text" 
+              placeholder="Procurar eventos..." 
+              className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2 pl-10 pr-4 text-sm outline-none focus:border-[#C22973] transition-all" 
+            />
           </div>
           <div className="flex items-center gap-4">
-             <span className="text-xs font-black text-slate-800">Admin Staff</span>
-             <div className="w-9 h-9 rounded-full bg-[#C22973] flex items-center justify-center text-white font-bold text-xs">AD</div>
+             <div className="text-right hidden sm:block">
+               <p className="text-xs font-black text-slate-800 tracking-tight">Admin Linkah</p>
+               <p className="text-[10px] text-slate-400 font-bold uppercase">Staff Master</p>
+             </div>
+             <div className="w-9 h-9 rounded-full bg-[#C22973] flex items-center justify-center text-white font-bold text-xs shadow-inner">AD</div>
           </div>
         </header>
 
         <div className="p-8 space-y-8">
-          <div>
-            <h2 className="text-2xl font-black text-slate-800 tracking-tight">Gerenciamento de Eventos</h2>
-            <p className="text-slate-500 text-sm font-medium">Administre todos os eventos criados na plataforma.</p>
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-2xl font-black text-slate-800 tracking-tight">Gerenciamento de Eventos</h2>
+              <p className="text-slate-500 text-sm font-medium">Lista de todos os eventos ativos e passados no banco de dados.</p>
+            </div>
+            <button 
+              onClick={carregarEventos}
+              className="bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-lg text-xs font-black uppercase hover:bg-slate-50 transition-all shadow-sm"
+            >
+              Atualizar Lista
+            </button>
           </div>
 
-          {/* TABELA CONECTADA */}
+          {/* TABELA */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             {loading ? (
-              <div className="p-20 flex flex-col items-center justify-center gap-4">
+              <div className="p-24 flex flex-col items-center justify-center gap-4">
                 <Loader2 className="animate-spin text-[#C22973]" size={40} />
-                <p className="text-slate-400 font-bold uppercase text-xs tracking-widest">Carregando Eventos...</p>
+                <p className="text-slate-400 font-black uppercase text-[10px] tracking-[0.2em]">Sincronizando com Back-end...</p>
               </div>
             ) : (
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="bg-slate-50 text-[10px] text-slate-400 font-black uppercase tracking-[0.15em]">
-                    <th className="px-8 py-4">Evento</th>
-                    <th className="px-8 py-4">Local</th>
-                    <th className="px-8 py-4">Data</th>
-                    <th className="px-8 py-4 text-center">Ações</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {eventos.map((evt) => (
-                    <tr key={evt.id} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="px-8 py-4">
-                        <p className="text-sm font-bold text-slate-700">{evt.nome}</p>
-                        <p className="text-[10px] text-slate-400 font-medium">ID: #{evt.id}</p>
-                      </td>
-                      <td className="px-8 py-4 text-xs font-bold text-slate-500">{evt.local || 'Não definido'}</td>
-                      <td className="px-8 py-4 text-xs font-bold text-slate-500">
-                        {evt.data ? new Date(evt.data).toLocaleDateString('pt-BR') : '---'}
-                      </td>
-                      <td className="px-8 py-4">
-                        <div className="flex justify-center gap-2">
-                          <button 
-                            onClick={() => handleEditar(evt.id)}
-                            className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
-                            title="Editar Evento"
-                          >
-                            <Edit size={18} />
-                          </button>
-                          <button 
-                            onClick={() => handleDeletar(evt.id, evt.nome)}
-                            className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Excluir Evento"
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                        </div>
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="bg-slate-50 text-[10px] text-slate-400 font-black uppercase tracking-[0.15em] border-b border-slate-100">
+                      <th className="px-8 py-5">Evento / ID</th>
+                      <th className="px-8 py-5">Localização</th>
+                      <th className="px-8 py-5">Data e Hora</th>
+                      <th className="px-8 py-5 text-center">Gestão</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {eventos.map((evt) => (
+                      <tr key={evt.id} className="hover:bg-slate-50/50 transition-colors group">
+                        <td className="px-8 py-5">
+                          <p className="text-sm font-bold text-slate-800 group-hover:text-[#C22973] transition-colors">{evt.nome}</p>
+                          <p className="text-[10px] text-slate-400 font-bold tracking-wider">REF: {evt.id}</p>
+                        </td>
+                        
+                        {/* LÓGICA DE LOCALIZAÇÃO */}
+                        <td className="px-8 py-5">
+                          <div className="flex items-center gap-2 text-slate-500">
+                            <MapPin size={14} className="text-slate-300" />
+                            <span className="text-xs font-bold">
+                              {evt.local || evt.localizacao || 'Não informado'}
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* LÓGICA DE DATA E HORA */}
+                        <td className="px-8 py-5">
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-2 text-slate-600">
+                              <Calendar size={13} className="text-slate-300" />
+                              <span className="text-xs font-bold">
+                                {evt.data ? new Date(evt.data).toLocaleDateString('pt-BR') : '---'}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 text-[#C22973]">
+                              <Clock size={13} className="opacity-60" />
+                              <span className="text-[10px] font-black uppercase tracking-tighter">
+                                {evt.hora || evt.horario || '---'}
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* AÇÕES */}
+                        <td className="px-8 py-5">
+                          <div className="flex justify-center gap-2">
+                            <button 
+                              onClick={() => handleEditar(evt.id)}
+                              className="p-2.5 text-blue-500 hover:bg-blue-50 rounded-xl transition-all border border-transparent hover:border-blue-100"
+                              title="Editar Evento"
+                            >
+                              <Edit size={18} />
+                            </button>
+                            <button 
+                              onClick={() => handleDeletar(evt.id, evt.nome)}
+                              className="p-2.5 text-red-500 hover:bg-red-50 rounded-xl transition-all border border-transparent hover:border-red-100"
+                              title="Excluir Evento"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
+
             {!loading && eventos.length === 0 && (
-              <div className="p-20 text-center text-slate-400 font-medium">
-                Nenhum evento encontrado no banco de dados.
+              <div className="p-20 text-center flex flex-col items-center">
+                <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+                  <Calendar className="text-slate-200" size={32} />
+                </div>
+                <p className="text-slate-400 font-bold text-sm uppercase tracking-widest">Base de dados vazia</p>
+                <p className="text-slate-300 text-xs mt-1">Nenhum evento foi registado até ao momento.</p>
               </div>
             )}
           </div>
