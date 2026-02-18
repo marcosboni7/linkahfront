@@ -7,11 +7,10 @@ import Swal from 'sweetalert2';
 
 export default function CadastroIngressos() {
   const router = useRouter();
-  const params = useParams();
   
-  // SOLUÇÃO PARA O ERRO DE COMPILAÇÃO:
-  // Forçamos o id a ser tratado como string para o TypeScript parar de reclamar no build.
-  const id = params?.id as string;
+  // CORREÇÃO AQUI: Pegamos o params primeiro e forçamos o tipo do id
+  const params = useParams();
+  const id = params?.id as string; 
 
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -37,7 +36,6 @@ export default function CadastroIngressos() {
     }
   };
 
-  // Validação em tempo real (Inline)
   const validateField = (index: number, field: string, value: string) => {
     if (!value) {
       setErrors(prev => ({ ...prev, [`${index}-${field}`]: 'Obrigatório *' }));
@@ -45,7 +43,6 @@ export default function CadastroIngressos() {
   };
 
   const handleFinalizar = async () => {
-    // Validação básica antes de enviar
     const hasEmpty = ingressos.some(ing => !ing.nome || !ing.preco || !ing.quantidade);
     if (hasEmpty) {
       Swal.fire('Atenção', 'Preencha todos os campos obrigatórios (*) de todos os ingressos.', 'warning');
@@ -106,7 +103,6 @@ export default function CadastroIngressos() {
       </header>
 
       <main className="max-w-[1100px] mx-auto p-6 md:p-10">
-        
         {/* INDICADOR DE PROGRESSO */}
         <div className="flex justify-center items-center mb-12 md:mb-16">
           <div className="flex items-center gap-3 opacity-40">
@@ -132,8 +128,6 @@ export default function CadastroIngressos() {
 
            {ingressos.map((ing, index) => (
              <div key={index} className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100 flex flex-col md:flex-row items-end gap-6 relative group animate-in slide-in-from-bottom-4 transition-all hover:shadow-md">
-               
-               {/* NOME DO INGRESSO */}
                <div className="flex-1 w-full space-y-2">
                  <label className="text-[10px] text-slate-400 font-black uppercase ml-1 tracking-widest">Tipo / Nome do Ingresso *</label>
                  <input 
@@ -146,7 +140,6 @@ export default function CadastroIngressos() {
                  {errors[`${index}-nome`] && <span className="text-[9px] text-red-500 font-bold ml-1">{errors[`${index}-nome`]}</span>}
                </div>
 
-               {/* PREÇO */}
                <div className="w-full md:w-40 space-y-2">
                  <label className="text-[10px] text-slate-400 font-black uppercase ml-1 tracking-widest">Preço R$ *</label>
                  <input 
@@ -160,7 +153,6 @@ export default function CadastroIngressos() {
                  {errors[`${index}-preco`] && <span className="text-[9px] text-red-500 font-bold ml-1">{errors[`${index}-preco`]}</span>}
                </div>
 
-               {/* QUANTIDADE */}
                <div className="w-full md:w-32 space-y-2">
                  <label className="text-[10px] text-slate-400 font-black uppercase ml-1 tracking-widest">Qtd Total *</label>
                  <input 
@@ -174,7 +166,6 @@ export default function CadastroIngressos() {
                  {errors[`${index}-quantidade`] && <span className="text-[9px] text-red-500 font-bold ml-1">{errors[`${index}-quantidade`]}</span>}
                </div>
 
-               {/* REMOVER */}
                {ingressos.length > 1 && (
                  <button onClick={() => removeIngresso(index)} className="p-4 text-slate-300 hover:text-red-500 transition-colors mb-1">
                    <Trash2 size={20} />
