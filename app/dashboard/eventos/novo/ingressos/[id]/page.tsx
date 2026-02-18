@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronLeft, Plus, Trash2, CheckCircle2, Loader2, Info } from 'lucide-react';
+import { ChevronLeft, Plus, Ticket, Trash2, CheckCircle2, Loader2, Info } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
 import Swal from 'sweetalert2';
 
@@ -9,8 +9,9 @@ export default function CadastroIngressos() {
   const router = useRouter();
   const params = useParams();
   
-  // CORREÇÃO DO ERRO DE TYPE: Garantindo que o id seja tratado como string
-  const id = params?.id as string; 
+  // SOLUÇÃO PARA O ERRO DE COMPILAÇÃO:
+  // Forçamos o id a ser tratado como string para o TypeScript parar de reclamar no build.
+  const id = params?.id as string;
 
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
