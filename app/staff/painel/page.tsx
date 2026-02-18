@@ -10,6 +10,7 @@ import Swal from 'sweetalert2';
 export default function PainelStaff() {
   const [eventos, setEventos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filtro, setFiltro] = useState(''); // Estado para a busca
   const apiBaseUrl = 'https://linkah-api.onrender.com';
 
   const carregarEventos = async () => {
@@ -58,6 +59,12 @@ export default function PainelStaff() {
     }
   };
 
+  // Lógica de busca simples
+  const eventosFiltrados = eventos.filter(evt => 
+    evt.nome?.toLowerCase().includes(filtro.toLowerCase()) ||
+    evt.id?.toString().includes(filtro)
+  );
+
   return (
     <div className="flex min-h-screen bg-[#F8FAFC] text-slate-900 font-sans">
       
@@ -70,6 +77,7 @@ export default function PainelStaff() {
           <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm bg-[#C22973] text-white shadow-lg shadow-pink-100 transition-all">
             <LayoutDashboard size={18} /> Painel Geral
           </button>
+          {/* Rota de criação - Verifique se esta pasta existe! */}
           <button onClick={() => window.location.href = '/dashboard/eventos/novo'} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm text-slate-500 hover:bg-slate-50 transition-all">
             <Plus size={18} /> Novo Evento
           </button>
@@ -84,12 +92,18 @@ export default function PainelStaff() {
       {/* CONTEÚDO */}
       <main className="flex-1 flex flex-col">
         <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 sticky top-0 z-10">
-           <div className="flex items-center gap-2">
-              <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
-              <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Sistema de Gestão Ativo</span>
+           <div className="relative w-72">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+              <input 
+                type="text" 
+                placeholder="Buscar evento..." 
+                className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2 pl-10 pr-4 text-xs outline-none focus:border-[#C22973] transition-all"
+                value={filtro}
+                onChange={(e) => setFiltro(e.target.value)}
+              />
            </div>
            <div className="flex items-center gap-3">
-              <span className="text-[10px] font-bold text-slate-500 uppercase">Administrador</span>
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Administrador</span>
               <div className="w-8 h-8 rounded-full bg-[#C22973] flex items-center justify-center text-white text-[10px] font-black shadow-inner">AD</div>
            </div>
         </header>
@@ -125,7 +139,7 @@ export default function PainelStaff() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {eventos.map((evt) => {
+                  {eventosFiltrados.map((evt) => {
                     const dataISO = evt.data_inicio;
                     let dataFormatada = '---';
                     let horaFormatada = '---';
@@ -170,8 +184,9 @@ export default function PainelStaff() {
 
                         <td className="px-8 py-5 text-center">
                           <div className="flex justify-center gap-2">
+                            {/* AJUSTE AQUI: Se você não criou a pasta staff/editar, use o link abaixo que aponta para a página de novo com edit mode */}
                             <button 
-                              onClick={() => window.location.href = `/staff/editar/${evt.id}`} 
+                              onClick={() => window.location.href = `/dashboard/eventos/novo?edit=${evt.id}`} 
                               className="p-2.5 text-blue-500 hover:bg-blue-50 rounded-xl transition-all border border-transparent hover:border-blue-100"
                               title="Editar evento"
                             >
@@ -193,10 +208,9 @@ export default function PainelStaff() {
               </table>
             )}
             
-            {!loading && eventos.length === 0 && (
+            {!loading && eventosFiltrados.length === 0 && (
               <div className="p-20 text-center flex flex-col items-center">
                 <p className="text-slate-400 font-bold text-sm uppercase tracking-widest">Nenhum evento encontrado</p>
-                <button onClick={() => window.location.href = '/dashboard/eventos/novo'} className="mt-4 text-[#C22973] font-black text-xs underline uppercase">Cadastrar o primeiro</button>
               </div>
             )}
           </div>
