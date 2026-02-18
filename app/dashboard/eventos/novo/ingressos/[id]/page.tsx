@@ -1,18 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronLeft, Plus, Trash2, CheckCircle2, Loader2, Info } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { ChevronLeft, Plus, Ticket, Trash2, CheckCircle2, Loader2, Info } from 'lucide-react';
+import { useRouter, useParams } from 'next/navigation';
 import Swal from 'sweetalert2';
 
-// SOLUÇÃO DEFINITIVA PARA O BUILD: Pegamos o ID via props e usamos o tipo 'any' 
-// para o compilador ignorar a validação rígida de tipos de rota
-export default function CadastroIngressos({ params }: any) {
+export default function CadastroIngressos() {
   const router = useRouter();
-  
-  // O ID agora vem direto das props da página, o que é mais estável no build
-  const id = params?.id;
-
+  const { id } = useParams(); // Pega o ID do evento gerado na etapa anterior
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -31,11 +26,13 @@ export default function CadastroIngressos({ params }: any) {
     novos[index] = { ...novos[index], [field]: value };
     setIngressos(novos);
     
+    // Limpa erro ao digitar
     if (value) {
       setErrors(prev => ({ ...prev, [`${index}-${field}`]: '' }));
     }
   };
 
+  // Validação em tempo real (Inline)
   const validateField = (index: number, field: string, value: string) => {
     if (!value) {
       setErrors(prev => ({ ...prev, [`${index}-${field}`]: 'Obrigatório *' }));
@@ -43,6 +40,7 @@ export default function CadastroIngressos({ params }: any) {
   };
 
   const handleFinalizar = async () => {
+    // Validação básica antes de enviar
     const hasEmpty = ingressos.some(ing => !ing.nome || !ing.preco || !ing.quantidade);
     if (hasEmpty) {
       Swal.fire('Atenção', 'Preencha todos os campos obrigatórios (*) de todos os ingressos.', 'warning');
@@ -82,6 +80,7 @@ export default function CadastroIngressos({ params }: any) {
 
   return (
     <div className="min-h-screen bg-[#FAFBFF]">
+      {/* HEADER FIXO */}
       <header className="border-b border-slate-100 px-6 md:px-10 py-5 flex justify-between items-center bg-white/90 backdrop-blur-md sticky top-0 z-50">
         <div className="flex items-center gap-4">
           <button onClick={() => router.back()} className="p-2 hover:bg-pink-50 rounded-full text-slate-400 transition-colors">
@@ -102,6 +101,8 @@ export default function CadastroIngressos({ params }: any) {
       </header>
 
       <main className="max-w-[1100px] mx-auto p-6 md:p-10">
+        
+        {/* INDICADOR DE PROGRESSO */}
         <div className="flex justify-center items-center mb-12 md:mb-16">
           <div className="flex items-center gap-3 opacity-40">
             <div className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center">
@@ -121,54 +122,59 @@ export default function CadastroIngressos({ params }: any) {
         <div className="max-w-[850px] mx-auto space-y-6">
            <div className="bg-blue-50 border border-blue-100 p-5 rounded-3xl flex gap-3 text-blue-700 text-sm font-medium mb-8">
              <Info className="shrink-0" size={20} />
-             <p>Defina os tipos de ingressos. Você pode criar lotes diferentes como "Lote 1", "VIP" ou "Meia Entrada".</p>
+             <p>Defina os tipos de ingressos que estarão disponíveis. Você pode criar lotes diferentes como "Lote 1", "VIP" ou "Meia Entrada".</p>
            </div>
 
            {ingressos.map((ing, index) => (
-             <div key={index} className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100 flex flex-col md:flex-row items-end gap-6 relative group transition-all hover:shadow-md">
-               <div className="flex-1 w-full space-y-2">
-                 <label className="text-[10px] text-slate-400 font-black uppercase ml-1 tracking-widest">Tipo / Nome do Ingresso *</label>
-                 <input 
-                   value={ing.nome} 
-                   onBlur={(e) => validateField(index, 'nome', e.target.value)}
-                   onChange={(e) => handleChange(index, 'nome', e.target.value)}
-                   className={`w-full bg-slate-50 border ${errors[`${index}-nome`] ? 'border-red-500' : 'border-slate-100'} p-4 rounded-2xl outline-none focus:border-[#C22973] font-bold text-slate-700`} 
-                   placeholder="Ex: Ingresso Solidário"
-                 />
-                 {errors[`${index}-nome`] && <span className="text-[9px] text-red-500 font-bold ml-1">{errors[`${index}-nome`]}</span>}
-               </div>
+             <div key={index} className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100 flex flex-col md:flex-row items-end gap-6 relative group animate-in slide-in-from-bottom-4 transition-all hover:shadow-md">
+                
+                {/* NOME DO INGRESSO */}
+                <div className="flex-1 w-full space-y-2">
+                  <label className="text-[10px] text-slate-400 font-black uppercase ml-1 tracking-widest">Tipo / Nome do Ingresso *</label>
+                  <input 
+                    value={ing.nome} 
+                    onBlur={(e) => validateField(index, 'nome', e.target.value)}
+                    onChange={(e) => handleChange(index, 'nome', e.target.value)}
+                    className={`w-full bg-slate-50 border ${errors[`${index}-nome`] ? 'border-red-500' : 'border-slate-100'} p-4 rounded-2xl outline-none focus:border-[#C22973] font-bold text-slate-700`} 
+                    placeholder="Ex: Ingresso Solidário"
+                  />
+                  {errors[`${index}-nome`] && <span className="text-[9px] text-red-500 font-bold ml-1">{errors[`${index}-nome`]}</span>}
+                </div>
 
-               <div className="w-full md:w-40 space-y-2">
-                 <label className="text-[10px] text-slate-400 font-black uppercase ml-1 tracking-widest">Preço R$ *</label>
-                 <input 
-                   type="number" 
-                   value={ing.preco} 
-                   onBlur={(e) => validateField(index, 'preco', e.target.value)}
-                   onChange={(e) => handleChange(index, 'preco', e.target.value)}
-                   className={`w-full bg-slate-50 border ${errors[`${index}-preco`] ? 'border-red-500' : 'border-slate-100'} p-4 rounded-2xl outline-none focus:border-[#C22973] font-bold text-slate-700`} 
-                   placeholder="0,00"
-                 />
-                 {errors[`${index}-preco`] && <span className="text-[9px] text-red-500 font-bold ml-1">{errors[`${index}-preco`]}</span>}
-               </div>
+                {/* PREÇO */}
+                <div className="w-full md:w-40 space-y-2">
+                  <label className="text-[10px] text-slate-400 font-black uppercase ml-1 tracking-widest">Preço R$ *</label>
+                  <input 
+                    type="number" 
+                    value={ing.preco} 
+                    onBlur={(e) => validateField(index, 'preco', e.target.value)}
+                    onChange={(e) => handleChange(index, 'preco', e.target.value)}
+                    className={`w-full bg-slate-50 border ${errors[`${index}-preco`] ? 'border-red-500' : 'border-slate-100'} p-4 rounded-2xl outline-none focus:border-[#C22973] font-bold text-slate-700`} 
+                    placeholder="0,00"
+                  />
+                  {errors[`${index}-preco`] && <span className="text-[9px] text-red-500 font-bold ml-1">{errors[`${index}-preco`]}</span>}
+                </div>
 
-               <div className="w-full md:w-32 space-y-2">
-                 <label className="text-[10px] text-slate-400 font-black uppercase ml-1 tracking-widest">Qtd Total *</label>
-                 <input 
-                   type="number" 
-                   value={ing.quantidade} 
-                   onBlur={(e) => validateField(index, 'quantidade', e.target.value)}
-                   onChange={(e) => handleChange(index, 'quantidade', e.target.value)}
-                   className={`w-full bg-slate-50 border ${errors[`${index}-quantidade`] ? 'border-red-500' : 'border-slate-100'} p-4 rounded-2xl outline-none focus:border-[#C22973] font-bold text-slate-700`} 
-                   placeholder="100"
-                 />
-                 {errors[`${index}-quantidade`] && <span className="text-[9px] text-red-500 font-bold ml-1">{errors[`${index}-quantidade`]}</span>}
-               </div>
+                {/* QUANTIDADE */}
+                <div className="w-full md:w-32 space-y-2">
+                  <label className="text-[10px] text-slate-400 font-black uppercase ml-1 tracking-widest">Qtd Total *</label>
+                  <input 
+                    type="number" 
+                    value={ing.quantidade} 
+                    onBlur={(e) => validateField(index, 'quantidade', e.target.value)}
+                    onChange={(e) => handleChange(index, 'quantidade', e.target.value)}
+                    className={`w-full bg-slate-50 border ${errors[`${index}-quantidade`] ? 'border-red-500' : 'border-slate-100'} p-4 rounded-2xl outline-none focus:border-[#C22973] font-bold text-slate-700`} 
+                    placeholder="100"
+                  />
+                  {errors[`${index}-quantidade`] && <span className="text-[9px] text-red-500 font-bold ml-1">{errors[`${index}-quantidade`]}</span>}
+                </div>
 
-               {ingressos.length > 1 && (
-                 <button onClick={() => removeIngresso(index)} className="p-4 text-slate-300 hover:text-red-500 transition-colors mb-1">
-                   <Trash2 size={20} />
-                 </button>
-               )}
+                {/* REMOVER */}
+                {ingressos.length > 1 && (
+                  <button onClick={() => removeIngresso(index)} className="p-4 text-slate-300 hover:text-red-500 transition-colors mb-1">
+                    <Trash2 size={20} />
+                  </button>
+                )}
              </div>
            ))}
 
