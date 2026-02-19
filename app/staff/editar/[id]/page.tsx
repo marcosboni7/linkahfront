@@ -27,16 +27,19 @@ export default function EditarEvento() {
     async function carregarEvento() {
       try {
         setLoading(true);
-        // Adicionamos um timestamp para garantir que pegamos a versão MAIS NOVA do banco
+        // O timestamp evita cache de dados antigos
         const res = await fetch(`${apiBaseUrl}/api/eventos/${id}?t=${Date.now()}`);
+        
+        if (res.status === 401 || res.status === 403) {
+           console.error("Sessão expirada");
+           return; 
+        }
+
         if (res.ok) {
           const data = await res.json();
           
-          // CORREÇÃO DATA: Pega apenas YYYY-MM-DD
+          // Formata data e hora para os inputs HTML
           const dataISO = data.data_inicio ? data.data_inicio.substring(0, 10) : '';
-          
-          // CORREÇÃO HORA: O input type="time" EXIGE o formato HH:mm (5 caracteres)
-          // Se o banco retornar "14:32:00", o .substring(0, 5) vira "14:32"
           const horaISO = data.hora_inicio ? data.hora_inicio.substring(0, 5) : '';
 
           setFormData({
@@ -63,10 +66,13 @@ export default function EditarEvento() {
     setSalvando(true);
 
     try {
-      // Enviamos exatamente o que está nos inputs
       const res = await fetch(`${apiBaseUrl}/api/eventos/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          // Se o seu backend exige token, verifique se ele está sendo passado aqui:
+          // 'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
         body: JSON.stringify(formData),
       });
 
@@ -75,16 +81,18 @@ export default function EditarEvento() {
           icon: 'success',
           title: 'Sucesso!',
           text: 'Evento atualizado com sucesso!',
-          confirmButtonColor: '#C22973'
+          confirmButtonColor: '#C22973',
+          timer: 1500 // Fecha rápido para não dar tempo de bugar o estado
         });
-        // Forçamos o router a atualizar a página para garantir dados novos
-        router.refresh();
-        router.push('/staff/painel');
+        
+        // Em vez de refresh pesado, vamos apenas empurrar para o painel
+        window.location.href = '/staff/painel'; 
       } else {
-        Swal.fire('Erro', 'Falha ao salvar as alterações.', 'error');
+        const errorData = await res.json();
+        Swal.fire('Erro', errorData.message || 'Falha ao salvar.', 'error');
       }
     } catch (error) {
-      Swal.fire('Erro', 'Erro de conexão com o servidor.', 'error');
+      Swal.fire('Erro', 'Erro de conexão.', 'error');
     } finally {
       setSalvando(false);
     }
@@ -100,20 +108,19 @@ export default function EditarEvento() {
     <div className="min-h-screen bg-[#F8FAFC] p-4 md:p-8">
       <div className="max-w-2xl mx-auto">
         <button 
-          onClick={() => router.push('/staff/painel')} 
+          onClick={() => router.back()} 
           className="flex items-center gap-2 text-slate-500 mb-6 font-bold text-sm hover:text-[#C22973] transition-colors"
         >
-          <ArrowLeft size={16} /> VOLTAR AO PAINEL
+          <ArrowLeft size={16} /> VOLTAR
         </button>
 
         <div className="bg-white rounded-[2.5rem] p-6 md:p-10 border border-slate-200 shadow-sm">
           <div className="mb-8">
-            <span className="text-[10px] font-black text-[#C22973] uppercase tracking-[0.2em]">Editor de Experiências</span>
+            <span className="text-[10px] font-black text-[#C22973] uppercase tracking-[0.2em]">Editor</span>
             <h2 className="text-3xl font-black text-slate-800 tracking-tighter uppercase italic leading-none mt-1">Editar Evento</h2>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* NOME */}
             <div>
               <label className="flex items-center gap-2 text-[10px] font-black uppercase text-slate-400 mb-2 ml-1">
                 <Tag size={12} /> Nome do Evento
@@ -121,15 +128,14 @@ export default function EditarEvento() {
               <input 
                 type="text" required value={formData.nome}
                 onChange={e => setFormData({...formData, nome: e.target.value})}
-                className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-5 text-sm font-bold outline-none focus:border-[#C22973] focus:bg-white transition-all text-slate-700"
+                className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-5 text-sm font-bold outline-none focus:border-[#C22973] text-slate-700"
               />
             </div>
 
-            {/* DATA E HORA */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="flex items-center gap-2 text-[10px] font-black uppercase text-slate-400 mb-2 ml-1">
-                  <Calendar size={12} /> Data do Evento
+                  <Calendar size={12} /> Data
                 </label>
                 <input 
                   type="date" required value={formData.data_inicio}
@@ -139,33 +145,27 @@ export default function EditarEvento() {
               </div>
               <div>
                 <label className="flex items-center gap-2 text-[10px] font-black uppercase text-slate-400 mb-2 ml-1">
-                  <Clock size={12} /> Horário de Início
+                  <Clock size={12} /> Hora
                 </label>
                 <input 
-                  type="time" 
-                  step="60" // Garante que foque em minutos
-                  required 
-                  value={formData.hora_inicio}
+                  type="time" required value={formData.hora_inicio}
                   onChange={e => setFormData({...formData, hora_inicio: e.target.value})}
                   className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-5 text-sm font-bold outline-none focus:border-[#C22973] text-slate-700"
                 />
               </div>
             </div>
 
-            {/* LOCAL */}
             <div>
               <label className="flex items-center gap-2 text-[10px] font-black uppercase text-slate-400 mb-2 ml-1">
-                <MapPin size={12} /> Nome do Local
+                <MapPin size={12} /> Local
               </label>
               <input 
                 type="text" value={formData.local_nome}
                 onChange={e => setFormData({...formData, local_nome: e.target.value})}
-                placeholder="Ex: Teatro Municipal"
                 className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-5 text-sm font-bold outline-none focus:border-[#C22973] text-slate-700"
               />
             </div>
 
-            {/* CIDADE E ESTADO */}
             <div className="grid grid-cols-2 gap-4">
                <div>
                 <label className="text-[10px] font-black uppercase text-slate-400 mb-2 ml-1 block">Cidade</label>
@@ -176,7 +176,7 @@ export default function EditarEvento() {
                 />
               </div>
               <div>
-                <label className="text-[10px] font-black uppercase text-slate-400 mb-2 ml-1 block">Estado (UF)</label>
+                <label className="text-[10px] font-black uppercase text-slate-400 mb-2 ml-1 block">UF</label>
                 <input 
                   type="text" maxLength={2} value={formData.estado}
                   onChange={e => setFormData({...formData, estado: e.target.value})}
@@ -188,19 +188,10 @@ export default function EditarEvento() {
             <button 
               type="submit"
               disabled={salvando}
-              className="w-full bg-[#C22973] text-white font-black py-5 rounded-2xl shadow-xl shadow-pink-100 hover:bg-[#a61d5f] transition-all flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-70"
+              className="w-full bg-[#C22973] text-white font-black py-5 rounded-2xl shadow-xl hover:bg-[#a61d5f] transition-all flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-70"
             >
-              {salvando ? (
-                <>
-                  <Loader2 className="animate-spin" size={20} />
-                  SALVANDO...
-                </>
-              ) : (
-                <>
-                  <Save size={20} />
-                  SALVAR ALTERAÇÕES
-                </>
-              )}
+              {salvando ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
+              {salvando ? 'SALVANDO...' : 'SALVAR ALTERAÇÕES'}
             </button>
           </form>
         </div>
