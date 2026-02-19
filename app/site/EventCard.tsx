@@ -10,14 +10,20 @@ export function EventCard({ evento }: { evento: any }) {
   const mes = dataValida.toLocaleDateString('pt-BR', { month: 'short' }).toUpperCase().replace('.', '');
   const diaSemana = dataValida.toLocaleDateString('pt-BR', { weekday: 'short' }).toUpperCase().replace('.', '');
 
-  // Cálculo de Preço Mínimo (Resiliente)
+  // Cálculo de Preço Mínimo (Turbinado para aceitar o campo 'preco' também)
   const precoFinal = () => {
-    if (evento.preco_minimo !== undefined && evento.preco_minimo !== null) {
+    // 1. Tenta preco_minimo
+    if (evento.preco_minimo !== undefined && evento.preco_minimo !== null && Number(evento.preco_minimo) > 0) {
       return Number(evento.preco_minimo);
     }
-    if (evento.ingressos && evento.ingressos.length > 0) {
-      const precos = evento.ingressos.map((i: any) => Number(i.preco));
-      return Math.min(...precos);
+    // 2. Tenta preco (campo simples que costuma vir da API)
+    if (evento.preco !== undefined && evento.preco !== null && Number(evento.preco) > 0) {
+      return Number(evento.preco);
+    }
+    // 3. Tenta lista de ingressos
+    if (evento.ingressos && Array.isArray(evento.ingressos) && evento.ingressos.length > 0) {
+      const precos = evento.ingressos.map((i: any) => Number(i.preco)).filter(p => p > 0);
+      if (precos.length > 0) return Math.min(...precos);
     }
     return 0;
   };
@@ -70,13 +76,16 @@ export function EventCard({ evento }: { evento: any }) {
         <div className="mt-auto pt-4 border-t border-slate-50 flex justify-between items-end">
           <div>
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">A partir de</p>
-            <p className="text-xl font-black text-slate-900 leading-none">
+            <div className="text-xl font-black text-slate-900 leading-none">
               {valorExibicao === 0 ? (
                 <span className="text-emerald-500">GRÁTIS</span>
               ) : (
-                `R$ ${valorExibicao.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+                <span>
+                  <span className="text-sm mr-0.5">R$</span>
+                  {valorExibicao.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
               )}
-            </p>
+            </div>
           </div>
           <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 group-hover:bg-[#C22973] group-hover:text-white transition-all">
             <Clock size={16} />
