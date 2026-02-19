@@ -58,27 +58,23 @@ export default function LoginPage() {
         const user = data.user;
         const emailUsuario = user?.email || email.trim().toLowerCase();
         
-        // 1. Salva informações básicas
         window.localStorage.setItem('userEmail', emailUsuario);
         window.localStorage.setItem('userName', user?.nome || 'Produtor');
 
-        // 2. CHECAGEM CRUCIAL: Se o login não trouxe os dados, perguntamos ao Perfil
         try {
           const perfilRes = await fetch(`${apiBaseUrl}/api/auth/perfil?email=${emailUsuario}`);
           const perfilData = await perfilRes.json();
 
-          // Se o perfilData tiver qualquer dado importante, marcamos como completo
+          // REDIRECIONAMENTO CORRIGIDO PARA A PASTA STAFF
           if (perfilRes.ok && (perfilData.cpf_cnpj || perfilData.cep || user?.cpf_cnpj)) {
             window.localStorage.setItem('perfil_completo', 'true');
-            router.push('/dashboard/eventos');
+            router.push('/staff/painel'); // <--- MUDOU AQUI
           } else {
-            // Se realmente estiver vazio no banco, vai pro preenchimento
             window.localStorage.removeItem('perfil_completo');
-            router.push('/dashboard/perfil');
+            router.push('/staff/perfil'); // <--- MUDOU AQUI (Caso exista perfil na pasta staff)
           }
         } catch (checkError) {
-          // Se a checagem falhar, segue o fluxo padrão
-          router.push('/dashboard/perfil');
+          router.push('/staff/painel'); // <--- MUDOU AQUI (Fallback seguro)
         }
         
       } else {
