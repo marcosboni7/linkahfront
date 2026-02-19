@@ -78,7 +78,7 @@ export default function PainelStaff() {
             <LayoutDashboard size={18} /> Painel Geral
           </button>
           {/* Rota de criação - Verifique se esta pasta existe! */}
-          <button onClick={() => window.location.href = '/dashboard/eventos/novo'} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm text-slate-500 hover:bg-slate-50 transition-all">
+          <button onClick={() => window.location.href = '/staff/editar/${evt.id}'} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm text-slate-500 hover:bg-slate-50 transition-all">
             <Plus size={18} /> Novo Evento
           </button>
         </nav>
