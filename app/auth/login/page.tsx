@@ -58,26 +58,36 @@ export default function LoginPage() {
         const user = data.user;
         const emailUsuario = user?.email || email.trim().toLowerCase();
         
-        // 1. Salva informações básicas
+        // --- 🚀 PADRONIZAÇÃO DO STORAGE ---
+        // Criamos o objeto que a Dashboard e a Tabela esperam encontrar
+        const objetoUsuario = {
+          email: emailUsuario,
+          nome: user?.nome || 'Produtor',
+          id: user?.id
+        };
+
+        // Salvamos com a chave única que definimos nos outros componentes
+        window.localStorage.setItem('@Linkah:User', JSON.stringify(objetoUsuario));
+        
+        // Mantemos estes por segurança caso outros componentes antigos usem
         window.localStorage.setItem('userEmail', emailUsuario);
         window.localStorage.setItem('userName', user?.nome || 'Produtor');
+        // ----------------------------------
 
-        // 2. CHECAGEM CRUCIAL: Se o login não trouxe os dados, perguntamos ao Perfil
+        // 2. CHECAGEM DE PERFIL COMPLETO
         try {
           const perfilRes = await fetch(`${apiBaseUrl}/api/auth/perfil?email=${emailUsuario}`);
           const perfilData = await perfilRes.json();
 
-          // Se o perfilData tiver qualquer dado importante, marcamos como completo
           if (perfilRes.ok && (perfilData.cpf_cnpj || perfilData.cep || user?.cpf_cnpj)) {
             window.localStorage.setItem('perfil_completo', 'true');
             router.push('/dashboard/eventos');
           } else {
-            // Se realmente estiver vazio no banco, vai pro preenchimento
             window.localStorage.removeItem('perfil_completo');
             router.push('/dashboard/perfil');
           }
         } catch (checkError) {
-          // Se a checagem falhar, segue o fluxo padrão
+          // Se falhar a verificação, manda pro perfil para garantir
           router.push('/dashboard/perfil');
         }
         
