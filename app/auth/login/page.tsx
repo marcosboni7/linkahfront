@@ -17,6 +17,7 @@ export default function LoginPage() {
 
   const apiBaseUrl = 'https://linkah-api.onrender.com';
 
+  // Validação de E-mail em tempo real
   useEffect(() => {
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setErrors(prev => ({ ...prev, email: 'E-mail inválido' }));
@@ -25,6 +26,7 @@ export default function LoginPage() {
     }
   }, [email]);
 
+  // Validação de Senha em tempo real
   useEffect(() => {
     if (senha && senha.length < 6) {
       setErrors(prev => ({ ...prev, senha: 'Mínimo 6 caracteres' }));
@@ -36,6 +38,7 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Bloqueia se houver erros ou campos vazios
     if (errors.email || errors.senha || !email || !senha) {
       return;
     }
@@ -55,42 +58,47 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (response.ok) {
-        // Pegamos os dados do usuário que vêm da API
+        // 1. EXTRAÇÃO DOS DADOS
         const user = data.user;
         const emailUsuario = user?.email || email.trim().toLowerCase();
         
-        // --- 🚀 PADRONIZAÇÃO DO STORAGE ---
-        // Criamos o objeto que a Dashboard e a Tabela esperam encontrar
+        // 2. PADRONIZAÇÃO DO OBJETO DE USUÁRIO
         const objetoUsuario = {
           email: emailUsuario,
           nome: user?.nome || 'Produtor',
           id: user?.id || data.userId
         };
 
-        // Salvamos com a chave única para sincronizar com o Dashboard
+        // 3. SALVAMENTO NO LOCAL STORAGE (Sincronizado com Dashboard)
         window.localStorage.setItem('@Linkah:User', JSON.stringify(objetoUsuario));
-        
-        // Backups de compatibilidade
         window.localStorage.setItem('userEmail', emailUsuario);
         window.localStorage.setItem('userName', user?.nome || 'Produtor');
-        // ----------------------------------
 
-        // 2. CHECAGEM DE PERFIL COMPLETO (Fluxo Inteligente)
+        // Pequena pausa para garantir que o navegador escreveu no storage
+        await new Promise(resolve => setTimeout(resolve, 150));
+
+        // 4. CHECAGEM DE PERFIL (Para saber onde mandar o usuário)
         try {
           const perfilRes = await fetch(`${apiBaseUrl}/api/auth/perfil?email=${emailUsuario}`);
-          const perfilData = await perfilRes.json();
+          
+          if (perfilRes.ok) {
+            const perfilData = await perfilRes.json();
 
-          // Se tiver os dados básicos de produtor, manda pro Dashboard, senão, completa o perfil
-          if (perfilRes.ok && (perfilData.cpf_cnpj || perfilData.cep || user?.cpf_cnpj)) {
-            window.localStorage.setItem('perfil_completo', 'true');
-            router.push('/dashboard/eventos');
-          } else {
-            window.localStorage.removeItem('perfil_completo');
-            router.push('/dashboard/perfil');
+            // Se tiver CPF/CNPJ ou outros dados, o perfil está ok
+            if (perfilData.cpf_cnpj || perfilData.cep || user?.cpf_cnpj) {
+              window.localStorage.setItem('perfil_completo', 'true');
+              router.replace('/dashboard/eventos');
+              return;
+            }
           }
+          
+          // Caso perfil esteja incompleto
+          window.localStorage.removeItem('perfil_completo');
+          router.replace('/dashboard/perfil');
+          
         } catch (checkError) {
-          // Em caso de erro na checagem, Dashboard decide
-          router.push('/dashboard/eventos');
+          // Se a API de perfil falhar, manda pro dashboard por segurança
+          router.replace('/dashboard/eventos');
         }
         
       } else {
@@ -106,7 +114,8 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen bg-[#F8FAFC] font-sans antialiased text-slate-900">
-      {/* LADO ESQUERDO - Visual */}
+      
+      {/* LADO ESQUERDO - Visual Experience */}
       <div className="hidden lg:flex w-[40%] bg-[#C22973] flex-col justify-between p-16 relative overflow-hidden shadow-[20px_0_40px_rgba(0,0,0,0.1)]">
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
           <div className="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] bg-white/10 rounded-full blur-[120px] animate-pulse" />
@@ -119,7 +128,7 @@ export default function LoginPage() {
               <Globe className="text-[#C22973] w-8 h-8" />
             </div>
             <div>
-              <span className="text-3xl font-black tracking-tighter text-white italic block leading-none">LINKAH</span>
+              <span className="text-3xl font-black tracking-tighter text-white block leading-none italic">LINKAH</span>
               <span className="text-[10px] font-bold text-pink-200 uppercase tracking-[0.4em] ml-1">Producer Hub</span>
             </div>
           </div>
@@ -145,7 +154,7 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* LADO DIREITO - Formulário */}
+      {/* LADO DIREITO - Formulário de Login */}
       <div className="flex-1 flex flex-col justify-center items-center px-8 lg:px-24 bg-[#F8FAFC]">
         <div className="w-full max-w-[440px] bg-white p-10 rounded-[3rem] shadow-[0_10px_40px_rgba(0,0,0,0.03)] border border-slate-100">
           <div className="mb-10 text-center">
