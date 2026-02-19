@@ -17,8 +17,8 @@ export default function EditarEvento() {
     cidade: '',
     estado: '',
     categoria: '',
-    data_inicio: '', // Formato: YYYY-MM-DD
-    hora_inicio: ''  // Formato: HH:MM
+    data_inicio: '', 
+    hora_inicio: ''  
   });
 
   const apiBaseUrl = 'https://linkah-api.onrender.com';
@@ -26,16 +26,17 @@ export default function EditarEvento() {
   useEffect(() => {
     async function carregarEvento() {
       try {
-        const res = await fetch(`${apiBaseUrl}/api/eventos/${id}`);
+        setLoading(true);
+        // Adicionamos um timestamp para garantir que pegamos a versão MAIS NOVA do banco
+        const res = await fetch(`${apiBaseUrl}/api/eventos/${id}?t=${Date.now()}`);
         if (res.ok) {
           const data = await res.json();
           
-          // CORREÇÃO: Pegamos a data bruta (YYYY-MM-DD) sem passar pelo 'new Date'
-          // para evitar que o fuso horário mude o dia ou a hora.
+          // CORREÇÃO DATA: Pega apenas YYYY-MM-DD
           const dataISO = data.data_inicio ? data.data_inicio.substring(0, 10) : '';
           
-          // CORREÇÃO: Pegamos a hora diretamente da coluna hora_inicio
-          // Se vier "19:30:00", transformamos em "19:30" para o input time
+          // CORREÇÃO HORA: O input type="time" EXIGE o formato HH:mm (5 caracteres)
+          // Se o banco retornar "14:32:00", o .substring(0, 5) vira "14:32"
           const horaISO = data.hora_inicio ? data.hora_inicio.substring(0, 5) : '';
 
           setFormData({
@@ -62,8 +63,7 @@ export default function EditarEvento() {
     setSalvando(true);
 
     try {
-      // CORREÇÃO: Enviamos os dados limpos. O backend agora recebe 
-      // a hora_inicio separada e não tenta adivinhar a hora pela data.
+      // Enviamos exatamente o que está nos inputs
       const res = await fetch(`${apiBaseUrl}/api/eventos/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -77,6 +77,8 @@ export default function EditarEvento() {
           text: 'Evento atualizado com sucesso!',
           confirmButtonColor: '#C22973'
         });
+        // Forçamos o router a atualizar a página para garantir dados novos
+        router.refresh();
         router.push('/staff/painel');
       } else {
         Swal.fire('Erro', 'Falha ao salvar as alterações.', 'error');
@@ -119,7 +121,7 @@ export default function EditarEvento() {
               <input 
                 type="text" required value={formData.nome}
                 onChange={e => setFormData({...formData, nome: e.target.value})}
-                className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-5 text-sm font-bold outline-none focus:border-[#C22973] focus:bg-white transition-all"
+                className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-5 text-sm font-bold outline-none focus:border-[#C22973] focus:bg-white transition-all text-slate-700"
               />
             </div>
 
@@ -132,7 +134,7 @@ export default function EditarEvento() {
                 <input 
                   type="date" required value={formData.data_inicio}
                   onChange={e => setFormData({...formData, data_inicio: e.target.value})}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-5 text-sm font-bold outline-none focus:border-[#C22973]"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-5 text-sm font-bold outline-none focus:border-[#C22973] text-slate-700"
                 />
               </div>
               <div>
@@ -140,9 +142,12 @@ export default function EditarEvento() {
                   <Clock size={12} /> Horário de Início
                 </label>
                 <input 
-                  type="time" required value={formData.hora_inicio}
+                  type="time" 
+                  step="60" // Garante que foque em minutos
+                  required 
+                  value={formData.hora_inicio}
                   onChange={e => setFormData({...formData, hora_inicio: e.target.value})}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-5 text-sm font-bold outline-none focus:border-[#C22973]"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-5 text-sm font-bold outline-none focus:border-[#C22973] text-slate-700"
                 />
               </div>
             </div>
@@ -156,7 +161,7 @@ export default function EditarEvento() {
                 type="text" value={formData.local_nome}
                 onChange={e => setFormData({...formData, local_nome: e.target.value})}
                 placeholder="Ex: Teatro Municipal"
-                className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-5 text-sm font-bold outline-none focus:border-[#C22973]"
+                className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-5 text-sm font-bold outline-none focus:border-[#C22973] text-slate-700"
               />
             </div>
 
@@ -167,7 +172,7 @@ export default function EditarEvento() {
                 <input 
                   type="text" value={formData.cidade}
                   onChange={e => setFormData({...formData, cidade: e.target.value})}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-5 text-sm font-bold outline-none focus:border-[#C22973]"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-5 text-sm font-bold outline-none focus:border-[#C22973] text-slate-700"
                 />
               </div>
               <div>
@@ -175,7 +180,7 @@ export default function EditarEvento() {
                 <input 
                   type="text" maxLength={2} value={formData.estado}
                   onChange={e => setFormData({...formData, estado: e.target.value})}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-5 text-sm font-bold outline-none focus:border-[#C22973] uppercase"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-5 text-sm font-bold outline-none focus:border-[#C22973] uppercase text-slate-700"
                 />
               </div>
             </div>
