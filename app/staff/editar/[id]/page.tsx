@@ -27,20 +27,22 @@ export default function EditarEvento() {
     async function carregarEvento() {
       try {
         setLoading(true);
-        // O timestamp evita cache de dados antigos
-        const res = await fetch(`${apiBaseUrl}/api/eventos/${id}?t=${Date.now()}`);
+        // O timestamp ?t= é vital aqui para não ler o horário antigo do cache
+        const res = await fetch(`${apiBaseUrl}/api/eventos/${id}?t=${Date.now()}`, {
+          cache: 'no-store'
+        });
         
-        if (res.status === 401 || res.status === 403) {
-           console.error("Sessão expirada");
-           return; 
-        }
-
         if (res.ok) {
           const data = await res.json();
           
-          // Formata data e hora para os inputs HTML
+          // Tratamento rigoroso para o input type="time"
           const dataISO = data.data_inicio ? data.data_inicio.substring(0, 10) : '';
-          const horaISO = data.hora_inicio ? data.hora_inicio.substring(0, 5) : '';
+          
+          // Se vier "03:00:00", pegamos apenas "03:00"
+          let horaISO = '';
+          if (data.hora_inicio) {
+            horaISO = data.hora_inicio.split(':').slice(0, 2).join(':');
+          }
 
           setFormData({
             nome: data.nome || '',
@@ -66,13 +68,11 @@ export default function EditarEvento() {
     setSalvando(true);
 
     try {
+      console.log("Enviando horário:", formData.hora_inicio);
+
       const res = await fetch(`${apiBaseUrl}/api/eventos/${id}`, {
         method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json',
-          // Se o seu backend exige token, verifique se ele está sendo passado aqui:
-          // 'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
 
@@ -80,16 +80,16 @@ export default function EditarEvento() {
         await Swal.fire({
           icon: 'success',
           title: 'Sucesso!',
-          text: 'Evento atualizado com sucesso!',
-          confirmButtonColor: '#C22973',
-          timer: 1500 // Fecha rápido para não dar tempo de bugar o estado
+          text: 'Evento atualizado!',
+          timer: 1000,
+          showConfirmButton: false
         });
         
-        // Em vez de refresh pesado, vamos apenas empurrar para o painel
-        window.location.href = '/staff/painel'; 
+        // CORREÇÃO MESTRA: Em vez de push, usamos o reload do sistema para 
+        // garantir que o banco de dados entregue o valor novo na próxima leitura.
+        window.location.assign('/staff/painel'); 
       } else {
-        const errorData = await res.json();
-        Swal.fire('Erro', errorData.message || 'Falha ao salvar.', 'error');
+        Swal.fire('Erro', 'Falha ao salvar.', 'error');
       }
     } catch (error) {
       Swal.fire('Erro', 'Erro de conexão.', 'error');
@@ -107,80 +107,58 @@ export default function EditarEvento() {
   return (
     <div className="min-h-screen bg-[#F8FAFC] p-4 md:p-8">
       <div className="max-w-2xl mx-auto">
-        <button 
-          onClick={() => router.back()} 
-          className="flex items-center gap-2 text-slate-500 mb-6 font-bold text-sm hover:text-[#C22973] transition-colors"
-        >
+        <button onClick={() => router.back()} className="flex items-center gap-2 text-slate-500 mb-6 font-bold text-sm">
           <ArrowLeft size={16} /> VOLTAR
         </button>
 
         <div className="bg-white rounded-[2.5rem] p-6 md:p-10 border border-slate-200 shadow-sm">
-          <div className="mb-8">
-            <span className="text-[10px] font-black text-[#C22973] uppercase tracking-[0.2em]">Editor</span>
-            <h2 className="text-3xl font-black text-slate-800 tracking-tighter uppercase italic leading-none mt-1">Editar Evento</h2>
-          </div>
+          <h2 className="text-3xl font-black text-slate-800 tracking-tighter uppercase italic mb-8">Editar Evento</h2>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="flex items-center gap-2 text-[10px] font-black uppercase text-slate-400 mb-2 ml-1">
-                <Tag size={12} /> Nome do Evento
-              </label>
+              <label className="text-[10px] font-black uppercase text-slate-400 mb-2 block">Nome</label>
               <input 
                 type="text" required value={formData.nome}
                 onChange={e => setFormData({...formData, nome: e.target.value})}
-                className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-5 text-sm font-bold outline-none focus:border-[#C22973] text-slate-700"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="flex items-center gap-2 text-[10px] font-black uppercase text-slate-400 mb-2 ml-1">
-                  <Calendar size={12} /> Data
-                </label>
-                <input 
-                  type="date" required value={formData.data_inicio}
-                  onChange={e => setFormData({...formData, data_inicio: e.target.value})}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-5 text-sm font-bold outline-none focus:border-[#C22973] text-slate-700"
-                />
-              </div>
-              <div>
-                <label className="flex items-center gap-2 text-[10px] font-black uppercase text-slate-400 mb-2 ml-1">
-                  <Clock size={12} /> Hora
-                </label>
-                <input 
-                  type="time" required value={formData.hora_inicio}
-                  onChange={e => setFormData({...formData, hora_inicio: e.target.value})}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-5 text-sm font-bold outline-none focus:border-[#C22973] text-slate-700"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="flex items-center gap-2 text-[10px] font-black uppercase text-slate-400 mb-2 ml-1">
-                <MapPin size={12} /> Local
-              </label>
-              <input 
-                type="text" value={formData.local_nome}
-                onChange={e => setFormData({...formData, local_nome: e.target.value})}
-                className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-5 text-sm font-bold outline-none focus:border-[#C22973] text-slate-700"
+                className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-5 font-bold text-slate-700"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-               <div>
-                <label className="text-[10px] font-black uppercase text-slate-400 mb-2 ml-1 block">Cidade</label>
+              <div>
+                <label className="text-[10px] font-black uppercase text-slate-400 mb-2 block">Data</label>
                 <input 
-                  type="text" value={formData.cidade}
-                  onChange={e => setFormData({...formData, cidade: e.target.value})}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-5 text-sm font-bold outline-none focus:border-[#C22973] text-slate-700"
+                  type="date" required value={formData.data_inicio}
+                  onChange={e => setFormData({...formData, data_inicio: e.target.value})}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-5 font-bold text-slate-700"
                 />
               </div>
               <div>
-                <label className="text-[10px] font-black uppercase text-slate-400 mb-2 ml-1 block">UF</label>
+                <label className="text-[10px] font-black uppercase text-slate-400 mb-2 block">Hora (Horário Local)</label>
+                <input 
+                  type="time" required value={formData.hora_inicio}
+                  onChange={e => setFormData({...formData, hora_inicio: e.target.value})}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-5 font-bold text-slate-700"
+                />
+              </div>
+            </div>
+
+            {/* Restante dos campos (Cidade, Estado, etc) */}
+            <div className="grid grid-cols-2 gap-4">
+               <div>
+                <label className="text-[10px] font-black uppercase text-slate-400 mb-2 block">Cidade</label>
+                <input 
+                  type="text" value={formData.cidade}
+                  onChange={e => setFormData({...formData, cidade: e.target.value})}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-5 font-bold text-slate-700"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-black uppercase text-slate-400 mb-2 block">UF</label>
                 <input 
                   type="text" maxLength={2} value={formData.estado}
                   onChange={e => setFormData({...formData, estado: e.target.value})}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-5 text-sm font-bold outline-none focus:border-[#C22973] uppercase text-slate-700"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-5 font-bold uppercase text-slate-700"
                 />
               </div>
             </div>
@@ -188,10 +166,10 @@ export default function EditarEvento() {
             <button 
               type="submit"
               disabled={salvando}
-              className="w-full bg-[#C22973] text-white font-black py-5 rounded-2xl shadow-xl hover:bg-[#a61d5f] transition-all flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-70"
+              className="w-full bg-[#C22973] text-white font-black py-5 rounded-2xl shadow-xl hover:opacity-90 flex items-center justify-center gap-3"
             >
               {salvando ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
-              {salvando ? 'SALVANDO...' : 'SALVAR ALTERAÇÕES'}
+              SALVAR ALTERAÇÕES
             </button>
           </form>
         </div>
