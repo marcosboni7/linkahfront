@@ -44,16 +44,19 @@ export default function CadastroIngressos() {
     setLoading(true);
 
     try {
-      // 3. Formatação rigorosa para o Banco de Dados
+      // 3. Formatação rigorosa para o Banco de Dados (Garante que preco e qtd sejam números)
       const ingressosFormatados = ingressos.map(ing => ({
         nome: String(ing.nome).trim(),
-        preco: Number(ing.preco),
-        quantidade: Number(ing.quantidade)
+        preco: parseFloat(String(ing.preco).replace(',', '.')),
+        quantidade: parseInt(String(ing.quantidade), 10)
       }));
 
       const apiBaseUrl = 'https://linkah-api.onrender.com';
-      // Rota exata conforme seu controller: /api/eventos/ingressos/:id
-      const url = `${apiBaseUrl}/api/eventos/ingressos/${id}`;
+      
+      // ROTA CORRIGIDA: Invertido para bater com router.post('/:id/ingressos' no Back-end
+      const url = `${apiBaseUrl}/api/eventos/${id}/ingressos`;
+
+      console.log("Enviando para:", url);
 
       const response = await fetch(url, {
         method: 'POST',
@@ -61,8 +64,8 @@ export default function CadastroIngressos() {
         body: JSON.stringify({ ingressos: ingressosFormatados }),
       });
 
-      // 4. Tratamento de Resposta Amigável
-      if (response.status === 200 || response.status === 201) {
+      // 4. Tratamento de Resposta
+      if (response.ok) {
         Swal.fire({
           title: '<span style="color: #C22973">🎉 Sucesso!</span>',
           text: 'Seu evento e ingressos foram publicados com sucesso!',
@@ -74,15 +77,12 @@ export default function CadastroIngressos() {
           router.push('/dashboard/eventos');
         });
       } else {
-        // Se cair aqui, o servidor respondeu algo fora de 200/201
         const textoErro = await response.text();
-        console.error("Resposta do servidor:", textoErro);
+        console.error("Erro do servidor:", textoErro);
         
-        // Se mesmo com erro o evento foi salvo (como você disse), 
-        // damos a opção do usuário checar a lista
         Swal.fire({
           title: 'Atenção',
-          text: 'O servidor processou o pedido, mas houve uma instabilidade na resposta. Verifique se o evento aparece na sua lista.',
+          text: 'Houve um problema ao salvar os ingressos. Verifique se o evento aparece na sua lista.',
           icon: 'warning',
           showCancelButton: true,
           confirmButtonText: 'Ver Meus Eventos',
@@ -93,7 +93,7 @@ export default function CadastroIngressos() {
       }
     } catch (error) {
       console.error("Erro na requisição:", error);
-      Swal.fire('Erro de Conexão', 'Não foi possível falar com o servidor. Verifique sua internet.', 'error');
+      Swal.fire('Erro de Conexão', 'Não foi possível falar com o servidor.', 'error');
     } finally {
       setLoading(false);
     }
@@ -103,8 +103,8 @@ export default function CadastroIngressos() {
     <div className="min-h-screen bg-[#FAFBFF]">
       <header className="border-b border-slate-100 px-10 py-5 flex justify-between items-center bg-white/90 sticky top-0 z-50">
         <div className="flex items-center gap-4">
-          <button onClick={() => router.back()} className="p-2 hover:bg-pink-50 rounded-full transition-colors">
-            <ChevronLeft size={22} className="text-slate-400" />
+          <button onClick={() => router.back()} className="p-2 hover:bg-pink-50 rounded-full transition-colors text-slate-400">
+            <ChevronLeft size={22} />
           </button>
           <h1 className="text-slate-800 font-black text-lg tracking-tight uppercase">Publicar Ingressos</h1>
         </div>
@@ -120,7 +120,10 @@ export default function CadastroIngressos() {
       <main className="max-w-[850px] mx-auto p-10 space-y-6">
         <div className="bg-blue-50 border border-blue-100 p-6 rounded-[2rem] flex gap-4 text-blue-700 text-sm">
           <Info className="shrink-0" size={20} />
-          <p>Quase lá! Agora defina os valores e quantidades. O ID do evento atual é: <strong>{id || 'Carregando...'}</strong></p>
+          <p>
+            Defina os valores e quantidades. 
+            {id ? <span> O ID do evento é: <strong>{id}</strong></span> : " Carregando identificador..."}
+          </p>
         </div>
 
         {ingressos.map((ing, index) => (
@@ -138,6 +141,7 @@ export default function CadastroIngressos() {
               <label className="text-[10px] text-slate-400 font-black uppercase ml-1">Preço (R$) *</label>
               <input 
                 type="number" 
+                step="0.01"
                 value={ing.preco} 
                 onChange={(e) => handleChange(index, 'preco', e.target.value)}
                 className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none focus:border-[#C22973] font-bold text-slate-700" 
@@ -155,7 +159,10 @@ export default function CadastroIngressos() {
               />
             </div>
             {ingressos.length > 1 && (
-              <button onClick={() => setIngressos(ingressos.filter((_, i) => i !== index))} className="p-4 text-slate-300 hover:text-red-500 transition-colors">
+              <button 
+                onClick={() => setIngressos(ingressos.filter((_, i) => i !== index))} 
+                className="p-4 text-slate-300 hover:text-red-500 transition-colors"
+              >
                 <Trash2 size={20} />
               </button>
             )}
