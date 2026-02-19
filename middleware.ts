@@ -4,28 +4,39 @@ import type { NextRequest } from 'next/server';
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // 1. LIBERA A HOME: Permite que qualquer um veja a página inicial
+  // 1. LIBERA A HOME
   if (pathname === '/') {
     return NextResponse.next();
   }
 
-  // 2. LIBERA O STAFF: Ignora travas de login para a pasta staff (como combinamos)
+  // 2. LIBERA DASHBOARD (Nova rota padrão do produtor)
+  // Agora o middleware entende que a rota /dashboard é permitida
+  if (pathname.startsWith('/dashboard')) {
+    return NextResponse.next();
+  }
+
+  // 3. LIBERA O STAFF (Mantido para caso você ainda use algo lá)
   if (pathname.startsWith('/staff')) {
     return NextResponse.next();
   }
 
-  // 3. LIBERA AUTH: Permite acessar login e registro
+  // 4. LIBERA AUTH: Login e Registro
   if (pathname.startsWith('/auth')) {
     return NextResponse.next();
   }
 
-  // Se você quiser proteger outras rotas futuras, a lógica viria aqui.
-  // Por enquanto, vamos deixar passar tudo para você não ter mais bloqueios.
   return NextResponse.next();
 }
 
 export const config = {
   matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     */
     '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
 };
