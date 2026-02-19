@@ -4,31 +4,53 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import AvisoCadastro from '../eventos/AvisoCadastro';
 import TabelaEventos from '../eventos/TabelaEventos';
-import { UserCircle, LogOut, Settings, ChevronDown } from 'lucide-react';
+import { UserCircle, LogOut, Settings, ChevronDown, Loader2 } from 'lucide-react';
 
 export default function DashboardEventos() {
   const [isOpen, setIsOpen] = useState(false);
-  const [userName, setUserName] = useState('Produtor'); // Valor padrão
+  const [userName, setUserName] = useState('Produtor');
+  const [isChecking, setIsChecking] = useState(true); // Estado para a trava
   const router = useRouter();
 
   useEffect(() => {
-    // 1. Tenta pegar o nome guardado no localStorage (chave 'userName')
-    const storedName = localStorage.getItem('userName');
-    
-    if (storedName && storedName !== 'undefined') {
-      // Pega o primeiro nome e garante que a primeira letra é maiúscula
-      const firstName = storedName.split(' ')[0];
-      setUserName(firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase());
+    // 1. Pega os dados que o Login salvou
+    const storedUser = localStorage.getItem('@Linkah:User');
+    const token = localStorage.getItem('@Linkah:Token');
+
+    // 2. TRAVA DE SEGURANÇA: Se não tiver token ou user, volta pro login
+    if (!storedUser || !token) {
+      router.push('/auth/login');
+      return;
     }
-  }, []);
+
+    // 3. Se chegou aqui, está logado. Vamos tratar o nome:
+    try {
+      const userData = JSON.parse(storedUser);
+      // Pega o nome do objeto (ajuste 'nome' conforme sua API envia)
+      const fullPathName = userData.nome || userData.name || 'Produtor';
+      const firstName = fullPathName.split(' ')[0];
+      setUserName(firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase());
+      
+      setIsChecking(false); // Libera o conteúdo da página
+    } catch (e) {
+      console.error("Erro ao ler dados do usuário", e);
+      router.push('/auth/login');
+    }
+  }, [router]);
 
   const handleLogout = () => {
-    // Limpa os dados de login
     localStorage.clear(); 
-    
-    // Redireciona para o login de forma inteligente (funciona local e na web)
     router.push('/auth/login');
   };
+
+  // Enquanto verifica o login, mostra um carregando para não piscar a tela
+  if (isChecking) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center bg-white">
+        <Loader2 className="animate-spin text-[#4B0082]" size={40} />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F1F5F9]">
@@ -44,7 +66,6 @@ export default function DashboardEventos() {
           >
             <div className="text-right mr-1 hidden sm:block">
               <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Olá, bem-vindo</p>
-              {/* AQUI APARECE O NOME REAL */}
               <p className="text-xs font-bold text-slate-700">{userName}</p>
             </div>
 
