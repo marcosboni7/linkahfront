@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import {
-  ChevronLeft, ChevronRight, ChevronDown, MapPin,
-  Globe, Calendar, Clock, Edit3, Trash2, Image as ImageIcon, X, Save, Loader2, Ticket
+  ChevronDown, MapPin, Globe, Calendar, Clock, Edit3, Trash2, 
+  Image as ImageIcon, X, Save, Loader2, Ticket
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Swal from 'sweetalert2';
@@ -20,19 +20,24 @@ export default function TabelaEventos() {
 
   const apiBaseUrl = 'https://linkah-api.onrender.com';
 
+  // Formatação de data resiliente
   const formatarDataLocal = (dataString: string) => {
     if (!dataString) return 'S/D';
-    const data = new Date(dataString);
-    return data.toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+    try {
+      const data = new Date(dataString);
+      // Ajuste para evitar que o fuso horário mude o dia
+      return new Date(data.getTime() + data.getTimezoneOffset() * 60000)
+        .toLocaleDateString('pt-BR');
+    } catch {
+      return 'Data Inválida';
+    }
   };
 
   const carregarEventos = async () => {
     setLoading(true);
     try {
-      // PEGANDO O EMAIL DO OBJETO @Linkah:User
       const userJSON = localStorage.getItem('@Linkah:User');
       if (!userJSON) {
-        console.error("Usuário não logado");
         setLoading(false);
         return;
       }
@@ -40,7 +45,7 @@ export default function TabelaEventos() {
       const user = JSON.parse(userJSON);
       const email = user.email;
 
-      // Adicionando timestamp para evitar cache do navegador
+      // Chama a rota que ajustamos no back-end
       const res = await fetch(`${apiBaseUrl}/api/eventos/listar?email=${email}&t=${Date.now()}`);
       
       if (res.ok) {
@@ -61,7 +66,7 @@ export default function TabelaEventos() {
   const handleExcluir = async (id: number) => {
     const result = await Swal.fire({
       title: 'Tem certeza?',
-      text: "Todos os ingressos vinculados também serão apagados!",
+      text: "Isso removerá o evento e todos os ingressos vinculados!",
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#C22973',
@@ -76,7 +81,12 @@ export default function TabelaEventos() {
         const res = await fetch(`${apiBaseUrl}/api/eventos/${id}`, { method: 'DELETE' });
         if (res.ok) {
           setEventos((prev: any) => prev.filter((ev: any) => ev.id !== id));
-          Swal.fire({ title: 'Removido!', icon: 'success', confirmButtonColor: '#C22973', customClass: { popup: 'rounded-[2rem]' } });
+          Swal.fire({ 
+            title: 'Removido!', 
+            icon: 'success', 
+            confirmButtonColor: '#C22973', 
+            customClass: { popup: 'rounded-[2rem]' } 
+          });
         }
       } catch (err) {
         Swal.fire('Erro', 'Erro ao conectar com o servidor.', 'error');
@@ -89,34 +99,12 @@ export default function TabelaEventos() {
     setIsEditModalOpen(true);
   };
 
-  const handleSalvarEdicao = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    try {
-      const res = await fetch(`${apiBaseUrl}/api/eventos/${eventoParaEditar.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(eventoParaEditar),
-      });
-
-      if (res.ok) {
-        Swal.fire({ title: 'Sucesso!', text: 'Evento atualizado.', icon: 'success', confirmButtonColor: '#C22973', customClass: { popup: 'rounded-[2rem]' } });
-        setIsEditModalOpen(false);
-        carregarEventos();
-      }
-    } catch (err) {
-      Swal.fire('Erro', 'Falha ao salvar.', 'error');
-    } finally {
-      setSaving(false);
-    }
-  };
-
   return (
     <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
       <div className="p-6 border-b border-slate-50 flex justify-between items-center bg-white">
-        <button className="text-[#C22973] font-black border-b-2 border-[#C22973] pb-1 px-2 uppercase text-xs tracking-[0.2em]">
-          Meus Eventos
-        </button>
+        <h2 className="text-[#C22973] font-black border-b-2 border-[#C22973] pb-1 px-2 uppercase text-xs tracking-[0.2em]">
+          Gerenciar Eventos
+        </h2>
 
         <div className="relative">
           <button
@@ -157,7 +145,6 @@ export default function TabelaEventos() {
               <th className="px-8 py-5">Evento & Ingressos</th>
               <th className="px-4 py-5">Onde</th>
               <th className="px-4 py-5">Quando</th>
-              <th className="px-4 py-5">Vendas</th>
               <th className="px-4 py-5">Status</th>
               <th className="px-4 py-5 text-center">Ações</th>
             </tr>
@@ -165,7 +152,10 @@ export default function TabelaEventos() {
           <tbody className="divide-y divide-slate-50">
             {loading ? (
               <tr>
-                <td colSpan={6} className="py-20 text-center"><Loader2 className="animate-spin mx-auto text-slate-300" size={40} /></td>
+                <td colSpan={5} className="py-20 text-center">
+                  <Loader2 className="animate-spin mx-auto text-[#C22973]" size={40} />
+                  <p className="text-slate-400 text-xs font-bold mt-4 uppercase">Carregando seus eventos...</p>
+                </td>
               </tr>
             ) : eventos.length > 0 ? (
               eventos.map((evento: any) => (
@@ -184,49 +174,86 @@ export default function TabelaEventos() {
                           <p className="font-black text-slate-800 text-sm leading-tight uppercase">{evento.nome}</p>
                           <p className="text-[10px] text-pink-500 font-black uppercase tracking-widest mt-0.5">{evento.categoria}</p>
                         </div>
+                        {/* Listagem de Ingressos dinâmica vinda do Back */}
                         <div className="flex flex-wrap gap-1.5 mt-2">
                           {evento.ingressos && evento.ingressos.length > 0 ? (
                             evento.ingressos.map((ing: any, idx: number) => (
                               <div key={idx} className="flex items-center gap-1.5 bg-white border border-slate-200 px-2.5 py-1 rounded-lg shadow-sm">
                                 <Ticket size={10} className="text-slate-400" />
                                 <span className="text-[9px] font-bold text-slate-600 uppercase">{ing.nome}</span>
-                                <span className="text-[9px] font-black text-[#C22973]">R$ {ing.preco}</span>
+                                <span className="text-[9px] font-black text-[#C22973]">
+                                  {Number(ing.preco) === 0 ? 'GRÁTIS' : `R$ ${ing.preco}`}
+                                </span>
                               </div>
                             ))
                           ) : (
-                            <span className="text-[9px] text-slate-400 italic font-bold">Sem ingressos</span>
+                            <span className="text-[9px] text-slate-400 italic font-bold">Sem ingressos configurados</span>
                           )}
                         </div>
                       </div>
                     </div>
                   </td>
                   <td className="px-4 py-5 font-bold text-xs text-slate-700">
-                    {evento.local_nome || 'A definir'}<br/>
-                    <span className="text-[10px] text-slate-400 uppercase">{evento.cidade}, {evento.estado}</span>
+                    {evento.tipo === 'online' ? (
+                      <span className="flex items-center gap-1 text-blue-500"><Globe size={12}/> Online</span>
+                    ) : (
+                      <>
+                        {evento.local_nome || 'Local não definido'}<br/>
+                        <span className="text-[10px] text-slate-400 uppercase font-medium">{evento.cidade} - {evento.estado}</span>
+                      </>
+                    )}
                   </td>
                   <td className="px-4 py-5 font-bold text-xs text-slate-700">
-                    {formatarDataLocal(evento.data_inicio)}<br/>
-                    <span className="text-[10px] text-slate-400 uppercase">{evento.hora_inicio?.slice(0, 5)}h</span>
+                    <div className="flex flex-col">
+                      <span className="flex items-center gap-1"><Calendar size={12} className="text-slate-400"/> {formatarDataLocal(evento.data_inicio)}</span>
+                      <span className="flex items-center gap-1 text-[10px] text-slate-400 uppercase mt-1"><Clock size={12}/> {evento.hora_inicio ? evento.hora_inicio.slice(0, 5) : '--:--'}h</span>
+                    </div>
                   </td>
                   <td className="px-4 py-5">
-                    <span className="text-[10px] font-black text-slate-700">{evento.total_vendidos || 0} / {evento.total_vagas || 0}</span>
-                  </td>
-                  <td className="px-4 py-5">
-                    <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${evento.status === 'Ativo' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
-                      {evento.status}
+                    <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
+                      evento.status === 'Ativo' 
+                        ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' 
+                        : 'bg-amber-50 text-amber-600 border border-amber-100'
+                    }`}>
+                      {evento.status || 'Pendente'}
                     </span>
                   </td>
                   <td className="px-4 py-5">
-                    <div className="flex items-center justify-center gap-2">
-                      <button onClick={() => abrirModalEdicao(evento)} className="p-2.5 text-slate-400 hover:text-indigo-600 transition-all"><Edit3 size={16} /></button>
-                      <button onClick={() => handleExcluir(evento.id)} className="p-2.5 text-slate-400 hover:text-red-500 transition-all"><Trash2 size={16} /></button>
+                    <div className="flex items-center justify-center gap-1">
+                      <button 
+                        onClick={() => abrirModalEdicao(evento)} 
+                        className="p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
+                        title="Editar Evento"
+                      >
+                        <Edit3 size={16} />
+                      </button>
+                      <button 
+                        onClick={() => handleExcluir(evento.id)} 
+                        className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                        title="Excluir Evento"
+                      >
+                        <Trash2 size={16} />
+                      </button>
                     </div>
                   </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan={6} className="py-32 text-center text-slate-400 font-bold uppercase text-xs">Nenhum evento encontrado</td>
+                <td colSpan={5} className="py-32 text-center">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="p-4 bg-slate-50 rounded-full text-slate-200">
+                      <Calendar size={40} />
+                    </div>
+                    <p className="text-slate-400 font-bold uppercase text-xs tracking-widest">Nenhum evento criado por você</p>
+                    <button 
+                      onClick={() => setIsOpen(true)}
+                      className="text-[#C22973] text-[10px] font-black uppercase hover:underline"
+                    >
+                      Comece criando o primeiro agora
+                    </button>
+                  </div>
+                </td>
               </tr>
             )}
           </tbody>

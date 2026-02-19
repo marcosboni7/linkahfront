@@ -31,20 +31,22 @@ export default function BuyTicketHome() {
   const [categoriaAtiva, setCategoriaAtiva] = useState('Todos');
   const [categoriasExistentes, setCategoriasExistentes] = useState<string[]>(['Todos']);
   const [buscaNome, setBuscaNome] = useState('');
+  const [buscaLocal, setBuscaLocal] = useState(''); // Estado para o filtro de local
   const [currentSlide, setCurrentSlide] = useState(0);
 
   const API_URL = 'https://linkah-api.onrender.com/api/eventos/vitrine';
 
+  // Controle do Carrossel
   useEffect(() => {
     const interval = setInterval(() => setCurrentSlide((prev) => (prev === SLIDES.length - 1 ? 0 : prev + 1)), 5000);
     return () => clearInterval(interval);
   }, []);
 
+  // Carregamento de Dados com Cache-Bust
   useEffect(() => {
     async function carregarDados() {
       setLoading(true);
       try {
-        // ADICIONADO TIMESTAMP (?t=) PARA FURAR O CACHE DA VERCEL
         const response = await fetch(`${API_URL}?t=${Date.now()}`);
         if (response.ok) {
           const dados = await response.json();
@@ -53,7 +55,7 @@ export default function BuyTicketHome() {
           setCategoriasExistentes(['Todos', ...Array.from(new Set(extrair)) as string[]]);
         }
       } catch (error) { 
-        console.error("Erro API:", error); 
+        console.error("Erro API Vitrine:", error); 
       } finally { 
         setLoading(false); 
       }
@@ -61,17 +63,18 @@ export default function BuyTicketHome() {
     carregarDados();
   }, []);
 
+  // Lógica de Datas
   const hojeObj = new Date();
   const hojeStr = hojeObj.toLocaleDateString('en-CA');
 
   const oQueFazerHoje = eventos.filter(ev => {
-    if (!ev.data_inicio) return false;
+    if (!ev.data_inicio || ev.status !== 'Ativo') return false;
     const dataEvStr = new Date(ev.data_inicio).toLocaleDateString('en-CA');
     return dataEvStr === hojeStr;
   });
 
   const ultimaChamada = eventos.filter(ev => {
-    if (!ev.data_inicio) return false;
+    if (!ev.data_inicio || ev.status !== 'Ativo') return false;
     const dataEv = new Date(ev.data_inicio);
     const dataEvStr = dataEv.toLocaleDateString('en-CA');
     if (dataEvStr === hojeStr) return false;
@@ -80,10 +83,15 @@ export default function BuyTicketHome() {
     return diffDays >= 1 && diffDays <= 2;
   });
 
+  // Filtro Global (Nome + Categoria + Local)
   const vitrineFiltrada = eventos.filter(ev => {
     const nomeMatch = ev.nome.toLowerCase().includes(buscaNome.toLowerCase());
     const catMatch = categoriaAtiva === 'Todos' || ev.categoria === categoriaAtiva;
-    return nomeMatch && catMatch;
+    const localMatch = ev.cidade?.toLowerCase().includes(buscaLocal.toLowerCase()) || 
+                       ev.estado?.toLowerCase().includes(buscaLocal.toLowerCase()) ||
+                       ev.local_nome?.toLowerCase().includes(buscaLocal.toLowerCase());
+    
+    return nomeMatch && catMatch && localMatch;
   });
 
   return (
@@ -108,6 +116,7 @@ export default function BuyTicketHome() {
         
         <div className="absolute bottom-10 z-30 w-full px-6">
           <div className="bg-white/95 backdrop-blur-md p-2 rounded-2xl md:rounded-full shadow-2xl flex flex-col md:flex-row items-center max-w-5xl mx-auto border border-white/40">
+            {/* Busca por Nome */}
             <div className="flex-1 flex items-center px-5 py-3 w-full border-b md:border-b-0 md:border-r border-slate-200">
               <Search size={20} className="text-[#ff0082] mr-3 shrink-0" />
               <input 
@@ -123,14 +132,24 @@ export default function BuyTicketHome() {
                 </button>
               )}
             </div>
+
+            {/* Busca por Localização */}
             <div className="flex-1 flex items-center px-5 py-3 w-full group">
               <MapPin size={20} className="text-slate-400 mr-3 group-hover:text-[#ff0082] transition-colors shrink-0" />
               <input 
                 type="text" 
+                value={buscaLocal}
+                onChange={(e) => setBuscaLocal(e.target.value)}
                 placeholder="Localização (Cidade ou Estado)" 
                 className="w-full bg-transparent outline-none text-base font-medium text-slate-800 placeholder:text-slate-400" 
               />
+               {buscaLocal && (
+                <button onClick={() => setBuscaLocal('')} className="ml-2 text-slate-400 hover:text-slate-600 transition-colors">
+                  <X size={18} />
+                </button>
+              )}
             </div>
+            
             <button className="bg-[#ff0082] hover:bg-[#d9006f] text-white px-10 py-4 rounded-xl md:rounded-full font-black text-sm uppercase tracking-widest transition-all w-full md:w-auto shadow-lg shadow-pink-200 active:scale-95">
               Buscar Agora
             </button>
@@ -149,7 +168,7 @@ export default function BuyTicketHome() {
       </div>
 
       <main className="flex-1 max-w-7xl mx-auto px-6 py-10 space-y-20 w-full">
-        {!buscaNome && (
+        {!buscaNome && !buscaLocal && (
           <>
             {oQueFazerHoje.length > 0 && (
               <section className="animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -180,7 +199,7 @@ export default function BuyTicketHome() {
 
         <section id="vitrine-principal">
           <SectionHeader 
-            title={buscaNome ? `Resultados para "${buscaNome}"` : (categoriaAtiva === 'Todos' ? 'Perto de você' : categoriaAtiva)} 
+            title={buscaNome || buscaLocal ? `Resultados da busca` : (categoriaAtiva === 'Todos' ? 'Perto de você' : categoriaAtiva)} 
             count={vitrineFiltrada.length} 
           />
 
@@ -204,7 +223,7 @@ export default function BuyTicketHome() {
                 Não encontramos nada com esses termos. Tente mudar a categoria ou limpar a busca para ver todos os eventos.
               </p>
               <button 
-                onClick={() => {setBuscaNome(''); setCategoriaAtiva('Todos');}}
+                onClick={() => {setBuscaNome(''); setBuscaLocal(''); setCategoriaAtiva('Todos');}}
                 className="mt-6 text-[#ff0082] font-bold hover:underline"
               >
                 Ver todos os eventos
