@@ -1,62 +1,94 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, Loader2 } from 'lucide-react';
-import Swal from 'sweetalert2';
+import AvisoCadastro from '../eventos/AvisoCadastro';
+import TabelaEventos from '../eventos/TabelaEventos';
+import { UserCircle, LogOut, Settings, ChevronDown } from 'lucide-react';
 
-export default function NovoEvento() {
+export default function DashboardEventos() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [userName, setUserName] = useState('Produtor'); // Valor padrão
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({ nome: '', data: '', local: '', cidade: '', estado: '' });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      const response = await fetch('https://linkah-api.onrender.com/api/eventos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        // Pega o ID que veio do banco de dados (id ou _id)
-        const eventoId = data.id || data._id || (data.evento && (data.evento.id || data.evento._id));
-
-        if (eventoId) {
-          // Manda para a URL com o ID real
-          router.push(`/dashboard/eventos/${eventoId}/ingressos`);
-        } else {
-          Swal.fire('Erro', 'Evento criado, mas ID não retornado.', 'error');
-        }
-      } else {
-        Swal.fire('Erro', 'Falha ao criar evento.', 'error');
-      }
-    } catch (error) {
-      Swal.fire('Erro', 'Erro de conexão.', 'error');
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    // 1. Tenta pegar o nome guardado no localStorage (chave 'userName')
+    const storedName = localStorage.getItem('userName');
+    
+    if (storedName && storedName !== 'undefined') {
+      // Pega o primeiro nome e garante que a primeira letra é maiúscula
+      const firstName = storedName.split(' ')[0];
+      setUserName(firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase());
     }
+  }, []);
+
+  const handleLogout = () => {
+    // Limpa os dados de login
+    localStorage.clear(); 
+    
+    // Redireciona para o login de forma inteligente (funciona local e na web)
+    router.push('/auth/login');
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] p-10">
-      <div className="max-w-2xl mx-auto bg-white p-10 rounded-[2.5rem] shadow-sm">
-        <button onClick={() => router.back()} className="flex items-center gap-2 text-slate-400 mb-6"><ChevronLeft /> Voltar</button>
-        <h1 className="text-2xl font-black mb-8 uppercase italic">Dados do Evento</h1>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input placeholder="Nome do Evento" className="w-full p-4 bg-slate-50 border rounded-2xl" onChange={e => setForm({...form, nome: e.target.value})} required />
-          <input type="date" className="w-full p-4 bg-slate-50 border rounded-2xl" onChange={e => setForm({...form, data: e.target.value})} required />
-          <input placeholder="Cidade" className="w-full p-4 bg-slate-50 border rounded-2xl" onChange={e => setForm({...form, cidade: e.target.value})} required />
-          <button type="submit" disabled={loading} className="w-full bg-[#C22973] text-white py-5 rounded-2xl font-black uppercase">
-            {loading ? <Loader2 className="animate-spin mx-auto" /> : 'Próximo: Definir Ingressos'}
+    <div className="min-h-screen bg-[#F1F5F9]">
+      <nav className="bg-white px-8 py-4 flex justify-between items-center border-b border-slate-200 sticky top-0 z-50">
+        <div className="flex items-center gap-2">
+          <span className="text-2xl font-black text-[#4B0082] tracking-tighter">LİNKAH</span>
+        </div>
+
+        <div className="relative">
+          <button 
+            onClick={() => setIsOpen(!isOpen)}
+            className="flex items-center gap-3 hover:bg-slate-50 p-2 rounded-2xl transition-all group"
+          >
+            <div className="text-right mr-1 hidden sm:block">
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Olá, bem-vindo</p>
+              {/* AQUI APARECE O NOME REAL */}
+              <p className="text-xs font-bold text-slate-700">{userName}</p>
+            </div>
+
+            <div className="relative">
+              <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center group-hover:bg-slate-200 transition-colors">
+                <UserCircle className="text-slate-400" size={28} />
+              </div>
+              <div className="w-3 h-3 bg-green-500 rounded-full border-2 border-white absolute bottom-0 right-0"></div>
+            </div>
+            
+            <ChevronDown size={14} className={`text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
           </button>
-        </form>
-      </div>
+
+          {isOpen && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)}></div>
+              <div className="absolute right-0 mt-2 w-52 bg-white rounded-3xl border border-slate-100 shadow-2xl shadow-indigo-100/50 z-20 py-2 animate-in fade-in zoom-in duration-150">
+                <div className="px-4 py-2 border-b border-slate-50 mb-1">
+                  <p className="text-[10px] font-black text-slate-300 uppercase">Minha Conta</p>
+                </div>
+                
+                <button 
+                  onClick={() => router.push('/dashboard/perfil')}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all"
+                >
+                  <Settings size={16} /> Configurações
+                </button>
+                
+                <button 
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-red-500 hover:bg-red-50 transition-all"
+                >
+                  <LogOut size={16} /> Sair da conta
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </nav>
+
+      <main className="max-w-[1400px] mx-auto p-4 md:p-10">
+        <AvisoCadastro />
+        <TabelaEventos />
+      </main>
     </div>
   );
 }
