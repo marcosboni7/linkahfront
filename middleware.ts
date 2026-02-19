@@ -4,21 +4,28 @@ import type { NextRequest } from 'next/server';
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // LIBERAÇÃO: Se o link começar com /staff, ignora qualquer trava de login do site
+  // 1. LIBERA A HOME: Permite que qualquer um veja a página inicial
+  if (pathname === '/') {
+    return NextResponse.next();
+  }
+
+  // 2. LIBERA O STAFF: Ignora travas de login para a pasta staff (como combinamos)
   if (pathname.startsWith('/staff')) {
     return NextResponse.next();
   }
 
-  // Se você tiver uma lógica que manda para /auth/login, 
-  // ela não vai mais afetar a pasta staff.
+  // 3. LIBERA AUTH: Permite acessar login e registro
+  if (pathname.startsWith('/auth')) {
+    return NextResponse.next();
+  }
+
+  // Se você quiser proteger outras rotas futuras, a lógica viria aqui.
+  // Por enquanto, vamos deixar passar tudo para você não ter mais bloqueios.
   return NextResponse.next();
 }
 
 export const config = {
   matcher: [
-    /*
-     * Aplica em todas as rotas, exceto arquivos estáticos e APIs
-     */
     '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
 };
