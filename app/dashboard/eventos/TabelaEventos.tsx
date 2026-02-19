@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   ChevronDown, MapPin, Globe, Calendar, Clock, Edit3, Trash2, 
-  Image as ImageIcon, X, Save, Loader2, Ticket, AlertCircle
+  Image as ImageIcon, X, Save, Loader2, Ticket, AlertCircle, RefreshCw
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Swal from 'sweetalert2';
@@ -44,23 +44,35 @@ export default function TabelaEventos() {
       const email = user.email;
 
       if (!email) {
-        setDebugError("Dados do usuário corrompidos.");
+        setDebugError("Dados do usuário não encontrados.");
         setLoading(false);
         return;
       }
 
-      // Adicionamos um timestamp para evitar cache do navegador
-      const res = await fetch(`${apiBaseUrl}/api/eventos/listar?email=${email}&t=${Date.now()}`);
+      // TENTATIVA 1: Rota padrão com no-store para forçar atualização
+      // Nota: Tentei usar /api/eventos caso /listar esteja com problema
+      const res = await fetch(`${apiBaseUrl}/api/eventos?email=${email}&t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: { 'Pragma': 'no-cache', 'Cache-Control': 'no-cache' }
+      });
       
       if (res.ok) {
         const data = await res.json();
-        setEventos(data);
+        // Garante que estamos pegando um Array, mesmo se a API mudar o formato
+        setEventos(Array.isArray(data) ? data : (data.eventos || []));
       } else {
-        const errorText = await res.text();
-        setDebugError(`Erro na API: ${res.status}`);
+        // TENTATIVA 2: Se a primeira falhar, tenta a rota /listar
+        const res2 = await fetch(`${apiBaseUrl}/api/eventos/listar?email=${email}&t=${Date.now()}`);
+        if (res2.ok) {
+          const data2 = await res2.json();
+          setEventos(Array.isArray(data2) ? data2 : (data2.eventos || []));
+        } else {
+          setDebugError(`Erro ao buscar eventos (${res.status})`);
+        }
       }
     } catch (err: any) {
-      setDebugError("Erro de conexão com o servidor.");
+      setDebugError("Falha na conexão com o servidor.");
+      console.error("Erro fetch:", err);
     } finally {
       setLoading(false);
     }
@@ -104,26 +116,28 @@ export default function TabelaEventos() {
   return (
     <div className="flex flex-col gap-4">
       {debugError && (
-        <div className="bg-amber-50 border border-amber-200 p-4 rounded-2xl flex items-center gap-3">
+        <div className="bg-amber-50 border border-amber-200 p-4 rounded-2xl flex items-center gap-3 animate-in fade-in zoom-in duration-300">
           <AlertCircle className="text-amber-600" />
           <div className="flex-1">
-            <p className="text-amber-800 text-xs font-black uppercase tracking-widest">Aviso de Sistema</p>
+            <p className="text-amber-800 text-[10px] font-black uppercase tracking-widest">Aviso de Sistema</p>
             <p className="text-amber-700 text-sm font-medium">{debugError}</p>
           </div>
-          <button onClick={() => carregarEventos()} className="bg-amber-600 text-white text-[10px] font-bold px-3 py-1 rounded-lg uppercase">Recarregar</button>
+          <button onClick={() => carregarEventos()} className="bg-amber-600 text-white text-[10px] font-bold px-4 py-2 rounded-xl uppercase flex items-center gap-2">
+            <RefreshCw size={12} /> Tentar de novo
+          </button>
         </div>
       )}
 
       <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
-        <div className="p-6 border-b border-slate-50 flex justify-between items-center">
+        <div className="p-6 border-b border-slate-50 flex flex-col md:flex-row justify-between items-center gap-4">
           <h2 className="text-[#C22973] font-black border-b-2 border-[#C22973] pb-1 px-2 uppercase text-xs tracking-[0.2em]">
             Meus Eventos ({eventos.length})
           </h2>
 
-          <div className="relative">
+          <div className="relative w-full md:w-auto">
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className="bg-[#C22973] text-white px-6 py-3 rounded-2xl font-black flex items-center gap-2 hover:bg-[#a62262] transition-all shadow-lg shadow-pink-100 active:scale-95 uppercase text-[11px] tracking-widest"
+              className="w-full md:w-auto bg-[#C22973] text-white px-6 py-3 rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-[#a62262] transition-all shadow-lg shadow-pink-100 active:scale-95 uppercase text-[11px] tracking-widest"
             >
               Criar Novo Evento
               <ChevronDown size={18} className={`transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
@@ -207,8 +221,10 @@ export default function TabelaEventos() {
                       </div>
                     </td>
                     <td className="px-4 py-5">
-                      <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
-                        evento.status === 'Ativo' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-amber-50 text-amber-600 border border-amber-100'
+                      <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${
+                        evento.status?.toLowerCase() === 'ativo' 
+                          ? 'bg-emerald-50 text-emerald-600 border-emerald-100' 
+                          : 'bg-amber-50 text-amber-600 border-amber-100'
                       }`}>
                         {evento.status || 'Pendente'}
                       </span>
@@ -223,7 +239,13 @@ export default function TabelaEventos() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={5} className="py-20 text-center text-slate-400 font-bold uppercase text-xs">Nenhum evento criado</td>
+                  <td colSpan={5} className="py-20 text-center">
+                    <div className="flex flex-col items-center gap-2">
+                       <Ticket size={40} className="text-slate-200 mb-2" />
+                       <p className="text-slate-400 font-bold uppercase text-xs tracking-widest">Nenhum evento criado até agora</p>
+                       <p className="text-slate-300 text-[10px]">Crie seu primeiro evento no botão acima!</p>
+                    </div>
+                  </td>
                 </tr>
               )}
             </tbody>
