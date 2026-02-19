@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Script from "next/script";
 
+// Isso resolve o erro do TypeScript de uma vez por todas
 declare global {
   interface Window {
     google: any;
@@ -20,19 +21,23 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Linkah - Momentos que Conectam",
-  description: "A plataforma para você encontrar as melhores experiências.",
+  title: "Linkah - Produtor de Eventos",
+  description: "Gerencie seus eventos, acompanhe receitas e conecte-se com seu público.",
 };
 
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
+}>) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+      >
         {children}
+
+        {/* Google Maps API com a sua chave ativa */}
         <Script
           src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDlGFav-T-Dig9xkdqpqfr98pJP8zmWbE8&libraries=places"
           strategy="beforeInteractive"

@@ -4,64 +4,37 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import AvisoCadastro from '../eventos/AvisoCadastro';
 import TabelaEventos from '../eventos/TabelaEventos';
-import { UserCircle, LogOut, Settings, ChevronDown, Loader2 } from 'lucide-react';
+import { UserCircle, LogOut, Settings, ChevronDown } from 'lucide-react';
 
 export default function DashboardEventos() {
   const [isOpen, setIsOpen] = useState(false);
-  const [userName, setUserName] = useState('Produtor');
-  const [isChecking, setIsChecking] = useState(true);
+  const [userName, setUserName] = useState('Produtor'); // Valor padrão
   const router = useRouter();
 
   useEffect(() => {
-    // 1. Pega os dados usando as chaves novas do sistema
-    const storedUser = localStorage.getItem('@Linkah:User');
-    const token = localStorage.getItem('@Linkah:Token');
-    const oldName = localStorage.getItem('userName'); // Backup caso ainda use a chave antiga
-
-    // 2. TRAVA DE SEGURANÇA
-    if (!token && !oldName) {
-      router.push('/auth/login');
-      return;
+    // 1. Tenta pegar o nome guardado no localStorage (chave 'userName')
+    const storedName = localStorage.getItem('userName');
+    
+    if (storedName && storedName !== 'undefined') {
+      // Pega o primeiro nome e garante que a primeira letra é maiúscula
+      const firstName = storedName.split(' ')[0];
+      setUserName(firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase());
     }
-
-    // 3. Trata o nome do usuário para o Header
-    try {
-      if (storedUser) {
-        const userData = JSON.parse(storedUser);
-        const fullName = userData.nome || userData.name || 'Produtor';
-        const firstName = fullName.split(' ')[0];
-        setUserName(firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase());
-      } else if (oldName) {
-        const firstName = oldName.split(' ')[0];
-        setUserName(firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase());
-      }
-    } catch (e) {
-      console.error("Erro ao processar usuário", e);
-    } finally {
-      setIsChecking(false);
-    }
-  }, [router]);
+  }, []);
 
   const handleLogout = () => {
+    // Limpa os dados de login
     localStorage.clear(); 
+    
+    // Redireciona para o login de forma inteligente (funciona local e na web)
     router.push('/auth/login');
   };
 
-  // Enquanto verifica o login, mostra um carregando
-  if (isChecking) {
-    return (
-      <div className="h-screen w-full flex items-center justify-center bg-white">
-        <Loader2 className="animate-spin text-[#C22973]" size={40} />
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-[#F1F5F9]">
-      {/* NAVBAR */}
       <nav className="bg-white px-8 py-4 flex justify-between items-center border-b border-slate-200 sticky top-0 z-50">
         <div className="flex items-center gap-2">
-          <span className="text-2xl font-black text-[#C22973] tracking-tighter italic">LİNKAH</span>
+          <span className="text-2xl font-black text-[#4B0082] tracking-tighter">LİNKAH</span>
         </div>
 
         <div className="relative">
@@ -71,6 +44,7 @@ export default function DashboardEventos() {
           >
             <div className="text-right mr-1 hidden sm:block">
               <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Olá, bem-vindo</p>
+              {/* AQUI APARECE O NOME REAL */}
               <p className="text-xs font-bold text-slate-700">{userName}</p>
             </div>
 
@@ -87,9 +61,9 @@ export default function DashboardEventos() {
           {isOpen && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)}></div>
-              <div className="absolute right-0 mt-2 w-52 bg-white rounded-3xl border border-slate-100 shadow-2xl z-20 py-2 animate-in fade-in zoom-in duration-150">
+              <div className="absolute right-0 mt-2 w-52 bg-white rounded-3xl border border-slate-100 shadow-2xl shadow-indigo-100/50 z-20 py-2 animate-in fade-in zoom-in duration-150">
                 <div className="px-4 py-2 border-b border-slate-50 mb-1">
-                  <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Minha Conta</p>
+                  <p className="text-[10px] font-black text-slate-300 uppercase">Minha Conta</p>
                 </div>
                 
                 <button 
@@ -113,9 +87,7 @@ export default function DashboardEventos() {
 
       <main className="max-w-[1400px] mx-auto p-4 md:p-10">
         <AvisoCadastro />
-        <div className="mt-8">
-          <TabelaEventos />
-        </div>
+        <TabelaEventos />
       </main>
     </div>
   );

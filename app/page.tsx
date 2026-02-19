@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Navbar } from './site/Navbar'; // Ajuste o caminho se necessário
-import { EventCard } from './site/EventCard'; // Ajuste o caminho se necessário
-import { Footer } from './site/Footer'; // Ajuste o caminho se necessário
+import { Navbar } from '../app/site/Navbar'; 
+import { EventCard } from '../app/site/EventCard';
+import { Footer } from '../app/site/Footer';
 import { CategoryFilter } from './site/CategoryFilter';
 import { SectionHeader } from './site/SectionHeader';
 import { 
@@ -35,13 +35,11 @@ export default function BuyTicketHome() {
 
   const API_URL = 'https://linkah-api.onrender.com/api/eventos/vitrine';
 
-  // Carrossel Automático
   useEffect(() => {
     const interval = setInterval(() => setCurrentSlide((prev) => (prev === SLIDES.length - 1 ? 0 : prev + 1)), 5000);
     return () => clearInterval(interval);
   }, []);
 
-  // Busca de Dados da API
   useEffect(() => {
     async function carregarDados() {
       setLoading(true);
@@ -53,31 +51,25 @@ export default function BuyTicketHome() {
           const extrair = dados.map((ev: any) => ev.categoria).filter(Boolean);
           setCategoriasExistentes(['Todos', ...Array.from(new Set(extrair)) as string[]]);
         }
-      } catch (error) { 
-        console.error("Erro API:", error); 
-      } finally { 
-        setLoading(false); 
-      }
+      } catch (error) { console.error("Erro API:", error); } finally { setLoading(false); }
     }
     carregarDados();
   }, []);
 
-  // --- LÓGICA DE FILTROS DE DATA ---
   const hojeObj = new Date();
-  const hojeStr = hojeObj.toLocaleDateString('en-CA'); 
+  const hojeStr = hojeObj.toLocaleDateString('en-CA');
 
   const oQueFazerHoje = eventos.filter(ev => {
     if (!ev.data_inicio) return false;
-    const dataEvStr = ev.data_inicio.substring(0, 10);
+    const dataEvStr = new Date(ev.data_inicio).toLocaleDateString('en-CA');
     return dataEvStr === hojeStr;
   });
 
   const ultimaChamada = eventos.filter(ev => {
     if (!ev.data_inicio) return false;
-    const dataEvStr = ev.data_inicio.substring(0, 10);
+    const dataEv = new Date(ev.data_inicio);
+    const dataEvStr = dataEv.toLocaleDateString('en-CA');
     if (dataEvStr === hojeStr) return false;
-
-    const dataEv = new Date(dataEvStr + 'T12:00:00'); 
     const diffTime = dataEv.getTime() - hojeObj.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays >= 1 && diffDays <= 2;
@@ -90,6 +82,7 @@ export default function BuyTicketHome() {
   });
 
   return (
+    /* AJUSTE AQUI: flex flex-col e min-h-screen para o footer nunca sobrar */
     <div className="flex flex-col min-h-screen bg-[#F3F4F6] text-slate-900 font-sans">
       <Navbar />
 
@@ -109,7 +102,6 @@ export default function BuyTicketHome() {
           </div>
         ))}
         
-        {/* BARRA DE BUSCA FLOATING */}
         <div className="absolute bottom-10 z-30 w-full px-6">
           <div className="bg-white/95 backdrop-blur-md p-2 rounded-2xl md:rounded-full shadow-2xl flex flex-col md:flex-row items-center max-w-5xl mx-auto border border-white/40">
             <div className="flex-1 flex items-center px-5 py-3 w-full border-b md:border-b-0 md:border-r border-slate-200">
@@ -142,7 +134,7 @@ export default function BuyTicketHome() {
         </div>
       </section>
 
-      {/* FILTRO DE CATEGORIAS STICKY */}
+      {/* FILTRO DE CATEGORIAS */}
       <div className="sticky top-0 z-40 bg-[#F3F4F6]/80 backdrop-blur-md py-4 border-b border-slate-200">
         <CategoryFilter 
           categories={categoriasExistentes} 
@@ -152,10 +144,10 @@ export default function BuyTicketHome() {
         />
       </div>
 
+      {/* AJUSTE AQUI: flex-1 faz o conteúdo principal "empurrar" o footer para o fundo */}
       <main className="flex-1 max-w-7xl mx-auto px-6 py-10 space-y-20 w-full">
         {!buscaNome && (
           <>
-            {/* SEÇÃO HOJE */}
             {oQueFazerHoje.length > 0 && (
               <section className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <SectionHeader title="O que fazer" highlight="hoje" />
@@ -165,7 +157,6 @@ export default function BuyTicketHome() {
               </section>
             )}
 
-            {/* SEÇÃO ÚLTIMA CHAMADA */}
             {ultimaChamada.length > 0 && (
               <section className="bg-white/50 p-8 rounded-[2.5rem] border border-white shadow-sm animate-in fade-in slide-in-from-bottom-6 duration-700">
                 <div className="flex items-center gap-3 mb-8">
@@ -184,7 +175,6 @@ export default function BuyTicketHome() {
           </>
         )}
 
-        {/* VITRINE PRINCIPAL / RESULTADOS */}
         <section id="vitrine-principal">
           <SectionHeader 
             title={buscaNome ? `Resultados para "${buscaNome}"` : (categoriaAtiva === 'Todos' ? 'Perto de você' : categoriaAtiva)} 
@@ -208,7 +198,7 @@ export default function BuyTicketHome() {
               </div>
               <h3 className="text-xl font-black text-slate-800 uppercase italic">Nenhum evento encontrado</h3>
               <p className="text-slate-500 mt-2 max-w-md mx-auto">
-                Não encontramos nada com esses termos. Tente mudar a categoria ou limpar a busca.
+                Não encontramos nada com esses termos. Tente mudar a categoria ou limpar a busca para ver todos os eventos.
               </p>
               <button 
                 onClick={() => {setBuscaNome(''); setCategoriaAtiva('Todos');}}
@@ -221,6 +211,7 @@ export default function BuyTicketHome() {
         </section>
       </main>
 
+      {/* Footer agora sempre "colado" no final */}
       <Footer />
     </div>
   );

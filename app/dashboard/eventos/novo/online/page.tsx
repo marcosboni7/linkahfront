@@ -1,7 +1,6 @@
 'use client';
-
 import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 
 const gerarCorTag = (nome: string) => {
   const cores = ['bg-purple-500', 'bg-indigo-500', 'bg-violet-600', 'bg-fuchsia-500', 'bg-blue-500'];
@@ -11,13 +10,9 @@ const gerarCorTag = (nome: string) => {
   return cores[Math.abs(hash) % cores.length];
 };
 
-// CORREÇÃO DO BUILD: Recebendo params via Props e tipando como 'any' para evitar erro de 'Property id'
-export default function SalaComunidade({ params }: any) {
+export default function SalaComunidade() {
+  const { id } = useParams();
   const router = useRouter();
-  
-  // Extraindo o id com segurança
-  const id = params?.id;
-
   const [mensagens, setMensagens] = useState<any[]>([]);
   const [novoTexto, setNovoTexto] = useState('');
   const [dadosUsuario, setDadosUsuario] = useState<any>(null);
@@ -41,26 +36,21 @@ export default function SalaComunidade({ params }: any) {
         setNaoAutorizado(true);
       }
     } else {
+      // Se não houver login, bloqueia e redireciona
       setNaoAutorizado(true);
       setTimeout(() => {
-        router.push('/login'); 
+        router.push('/login'); // Ajuste para sua rota de login
       }, 3000);
     }
   }, [router]);
 
   // 2. BUSCA DE MENSAGENS
   const carregarMensagens = async () => {
-    // Usando o 'id' extraído das props
     if (!id || naoAutorizado) return;
     try {
       const res = await fetch(`https://linkah-api.onrender.com/api/comunidade/${id}?t=${Date.now()}`, { cache: 'no-store' });
-      if (res.ok) {
-        const data = await res.json();
-        setMensagens(data);
-      }
-    } catch (err) { 
-      console.error(err); 
-    }
+      if (res.ok) setMensagens(await res.json());
+    } catch (err) { console.error(err); }
   };
 
   useEffect(() => {
@@ -70,33 +60,22 @@ export default function SalaComunidade({ params }: any) {
   }, [id, naoAutorizado]);
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
+    scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [mensagens]);
 
   // 3. ENVIO DE MENSAGEM
   const enviarMensagem = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!novoTexto.trim() || !dadosUsuario || !id) return;
-    
-    const txt = novoTexto; 
-    setNovoTexto('');
-
+    if (!novoTexto.trim() || !dadosUsuario) return;
+    const txt = novoTexto; setNovoTexto('');
     try {
       await fetch('https://linkah-api.onrender.com/api/comunidade/enviar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          evento_id: Number(id), 
-          usuario_nome: dadosUsuario.nome, 
-          texto: txt 
-        })
+        body: JSON.stringify({ evento_id: Number(id), usuario_nome: dadosUsuario.nome, texto: txt })
       });
       carregarMensagens();
-    } catch (err) { 
-      setNovoTexto(txt); 
-    }
+    } catch (err) { setNovoTexto(txt); }
   };
 
   // TELA DE "NÃO LOGADO"
@@ -133,7 +112,7 @@ export default function SalaComunidade({ params }: any) {
         </div>
       </header>
 
-      {/* ÁREA DE CHAT */}
+      {/* ÁREA DE CHAT (FUNDO CINZA LEVE) */}
       <main className="flex-1 overflow-y-auto p-4 space-y-6 !bg-[#f8fafc] custom-scrollbar">
         {mensagens.map((msg, idx) => {
           const meuNome = (dadosUsuario?.nome || "").trim().toLowerCase();
