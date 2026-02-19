@@ -20,7 +20,10 @@ export default function DetalhesEvento() {
   useEffect(() => {
     async function carregarEvento() {
       try {
-        const res = await fetch(`https://linkah-api.onrender.com/api/eventos/${id}`);
+        // Adicionei cache: 'no-store' para garantir que você veja a alteração assim que salvar no editor
+        const res = await fetch(`https://linkah-api.onrender.com/api/eventos/${id}`, {
+          cache: 'no-store'
+        });
         if (res.ok) {
           const data = await res.json();
           setEvento(data);
@@ -67,14 +70,13 @@ export default function DetalhesEvento() {
           </div>
         </div>
 
-        {/* --- NOVO LAYOUT DE IMAGEM: CINEMATIC WIDE --- */}
+        {/* --- LAYOUT DE IMAGEM --- */}
         <div className="relative w-full aspect-[21/9] md:aspect-[25/9] rounded-[2.5rem] overflow-hidden shadow-2xl mb-12 bg-slate-100">
           <img 
             src={evento.imagem_capa || "https://images.unsplash.com/photo-1492684223066-81342ee5ff30"} 
             className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
             alt={evento.nome}
           />
-          {/* Overlay suave apenas na parte inferior para leitura do título se necessário */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60" />
           
           <div className="absolute bottom-8 left-8 md:bottom-12 md:left-12 text-white">
@@ -98,7 +100,10 @@ export default function DetalhesEvento() {
                 <Calendar className="text-[#E30031] mt-1" size={24} />
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Quando</p>
-                  <p className="font-bold text-slate-800">{new Date(evento.data_inicio).toLocaleDateString('pt-BR')}</p>
+                  {/* CORREÇÃO DA DATA AQUI: timeZone: 'UTC' */}
+                  <p className="font-bold text-slate-800">
+                    {new Date(evento.data_inicio).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
+                  </p>
                   <p className="text-xs text-slate-500">{evento.hora_inicio || '19:00'}</p>
                 </div>
               </div>
@@ -114,7 +119,7 @@ export default function DetalhesEvento() {
                 <Users className="text-[#E30031] mt-1" size={24} />
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Organizado por</p>
-                  <p className="font-bold text-slate-800 line-clamp-1">{evento.produtor_email.split('@')[0]}</p>
+                  <p className="font-bold text-slate-800 line-clamp-1">{evento.produtor_email?.split('@')[0] || 'Produtor'}</p>
                   <button className="text-xs text-[#E30031] font-bold">Ver perfil</button>
                 </div>
               </div>
