@@ -1,71 +1,86 @@
 'use client';
 
 import Link from 'next/link';
-import { MapPin } from 'lucide-react';
+import { MapPin, Calendar, Clock } from 'lucide-react';
 
 export function EventCard({ evento }: { evento: any }) {
-  // Verificação de segurança para a data
-  const data = evento.data_inicio ? new Date(evento.data_inicio) : new Date();
-  
-  // Formatação segura
-  const dia = data.toLocaleDateString('pt-BR', { day: '2-digit' });
-  const mes = data.toLocaleDateString('pt-BR', { month: 'short' }).toUpperCase().replace('.', '');
-  const diaSemana = data.toLocaleDateString('pt-BR', { weekday: 'short' }).toUpperCase().replace('.', '');
+  // Tratamento seguro de Data
+  const dataValida = evento.data_inicio ? new Date(evento.data_inicio) : new Date();
+  const dia = dataValida.toLocaleDateString('pt-BR', { day: '2-digit' });
+  const mes = dataValida.toLocaleDateString('pt-BR', { month: 'short' }).toUpperCase().replace('.', '');
+  const diaSemana = dataValida.toLocaleDateString('pt-BR', { weekday: 'short' }).toUpperCase().replace('.', '');
 
-  // Pega o menor preço dos ingressos se o preco_minimo não existir
-  const precoExibicao = evento.preco_minimo 
-    ? Number(evento.preco_minimo) 
-    : (evento.ingressos && evento.ingressos.length > 0 
-        ? Math.min(...evento.ingressos.map((i: any) => Number(i.preco))) 
-        : 0);
+  // Cálculo de Preço Mínimo (Resiliente)
+  const precoFinal = () => {
+    if (evento.preco_minimo !== undefined && evento.preco_minimo !== null) {
+      return Number(evento.preco_minimo);
+    }
+    if (evento.ingressos && evento.ingressos.length > 0) {
+      const precos = evento.ingressos.map((i: any) => Number(i.preco));
+      return Math.min(...precos);
+    }
+    return 0;
+  };
+
+  const valorExibicao = precoFinal();
 
   return (
-    <Link href={`/evento/${evento.id}`} className="group block w-full bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col h-full">
+    <Link href={`/evento/${evento.id}`} className="group block w-full bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-500 border border-slate-100 flex flex-col h-full">
       
-      {/* IMAGEM */}
-      <div className="relative aspect-[16/9] overflow-hidden bg-gray-100">
+      {/* IMAGEM COM TAG */}
+      <div className="relative aspect-[16/9] overflow-hidden bg-slate-100">
         <img 
           src={evento.imagem_capa || "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4"} 
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
           alt={evento.nome}
           onError={(e: any) => {
             e.target.src = "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4";
           }}
         />
-        <div className="absolute bottom-2 left-2">
-          <span className="bg-black/60 backdrop-blur-sm text-white text-[10px] font-bold uppercase px-2 py-1 rounded">
+        <div className="absolute top-3 left-3">
+          <span className="bg-white/90 backdrop-blur-md text-[#C22973] text-[9px] font-black uppercase px-2.5 py-1 rounded-lg shadow-sm">
             {evento.categoria || 'Evento'}
           </span>
         </div>
       </div>
 
       {/* CONTEÚDO */}
-      <div className="p-4 flex flex-col flex-grow">
+      <div className="p-5 flex flex-col flex-grow">
         
-        {/* DATA E HORA */}
-        <p className="text-[#C22973] text-[11px] font-bold uppercase mb-1">
-          {diaSemana}, {dia} {mes} · {evento.hora_inicio ? evento.hora_inicio.slice(0, 5) : '00:00'}
-        </p>
+        {/* DATA */}
+        <div className="flex items-center gap-1.5 text-[#C22973] text-[10px] font-black uppercase tracking-widest mb-2">
+          <Calendar size={12} />
+          {diaSemana}, {dia} {mes} • {evento.hora_inicio?.slice(0, 5) || '00:00'}
+        </div>
 
         {/* TÍTULO */}
-        <h3 className="text-gray-900 font-bold text-base leading-tight mb-2 group-hover:text-[#C22973] transition-colors line-clamp-2 min-h-[40px]">
+        <h3 className="text-slate-900 font-black text-lg leading-tight mb-3 group-hover:text-[#C22973] transition-colors line-clamp-2 min-h-[56px]">
           {evento.nome}
         </h3>
 
         {/* LOCALIZAÇÃO */}
-        <div className="flex items-center gap-1 text-gray-500 mb-4">
-          <MapPin size={14} className="flex-shrink-0" />
-          <span className="text-sm truncate">
+        <div className="flex items-center gap-1.5 text-slate-500 mb-6">
+          <MapPin size={14} className="shrink-0 text-slate-400" />
+          <span className="text-xs font-bold truncate">
             {evento.tipo === 'online' ? 'Evento Online' : `${evento.local_nome || 'Local'}, ${evento.cidade || ''}`}
           </span>
         </div>
 
-        {/* PREÇO */}
-        <div className="mt-auto pt-3 border-t border-gray-50">
-          <p className="text-xs text-gray-400">A partir de</p>
-          <p className="text-lg font-bold text-gray-900">
-            {precoExibicao === 0 ? 'Grátis' : `R$ ${precoExibicao.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
-          </p>
+        {/* FOOTER DO CARD (PREÇO) */}
+        <div className="mt-auto pt-4 border-t border-slate-50 flex justify-between items-end">
+          <div>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">A partir de</p>
+            <p className="text-xl font-black text-slate-900 leading-none">
+              {valorExibicao === 0 ? (
+                <span className="text-emerald-500">GRÁTIS</span>
+              ) : (
+                `R$ ${valorExibicao.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+              )}
+            </p>
+          </div>
+          <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 group-hover:bg-[#C22973] group-hover:text-white transition-all">
+            <Clock size={16} />
+          </div>
         </div>
       </div>
     </Link>
