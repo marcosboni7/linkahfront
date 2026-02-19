@@ -9,32 +9,38 @@ import { UserCircle, LogOut, Settings, ChevronDown, Loader2 } from 'lucide-react
 export default function DashboardEventos() {
   const [isOpen, setIsOpen] = useState(false);
   const [userName, setUserName] = useState('Produtor');
-  const [isChecking, setIsChecking] = useState(true); // Estado para a trava
+  const [isChecking, setIsChecking] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
-    // 1. Pega os dados que o Login salvou
+    // 1. Tenta recuperar os dados do localStorage
+    // Verificamos tanto o padrão novo (@Linkah) quanto o antigo (userName) para não dar erro
     const storedUser = localStorage.getItem('@Linkah:User');
     const token = localStorage.getItem('@Linkah:Token');
+    const oldName = localStorage.getItem('userName');
 
-    // 2. TRAVA DE SEGURANÇA: Se não tiver token ou user, volta pro login
-    if (!storedUser || !token) {
+    // 2. Trava de Segurança
+    if (!token && !oldName) {
       router.push('/auth/login');
       return;
     }
 
-    // 3. Se chegou aqui, está logado. Vamos tratar o nome:
+    // 3. Define o nome do usuário para exibir no Header
     try {
-      const userData = JSON.parse(storedUser);
-      // Pega o nome do objeto (ajuste 'nome' conforme sua API envia)
-      const fullPathName = userData.nome || userData.name || 'Produtor';
-      const firstName = fullPathName.split(' ')[0];
-      setUserName(firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase());
+      if (storedUser) {
+        const userData = JSON.parse(storedUser);
+        const fullPathName = userData.nome || userData.name || 'Produtor';
+        const firstName = fullPathName.split(' ')[0];
+        setUserName(firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase());
+      } else if (oldName) {
+        const firstName = oldName.split(' ')[0];
+        setUserName(firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase());
+      }
       
-      setIsChecking(false); // Libera o conteúdo da página
+      setIsChecking(false);
     } catch (e) {
-      console.error("Erro ao ler dados do usuário", e);
-      router.push('/auth/login');
+      console.error("Erro ao processar dados do usuário", e);
+      setIsChecking(false);
     }
   }, [router]);
 
@@ -43,7 +49,6 @@ export default function DashboardEventos() {
     router.push('/auth/login');
   };
 
-  // Enquanto verifica o login, mostra um carregando para não piscar a tela
   if (isChecking) {
     return (
       <div className="h-screen w-full flex items-center justify-center bg-white">
@@ -54,6 +59,7 @@ export default function DashboardEventos() {
 
   return (
     <div className="min-h-screen bg-[#F1F5F9]">
+      {/* NAVBAR */}
       <nav className="bg-white px-8 py-4 flex justify-between items-center border-b border-slate-200 sticky top-0 z-50">
         <div className="flex items-center gap-2">
           <span className="text-2xl font-black text-[#4B0082] tracking-tighter">LİNKAH</span>
@@ -106,9 +112,12 @@ export default function DashboardEventos() {
         </div>
       </nav>
 
+      {/* CONTEÚDO PRINCIPAL */}
       <main className="max-w-[1400px] mx-auto p-4 md:p-10">
         <AvisoCadastro />
-        <TabelaEventos />
+        <div className="mt-8">
+          <TabelaEventos />
+        </div>
       </main>
     </div>
   );
