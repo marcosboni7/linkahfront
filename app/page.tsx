@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+// Ajuste os caminhos abaixo conforme a sua pasta real (ex: ./components/Navbar)
 import { Navbar } from '../app/site/Navbar'; 
 import { EventCard } from '../app/site/EventCard';
 import { Footer } from '../app/site/Footer';
@@ -60,36 +61,13 @@ export default function BuyTicketHome() {
     carregarDados();
   }, []);
 
-  // --- LÓGICA DE DATA CORRIGIDA (SEM FUSO HORÁRIO) ---
-  
-  // Pegamos a data de hoje pura (YYYY-MM-DD)
-  const hojeObj = new Date();
-  const hojeStr = hojeObj.toLocaleDateString('en-CA'); 
+  // Lógica de Datas
+  const hojeStr = new Date().toLocaleDateString('en-CA'); 
 
-  const oQueFazerHoje = eventos.filter(ev => {
-    if (!ev.data_inicio) return false;
-    // Pega apenas os primeiros 10 caracteres da data do banco (YYYY-MM-DD)
-    const dataEvStr = ev.data_inicio.substring(0, 10);
-    return dataEvStr === hojeStr;
-  });
-
-  const ultimaChamada = eventos.filter(ev => {
-    if (!ev.data_inicio) return false;
-    const dataEvStr = ev.data_inicio.substring(0, 10);
-    
-    // Se for hoje, não entra na "Última Chamada"
-    if (dataEvStr === hojeStr) return false;
-
-    // Calcula diferença de dias usando meio-dia para evitar erros de fuso
-    const dataEv = new Date(dataEvStr + 'T12:00:00'); 
-    const diffTime = dataEv.getTime() - hojeObj.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    return diffDays >= 1 && diffDays <= 2;
-  });
+  const oQueFazerHoje = eventos.filter(ev => ev.data_inicio?.substring(0, 10) === hojeStr);
 
   const vitrineFiltrada = eventos.filter(ev => {
-    const nomeMatch = ev.nome.toLowerCase().includes(buscaNome.toLowerCase());
+    const nomeMatch = ev.nome?.toLowerCase().includes(buscaNome.toLowerCase());
     const catMatch = categoriaAtiva === 'Todos' || ev.categoria === categoriaAtiva;
     return nomeMatch && catMatch;
   });
@@ -98,7 +76,7 @@ export default function BuyTicketHome() {
     <div className="flex flex-col min-h-screen bg-[#F3F4F6] text-slate-900 font-sans">
       <Navbar />
 
-      {/* HERO / CARROSSEL */}
+      {/* HERO */}
       <section className="relative h-[520px] flex items-center justify-center overflow-hidden bg-black shrink-0">
         {SLIDES.map((slide, index) => (
           <div key={slide.id} className={`absolute inset-0 transition-opacity duration-1000 ${index === currentSlide ? 'opacity-100' : 'opacity-0'}`}>
@@ -106,7 +84,7 @@ export default function BuyTicketHome() {
               <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/20 to-[#F3F4F6]" />
             </div>
             <div className="relative z-10 text-center px-6">
-              <span className="inline-block bg-[#ff0082] text-white text-[10px] font-bold uppercase tracking-[0.3em] px-4 py-1.5 rounded-full mb-4 shadow-lg shadow-pink-500/20 animate-bounce">Linkah Experience</span>
+              <span className="inline-block bg-[#ff0082] text-white text-[10px] font-bold uppercase tracking-[0.3em] px-4 py-1.5 rounded-full mb-4 animate-bounce">Linkah Experience</span>
               <h1 className="text-4xl md:text-7xl font-black text-white mb-6 uppercase italic tracking-tighter">
                 {slide.title} <br /> <span className="text-[#ff0082]">{slide.highlight}</span>
               </h1>
@@ -125,28 +103,14 @@ export default function BuyTicketHome() {
                 placeholder="Qual evento você está procurando?" 
                 className="w-full bg-transparent outline-none text-base font-medium text-slate-800 placeholder:text-slate-400" 
               />
-              {buscaNome && (
-                <button onClick={() => setBuscaNome('')} className="ml-2 text-slate-400 hover:text-slate-600 transition-colors">
-                  <X size={18} />
-                </button>
-              )}
             </div>
-            <div className="flex-1 flex items-center px-5 py-3 w-full group">
-              <MapPin size={20} className="text-slate-400 mr-3 group-hover:text-[#ff0082] transition-colors shrink-0" />
-              <input 
-                type="text" 
-                placeholder="Localização (Cidade ou Estado)" 
-                className="w-full bg-transparent outline-none text-base font-medium text-slate-800 placeholder:text-slate-400" 
-              />
-            </div>
-            <button className="bg-[#ff0082] hover:bg-[#d9006f] text-white px-10 py-4 rounded-xl md:rounded-full font-black text-sm uppercase tracking-widest transition-all w-full md:w-auto shadow-lg shadow-pink-200 active:scale-95">
+            <button className="bg-[#ff0082] hover:bg-[#d9006f] text-white px-10 py-4 rounded-xl md:rounded-full font-black text-sm uppercase tracking-widest transition-all w-full md:w-auto active:scale-95">
               Buscar Agora
             </button>
           </div>
         </div>
       </section>
 
-      {/* FILTRO DE CATEGORIAS */}
       <div className="sticky top-0 z-40 bg-[#F3F4F6]/80 backdrop-blur-md py-4 border-b border-slate-200">
         <CategoryFilter 
           categories={categoriasExistentes} 
@@ -157,71 +121,27 @@ export default function BuyTicketHome() {
       </div>
 
       <main className="flex-1 max-w-7xl mx-auto px-6 py-10 space-y-20 w-full">
-        {!buscaNome && (
-          <>
-            {oQueFazerHoje.length > 0 && (
-              <section className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <SectionHeader title="O que fazer" highlight="hoje" />
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {oQueFazerHoje.map(ev => <EventCard key={ev.id} evento={ev} />)}
-                </div>
-              </section>
-            )}
-
-            {ultimaChamada.length > 0 && (
-              <section className="bg-white/50 p-8 rounded-[2.5rem] border border-white shadow-sm animate-in fade-in slide-in-from-bottom-6 duration-700">
-                <div className="flex items-center gap-3 mb-8">
-                  <div className="p-2 bg-pink-100 rounded-xl">
-                    <Clock className="text-[#ff0082] animate-pulse" size={24} />
-                  </div>
-                  <h2 className="text-2xl font-black text-slate-800 uppercase italic tracking-tighter">
-                    Última <span className="text-[#ff0082]">Chamada</span>
-                  </h2>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {ultimaChamada.map(ev => <EventCard key={ev.id} evento={ev} />)}
-                </div>
-              </section>
-            )}
-          </>
-        )}
-
-        <section id="vitrine-principal">
-          <SectionHeader 
-            title={buscaNome ? `Resultados para "${buscaNome}"` : (categoriaAtiva === 'Todos' ? 'Perto de você' : categoriaAtiva)} 
-            count={vitrineFiltrada.length} 
-          />
-
-          {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="animate-pulse bg-white rounded-[2rem] h-[400px] border border-slate-100 shadow-sm" />
-              ))}
-            </div>
-          ) : vitrineFiltrada.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {vitrineFiltrada.map(ev => <EventCard key={ev.id} evento={ev} />)}
-            </div>
-          ) : (
-            <div className="py-24 text-center bg-white rounded-[3rem] border border-dashed border-slate-300">
-              <div className="inline-flex items-center justify-center p-6 bg-slate-50 rounded-full mb-6">
-                <FilterX size={48} className="text-slate-300" />
+        {loading ? (
+           <div className="flex justify-center py-20"><Loader2 className="animate-spin text-[#ff0082]" size={40} /></div>
+        ) : (
+          <section id="vitrine-principal">
+            <SectionHeader 
+              title={buscaNome ? `Resultados para "${buscaNome}"` : (categoriaAtiva === 'Todos' ? 'Perto de você' : categoriaAtiva)} 
+              count={vitrineFiltrada.length} 
+            />
+            {vitrineFiltrada.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {vitrineFiltrada.map(ev => <EventCard key={ev.id} evento={ev} />)}
               </div>
-              <h3 className="text-xl font-black text-slate-800 uppercase italic">Nenhum evento encontrado</h3>
-              <p className="text-slate-500 mt-2 max-w-md mx-auto">
-                Não encontramos nada com esses termos. Tente mudar a categoria ou limpar a busca para ver todos os eventos.
-              </p>
-              <button 
-                onClick={() => {setBuscaNome(''); setCategoriaAtiva('Todos');}}
-                className="mt-6 text-[#ff0082] font-bold hover:underline"
-              >
-                Ver todos os eventos
-              </button>
-            </div>
-          )}
-        </section>
+            ) : (
+              <div className="py-24 text-center">
+                <FilterX size={48} className="mx-auto text-slate-300 mb-4" />
+                <h3 className="text-xl font-black text-slate-800 uppercase italic">Nenhum evento encontrado</h3>
+              </div>
+            )}
+          </section>
+        )}
       </main>
-
       <Footer />
     </div>
   );
