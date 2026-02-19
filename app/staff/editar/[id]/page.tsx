@@ -30,15 +30,13 @@ export default function EditarEvento() {
         if (res.ok) {
           const data = await res.json();
           
-          // Tratamento de Data e Hora para os inputs HTML
-          let dataISO = '';
-          let horaISO = '';
+          // CORREÇÃO: Pegamos a data bruta (YYYY-MM-DD) sem passar pelo 'new Date'
+          // para evitar que o fuso horário mude o dia ou a hora.
+          const dataISO = data.data_inicio ? data.data_inicio.substring(0, 10) : '';
           
-          if (data.data_inicio) {
-            const d = new Date(data.data_inicio);
-            dataISO = d.toISOString().split('T')[0];
-            horaISO = d.toTimeString().split(' ')[0].substring(0, 5);
-          }
+          // CORREÇÃO: Pegamos a hora diretamente da coluna hora_inicio
+          // Se vier "19:30:00", transformamos em "19:30" para o input time
+          const horaISO = data.hora_inicio ? data.hora_inicio.substring(0, 5) : '';
 
           setFormData({
             nome: data.nome || '',
@@ -56,34 +54,35 @@ export default function EditarEvento() {
         setLoading(false);
       }
     }
-    carregarEvento();
+    if (id) carregarEvento();
   }, [id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSalvando(true);
 
-    // Junta a data e hora novamente para enviar para a API
-    const dataCompleta = `${formData.data_inicio}T${formData.hora_inicio}:00`;
-
     try {
+      // CORREÇÃO: Enviamos os dados limpos. O backend agora recebe 
+      // a hora_inicio separada e não tenta adivinhar a hora pela data.
       const res = await fetch(`${apiBaseUrl}/api/eventos/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          data_inicio: dataCompleta
-        }),
+        body: JSON.stringify(formData),
       });
 
       if (res.ok) {
-        await Swal.fire('Sucesso!', 'Evento atualizado!', 'success');
+        await Swal.fire({
+          icon: 'success',
+          title: 'Sucesso!',
+          text: 'Evento atualizado com sucesso!',
+          confirmButtonColor: '#C22973'
+        });
         router.push('/staff/painel');
       } else {
-        Swal.fire('Erro', 'Falha ao salvar.', 'error');
+        Swal.fire('Erro', 'Falha ao salvar as alterações.', 'error');
       }
     } catch (error) {
-      Swal.fire('Erro', 'Erro de conexão.', 'error');
+      Swal.fire('Erro', 'Erro de conexão com o servidor.', 'error');
     } finally {
       setSalvando(false);
     }
@@ -96,13 +95,16 @@ export default function EditarEvento() {
   );
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] p-8">
+    <div className="min-h-screen bg-[#F8FAFC] p-4 md:p-8">
       <div className="max-w-2xl mx-auto">
-        <button onClick={() => router.push('/staff/painel')} className="flex items-center gap-2 text-slate-500 mb-6 font-bold text-sm hover:text-[#C22973] transition-colors">
+        <button 
+          onClick={() => router.push('/staff/painel')} 
+          className="flex items-center gap-2 text-slate-500 mb-6 font-bold text-sm hover:text-[#C22973] transition-colors"
+        >
           <ArrowLeft size={16} /> VOLTAR AO PAINEL
         </button>
 
-        <div className="bg-white rounded-[2.5rem] p-10 border border-slate-200 shadow-sm">
+        <div className="bg-white rounded-[2.5rem] p-6 md:p-10 border border-slate-200 shadow-sm">
           <div className="mb-8">
             <span className="text-[10px] font-black text-[#C22973] uppercase tracking-[0.2em]">Editor de Experiências</span>
             <h2 className="text-3xl font-black text-slate-800 tracking-tighter uppercase italic leading-none mt-1">Editar Evento</h2>
@@ -122,7 +124,7 @@ export default function EditarEvento() {
             </div>
 
             {/* DATA E HORA */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="flex items-center gap-2 text-[10px] font-black uppercase text-slate-400 mb-2 ml-1">
                   <Calendar size={12} /> Data do Evento
@@ -135,7 +137,7 @@ export default function EditarEvento() {
               </div>
               <div>
                 <label className="flex items-center gap-2 text-[10px] font-black uppercase text-slate-400 mb-2 ml-1">
-                  <Clock size={12} /> Horário
+                  <Clock size={12} /> Horário de Início
                 </label>
                 <input 
                   type="time" required value={formData.hora_inicio}
@@ -148,11 +150,12 @@ export default function EditarEvento() {
             {/* LOCAL */}
             <div>
               <label className="flex items-center gap-2 text-[10px] font-black uppercase text-slate-400 mb-2 ml-1">
-                <MapPin size={12} /> Nome do Local (Ex: Arena Stadium)
+                <MapPin size={12} /> Nome do Local
               </label>
               <input 
                 type="text" value={formData.local_nome}
                 onChange={e => setFormData({...formData, local_nome: e.target.value})}
+                placeholder="Ex: Teatro Municipal"
                 className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-5 text-sm font-bold outline-none focus:border-[#C22973]"
               />
             </div>
@@ -178,10 +181,21 @@ export default function EditarEvento() {
             </div>
 
             <button 
+              type="submit"
               disabled={salvando}
-              className="w-full bg-[#C22973] text-white font-black py-5 rounded-2xl shadow-xl shadow-pink-100 hover:bg-[#a61d5f] transition-all flex items-center justify-center gap-3 active:scale-[0.98]"
+              className="w-full bg-[#C22973] text-white font-black py-5 rounded-2xl shadow-xl shadow-pink-100 hover:bg-[#a61d5f] transition-all flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-70"
             >
-              {salvando ? <Loader2 className="animate-spin" size={20} /> : 'SALVAR ALTERAÇÕES'}
+              {salvando ? (
+                <>
+                  <Loader2 className="animate-spin" size={20} />
+                  SALVANDO...
+                </>
+              ) : (
+                <>
+                  <Save size={20} />
+                  SALVAR ALTERAÇÕES
+                </>
+              )}
             </button>
           </form>
         </div>
