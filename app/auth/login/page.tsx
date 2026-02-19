@@ -55,6 +55,7 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (response.ok) {
+        // Pegamos os dados do usuário que vêm da API
         const user = data.user;
         const emailUsuario = user?.email || email.trim().toLowerCase();
         
@@ -63,22 +64,23 @@ export default function LoginPage() {
         const objetoUsuario = {
           email: emailUsuario,
           nome: user?.nome || 'Produtor',
-          id: user?.id
+          id: user?.id || data.userId
         };
 
-        // Salvamos com a chave única que definimos nos outros componentes
+        // Salvamos com a chave única para sincronizar com o Dashboard
         window.localStorage.setItem('@Linkah:User', JSON.stringify(objetoUsuario));
         
-        // Mantemos estes por segurança caso outros componentes antigos usem
+        // Backups de compatibilidade
         window.localStorage.setItem('userEmail', emailUsuario);
         window.localStorage.setItem('userName', user?.nome || 'Produtor');
         // ----------------------------------
 
-        // 2. CHECAGEM DE PERFIL COMPLETO
+        // 2. CHECAGEM DE PERFIL COMPLETO (Fluxo Inteligente)
         try {
           const perfilRes = await fetch(`${apiBaseUrl}/api/auth/perfil?email=${emailUsuario}`);
           const perfilData = await perfilRes.json();
 
+          // Se tiver os dados básicos de produtor, manda pro Dashboard, senão, completa o perfil
           if (perfilRes.ok && (perfilData.cpf_cnpj || perfilData.cep || user?.cpf_cnpj)) {
             window.localStorage.setItem('perfil_completo', 'true');
             router.push('/dashboard/eventos');
@@ -87,8 +89,8 @@ export default function LoginPage() {
             router.push('/dashboard/perfil');
           }
         } catch (checkError) {
-          // Se falhar a verificação, manda pro perfil para garantir
-          router.push('/dashboard/perfil');
+          // Em caso de erro na checagem, Dashboard decide
+          router.push('/dashboard/eventos');
         }
         
       } else {
@@ -152,7 +154,7 @@ export default function LoginPage() {
           </div>
 
           <form onSubmit={handleLogin} className="space-y-6">
-            <div className="space-y-2 group">
+            <div className="space-y-2">
               <label className={`text-[11px] font-black uppercase tracking-widest ml-2 ${errors.email ? 'text-red-500' : 'text-slate-400'}`}>
                 E-mail Corporativo <span className="text-red-500">*</span>
               </label>
@@ -167,7 +169,7 @@ export default function LoginPage() {
               {errors.email && email && <p className="text-[10px] text-red-500 font-bold ml-2 uppercase italic">{errors.email}</p>}
             </div>
 
-            <div className="space-y-2 group">
+            <div className="space-y-2">
               <div className="flex justify-between items-center px-2">
                 <label className={`text-[11px] font-black uppercase tracking-widest ${errors.senha ? 'text-red-500' : 'text-slate-400'}`}>
                   Senha de Acesso <span className="text-red-500">*</span>
