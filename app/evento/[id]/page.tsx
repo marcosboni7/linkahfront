@@ -22,7 +22,7 @@ export default function DetalhesEvento() {
       
       try {
         setLoading(true);
-        // O timestamp ?t= força o navegador a ignorar o cache e pegar a data alterada via PUT
+        // O timestamp ?t= e o cache: no-store garantem que você veja a edição na hora
         const res = await fetch(`https://linkah-api.onrender.com/api/eventos/${id}?t=${Date.now()}`, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },
@@ -31,7 +31,6 @@ export default function DetalhesEvento() {
 
         if (res.ok) {
           const data = await res.json();
-          console.log("Evento carregado com sucesso:", data);
           setEvento(data);
         } else {
           console.error("Erro na resposta da API:", res.status);
@@ -96,8 +95,8 @@ export default function DetalhesEvento() {
              <span className="bg-[#E30031] px-4 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest mb-4 inline-block">
                 {evento.categoria || 'Evento Linkah'}
              </span>
-             <h1 className="text-3xl md:text-5xl lg:text-6xl font-black tracking-tighter leading-none">
-               {evento.nome}
+             <h1 className="text-3xl md:text-5xl lg:text-6xl font-black tracking-tighter leading-none uppercase italic">
+                {evento.nome}
              </h1>
           </div>
         </div>
@@ -108,19 +107,18 @@ export default function DetalhesEvento() {
           <div className="lg:col-span-8 space-y-12">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               
-              {/* DATA E HORA - CORRIGIDO PARA MOSTRAR A DATA DO SEU PUT */}
+              {/* DATA E HORA - CORRIGIDO PARA IGNORAR TIMEZONE */}
               <div className="flex items-start gap-4 p-6 rounded-3xl bg-slate-50 border border-slate-100">
                 <Calendar className="text-[#E30031] mt-1" size={24} />
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Quando</p>
                   <p className="font-bold text-slate-800">
-                    {/* O segredo para a data 2025-02-15 aparecer certa é o T12:00:00 */}
                     {evento.data_inicio 
                       ? new Date(evento.data_inicio.substring(0, 10) + 'T12:00:00').toLocaleDateString('pt-BR') 
                       : 'A definir'}
                   </p>
                   <p className="text-xs text-slate-500 font-medium">
-                    {evento.hora_inicio ? String(evento.hora_inicio).split(':').slice(0, 2).join(':') : '19:00'}h
+                    {evento.hora_inicio ? String(evento.hora_inicio).substring(0, 5) : '19:00'}h
                   </p>
                 </div>
               </div>
@@ -161,7 +159,7 @@ export default function DetalhesEvento() {
             </div>
           </div>
 
-          {/* COLUNA DIREITA: CARD DE COMPRA (CHECKOUT) */}
+          {/* COLUNA DIREITA: CARD DE COMPRA */}
           <div className="lg:col-span-4">
             <div className="sticky top-28">
               <div className="bg-white rounded-[3rem] border-2 border-slate-100 shadow-xl overflow-hidden">
@@ -177,7 +175,7 @@ export default function DetalhesEvento() {
                         <div key={idx} className="flex items-center justify-between border-b border-slate-50 pb-4">
                           <div>
                             <p className="font-bold text-slate-800">{ing.nome}</p>
-                            <p className="text-xs text-slate-400">Qtd: {ing.quantidade}</p>
+                            <p className="text-xs text-slate-400">Restantes: {ing.quantidade}</p>
                           </div>
                           <span className="text-lg font-black text-slate-900">
                             {Number(ing.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
@@ -188,7 +186,6 @@ export default function DetalhesEvento() {
                       <p className="text-slate-400 text-sm italic text-center py-4">Valores sob consulta</p>
                     )}
 
-                    {/* CONTADOR DE QUANTIDADE */}
                     <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
                       <p className="text-[10px] font-black text-slate-400 uppercase">Quantidade</p>
                       <div className="flex items-center gap-5">
@@ -209,7 +206,6 @@ export default function DetalhesEvento() {
                     </div>
                   </div>
 
-                  {/* TOTAL E BOTÃO */}
                   <div className="pt-6 border-t-2 border-dashed border-slate-100 space-y-4">
                     <div className="flex justify-between items-end">
                       <span className="text-slate-400 text-[10px] font-black uppercase pb-1">Total</span>
