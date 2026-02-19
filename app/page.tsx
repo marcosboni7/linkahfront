@@ -44,14 +44,19 @@ export default function BuyTicketHome() {
     async function carregarDados() {
       setLoading(true);
       try {
-        const response = await fetch(API_URL);
+        // ADICIONADO TIMESTAMP (?t=) PARA FURAR O CACHE DA VERCEL
+        const response = await fetch(`${API_URL}?t=${Date.now()}`);
         if (response.ok) {
           const dados = await response.json();
           setEventos(dados);
           const extrair = dados.map((ev: any) => ev.categoria).filter(Boolean);
           setCategoriasExistentes(['Todos', ...Array.from(new Set(extrair)) as string[]]);
         }
-      } catch (error) { console.error("Erro API:", error); } finally { setLoading(false); }
+      } catch (error) { 
+        console.error("Erro API:", error); 
+      } finally { 
+        setLoading(false); 
+      }
     }
     carregarDados();
   }, []);
@@ -82,7 +87,6 @@ export default function BuyTicketHome() {
   });
 
   return (
-    /* AJUSTE AQUI: flex flex-col e min-h-screen para o footer nunca sobrar */
     <div className="flex flex-col min-h-screen bg-[#F3F4F6] text-slate-900 font-sans">
       <Navbar />
 
@@ -144,7 +148,6 @@ export default function BuyTicketHome() {
         />
       </div>
 
-      {/* AJUSTE AQUI: flex-1 faz o conteúdo principal "empurrar" o footer para o fundo */}
       <main className="flex-1 max-w-7xl mx-auto px-6 py-10 space-y-20 w-full">
         {!buscaNome && (
           <>
@@ -211,7 +214,6 @@ export default function BuyTicketHome() {
         </section>
       </main>
 
-      {/* Footer agora sempre "colado" no final */}
       <Footer />
     </div>
   );
