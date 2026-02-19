@@ -1,125 +1,122 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, Loader2, Calendar, MapPin, Type, AlignLeft } from 'lucide-react';
-import Swal from 'sweetalert2';
+import AvisoCadastro from '../eventos/AvisoCadastro';
+import TabelaEventos from '../eventos/TabelaEventos';
+import { UserCircle, LogOut, Settings, ChevronDown, Loader2 } from 'lucide-react';
 
-export default function NovoEvento() {
+export default function DashboardEventos() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [userName, setUserName] = useState('Produtor');
+  const [isChecking, setIsChecking] = useState(true);
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  
-  // Estado do formulário
-  const [form, setForm] = useState({
-    nome: '',
-    data: '',
-    local: '',
-    cidade: '',
-    estado: '',
-    descricao: ''
-  });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+  useEffect(() => {
+    // 1. Pega os dados usando as chaves novas do sistema
+    const storedUser = localStorage.getItem('@Linkah:User');
+    const token = localStorage.getItem('@Linkah:Token');
+    const oldName = localStorage.getItem('userName'); // Backup caso ainda use a chave antiga
 
-    try {
-      // 1. Envia os dados para a API
-      const response = await fetch('https://linkah-api.onrender.com/api/eventos', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(form),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        // 2. BUSCA O ID QUE O BANCO GEROU (Pode ser .id ou ._id)
-        // Adicionamos várias verificações para garantir que o ID seja capturado
-        const eventoId = data._id || data.id || (data.evento && (data.evento._id || data.evento.id));
-
-        if (eventoId) {
-          console.log("Sucesso! ID gerado:", eventoId);
-          // 3. REDIRECIONA PARA O ID REAL (Não mais para 'undefined')
-          router.push(`/dashboard/eventos/${eventoId}/ingressos`);
-        } else {
-          console.error("Resposta da API sem ID:", data);
-          Swal.fire('Erro no ID', 'O evento foi criado, mas a API não retornou o código de identificação.', 'error');
-        }
-      } else {
-        Swal.fire('Erro', data.message || 'Falha ao criar o evento.', 'error');
-      }
-    } catch (error) {
-      console.error("Erro na requisição:", error);
-      Swal.fire('Erro de Conexão', 'Não foi possível conectar ao servidor.', 'error');
-    } finally {
-      setLoading(false);
+    // 2. TRAVA DE SEGURANÇA
+    if (!token && !oldName) {
+      router.push('/auth/login');
+      return;
     }
+
+    // 3. Trata o nome do usuário para o Header
+    try {
+      if (storedUser) {
+        const userData = JSON.parse(storedUser);
+        const fullName = userData.nome || userData.name || 'Produtor';
+        const firstName = fullName.split(' ')[0];
+        setUserName(firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase());
+      } else if (oldName) {
+        const firstName = oldName.split(' ')[0];
+        setUserName(firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase());
+      }
+    } catch (e) {
+      console.error("Erro ao processar usuário", e);
+    } finally {
+      setIsChecking(false);
+    }
+  }, [router]);
+
+  const handleLogout = () => {
+    localStorage.clear(); 
+    router.push('/auth/login');
   };
 
-  return (
-    <div className="min-h-screen bg-[#F8FAFC] p-6 md:p-12">
-      <div className="max-w-3xl mx-auto bg-white rounded-[3rem] shadow-sm border border-slate-100 p-10">
-        <button onClick={() => router.back()} className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase mb-8 hover:text-[#C22973] transition-colors">
-          <ChevronLeft size={16} /> Voltar ao Painel
-        </button>
-
-        <h1 className="text-3xl font-black text-slate-800 mb-8 uppercase italic tracking-tighter">
-          Criar Novo <span className="text-[#C22973]">Evento</span>
-        </h1>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2 md:col-span-2">
-              <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Nome do Evento *</label>
-              <div className="relative">
-                <Type className="absolute left-4 top-4 text-slate-300" size={18} />
-                <input required value={form.nome} onChange={e => setForm({...form, nome: e.target.value})} className="w-full pl-12 p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#C22973] font-bold text-slate-700" placeholder="Ex: Baile da Linkah" />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Data do Evento *</label>
-              <div className="relative">
-                <Calendar className="absolute left-4 top-4 text-slate-300" size={18} />
-                <input type="date" required value={form.data} onChange={e => setForm({...form, data: e.target.value})} className="w-full pl-12 p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#C22973] font-bold text-slate-700" />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Local / Arena *</label>
-              <div className="relative">
-                <MapPin className="absolute left-4 top-4 text-slate-300" size={18} />
-                <input required value={form.local} onChange={e => setForm({...form, local: e.target.value})} className="w-full pl-12 p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#C22973] font-bold text-slate-700" placeholder="Ex: Estádio Municipal" />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Cidade *</label>
-              <input required value={form.cidade} onChange={e => setForm({...form, cidade: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#C22973] font-bold text-slate-700" placeholder="Ex: São Paulo" />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Estado (UF) *</label>
-              <input required maxLength={2} value={form.estado} onChange={e => setForm({...form, estado: e.target.value.toUpperCase()})} className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#C22973] font-bold text-slate-700" placeholder="Ex: SP" />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Descrição do Evento</label>
-            <div className="relative">
-              <AlignLeft className="absolute left-4 top-4 text-slate-300" size={18} />
-              <textarea rows={3} value={form.descricao} onChange={e => setForm({...form, descricao: e.target.value})} className="w-full pl-12 p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#C22973] font-bold text-slate-700" placeholder="Conte mais sobre o evento..." />
-            </div>
-          </div>
-
-          <button type="submit" disabled={loading} className="w-full bg-[#C22973] text-white py-5 rounded-2xl font-black uppercase tracking-widest hover:bg-[#a62262] transition-all flex items-center justify-center gap-3 shadow-lg shadow-pink-100 active:scale-[0.98]">
-            {loading ? <Loader2 className="animate-spin" /> : 'Próximo Passo: Definir Ingressos'}
-          </button>
-        </form>
+  // Enquanto verifica o login, mostra um carregando
+  if (isChecking) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center bg-white">
+        <Loader2 className="animate-spin text-[#C22973]" size={40} />
       </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#F1F5F9]">
+      {/* NAVBAR */}
+      <nav className="bg-white px-8 py-4 flex justify-between items-center border-b border-slate-200 sticky top-0 z-50">
+        <div className="flex items-center gap-2">
+          <span className="text-2xl font-black text-[#C22973] tracking-tighter italic">LİNKAH</span>
+        </div>
+
+        <div className="relative">
+          <button 
+            onClick={() => setIsOpen(!isOpen)}
+            className="flex items-center gap-3 hover:bg-slate-50 p-2 rounded-2xl transition-all group"
+          >
+            <div className="text-right mr-1 hidden sm:block">
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Olá, bem-vindo</p>
+              <p className="text-xs font-bold text-slate-700">{userName}</p>
+            </div>
+
+            <div className="relative">
+              <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center group-hover:bg-slate-200 transition-colors">
+                <UserCircle className="text-slate-400" size={28} />
+              </div>
+              <div className="w-3 h-3 bg-green-500 rounded-full border-2 border-white absolute bottom-0 right-0"></div>
+            </div>
+            
+            <ChevronDown size={14} className={`text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+          </button>
+
+          {isOpen && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)}></div>
+              <div className="absolute right-0 mt-2 w-52 bg-white rounded-3xl border border-slate-100 shadow-2xl z-20 py-2 animate-in fade-in zoom-in duration-150">
+                <div className="px-4 py-2 border-b border-slate-50 mb-1">
+                  <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Minha Conta</p>
+                </div>
+                
+                <button 
+                  onClick={() => router.push('/dashboard/perfil')}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all"
+                >
+                  <Settings size={16} /> Configurações
+                </button>
+                
+                <button 
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-red-500 hover:bg-red-50 transition-all"
+                >
+                  <LogOut size={16} /> Sair da conta
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </nav>
+
+      <main className="max-w-[1400px] mx-auto p-4 md:p-10">
+        <AvisoCadastro />
+        <div className="mt-8">
+          <TabelaEventos />
+        </div>
+      </main>
     </div>
   );
 }
