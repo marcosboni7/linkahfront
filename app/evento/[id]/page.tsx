@@ -99,13 +99,15 @@ export default function DetalhesEvento() {
                 <Calendar className="text-[#E30031] mt-1" size={24} />
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Quando</p>
-                  {/* DATA: Forçamos UTC para não mudar o dia */}
+                  
+                  {/* DATA CORRIGIDA */}
                   <p className="font-bold text-slate-800">
                     {new Date(evento.data_inicio).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
                   </p>
-                  {/* HORA: Pegamos apenas os primeiros 5 caracteres (HH:mm) da coluna hora_inicio */}
-                  <p className="text-xs text-slate-500">
-                    {evento.hora_inicio ? evento.hora_inicio.substring(0, 5) : '19:00'}h
+
+                  {/* HORA CORRIGIDA: Forçamos a leitura da string 'hora_inicio' e limpamos segundos */}
+                  <p className="text-xs text-slate-500 font-medium">
+                    {evento.hora_inicio ? String(evento.hora_inicio).split(':').slice(0, 2).join(':') : '19:00'}h
                   </p>
                 </div>
               </div>
