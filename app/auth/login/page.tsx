@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, Globe, ArrowRight, Loader2 } from 'lucide-react';
 
@@ -15,7 +14,7 @@ export default function LoginPage() {
 
   const apiBaseUrl = 'https://linkah-api.onrender.com';
 
-  // Validação em tempo real
+  // Validação de e-mail em tempo real
   useEffect(() => {
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setErrors(prev => ({ ...prev, email: 'E-mail inválido' }));
@@ -29,6 +28,7 @@ export default function LoginPage() {
     if (errors.email || !email || !senha) return;
 
     setIsLoading(true);
+    setErrors({});
 
     try {
       const response = await fetch(`${apiBaseUrl}/api/auth/login`, {
@@ -43,7 +43,7 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (response.ok) {
-        // 1. PADRONIZAÇÃO DE CHAVES (Sincronizado com Navbar)
+        // 1. SALVANDO DADOS NO LOCALSTORAGE (Chaves padronizadas @Linkah)
         const userObj = {
           nome: data.user?.nome || 'Produtor',
           email: data.user?.email || email.trim().toLowerCase(),
@@ -53,25 +53,30 @@ export default function LoginPage() {
         localStorage.setItem('@Linkah:User', JSON.stringify(userObj));
         if (data.token) localStorage.setItem('@Linkah:Token', data.token);
 
-        // 2. CHECAGEM DE PERFIL E REDIRECIONAMENTO
+        // 2. CHECAGEM DE PERFIL E REDIRECIONAMENTO PARA /DASHBOARD/EVENTOS
         try {
           const perfilRes = await fetch(`${apiBaseUrl}/api/auth/perfil?email=${userObj.email}`);
           const perfilData = await perfilRes.json();
 
+          // Se o perfil já tiver dados básicos (CPF ou CEP), vai para eventos
           if (perfilRes.ok && (perfilData.cpf_cnpj || perfilData.cep)) {
-            router.push('/dashboard/painel'); 
+            router.push('/dashboard/eventos'); 
           } else {
+            // Se for o primeiro login e o perfil estiver vazio, completa o cadastro
             router.push('/dashboard/perfil'); 
           }
-        } catch {
-          router.push('/dashboard/painel'); 
+        } catch (perfilError) {
+          // Se a API de perfil falhar, manda para eventos para não travar o usuário
+          console.error("Erro ao checar perfil, redirecionando para eventos...");
+          router.push('/dashboard/eventos'); 
         }
+
       } else {
-        setErrors({ email: ' ', senha: data.message || "Credenciais incorretas" });
+        setErrors({ senha: data.message || "E-mail ou senha incorretos" });
         setIsLoading(false);
       }
     } catch (error) {
-      setErrors({ email: 'Erro de conexão', senha: 'Não foi possível conectar ao servidor' });
+      setErrors({ email: 'Erro de conexão com o servidor.' });
       setIsLoading(false);
     }
   };
@@ -80,7 +85,7 @@ export default function LoginPage() {
     <div className="flex min-h-screen bg-[#F8FAFC] font-sans antialiased text-slate-900">
       {/* LADO ESQUERDO - Visual */}
       <div className="hidden lg:flex w-[40%] bg-[#C22973] flex-col justify-between p-16 relative overflow-hidden shadow-[20px_0_40px_rgba(0,0,0,0.1)]">
-        <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-full">
           <div className="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] bg-white/10 rounded-full blur-[120px] animate-pulse" />
         </div>
 
@@ -98,17 +103,17 @@ export default function LoginPage() {
 
         <div className="relative z-10 text-white">
           <h2 className="text-6xl font-black leading-[1] mb-8 tracking-tighter">
-            Escale sua <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-200 to-white">produção.</span>
+            Gerencie seus <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-200 to-white">eventos.</span>
           </h2>
           <p className="text-pink-100/80 text-lg font-light max-w-sm">
-            A plataforma definitiva para quem transforma ideias em experiências inesquecíveis.
+            Acesse seu painel administrativo e controle todas as suas vendas em tempo real.
           </p>
         </div>
 
         <div className="relative z-10 flex items-center gap-6 text-pink-200/40 text-[10px] font-black uppercase tracking-[0.2em]">
-          <span>v2.0.4</span>
-          <span>Suporte 24h</span>
+          <span>v2.1.0</span>
+          <span>Sincronizado com Pix</span>
         </div>
       </div>
 
@@ -116,8 +121,8 @@ export default function LoginPage() {
       <div className="flex-1 flex flex-col justify-center items-center px-8 lg:px-24">
         <div className="w-full max-w-[440px] bg-white p-10 rounded-[3rem] shadow-sm border border-slate-100">
           <div className="mb-10 text-center">
-            <h1 className="text-4xl font-black tracking-tight text-slate-900 mb-3">Bem-vindo</h1>
-            <p className="text-slate-400 font-medium">Acesse sua conta de produtor.</p>
+            <h1 className="text-4xl font-black tracking-tight text-slate-900 mb-3">Login</h1>
+            <p className="text-slate-400 font-medium">Acesse seu painel de produtor.</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-6">
@@ -131,14 +136,13 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="nome@empresa.com"
-                className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#C22973] focus:ring-4 focus:ring-pink-50 transition-all font-bold"
+                className={`w-full px-6 py-4 bg-slate-50 border ${errors.email ? 'border-red-500' : 'border-slate-100'} rounded-2xl outline-none focus:border-[#C22973] transition-all font-bold`}
               />
+              {errors.email && <p className="text-[10px] text-red-500 font-bold ml-2 italic">{errors.email}</p>}
             </div>
 
             <div className="space-y-2">
-              <div className="flex justify-between px-2">
-                <label className="text-[11px] font-black uppercase tracking-widest text-slate-400">Senha</label>
-              </div>
+              <label className="text-[11px] font-black uppercase tracking-widest ml-2 text-slate-400">Senha</label>
               <div className="relative">
                 <input
                   required
@@ -146,7 +150,7 @@ export default function LoginPage() {
                   value={senha}
                   onChange={(e) => setSenha(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#C22973] focus:ring-4 focus:ring-pink-50 transition-all font-bold"
+                  className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#C22973] transition-all font-bold"
                 />
                 <button
                   type="button"
@@ -163,7 +167,7 @@ export default function LoginPage() {
               disabled={isLoading}
               className="w-full bg-[#C22973] text-white py-5 rounded-[1.5rem] font-black uppercase tracking-[0.2em] shadow-xl shadow-pink-100 hover:bg-[#a62262] transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-70"
             >
-              {isLoading ? <Loader2 className="animate-spin" /> : <>Acessar Painel <ArrowRight size={18} /></>}
+              {isLoading ? <Loader2 className="animate-spin" /> : <>Entrar no Painel <ArrowRight size={18} /></>}
             </button>
           </form>
         </div>
