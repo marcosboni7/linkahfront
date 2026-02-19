@@ -56,14 +56,15 @@ export default function BuyTicketHome() {
     carregarDados();
   }, []);
 
-  // --- CORREÇÃO DE DATA (FUSO HORÁRIO) ---
-  // Pegamos a data de hoje no formato YYYY-MM-DD local
+  // --- CORREÇÃO DE DATA (EVITA O BUG DAS 21H) ---
+  
+  // Pegamos a data de hoje no formato YYYY-MM-DD local do sistema
   const hojeObj = new Date();
-  const hojeStr = hojeObj.toLocaleDateString('en-CA'); // Retorna "YYYY-MM-DD"
+  const hojeStr = hojeObj.toLocaleDateString('en-CA'); // Retorna "2026-02-19" (formato ISO seguro)
 
   const oQueFazerHoje = eventos.filter(ev => {
     if (!ev.data_inicio) return false;
-    // Compara apenas as strings "2026-02-19" para evitar o bug das 21h
+    // Compara apenas a parte da data (YYYY-MM-DD) sem criar objeto Date
     const dataEvStr = ev.data_inicio.substring(0, 10);
     return dataEvStr === hojeStr;
   });
@@ -73,7 +74,8 @@ export default function BuyTicketHome() {
     const dataEvStr = ev.data_inicio.substring(0, 10);
     if (dataEvStr === hojeStr) return false;
 
-    const dataEv = new Date(dataEvStr + 'T12:00:00'); // Força meio-dia para cálculo de diff
+    // Criamos uma data "neutra" (meio-dia) para calcular a diferença de dias sem erro de fuso
+    const dataEv = new Date(dataEvStr + 'T12:00:00'); 
     const diffTime = dataEv.getTime() - hojeObj.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays >= 1 && diffDays <= 2;
@@ -89,6 +91,7 @@ export default function BuyTicketHome() {
     <div className="flex flex-col min-h-screen bg-[#F3F4F6] text-slate-900 font-sans">
       <Navbar />
 
+      {/* HERO / CARROSSEL */}
       <section className="relative h-[520px] flex items-center justify-center overflow-hidden bg-black shrink-0">
         {SLIDES.map((slide, index) => (
           <div key={slide.id} className={`absolute inset-0 transition-opacity duration-1000 ${index === currentSlide ? 'opacity-100' : 'opacity-0'}`}>
@@ -136,6 +139,7 @@ export default function BuyTicketHome() {
         </div>
       </section>
 
+      {/* FILTRO DE CATEGORIAS */}
       <div className="sticky top-0 z-40 bg-[#F3F4F6]/80 backdrop-blur-md py-4 border-b border-slate-200">
         <CategoryFilter 
           categories={categoriasExistentes} 
