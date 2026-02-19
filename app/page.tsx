@@ -22,7 +22,6 @@ const iconMap: { [key: string]: any } = {
 const SLIDES = [
   { id: 1, url: 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?q=80&w=2070&auto=format&fit=crop', title: 'Descubra o seu', highlight: 'próximo momento' },
   { id: 2, url: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=2070&auto=format&fit=crop', title: 'Sinta a vibe dos', highlight: 'melhores shows' },
-  { id: 3, url: 'https://images.unsplash.com/photo-1514525253361-bee8718a74a7?q=80&w=2070&auto=format&fit=crop', title: 'Conecte-se com', highlight: 'novas experiências' }
 ];
 
 export default function BuyTicketHome() {
@@ -37,11 +36,6 @@ export default function BuyTicketHome() {
   const API_URL = 'https://linkah-api.onrender.com/api/eventos/vitrine';
 
   useEffect(() => {
-    const interval = setInterval(() => setCurrentSlide((prev) => (prev === SLIDES.length - 1 ? 0 : prev + 1)), 5000);
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
     async function carregarDados() {
       setLoading(true);
       try {
@@ -52,13 +46,14 @@ export default function BuyTicketHome() {
         
         if (response.ok) {
           const dados = await response.json();
-          console.log("Dados recebidos da API:", dados); // Para debug no F12
+          console.log("DEBUG VITRINE - Dados brutos:", dados);
           
-          // Ordena pelos mais novos (ID maior primeiro)
-          const ordenados = dados.sort((a: any, b: any) => b.id - a.id);
-          
+          // Ordena e limpa dados
+          const ordenados = (dados || []).sort((a: any, b: any) => b.id - a.id);
           setEventos(ordenados);
-          const extrair = dados.map((ev: any) => ev.categoria).filter(Boolean);
+
+          // Extrai categorias dinamicamente
+          const extrair = ordenados.map((ev: any) => ev.categoria).filter(Boolean);
           setCategoriasExistentes(['Todos', ...Array.from(new Set(extrair)) as string[]]);
         }
       } catch (error) { 
@@ -70,132 +65,78 @@ export default function BuyTicketHome() {
     carregarDados();
   }, []);
 
-  const hojeObj = new Date();
-  const hojeStr = hojeObj.toLocaleDateString('en-CA');
-
-  // FILTROS DE SESSÃO
-  const oQueFazerHoje = eventos.filter(ev => {
-    const status = (ev.status || "").toLowerCase();
-    const isValido = status.includes('ativ') || status === 'pendente';
-    if (!ev.data_inicio || !isValido) return false;
-    const dataEvStr = new Date(ev.data_inicio).toLocaleDateString('en-CA');
-    return dataEvStr === hojeStr;
-  });
-
-  const ultimaChamada = eventos.filter(ev => {
-    const status = (ev.status || "").toLowerCase();
-    const isValido = status.includes('ativ') || status === 'pendente';
-    if (!ev.data_inicio || !isValido) return false;
-    const dataEv = new Date(ev.data_inicio);
-    const dataEvStr = dataEv.toLocaleDateString('en-CA');
-    if (dataEvStr === hojeStr) return false;
-    const diffTime = dataEv.getTime() - hojeObj.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays >= 1 && diffDays <= 2;
-  });
-
-  // FILTRO PRINCIPAL (VITRINE) - Liberado para mostrar tudo
+  // FILTRO PRINCIPAL (Ajustado para ser menos rigoroso)
   const vitrineFiltrada = eventos.filter(ev => {
-    const nomeMatch = (ev.nome || "").toLowerCase().includes(buscaNome.toLowerCase());
+    const nomeVal = (ev.nome || "").toLowerCase();
+    const buscaNomeVal = buscaNome.toLowerCase();
+    const nomeMatch = nomeVal.includes(buscaNomeVal);
+
     const catMatch = categoriaAtiva === 'Todos' || ev.categoria === categoriaAtiva;
-    const localMatch = (ev.cidade || "").toLowerCase().includes(buscaLocal.toLowerCase()) || 
-                       (ev.estado || "").toLowerCase().includes(buscaLocal.toLowerCase()) ||
-                       (ev.local_nome || "").toLowerCase().includes(buscaLocal.toLowerCase());
+
+    const localVal = `${ev.cidade} ${ev.estado} ${ev.local_nome}`.toLowerCase();
+    const localMatch = localVal.includes(buscaLocal.toLowerCase());
     
-    // Aceita qualquer status que não seja excluído
+    // Status: Deixa passar quase tudo (ativo, ATÍVO, pendente, null)
     const status = (ev.status || "").toLowerCase();
-    const naoExcluido = status !== 'excluido';
+    const naoExcluido = status !== 'excluido' && status !== 'deletado';
     
     return nomeMatch && catMatch && localMatch && naoExcluido;
   });
 
+  const limparFiltros = () => {
+    setBuscaNome('');
+    setBuscaLocal('');
+    setCategoriaAtiva('Todos');
+  };
+
   return (
-    <div className="flex flex-col min-h-screen bg-[#F3F4F6] text-slate-900 font-sans">
+    <div className="flex flex-col min-h-screen bg-[#F3F4F6] text-slate-900">
       <Navbar />
 
-      <section className="relative h-[520px] flex items-center justify-center overflow-hidden bg-black shrink-0">
-        {SLIDES.map((slide, index) => (
-          <div key={slide.id} className={`absolute inset-0 transition-opacity duration-1000 ${index === currentSlide ? 'opacity-100' : 'opacity-0'}`}>
-            <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url('${slide.url}')` }}>
-              <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/20 to-[#F3F4F6]" />
+      {/* HERO / BUSCA */}
+      <section className="relative h-[480px] bg-black flex items-center justify-center overflow-hidden">
+        <div className="absolute inset-0 opacity-40 bg-cover bg-center" style={{ backgroundImage: `url('${SLIDES[0].url}')` }} />
+        <div className="relative z-10 w-full max-w-5xl px-6">
+          <div className="bg-white p-2 rounded-2xl shadow-2xl flex flex-col md:row items-center gap-2">
+            <div className="flex-1 flex items-center px-4 w-full border-r border-slate-100">
+              <Search className="text-pink-500 mr-2" size={20} />
+              <input 
+                value={buscaNome} 
+                onChange={(e) => setBuscaNome(e.target.value)}
+                placeholder="Nome do evento..." 
+                className="w-full py-3 outline-none font-medium" 
+              />
             </div>
-            <div className="relative z-10 text-center px-6">
-              <span className="inline-block bg-[#ff0082] text-white text-[10px] font-bold uppercase tracking-[0.3em] px-4 py-1.5 rounded-full mb-4">Linkah Experience</span>
-              <h1 className="text-4xl md:text-7xl font-black text-white mb-6 uppercase italic tracking-tighter">
-                {slide.title} <br /> <span className="text-[#ff0082]">{slide.highlight}</span>
-              </h1>
-            </div>
-          </div>
-        ))}
-        
-        <div className="absolute bottom-10 z-30 w-full px-6">
-          <div className="bg-white/95 backdrop-blur-md p-2 rounded-2xl md:rounded-full shadow-2xl flex flex-col md:flex-row items-center max-w-5xl mx-auto border border-white/40">
-            <div className="flex-1 flex items-center px-5 py-3 w-full border-b md:border-b-0 md:border-r border-slate-200">
-              <Search size={20} className="text-[#ff0082] mr-3 shrink-0" />
-              <input type="text" value={buscaNome} onChange={(e) => setBuscaNome(e.target.value)} placeholder="Qual evento você está procurando?" className="w-full bg-transparent outline-none text-base font-medium text-slate-800" />
-            </div>
-            <div className="flex-1 flex items-center px-5 py-3 w-full border-b md:border-b-0 md:border-r border-slate-200">
-              <MapPin size={20} className="text-slate-400 mr-3 shrink-0" />
-              <input type="text" value={buscaLocal} onChange={(e) => setBuscaLocal(e.target.value)} placeholder="Cidade ou Estado" className="w-full bg-transparent outline-none text-base font-medium text-slate-800" />
-            </div>
-            <button className="bg-[#ff0082] hover:bg-[#d9006f] text-white px-10 py-4 rounded-xl md:rounded-full font-black text-sm uppercase tracking-widest transition-all w-full md:w-auto">Buscar</button>
+            <button className="bg-[#ff0082] text-white px-8 py-3 rounded-xl font-bold uppercase text-sm">Buscar</button>
           </div>
         </div>
       </section>
 
-      <div className="sticky top-0 z-40 bg-[#F3F4F6]/80 backdrop-blur-md py-4 border-b border-slate-200">
+      <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b">
         <CategoryFilter categories={categoriasExistentes} activeCategory={categoriaAtiva} onSelect={setCategoriaAtiva} iconMap={iconMap} />
       </div>
 
-      <main className="flex-1 max-w-7xl mx-auto px-6 py-10 space-y-20 w-full">
-        {!buscaNome && !buscaLocal && categoriaAtiva === 'Todos' && (
-          <>
-            {oQueFazerHoje.length > 0 && (
-              <section>
-                <SectionHeader title="O que fazer" highlight="hoje" />
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {oQueFazerHoje.map(ev => <EventCard key={ev.id} evento={ev} />)}
-                </div>
-              </section>
-            )}
+      <main className="max-w-7xl mx-auto px-6 py-12 w-full">
+        <SectionHeader title="Explorar" highlight="Eventos" count={vitrineFiltrada.length} />
 
-            {ultimaChamada.length > 0 && (
-              <section className="bg-white/50 p-8 rounded-[2.5rem] border border-white shadow-sm">
-                <div className="flex items-center gap-3 mb-8">
-                  <Clock className="text-[#ff0082]" size={24} />
-                  <h2 className="text-2xl font-black text-slate-800 uppercase italic">Última <span className="text-[#ff0082]">Chamada</span></h2>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {ultimaChamada.map(ev => <EventCard key={ev.id} evento={ev} />)}
-                </div>
-              </section>
-            )}
-          </>
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            {[1, 2, 3, 4].map(i => <div key={i} className="h-64 bg-white animate-pulse rounded-2xl" />)}
+          </div>
+        ) : vitrineFiltrada.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-8">
+            {vitrineFiltrada.map(ev => <EventCard key={ev.id} evento={ev} />)}
+          </div>
+        ) : (
+          <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed border-slate-200">
+            <FilterX size={60} className="mx-auto text-slate-200 mb-4" />
+            <h2 className="text-2xl font-bold text-slate-800">Nenhum evento encontrado</h2>
+            <p className="text-slate-500 mb-6">Não encontramos nada com esses filtros.</p>
+            <button onClick={limparFiltros} className="bg-slate-900 text-white px-6 py-2 rounded-full font-bold">
+              Limpar Filtros
+            </button>
+          </div>
         )}
-
-        <section id="vitrine-principal">
-          <SectionHeader 
-            title={buscaNome || buscaLocal ? `Resultados` : (categoriaAtiva === 'Todos' ? 'Todos os Eventos' : categoriaAtiva)} 
-            count={vitrineFiltrada.length} 
-          />
-          
-          {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {[1, 2, 3, 4].map((i) => <div key={i} className="animate-pulse bg-white rounded-[2rem] h-[400px]" />)}
-            </div>
-          ) : vitrineFiltrada.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {vitrineFiltrada.map(ev => <EventCard key={ev.id} evento={ev} />)}
-            </div>
-          ) : (
-            <div className="py-24 text-center bg-white rounded-[3rem] border border-dashed border-slate-300">
-              <FilterX size={48} className="text-slate-300 mx-auto mb-6" />
-              <h3 className="text-xl font-black text-slate-800 uppercase italic">Nenhum evento encontrado</h3>
-              <p className="text-slate-400 mt-2">Tente mudar os termos da busca ou a categoria.</p>
-              <button onClick={() => {setBuscaNome(''); setBuscaLocal(''); setCategoriaAtiva('Todos');}} className="mt-4 text-[#ff0082] font-bold">Limpar filtros</button>
-            </div>
-          )}
-        </section>
       </main>
       <Footer />
     </div>
