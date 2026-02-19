@@ -38,11 +38,10 @@ export function Navbar() {
 
     try {
       // Chamada para sua API no Render com o filtro de email
-   const response = await fetch(`https://linkah-api.onrender.com/api/compras/meus-ingressos?email=${usuario.email}`);
+      const response = await fetch(`https://linkah-api.onrender.com/api/compras/meus-ingressos?email=${usuario.email}`);
 
       if (response.ok) {
         const dados = await response.json();
-        // O Back-end já envia: id, evento, data (formatada), qtd, status
         setMeusIngressos(dados);
       } else {
         console.error("Erro ao buscar ingressos na API");
@@ -107,6 +106,12 @@ export function Navbar() {
                     {usuario.nome.split(' ')[0]}
                   </span>
                 </div>
+                {/* Botão para Dashboard se for produtor */}
+                {usuario.role === 'produtor' && (
+                   <Link href="/dashboard" className="p-2 text-slate-400 hover:text-[#d6006d] transition-colors">
+                      <Hash size={18} />
+                   </Link>
+                )}
                 <button
                   onClick={handleLogout}
                   className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
@@ -117,7 +122,7 @@ export function Navbar() {
               </div>
             ) : (
               <Link
-                href="/site/login"
+                href="/auth/login"
                 className="text-slate-900 text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-slate-50 px-5 py-3.5 rounded-2xl transition-all border border-slate-100 shadow-sm"
               >
                 <User size={18} className="text-[#d6006d]" />
@@ -156,10 +161,8 @@ export function Navbar() {
                     <div key={ticket.id} className="bg-white border-2 border-slate-100 rounded-2xl p-5 hover:border-[#d6006d]/20 transition-all group">
                       <div className="flex justify-between items-start mb-4">
                         <div>
-                          {/* Usa 'ticket.evento' vindo do 'as evento' no SQL */}
                           <h4 className="font-black text-sm uppercase leading-tight text-slate-900">{ticket.evento}</h4>
                           <div className="flex items-center gap-2 text-slate-400 text-[10px] mt-1 font-bold">
-                            {/* Usa 'ticket.data' vindo do 'TO_CHAR' no SQL */}
                             <Calendar size={12} /> {ticket.data}
                           </div>
                         </div>
@@ -177,7 +180,6 @@ export function Navbar() {
                           </span>
                         </div>
                         <div className="text-xs font-black uppercase tracking-tighter text-[#d6006d]">
-                          {/* Usa 'ticket.qtd' vindo do 'as qtd' no SQL */}
                           {ticket.qtd} {ticket.qtd > 1 ? 'INGRESSOS' : 'INGRESSO'}
                         </div>
                       </div>

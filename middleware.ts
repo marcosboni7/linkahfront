@@ -4,24 +4,16 @@ import type { NextRequest } from 'next/server';
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // 1. LIBERA A HOME
-  if (pathname === '/') {
+  // 1. FORÇA A LIBERAÇÃO DA HOME E ARQUIVOS ESTÁTICOS
+  if (pathname === '/' || pathname.includes('.')) {
     return NextResponse.next();
   }
 
-  // 2. LIBERA DASHBOARD (Nova rota padrão do produtor)
-  // Agora o middleware entende que a rota /dashboard é permitida
-  if (pathname.startsWith('/dashboard')) {
-    return NextResponse.next();
-  }
+  // 2. LIBERA O RESTANTE (DASHBOARD, STAFF, AUTH)
+  const rotasLivres = ['/dashboard', '/staff', '/auth', '/vitrine'];
+  const isRotaLivre = rotasLivres.some(rota => pathname.startsWith(rota));
 
-  // 3. LIBERA O STAFF (Mantido para caso você ainda use algo lá)
-  if (pathname.startsWith('/staff')) {
-    return NextResponse.next();
-  }
-
-  // 4. LIBERA AUTH: Login e Registro
-  if (pathname.startsWith('/auth')) {
+  if (isRotaLivre) {
     return NextResponse.next();
   }
 
@@ -30,13 +22,7 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
+    // Pega tudo exceto o que for estático ou API
     '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
 };
