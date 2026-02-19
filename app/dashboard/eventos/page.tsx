@@ -13,11 +13,11 @@ export default function DashboardEventos() {
   const router = useRouter();
 
   useEffect(() => {
-    // 1. Buscamos o objeto do usuário que contém os dados
+    // 1. Buscamos o objeto principal
     const userJSON = localStorage.getItem('@Linkah:User');
 
     if (!userJSON) {
-      // Se não achar o usuário, manda pro login
+      console.log("🚫 Sem dados de usuário. Redirecionando...");
       router.push('/auth/login');
       return;
     }
@@ -25,20 +25,18 @@ export default function DashboardEventos() {
     try {
       const user = JSON.parse(userJSON);
       
-      // 2. Verificamos se dentro do objeto existe um token ou o email (para validar sessão)
-      // Ajuste aqui para a chave que seu backend envia (ex: user.token ou apenas a existência do user)
+      // 2. Verificamos se o email existe (prova de que está logado)
       if (!user.email) {
         router.push('/auth/login');
         return;
       }
 
-      // 3. Carrega o nome
+      // 3. Ajustamos o nome para exibição
       if (user.nome) {
         const firstName = user.nome.split(' ')[0];
         setUserName(firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase());
       }
-    } catch (error) {
-      console.error("Erro ao ler dados do usuário", error);
+    } catch (e) {
       router.push('/auth/login');
     }
     
@@ -46,15 +44,17 @@ export default function DashboardEventos() {
   }, [router]);
 
   const handleLogout = () => {
-    localStorage.removeItem('@Linkah:User'); 
-    localStorage.removeItem('@Linkah:Token'); // Remove ambos por garantia
+    localStorage.clear(); // Limpa tudo para não sobrar lixo
     router.push('/auth/login');
   };
 
   if (loading) {
     return (
       <div className="h-screen w-full flex items-center justify-center bg-[#F1F5F9]">
-        <Loader2 className="animate-spin text-[#4B0082]" size={40} />
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="animate-spin text-[#4B0082]" size={40} />
+          <p className="text-slate-500 font-bold text-xs uppercase tracking-widest">Verificando Acesso...</p>
+        </div>
       </div>
     );
   }
@@ -89,22 +89,16 @@ export default function DashboardEventos() {
           {isOpen && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)}></div>
-              <div className="absolute right-0 mt-2 w-52 bg-white rounded-3xl border border-slate-100 shadow-2xl z-20 py-2 animate-in fade-in zoom-in duration-150">
+              <div className="absolute right-0 mt-2 w-52 bg-white rounded-3xl border border-slate-100 shadow-2xl z-20 py-2">
                 <div className="px-4 py-2 border-b border-slate-50 mb-1">
                   <p className="text-[10px] font-black text-slate-300 uppercase">Minha Conta</p>
                 </div>
                 
-                <button 
-                  onClick={() => router.push('/dashboard/perfil')}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all"
-                >
+                <button onClick={() => router.push('/dashboard/perfil')} className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all">
                   <Settings size={16} /> Configurações
                 </button>
                 
-                <button 
-                  onClick={handleLogout}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-red-500 hover:bg-red-50 transition-all"
-                >
+                <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-red-500 hover:bg-red-50 transition-all">
                   <LogOut size={16} /> Sair da conta
                 </button>
               </div>
