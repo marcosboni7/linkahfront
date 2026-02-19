@@ -38,10 +38,7 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Bloqueia se houver erros ou campos vazios
-    if (errors.email || errors.senha || !email || !senha) {
-      return;
-    }
+    if (errors.email || errors.senha || !email || !senha) return;
 
     setIsLoading(true);
 
@@ -58,33 +55,34 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (response.ok) {
-        // 1. EXTRAÇÃO DOS DADOS
         const user = data.user;
         const emailUsuario = user?.email || email.trim().toLowerCase();
         
-        // 2. PADRONIZAÇÃO DO OBJETO DE USUÁRIO
+        // 1. OBJETO DO USUÁRIO
         const objetoUsuario = {
           email: emailUsuario,
           nome: user?.nome || 'Produtor',
           id: user?.id || data.userId
         };
 
-        // 3. SALVAMENTO NO LOCAL STORAGE (Sincronizado com Dashboard)
+        // 2. SALVAMENTO LOCAL (Para o Dashboard)
         window.localStorage.setItem('@Linkah:User', JSON.stringify(objetoUsuario));
         window.localStorage.setItem('userEmail', emailUsuario);
         window.localStorage.setItem('userName', user?.nome || 'Produtor');
 
-        // Pequena pausa para garantir que o navegador escreveu no storage
-        await new Promise(resolve => setTimeout(resolve, 150));
+        // 3. SALVAMENTO EM COOKIE (Para o Middleware não te expulsar)
+        // O max-age 86400 define que o login dura 24 horas
+        document.cookie = `userEmail=${emailUsuario}; path=/; max-age=86400; samesite=lax`;
 
-        // 4. CHECAGEM DE PERFIL (Para saber onde mandar o usuário)
+        // Pequena pausa para garantir a escrita dos dados
+        await new Promise(resolve => setTimeout(resolve, 200));
+
+        // 4. VERIFICAÇÃO DE PERFIL E REDIRECIONAMENTO
         try {
           const perfilRes = await fetch(`${apiBaseUrl}/api/auth/perfil?email=${emailUsuario}`);
           
           if (perfilRes.ok) {
             const perfilData = await perfilRes.json();
-
-            // Se tiver CPF/CNPJ ou outros dados, o perfil está ok
             if (perfilData.cpf_cnpj || perfilData.cep || user?.cpf_cnpj) {
               window.localStorage.setItem('perfil_completo', 'true');
               router.replace('/dashboard/eventos');
@@ -92,12 +90,10 @@ export default function LoginPage() {
             }
           }
           
-          // Caso perfil esteja incompleto
           window.localStorage.removeItem('perfil_completo');
           router.replace('/dashboard/perfil');
           
         } catch (checkError) {
-          // Se a API de perfil falhar, manda pro dashboard por segurança
           router.replace('/dashboard/eventos');
         }
         
