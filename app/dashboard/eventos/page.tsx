@@ -4,31 +4,47 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import AvisoCadastro from '../eventos/AvisoCadastro';
 import TabelaEventos from '../eventos/TabelaEventos';
-import { UserCircle, LogOut, Settings, ChevronDown } from 'lucide-react';
+import { UserCircle, LogOut, Settings, ChevronDown, Loader2 } from 'lucide-react';
 
 export default function DashboardEventos() {
   const [isOpen, setIsOpen] = useState(false);
-  const [userName, setUserName] = useState('Produtor'); // Valor padrão
+  const [userName, setUserName] = useState('Produtor');
+  const [loading, setLoading] = useState(true); // Estado de carregamento
   const router = useRouter();
 
   useEffect(() => {
-    // 1. Tenta pegar o nome guardado no localStorage (chave 'userName')
+    // 1. Verifica se o Token existe (A CHAVE DEVE SER A MESMA DO LOGIN)
+    const token = localStorage.getItem('@Linkah:Token');
     const storedName = localStorage.getItem('userName');
-    
+
+    if (!token) {
+      // Se não tem token, manda pro login IMEDIATAMENTE
+      router.push('/auth/login');
+      return;
+    }
+
+    // 2. Se tem token, carrega o nome do produtor
     if (storedName && storedName !== 'undefined') {
-      // Pega o primeiro nome e garante que a primeira letra é maiúscula
       const firstName = storedName.split(' ')[0];
       setUserName(firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase());
     }
-  }, []);
+    
+    setLoading(false); // Libera a visualização da página
+  }, [router]);
 
   const handleLogout = () => {
-    // Limpa os dados de login
     localStorage.clear(); 
-    
-    // Redireciona para o login de forma inteligente (funciona local e na web)
     router.push('/auth/login');
   };
+
+  // Enquanto verifica o token, mostra um loading para não "piscar" a tela
+  if (loading) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center bg-[#F1F5F9]">
+        <Loader2 className="animate-spin text-[#4B0082]" size={40} />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F1F5F9]">
@@ -44,7 +60,6 @@ export default function DashboardEventos() {
           >
             <div className="text-right mr-1 hidden sm:block">
               <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Olá, bem-vindo</p>
-              {/* AQUI APARECE O NOME REAL */}
               <p className="text-xs font-bold text-slate-700">{userName}</p>
             </div>
 
@@ -61,7 +76,7 @@ export default function DashboardEventos() {
           {isOpen && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)}></div>
-              <div className="absolute right-0 mt-2 w-52 bg-white rounded-3xl border border-slate-100 shadow-2xl shadow-indigo-100/50 z-20 py-2 animate-in fade-in zoom-in duration-150">
+              <div className="absolute right-0 mt-2 w-52 bg-white rounded-3xl border border-slate-100 shadow-2xl z-20 py-2 animate-in fade-in zoom-in duration-150">
                 <div className="px-4 py-2 border-b border-slate-50 mb-1">
                   <p className="text-[10px] font-black text-slate-300 uppercase">Minha Conta</p>
                 </div>
