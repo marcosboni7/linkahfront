@@ -20,7 +20,6 @@ export default function DetalhesEvento() {
   useEffect(() => {
     async function carregarEvento() {
       try {
-        // Adicionei cache: 'no-store' para garantir que você veja a alteração assim que salvar no editor
         const res = await fetch(`https://linkah-api.onrender.com/api/eventos/${id}`, {
           cache: 'no-store'
         });
@@ -100,11 +99,14 @@ export default function DetalhesEvento() {
                 <Calendar className="text-[#E30031] mt-1" size={24} />
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Quando</p>
-                  {/* CORREÇÃO DA DATA AQUI: timeZone: 'UTC' */}
+                  {/* DATA: Forçamos UTC para não mudar o dia */}
                   <p className="font-bold text-slate-800">
                     {new Date(evento.data_inicio).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
                   </p>
-                  <p className="text-xs text-slate-500">{evento.hora_inicio || '19:00'}</p>
+                  {/* HORA: Pegamos apenas os primeiros 5 caracteres (HH:mm) da coluna hora_inicio */}
+                  <p className="text-xs text-slate-500">
+                    {evento.hora_inicio ? evento.hora_inicio.substring(0, 5) : '19:00'}h
+                  </p>
                 </div>
               </div>
               <div className="flex items-start gap-4 p-6 rounded-3xl bg-slate-50 border border-slate-100">
