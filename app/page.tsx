@@ -56,20 +56,24 @@ export default function BuyTicketHome() {
     carregarDados();
   }, []);
 
+  // --- CORREÇÃO DE DATA (FUSO HORÁRIO) ---
+  // Pegamos a data de hoje no formato YYYY-MM-DD local
   const hojeObj = new Date();
-  const hojeStr = hojeObj.toLocaleDateString('en-CA');
+  const hojeStr = hojeObj.toLocaleDateString('en-CA'); // Retorna "YYYY-MM-DD"
 
   const oQueFazerHoje = eventos.filter(ev => {
     if (!ev.data_inicio) return false;
-    const dataEvStr = new Date(ev.data_inicio).toLocaleDateString('en-CA');
+    // Compara apenas as strings "2026-02-19" para evitar o bug das 21h
+    const dataEvStr = ev.data_inicio.substring(0, 10);
     return dataEvStr === hojeStr;
   });
 
   const ultimaChamada = eventos.filter(ev => {
     if (!ev.data_inicio) return false;
-    const dataEv = new Date(ev.data_inicio);
-    const dataEvStr = dataEv.toLocaleDateString('en-CA');
+    const dataEvStr = ev.data_inicio.substring(0, 10);
     if (dataEvStr === hojeStr) return false;
+
+    const dataEv = new Date(dataEvStr + 'T12:00:00'); // Força meio-dia para cálculo de diff
     const diffTime = dataEv.getTime() - hojeObj.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays >= 1 && diffDays <= 2;
@@ -82,11 +86,9 @@ export default function BuyTicketHome() {
   });
 
   return (
-    /* AJUSTE AQUI: flex flex-col e min-h-screen para o footer nunca sobrar */
     <div className="flex flex-col min-h-screen bg-[#F3F4F6] text-slate-900 font-sans">
       <Navbar />
 
-      {/* HERO / CARROSSEL */}
       <section className="relative h-[520px] flex items-center justify-center overflow-hidden bg-black shrink-0">
         {SLIDES.map((slide, index) => (
           <div key={slide.id} className={`absolute inset-0 transition-opacity duration-1000 ${index === currentSlide ? 'opacity-100' : 'opacity-0'}`}>
@@ -134,7 +136,6 @@ export default function BuyTicketHome() {
         </div>
       </section>
 
-      {/* FILTRO DE CATEGORIAS */}
       <div className="sticky top-0 z-40 bg-[#F3F4F6]/80 backdrop-blur-md py-4 border-b border-slate-200">
         <CategoryFilter 
           categories={categoriasExistentes} 
@@ -144,7 +145,6 @@ export default function BuyTicketHome() {
         />
       </div>
 
-      {/* AJUSTE AQUI: flex-1 faz o conteúdo principal "empurrar" o footer para o fundo */}
       <main className="flex-1 max-w-7xl mx-auto px-6 py-10 space-y-20 w-full">
         {!buscaNome && (
           <>
@@ -211,7 +211,6 @@ export default function BuyTicketHome() {
         </section>
       </main>
 
-      {/* Footer agora sempre "colado" no final */}
       <Footer />
     </div>
   );
