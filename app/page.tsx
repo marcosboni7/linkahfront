@@ -45,7 +45,6 @@ export default function BuyTicketHome() {
     async function carregarDados() {
       setLoading(true);
       try {
-        // Forçamos a busca de dados novos ignorando o cache da Vercel
         const response = await fetch(`${API_URL}?t=${Date.now()}`, { 
           cache: 'no-store',
           headers: { 'Cache-Control': 'no-cache' }
@@ -53,8 +52,9 @@ export default function BuyTicketHome() {
         
         if (response.ok) {
           const dados = await response.json();
+          console.log("Dados recebidos da API:", dados); // Para debug no F12
           
-          // ORDENAÇÃO: Coloca os IDs maiores (mais novos) no topo
+          // Ordena pelos mais novos (ID maior primeiro)
           const ordenados = dados.sort((a: any, b: any) => b.id - a.id);
           
           setEventos(ordenados);
@@ -73,20 +73,19 @@ export default function BuyTicketHome() {
   const hojeObj = new Date();
   const hojeStr = hojeObj.toLocaleDateString('en-CA');
 
-  // Filtro "Hoje" - Aceita Ativo, Pendente ou Ativo com acento
+  // FILTROS DE SESSÃO
   const oQueFazerHoje = eventos.filter(ev => {
-    const statusLower = ev.status?.toLowerCase() || '';
-    const statusValido = statusLower.includes('ativo') || statusLower === 'pendente';
-    if (!ev.data_inicio || !statusValido) return false;
+    const status = (ev.status || "").toLowerCase();
+    const isValido = status.includes('ativ') || status === 'pendente';
+    if (!ev.data_inicio || !isValido) return false;
     const dataEvStr = new Date(ev.data_inicio).toLocaleDateString('en-CA');
     return dataEvStr === hojeStr;
   });
 
-  // Filtro "Última Chamada" (Eventos nos próximos 2 dias)
   const ultimaChamada = eventos.filter(ev => {
-    const statusLower = ev.status?.toLowerCase() || '';
-    const statusValido = statusLower.includes('ativo') || statusLower === 'pendente';
-    if (!ev.data_inicio || !statusValido) return false;
+    const status = (ev.status || "").toLowerCase();
+    const isValido = status.includes('ativ') || status === 'pendente';
+    if (!ev.data_inicio || !isValido) return false;
     const dataEv = new Date(ev.data_inicio);
     const dataEvStr = dataEv.toLocaleDateString('en-CA');
     if (dataEvStr === hojeStr) return false;
@@ -95,7 +94,7 @@ export default function BuyTicketHome() {
     return diffDays >= 1 && diffDays <= 2;
   });
 
-  // Filtro Principal da Vitrine (Onde os seus novos eventos devem aparecer)
+  // FILTRO PRINCIPAL (VITRINE) - Liberado para mostrar tudo
   const vitrineFiltrada = eventos.filter(ev => {
     const nomeMatch = (ev.nome || "").toLowerCase().includes(buscaNome.toLowerCase());
     const catMatch = categoriaAtiva === 'Todos' || ev.categoria === categoriaAtiva;
@@ -103,9 +102,9 @@ export default function BuyTicketHome() {
                        (ev.estado || "").toLowerCase().includes(buscaLocal.toLowerCase()) ||
                        (ev.local_nome || "").toLowerCase().includes(buscaLocal.toLowerCase());
     
-    // Deixa passar qualquer um que não esteja excluído para garantir que o produtor veja seu trabalho
-    const statusLower = ev.status?.toLowerCase() || '';
-    const naoExcluido = statusLower !== 'excluido';
+    // Aceita qualquer status que não seja excluído
+    const status = (ev.status || "").toLowerCase();
+    const naoExcluido = status !== 'excluido';
     
     return nomeMatch && catMatch && localMatch && naoExcluido;
   });
@@ -114,15 +113,14 @@ export default function BuyTicketHome() {
     <div className="flex flex-col min-h-screen bg-[#F3F4F6] text-slate-900 font-sans">
       <Navbar />
 
-      {/* HERO SECTION */}
       <section className="relative h-[520px] flex items-center justify-center overflow-hidden bg-black shrink-0">
         {SLIDES.map((slide, index) => (
           <div key={slide.id} className={`absolute inset-0 transition-opacity duration-1000 ${index === currentSlide ? 'opacity-100' : 'opacity-0'}`}>
-            <div className="absolute inset-0 bg-cover bg-center transition-transform duration-[5000ms]" style={{ backgroundImage: `url('${slide.url}')`, transform: index === currentSlide ? 'scale(1.1)' : 'scale(1)' }}>
+            <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url('${slide.url}')` }}>
               <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/20 to-[#F3F4F6]" />
             </div>
             <div className="relative z-10 text-center px-6">
-              <span className="inline-block bg-[#ff0082] text-white text-[10px] font-bold uppercase tracking-[0.3em] px-4 py-1.5 rounded-full mb-4 shadow-lg shadow-pink-500/20">Linkah Experience</span>
+              <span className="inline-block bg-[#ff0082] text-white text-[10px] font-bold uppercase tracking-[0.3em] px-4 py-1.5 rounded-full mb-4">Linkah Experience</span>
               <h1 className="text-4xl md:text-7xl font-black text-white mb-6 uppercase italic tracking-tighter">
                 {slide.title} <br /> <span className="text-[#ff0082]">{slide.highlight}</span>
               </h1>
@@ -130,7 +128,6 @@ export default function BuyTicketHome() {
           </div>
         ))}
         
-        {/* BUSCA CENTRAL */}
         <div className="absolute bottom-10 z-30 w-full px-6">
           <div className="bg-white/95 backdrop-blur-md p-2 rounded-2xl md:rounded-full shadow-2xl flex flex-col md:flex-row items-center max-w-5xl mx-auto border border-white/40">
             <div className="flex-1 flex items-center px-5 py-3 w-full border-b md:border-b-0 md:border-r border-slate-200">
@@ -146,13 +143,11 @@ export default function BuyTicketHome() {
         </div>
       </section>
 
-      {/* FILTRO CATEGORIAS */}
       <div className="sticky top-0 z-40 bg-[#F3F4F6]/80 backdrop-blur-md py-4 border-b border-slate-200">
         <CategoryFilter categories={categoriasExistentes} activeCategory={categoriaAtiva} onSelect={setCategoriaAtiva} iconMap={iconMap} />
       </div>
 
       <main className="flex-1 max-w-7xl mx-auto px-6 py-10 space-y-20 w-full">
-        {/* SESSÕES ESPECIAIS (SÓ APARECEM SE NÃO HOUVER BUSCA) */}
         {!buscaNome && !buscaLocal && categoriaAtiva === 'Todos' && (
           <>
             {oQueFazerHoje.length > 0 && (
@@ -178,7 +173,6 @@ export default function BuyTicketHome() {
           </>
         )}
 
-        {/* VITRINE PRINCIPAL (ONDE TUDO APARECE) */}
         <section id="vitrine-principal">
           <SectionHeader 
             title={buscaNome || buscaLocal ? `Resultados` : (categoriaAtiva === 'Todos' ? 'Todos os Eventos' : categoriaAtiva)} 
@@ -198,6 +192,7 @@ export default function BuyTicketHome() {
               <FilterX size={48} className="text-slate-300 mx-auto mb-6" />
               <h3 className="text-xl font-black text-slate-800 uppercase italic">Nenhum evento encontrado</h3>
               <p className="text-slate-400 mt-2">Tente mudar os termos da busca ou a categoria.</p>
+              <button onClick={() => {setBuscaNome(''); setBuscaLocal(''); setCategoriaAtiva('Todos');}} className="mt-4 text-[#ff0082] font-bold">Limpar filtros</button>
             </div>
           )}
         </section>
