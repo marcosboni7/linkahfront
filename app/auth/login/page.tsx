@@ -65,16 +65,17 @@ export default function LoginPage() {
           const perfilRes = await fetch(`${apiBaseUrl}/api/auth/perfil?email=${emailUsuario}`);
           const perfilData = await perfilRes.json();
 
-          // REDIRECIONAMENTO CORRIGIDO PARA A PASTA STAFF
+          // --- REDIRECIONAMENTO VOLTANDO PARA O PADRÃO DASHBOARD ---
           if (perfilRes.ok && (perfilData.cpf_cnpj || perfilData.cep || user?.cpf_cnpj)) {
             window.localStorage.setItem('perfil_completo', 'true');
-            router.push('/staff/painel'); // <--- MUDOU AQUI
+            router.push('/dashboard/painel'); 
           } else {
             window.localStorage.removeItem('perfil_completo');
-            router.push('/staff/perfil'); // <--- MUDOU AQUI (Caso exista perfil na pasta staff)
+            router.push('/dashboard/perfil'); 
           }
         } catch (checkError) {
-          router.push('/staff/painel'); // <--- MUDOU AQUI (Fallback seguro)
+          // Fallback para o painel em caso de erro na checagem de perfil
+          router.push('/dashboard/painel'); 
         }
         
       } else {
@@ -111,7 +112,7 @@ export default function LoginPage() {
 
         <div className="relative z-10 text-white">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-[10px] font-bold uppercase tracking-widest mb-6 backdrop-blur-md border border-white/10">
-            <Sparkles size={12} className="text-pink-300" /> Inteligência para Eventos
+            <point size={12} className="text-pink-300" /> Inteligência para Eventos
           </div>
           <h2 className="text-6xl font-black leading-[1] mb-8 tracking-tighter">
             Escale sua <br />
