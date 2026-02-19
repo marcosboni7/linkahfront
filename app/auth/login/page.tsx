@@ -1,160 +1,95 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { 
-  LayoutDashboard, LogOut, Search, MapPin, 
-  Trash2, Edit, Loader2, Plus, Calendar
-} from 'lucide-react';
-import Swal from 'sweetalert2';
+import Link from 'next/link';
+import { Globe, ArrowRight, Loader2, Lock, Mail } from 'lucide-react';
 
-export default function PainelEventos() {
+export default function LoginPage() {
   const router = useRouter();
-  const [eventos, setEventos] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isChecking, setIsChecking] = useState(true);
-  const [filtro, setFiltro] = useState('');
-  const apiBaseUrl = 'https://linkah-api.onrender.com';
+  const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState({ email: '', senha: '' });
+  const [error, setError] = useState('');
 
-  // PROTEÇÃO: Só entra se estiver logado
-  useEffect(() => {
-    const user = localStorage.getItem('@Linkah:User');
-    const token = localStorage.getItem('@Linkah:Token');
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
 
-    if (!user || !token) {
-      router.push('/auth/login');
-    } else {
-      setIsChecking(false);
-      carregarEventos();
-    }
-  }, [router]);
-
-  const carregarEventos = async () => {
     try {
-      setLoading(true);
-      const res = await fetch(`${apiBaseUrl}/api/eventos`);
-      if (res.ok) {
-        const data = await res.json();
-        setEventos(data);
+      const response = await fetch('https://linkah-api.onrender.com/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // SALVANDO EXATAMENTE COMO O PAINEL VAI PEDIR
+        localStorage.setItem('@Linkah:Token', data.token);
+        localStorage.setItem('@Linkah:User', JSON.stringify(data.user));
+        
+        router.push('/dashboard/eventos');
+      } else {
+        setError(data.message || 'E-mail ou senha incorretos.');
       }
-    } catch (error) {
-      console.error("Erro ao carregar eventos:", error);
+    } catch (err) {
+      setError('Erro ao conectar com o servidor.');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
-
-  const handleLogout = () => {
-    localStorage.removeItem('@Linkah:User');
-    localStorage.removeItem('@Linkah:Token');
-    router.push('/');
-  };
-
-  const eventosFiltrados = eventos.filter(evt => 
-    evt.nome?.toLowerCase().includes(filtro.toLowerCase()) ||
-    evt.id?.toString().includes(filtro)
-  );
-
-  if (isChecking) {
-    return (
-      <div className="h-screen w-full flex items-center justify-center bg-white">
-        <Loader2 className="animate-spin text-[#C22973]" size={40} />
-      </div>
-    );
-  }
 
   return (
-    <div className="flex min-h-screen bg-[#F8FAFC] text-slate-900">
-      {/* SIDEBAR */}
-      <aside className="w-64 bg-white border-r border-slate-200 hidden md:flex flex-col sticky h-screen top-0">
-        <div className="p-6 text-xl font-black text-slate-800 italic uppercase tracking-tighter">
-          LINKAH <span className="text-[#C22973]">PRO</span>
+    <div className="flex min-h-screen bg-[#F8FAFC]">
+      <div className="hidden lg:flex w-[40%] bg-[#C22973] items-center justify-center p-12">
+        <div className="text-white">
+          <Globe className="w-16 h-16 mb-8" />
+          <h1 className="text-6xl font-black italic tracking-tighter uppercase">LINKAH</h1>
+          <p className="text-pink-200 mt-4 text-lg">Acesse sua conta de produtor.</p>
         </div>
-        <nav className="flex-1 px-4 mt-4 space-y-2">
-          <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm bg-[#C22973] text-white shadow-lg shadow-pink-100">
-            <Calendar size={18} /> Meus Eventos
-          </button>
-          <button onClick={() => router.push('/dashboard/perfil')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm text-slate-500 hover:bg-slate-50">
-            <Edit size={18} /> Meu Perfil
-          </button>
-        </nav>
-        <div className="p-4 border-t border-slate-100">
-          <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm text-red-500 hover:bg-red-50">
-            <LogOut size={18} /> Sair
-          </button>
-        </div>
-      </aside>
+      </div>
 
-      {/* CONTEÚDO PRINCIPAL */}
-      <main className="flex-1 flex flex-col">
-        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 sticky top-0 z-10">
-           <div className="relative w-72">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-              <input 
-                type="text" 
-                placeholder="Filtrar meus eventos..." 
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2 pl-10 pr-4 text-xs outline-none focus:border-[#C22973]"
-                value={filtro}
-                onChange={(e) => setFiltro(e.target.value)}
-              />
-           </div>
-           <button 
-             onClick={() => router.push('/dashboard/eventos/novo')}
-             className="bg-[#C22973] text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-[#a62262]"
-           >
-             <Plus size={16} /> Criar Evento
-           </button>
-        </header>
-
-        <div className="p-8">
-          <h2 className="text-2xl font-black text-slate-800 uppercase italic mb-6">Meus Eventos</h2>
+      <div className="flex-1 flex items-center justify-center p-8">
+        <div className="w-full max-w-md bg-white p-10 rounded-[3rem] shadow-xl border border-slate-100">
+          <h2 className="text-3xl font-black text-slate-800 mb-2">Bem-vindo!</h2>
+          <p className="text-slate-400 text-sm mb-8 font-medium">Insira seus dados para acessar o painel.</p>
           
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-            {loading ? (
-              <div className="p-20 flex flex-col items-center justify-center gap-3">
-                <Loader2 className="animate-spin text-[#C22973]" size={32} />
-                <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Carregando eventos...</p>
-              </div>
-            ) : (
-              <table className="w-full text-left">
-                <thead className="bg-slate-50 text-[10px] text-slate-400 font-black uppercase tracking-widest">
-                  <tr>
-                    <th className="px-8 py-4">Evento</th>
-                    <th className="px-8 py-4">Localização</th>
-                    <th className="px-8 py-4 text-center">Ações</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {eventosFiltrados.map((evt) => (
-                    <tr key={evt.id} className="hover:bg-slate-50/50 transition-all group">
-                      <td className="px-8 py-5">
-                        <p className="text-sm font-bold text-slate-800">{evt.nome}</p>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase">ID: #{evt.id}</p>
-                      </td>
-                      <td className="px-8 py-5 text-xs font-bold text-slate-600">
-                        <div className="flex items-center gap-1">
-                          <MapPin size={14} className="text-[#C22973]" />
-                          {evt.cidade} - {evt.estado}
-                        </div>
-                      </td>
-                      <td className="px-8 py-5">
-                        <div className="flex justify-center gap-3">
-                          <button onClick={() => router.push(`/dashboard/eventos/editar/${evt.id}`)} className="text-blue-500 hover:bg-blue-50 p-2 rounded-lg transition-all">
-                            <Edit size={18} />
-                          </button>
-                          <button className="text-red-400 hover:bg-red-50 p-2 rounded-lg transition-all">
-                            <Trash2 size={18} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
+          <form onSubmit={handleLogin} className="space-y-5">
+            <div className="relative">
+              <Mail className="absolute left-4 top-4 text-slate-300" size={20} />
+              <input 
+                type="email" 
+                placeholder="E-mail" 
+                onChange={(e) => setFormData({...formData, email: e.target.value})}
+                className="w-full pl-12 p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-[#C22973] transition-all" 
+                required 
+              />
+            </div>
+            <div className="relative">
+              <Lock className="absolute left-4 top-4 text-slate-300" size={20} />
+              <input 
+                type="password" 
+                placeholder="Senha" 
+                onChange={(e) => setFormData({...formData, senha: e.target.value})}
+                className="w-full pl-12 p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-[#C22973] transition-all" 
+                required 
+              />
+            </div>
+
+            {error && <div className="p-3 bg-red-50 text-red-500 text-xs font-bold rounded-xl text-center">{error}</div>}
+
+            <button type="submit" disabled={isLoading} className="w-full bg-[#C22973] text-white py-5 rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-pink-100 flex items-center justify-center gap-3 active:scale-95 transition-all">
+              {isLoading ? <Loader2 className="animate-spin" /> : <>Entrar no Painel <ArrowRight size={20} /></>}
+            </button>
+          </form>
+
+          <p className="mt-8 text-center text-sm text-slate-500 font-medium">
+            Não tem uma conta? <Link href="/auth/register" className="text-[#C22973] font-black underline">Cadastre-se</Link>
+          </p>
         </div>
-      </main>
+      </div>
     </div>
   );
 }
