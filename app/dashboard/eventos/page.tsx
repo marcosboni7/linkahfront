@@ -9,35 +9,48 @@ import { UserCircle, LogOut, Settings, ChevronDown, Loader2 } from 'lucide-react
 export default function DashboardEventos() {
   const [isOpen, setIsOpen] = useState(false);
   const [userName, setUserName] = useState('Produtor');
-  const [loading, setLoading] = useState(true); // Estado de carregamento
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
-    // 1. Verifica se o Token existe (A CHAVE DEVE SER A MESMA DO LOGIN)
-    const token = localStorage.getItem('@Linkah:Token');
-    const storedName = localStorage.getItem('userName');
+    // 1. Buscamos o objeto do usuário que contém os dados
+    const userJSON = localStorage.getItem('@Linkah:User');
 
-    if (!token) {
-      // Se não tem token, manda pro login IMEDIATAMENTE
+    if (!userJSON) {
+      // Se não achar o usuário, manda pro login
       router.push('/auth/login');
       return;
     }
 
-    // 2. Se tem token, carrega o nome do produtor
-    if (storedName && storedName !== 'undefined') {
-      const firstName = storedName.split(' ')[0];
-      setUserName(firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase());
+    try {
+      const user = JSON.parse(userJSON);
+      
+      // 2. Verificamos se dentro do objeto existe um token ou o email (para validar sessão)
+      // Ajuste aqui para a chave que seu backend envia (ex: user.token ou apenas a existência do user)
+      if (!user.email) {
+        router.push('/auth/login');
+        return;
+      }
+
+      // 3. Carrega o nome
+      if (user.nome) {
+        const firstName = user.nome.split(' ')[0];
+        setUserName(firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase());
+      }
+    } catch (error) {
+      console.error("Erro ao ler dados do usuário", error);
+      router.push('/auth/login');
     }
     
-    setLoading(false); // Libera a visualização da página
+    setLoading(false);
   }, [router]);
 
   const handleLogout = () => {
-    localStorage.clear(); 
+    localStorage.removeItem('@Linkah:User'); 
+    localStorage.removeItem('@Linkah:Token'); // Remove ambos por garantia
     router.push('/auth/login');
   };
 
-  // Enquanto verifica o token, mostra um loading para não "piscar" a tela
   if (loading) {
     return (
       <div className="h-screen w-full flex items-center justify-center bg-[#F1F5F9]">
