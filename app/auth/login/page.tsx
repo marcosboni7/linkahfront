@@ -36,11 +36,18 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (errors.email || errors.senha || !email || !senha) return;
+    console.log("🚀 [DEBUG] Iniciando tentativa de login para:", email);
+    
+    if (errors.email || errors.senha || !email || !senha) {
+      console.warn("⚠️ [DEBUG] Validação impediu o envio:", errors);
+      return;
+    }
 
     setIsLoading(true);
 
     try {
+      console.log("📡 [DEBUG] Chamando API:", `${apiBaseUrl}/api/auth/login`);
+      
       const response = await fetch(`${apiBaseUrl}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -50,32 +57,40 @@ export default function LoginPage() {
         }),
       });
 
+      console.log("📡 [DEBUG] Status da Resposta:", response.status);
+
       const data = await response.json();
+      console.log("📦 [DEBUG] Dados recebidos do Backend:", data);
 
       if (response.ok) {
         const user = data.user;
-        const emailUsuario = user?.email || email.trim().toLowerCase();
         
-        window.localStorage.setItem('userEmail', emailUsuario);
+        // Salvando no LocalStorage
+        window.localStorage.setItem('userEmail', user?.email || email.trim().toLowerCase());
         window.localStorage.setItem('userName', user?.nome || 'Produtor');
 
-        // Usa a flag 'perfil_completo' que o backend agora envia
+        console.log("🔍 [DEBUG] Perfil completo?", user?.perfil_completo);
+
         if (user?.perfil_completo) {
+          console.log("➡️ [DEBUG] Redirecionando: Dashboard Eventos");
           window.localStorage.setItem('perfil_completo', 'true');
           router.push('/dashboard/eventos');
         } else {
+          console.log("➡️ [DEBUG] Redirecionando: Página de Perfil");
           window.localStorage.removeItem('perfil_completo');
           router.push('/dashboard/perfil');
         }
         
       } else {
+        console.error("❌ [DEBUG] Erro retornado pela API:", data.message);
         setErrors({ email: ' ', senha: data.message || "Credenciais incorretas" });
       }
     } catch (error) {
-      console.error("Erro na conexão:", error);
+      console.error("🚨 [DEBUG] Erro fatal na requisição:", error);
       setErrors({ email: 'Erro de conexão', senha: 'Não foi possível conectar ao servidor' });
     } finally {
-      setIsLoading(false); // Garante que o botão destrave SEMPRE
+      console.log("🏁 [DEBUG] Finalizando estado de Loading.");
+      setIsLoading(false);
     }
   };
 
