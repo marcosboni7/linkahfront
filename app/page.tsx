@@ -1,17 +1,16 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-// Caminhos corrigidos para funcionar no Build
-import { Navbar } from './site/Navbar'; 
-import { EventCard } from './site/EventCard';
-import { Footer } from './site/Footer';
+import { Navbar } from '../app/site/Navbar'; 
+import { EventCard } from '../app/site/EventCard';
+import { Footer } from '../app/site/Footer';
 import { CategoryFilter } from './site/CategoryFilter';
 import { SectionHeader } from './site/SectionHeader';
 import { 
   Search, MapPin, Ticket, 
   Music, Mic2, Theater, Gamepad2, 
   Utensils, GraduationCap, PartyPopper, Heart,
-  Clock, X, FilterX 
+  Clock, X, FilterX
 } from 'lucide-react';
 
 const iconMap: { [key: string]: any } = {
