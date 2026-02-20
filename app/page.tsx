@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Navbar } from '../app/site/Navbar'; 
-import { EventCard } from '../app/site/EventCard';
-import { Footer } from '../app/site/Footer';
+// CORREÇÃO: Usando caminhos relativos diretos para a pasta 'site' dentro de 'app'
+import { Navbar } from './site/Navbar'; 
+import { EventCard } from './site/EventCard';
+import { Footer } from './site/Footer';
 import { CategoryFilter } from './site/CategoryFilter';
 import { SectionHeader } from './site/SectionHeader';
 import { 
@@ -82,11 +83,9 @@ export default function BuyTicketHome() {
   });
 
   return (
-    /* AJUSTE AQUI: flex flex-col e min-h-screen para o footer nunca sobrar */
     <div className="flex flex-col min-h-screen bg-[#F3F4F6] text-slate-900 font-sans">
       <Navbar />
 
-      {/* HERO / CARROSSEL */}
       <section className="relative h-[520px] flex items-center justify-center overflow-hidden bg-black shrink-0">
         {SLIDES.map((slide, index) => (
           <div key={slide.id} className={`absolute inset-0 transition-opacity duration-1000 ${index === currentSlide ? 'opacity-100' : 'opacity-0'}`}>
@@ -134,7 +133,6 @@ export default function BuyTicketHome() {
         </div>
       </section>
 
-      {/* FILTRO DE CATEGORIAS */}
       <div className="sticky top-0 z-40 bg-[#F3F4F6]/80 backdrop-blur-md py-4 border-b border-slate-200">
         <CategoryFilter 
           categories={categoriasExistentes} 
@@ -144,7 +142,6 @@ export default function BuyTicketHome() {
         />
       </div>
 
-      {/* AJUSTE AQUI: flex-1 faz o conteúdo principal "empurrar" o footer para o fundo */}
       <main className="flex-1 max-w-7xl mx-auto px-6 py-10 space-y-20 w-full">
         {!buscaNome && (
           <>
@@ -211,7 +208,6 @@ export default function BuyTicketHome() {
         </section>
       </main>
 
-      {/* Footer agora sempre "colado" no final */}
       <Footer />
     </div>
   );
