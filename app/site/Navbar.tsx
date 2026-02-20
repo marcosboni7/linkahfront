@@ -1,205 +1,156 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { User, MapPin, Ticket, LogOut, X, Calendar, Hash, Loader2, MessagesSquare } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import AvisoCadastro from '../eventos/AvisoCadastro';
+import TabelaEventos from '../eventos/TabelaEventos';
+import { UserCircle, LogOut, Settings, ChevronDown, Loader2 } from 'lucide-react';
 
-export function Navbar() {
-  const [usuario, setUsuario] = useState<{ nome: string; email?: string; role?: string } | null>(null);
-
-  // ESTADOS DO MODAL
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [buscandoTickets, setBuscandoTickets] = useState(false);
-  const [meusIngressos, setMeusIngressos] = useState<any[]>([]);
+export default function DashboardEventos() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [userName, setUserName] = useState('Produtor');
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('@Linkah:User');
-    if (savedUser) {
-      try {
-        setUsuario(JSON.parse(savedUser));
-      } catch (e) {
-        console.error("Erro ao ler usuário do localStorage");
+    // Função auxiliar para ler cookies no lado do cliente
+    const getCookie = (name: string) => {
+      if (typeof document === 'undefined') return null;
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop()?.split(';').shift();
+      return null;
+    };
+
+    const checkAuth = () => {
+      const userJSON = localStorage.getItem('@Linkah:User');
+      const userEmailCookie = getCookie('userEmail');
+
+      // SÓ redireciona se REALMENTE não houver nada nos dois lugares
+      if (!userJSON && !userEmailCookie) {
+        console.log("🚫 Autenticação não encontrada. Redirecionando...");
+        router.replace('/auth/login');
+        return;
       }
-    }
-  }, []);
+
+      try {
+        if (userJSON && userJSON !== "undefined") {
+          const user = JSON.parse(userJSON);
+          
+          // Pegando o e-mail para validar se o objeto é real
+          const userEmail = user.email || (user.user && user.user.email);
+          
+          if (!userEmail && !userEmailCookie) {
+            router.replace('/auth/login');
+            return;
+          }
+
+          // Ajuste do nome para exibição
+          const nomeCompleto = user.nome || (user.user && user.user.nome) || 'Produtor';
+          const firstName = nomeCompleto.split(' ')[0];
+          setUserName(firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase());
+        }
+      } catch (e) {
+        console.error("Erro ao validar acesso:", e);
+        router.replace('/auth/login');
+        return;
+      }
+      
+      setLoading(false);
+    };
+
+    // O "Pulo do Gato": Pequeno delay para a Vercel estabilizar os tokens no navegador
+    const timer = setTimeout(checkAuth, 150);
+    return () => clearTimeout(timer);
+  }, [router]);
 
   const handleLogout = () => {
-    localStorage.removeItem('@Linkah:Token');
+    // Limpeza total para evitar resíduos de sessão
     localStorage.removeItem('@Linkah:User');
-    setUsuario(null);
-    window.location.href = '/';
+    localStorage.removeItem('userEmail');
+    localStorage.removeItem('perfil_completo');
+    
+    // Mata o cookie também
+    document.cookie = "userEmail=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    
+    window.location.href = '/auth/login';
   };
 
-  const carregarMeusIngressos = async () => {
-    if (!usuario?.email) return;
-
-    setIsModalOpen(true);
-    setBuscandoTickets(true);
-
-    try {
-      // Chamada para sua API no Render com o filtro de email
-   const response = await fetch(`https://linkah-api.onrender.com/api/compras/meus-ingressos?email=${usuario.email}`);
-
-      if (response.ok) {
-        const dados = await response.json();
-        // O Back-end já envia: id, evento, data (formatada), qtd, status
-        setMeusIngressos(dados);
-      } else {
-        console.error("Erro ao buscar ingressos na API");
-      }
-    } catch (err) {
-      console.error("Erro de conexão ao buscar ingressos:", err);
-    } finally {
-      setBuscandoTickets(false);
-    }
-  };
+  if (loading) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center bg-[#F1F5F9]">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="animate-spin text-[#C22973]" size={40} />
+          <p className="text-slate-500 font-bold text-xs uppercase tracking-widest">Sincronizando ambiente...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <>
-      <nav className="bg-white border-b border-slate-100 px-6 md:px-12 py-4 flex items-center justify-between sticky top-0 z-50 backdrop-blur-md bg-white/90">
-
-        {/* LADO ESQUERDO */}
-        <div className="flex items-center gap-4 md:gap-8">
-          <Link href="/" className="text-slate-900 text-2xl font-black tracking-tighter italic hover:opacity-80 transition-opacity">
-            LINKAH<span className="text-[#d6006d]">.</span>
-          </Link>
-
-          <Link 
-            href="/comunidades" 
-            className="group relative flex items-center gap-2 bg-[#d6006d]/5 border border-[#d6006d]/10 px-4 py-2.5 rounded-2xl hover:bg-[#d6006d] transition-all duration-500 shadow-sm"
-          >
-            <div className="relative">
-              <MessagesSquare size={16} className="text-[#d6006d] group-hover:text-white transition-colors" />
-              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse border-2 border-white"></span>
-            </div>
-            <span className="text-[10px] font-black uppercase tracking-[0.15em] text-[#d6006d] group-hover:text-white transition-colors">
-              Nossa Comunidade
-            </span>
-          </Link>
-
-          <button className="hidden xl:flex items-center gap-2 text-slate-400 border border-slate-100 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest bg-slate-50/50 transition-colors hover:border-[#d6006d]/20">
-            <MapPin size={14} className="text-[#d6006d]" /> Brasil
-          </button>
+    <div className="min-h-screen bg-[#F1F5F9]">
+      {/* NAVBAR */}
+      <nav className="bg-white px-8 py-4 flex justify-between items-center border-b border-slate-200 sticky top-0 z-50">
+        <div className="flex items-center gap-2">
+          <span className="text-2xl font-black text-[#C22973] tracking-tighter italic">LİNKAH</span>
+          <span className="hidden md:block text-[10px] font-bold text-slate-300 uppercase tracking-widest ml-2 border-l border-slate-100 pl-4">Dashboard</span>
         </div>
 
-        {/* LADO DIREITO */}
-        <div className="flex items-center gap-2 md:gap-4">
-          {usuario && (
-            <div className="flex items-center animate-in fade-in zoom-in-95 duration-300">
-              <button
-                onClick={carregarMeusIngressos}
-                className="flex items-center gap-2 text-slate-500 hover:text-[#d6006d] px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-colors"
-              >
-                <Ticket size={14} className="text-[#d6006d]" />
-                <span className="hidden sm:inline">Meus Ingressos</span>
-              </button>
+        <div className="relative">
+          <button 
+            onClick={() => setIsOpen(!isOpen)}
+            className="flex items-center gap-3 hover:bg-slate-50 p-2 rounded-2xl transition-all group"
+          >
+            <div className="text-right mr-1 hidden sm:block">
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Produtor</p>
+              <p className="text-xs font-bold text-slate-700">{userName}</p>
             </div>
-          )}
 
-          <div className="flex items-center gap-2 ml-2">
-            {usuario ? (
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-2xl border border-slate-100 group cursor-default">
-                  <div className="w-6 h-6 rounded-full bg-[#d6006d] flex items-center justify-center text-[10px] text-white font-bold shadow-sm">
-                    {usuario.nome.charAt(0).toUpperCase()}
-                  </div>
-                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-700 hidden md:block">
-                    {usuario.nome.split(' ')[0]}
-                  </span>
+            <div className="relative">
+              <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center group-hover:bg-slate-200 transition-colors">
+                <UserCircle className="text-slate-400" size={28} />
+              </div>
+              <div className="w-3 h-3 bg-green-500 rounded-full border-2 border-white absolute bottom-0 right-0"></div>
+            </div>
+            
+            <ChevronDown size={14} className={`text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+          </button>
+
+          {isOpen && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)}></div>
+              <div className="absolute right-0 mt-2 w-52 bg-white rounded-3xl border border-slate-100 shadow-2xl z-20 py-2 overflow-hidden">
+                <div className="px-4 py-2 border-b border-slate-50 mb-1">
+                  <p className="text-[10px] font-black text-slate-300 uppercase">Gerenciamento</p>
                 </div>
-                <button
-                  onClick={handleLogout}
-                  className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
-                  title="Sair"
+                
+                <button 
+                  onClick={() => router.push('/dashboard/perfil')} 
+                  className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all"
                 >
-                  <LogOut size={18} />
+                  <Settings size={16} className="text-slate-400" /> Minha Conta
+                </button>
+                
+                <button 
+                  onClick={handleLogout} 
+                  className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-red-500 hover:bg-red-50 transition-all border-t border-slate-50"
+                >
+                  <LogOut size={16} /> Sair com segurança
                 </button>
               </div>
-            ) : (
-              <Link
-                href="/site/login"
-                className="text-slate-900 text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-slate-50 px-5 py-3.5 rounded-2xl transition-all border border-slate-100 shadow-sm"
-              >
-                <User size={18} className="text-[#d6006d]" />
-                Entrar
-              </Link>
-            )}
-          </div>
+            </>
+          )}
         </div>
       </nav>
 
-      {/* MODAL DE INGRESSOS */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsModalOpen(false)} />
-
-          <div className="relative bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-              <div>
-                <h2 className="text-xl font-black uppercase italic tracking-tighter text-slate-900"> Meus Ingressos</h2>
-                <p className="text-[9px] font-bold text-slate-400 uppercase">{usuario?.email}</p>
-              </div>
-              <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-200 rounded-full transition-colors">
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="p-8">
-              <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                {buscandoTickets ? (
-                  <div className="flex flex-col items-center py-20 gap-4">
-                    <Loader2 className="animate-spin text-[#d6006d]" size={32} />
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Buscando seus ingressos...</p>
-                  </div>
-                ) : meusIngressos.length > 0 ? (
-                  meusIngressos.map((ticket) => (
-                    <div key={ticket.id} className="bg-white border-2 border-slate-100 rounded-2xl p-5 hover:border-[#d6006d]/20 transition-all group">
-                      <div className="flex justify-between items-start mb-4">
-                        <div>
-                          {/* Usa 'ticket.evento' vindo do 'as evento' no SQL */}
-                          <h4 className="font-black text-sm uppercase leading-tight text-slate-900">{ticket.evento}</h4>
-                          <div className="flex items-center gap-2 text-slate-400 text-[10px] mt-1 font-bold">
-                            {/* Usa 'ticket.data' vindo do 'TO_CHAR' no SQL */}
-                            <Calendar size={12} /> {ticket.data}
-                          </div>
-                        </div>
-                        <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
-                          ticket.status === 'Aprovado' || ticket.status === 'completed' ? 'bg-green-100 text-green-600' : 'bg-yellow-100 text-yellow-600'
-                        }`}>
-                          {ticket.status === 'completed' ? 'Aprovado' : ticket.status || 'Aprovado'}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between pt-4 border-t border-dashed border-slate-100">
-                        <div className="flex items-center gap-2">
-                          <Hash size={14} className="text-slate-300" />
-                          <span className="text-[10px] font-mono font-bold text-slate-500 uppercase">
-                            {ticket.id.toString().substring(0, 12)}...
-                          </span>
-                        </div>
-                        <div className="text-xs font-black uppercase tracking-tighter text-[#d6006d]">
-                          {/* Usa 'ticket.qtd' vindo do 'as qtd' no SQL */}
-                          {ticket.qtd} {ticket.qtd > 1 ? 'INGRESSOS' : 'INGRESSO'}
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center py-10 opacity-30">
-                    <Ticket size={48} className="mx-auto mb-4" />
-                    <p className="text-xs font-bold uppercase tracking-widest">Nenhum ingresso encontrado</p>
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            <div className="p-6 bg-slate-50 border-t border-slate-100 text-center">
-                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">
-                    Apresente seu documento na entrada do evento
-                </p>
-            </div>
-          </div>
+      {/* CONTEÚDO PRINCIPAL */}
+      <main className="max-w-[1400px] mx-auto p-4 md:p-10 space-y-6">
+        <AvisoCadastro />
+        
+        <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
+           <TabelaEventos />
         </div>
-      )}
-    </>
+      </main>
+    </div>
   );
 }
