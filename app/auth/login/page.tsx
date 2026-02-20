@@ -41,7 +41,6 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      // Chamada única ao servidor
       const response = await fetch(`${apiBaseUrl}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -57,32 +56,26 @@ export default function LoginPage() {
         const user = data.user;
         const emailUsuario = user?.email || email.trim().toLowerCase();
         
-        // 1. Salva informações básicas no LocalStorage
         window.localStorage.setItem('userEmail', emailUsuario);
         window.localStorage.setItem('userName', user?.nome || 'Produtor');
 
-        // 2. OTIMIZAÇÃO: Checa o perfil usando o que já veio no login
-        // Se o objeto 'user' do backend já trouxer dados como CPF ou CEP, 
-        // evitamos fazer o segundo fetch.
-        const isPerfilCompleto = !!(user?.cpf_cnpj || user?.cep || user?.cnpj);
-
-        if (isPerfilCompleto) {
+        // Usa a flag 'perfil_completo' que o backend agora envia
+        if (user?.perfil_completo) {
           window.localStorage.setItem('perfil_completo', 'true');
           router.push('/dashboard/eventos');
         } else {
-          // Se estiver faltando algo, manda para o perfil
           window.localStorage.removeItem('perfil_completo');
           router.push('/dashboard/perfil');
         }
         
       } else {
         setErrors({ email: ' ', senha: data.message || "Credenciais incorretas" });
-        setIsLoading(false);
       }
     } catch (error) {
       console.error("Erro na conexão:", error);
       setErrors({ email: 'Erro de conexão', senha: 'Não foi possível conectar ao servidor' });
-      setIsLoading(false);
+    } finally {
+      setIsLoading(false); // Garante que o botão destrave SEMPRE
     }
   };
 
