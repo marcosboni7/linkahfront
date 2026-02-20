@@ -36,7 +36,7 @@ export default function LoginPage() {
         const user = data.user;
         const emailUsuario = user?.email || email.trim().toLowerCase();
         
-        // 1. LOCAL STORAGE
+        // 1. GRAVA NO LOCALSTORAGE (Backup garantido)
         window.localStorage.setItem('userEmail', emailUsuario);
         window.localStorage.setItem('@Linkah:User', JSON.stringify({
           email: emailUsuario,
@@ -44,76 +44,85 @@ export default function LoginPage() {
           id: user?.id || data.userId
         }));
 
-        // 2. COOKIE (FORÇADO)
-        // Tentamos gravar sem especificar domínio para o navegador decidir o melhor
+        // 2. GRAVA O COOKIE (Mínimo possível para não bugar na Vercel)
+        // Sem especificar domínio, ele assume o domínio atual da Vercel automaticamente.
         document.cookie = `userEmail=${emailUsuario}; path=/; max-age=86400; SameSite=Lax; Secure`;
 
-        // 3. REDIRECIONAMENTO COM DELAY
-        // O delay maior ajuda a Vercel a "entender" que o cookie existe
+        // 3. REDIRECIONAMENTO LIMPO
+        // O timeout dá tempo pro navegador terminar de escrever no disco.
         setTimeout(() => {
           window.location.href = '/dashboard/eventos';
-        }, 800);
+        }, 600);
         
       } else {
-        setErrors({ email: ' ', senha: data.message || "Credenciais incorretas" });
+        setErrors({ email: ' ', senha: data.message || "E-mail ou senha incorretos" });
         setIsLoading(false);
       }
     } catch (error) {
-      setErrors({ email: 'Erro de conexão', senha: 'Não foi possível conectar ao servidor' });
+      setErrors({ email: 'Erro de conexão', senha: 'Verifique sua internet' });
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="flex min-h-screen bg-[#F8FAFC] font-sans antialiased text-slate-900">
+    <div className="flex min-h-screen bg-[#F8FAFC] font-sans text-slate-900">
       <div className="hidden lg:flex w-[40%] bg-[#C22973] flex-col justify-between p-16 relative overflow-hidden">
         <div className="relative z-10">
-            <div className="flex items-center gap-4">
-                <div className="w-14 h-14 bg-white rounded-[1.5rem] flex items-center justify-center shadow-xl">
-                    <Globe className="text-[#C22973] w-8 h-8" />
-                </div>
-                <span className="text-3xl font-black text-white italic">LINKAH</span>
-            </div>
+          <div className="flex items-center gap-4">
+            <Globe className="text-white w-10 h-10" />
+            <span className="text-3xl font-black text-white italic tracking-tighter">LINKAH</span>
+          </div>
         </div>
         <div className="relative z-10 text-white">
-            <h2 className="text-6xl font-black leading-[1] mb-8">Escale sua produção.</h2>
+          <h2 className="text-6xl font-black leading-tight mb-4">Escale sua produção.</h2>
+          <p className="text-pink-100 text-lg">Acesse sua conta para gerenciar seus eventos.</p>
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col justify-center items-center px-8 bg-[#F8FAFC]">
-        <div className="w-full max-w-[440px] bg-white p-10 rounded-[3rem] shadow-sm border border-slate-100">
-          <div className="mb-10 text-center">
-            <h1 className="text-4xl font-black text-slate-900 mb-3">Bem-vindo</h1>
+      <div className="flex-1 flex flex-col justify-center items-center px-8 bg-white lg:bg-[#F8FAFC]">
+        <div className="w-full max-w-[420px] bg-white p-10 rounded-[2rem] shadow-xl lg:shadow-sm border border-slate-100">
+          <div className="mb-8 text-center">
+            <h1 className="text-3xl font-black text-slate-900">Bem-vindo de volta</h1>
           </div>
-          <form onSubmit={handleLogin} className="space-y-6">
-            <input
-              required
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="E-mail"
-              className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#C22973] font-bold"
-            />
+          <form onSubmit={handleLogin} className="space-y-5">
+            <div>
+              <input
+                required
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Seu e-mail"
+                className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-[#C22973] font-semibold transition-all"
+              />
+            </div>
             <div className="relative">
               <input
                 required
                 type={showPassword ? "text" : "password"}
                 value={senha}
                 onChange={(e) => setSenha(e.target.value)}
-                placeholder="Senha"
-                className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#C22973] font-bold"
+                placeholder="Sua senha"
+                className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-[#C22973] font-semibold transition-all"
               />
-              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300">
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
             </div>
+            
+            {errors.senha && <p className="text-red-500 text-xs font-bold text-center">{errors.senha}</p>}
+
             <button
               disabled={isLoading}
-              className="w-full bg-[#C22973] text-white py-5 rounded-[1.5rem] font-black uppercase shadow-xl hover:bg-[#a62262] transition-all flex items-center justify-center gap-3"
+              type="submit"
+              className="w-full bg-[#C22973] text-white py-4 rounded-xl font-bold uppercase tracking-wider shadow-lg hover:bg-[#a62262] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
             >
-              {isLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : <>Acessar Painel <ArrowRight size={18} /></>}
+              {isLoading ? <Loader2 className="animate-spin" /> : <>Entrar agora <ArrowRight size={18} /></>}
             </button>
           </form>
+          <div className="mt-8 text-center text-sm">
+            <span className="text-slate-400 font-medium">Ainda não tem conta?</span>{' '}
+            <Link href="/auth/registro" className="text-[#C22973] font-bold hover:underline">Cadastre-se</Link>
+          </div>
         </div>
       </div>
     </div>

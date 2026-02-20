@@ -3,27 +3,17 @@ import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  
-  // Tenta pegar o cookie de e-mail
   const userEmail = request.cookies.get('userEmail')?.value;
 
-  const isDashboardRoute = pathname.startsWith('/dashboard');
   const isAuthRoute = pathname.startsWith('/auth');
 
-  // SE TENTAR ACESSAR DASHBOARD
-  if (isDashboardRoute) {
-    // Se não tem cookie, mas tem um cabeçalho de 'referencia' do login, deixa passar
-    const referer = request.headers.get('referer') || '';
-    if (!userEmail && !referer.includes('/auth/login')) {
-       return NextResponse.redirect(new URL('/auth/login', request.url));
-    }
-  }
-
-  // SE JÁ ESTÁ LOGADO E TENTA IR PRO LOGIN
+  // Se o usuário já tem o cookie e tenta ir pro login, manda pro dashboard
   if (isAuthRoute && userEmail) {
     return NextResponse.redirect(new URL('/dashboard/eventos', request.url));
   }
 
+  // Removido o bloqueio do Dashboard. Deixamos o Dashboard carregar
+  // e o próprio código da página verifica se o usuário está logado.
   return NextResponse.next();
 }
 
