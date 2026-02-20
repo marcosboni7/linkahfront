@@ -47,45 +47,42 @@ export default function BuyTicketHome() {
         const response = await fetch(API_URL);
         if (response.ok) {
           const dados = await response.json();
-          // Garante que é um array
-          const listaSaneada = Array.isArray(dados) ? dados : [];
-          setEventos(listaSaneada);
-          
-          const extrair = listaSaneada.map((ev: any) => ev.categoria).filter(Boolean);
+          setEventos(dados);
+          const extrair = dados.map((ev: any) => ev.categoria).filter(Boolean);
           setCategoriasExistentes(['Todos', ...Array.from(new Set(extrair)) as string[]]);
         }
-      } catch (error) { 
-        console.error("Erro API:", error); 
-      } finally { 
-        setLoading(false); 
-      }
+      } catch (error) { console.error("Erro API:", error); } finally { setLoading(false); }
     }
     carregarDados();
   }, []);
 
-  // --- LÓGICA DE FILTRAGEM E ORDENAÇÃO ---
-  
-  // 1. Vitrine Geral (Filtra apenas por Nome e Categoria)
-  const vitrineFiltrada = eventos.filter(ev => {
-    const nomeMatch = (ev.nome || "").toLowerCase().includes(buscaNome.toLowerCase());
-    const catMatch = categoriaAtiva === 'Todos' || ev.categoria === categoriaAtiva;
-    // Não esconde nada, a menos que seja excluído
-    const status = (ev.status || "").toLowerCase();
-    return nomeMatch && catMatch && status !== 'excluido';
-  });
+  const hojeObj = new Date();
+  const hojeStr = hojeObj.toLocaleDateString('en-CA');
 
-  // 2. Ordenação (Recentes Primeiro - ID maior no topo)
-  const vitrineOrdenada = [...vitrineFiltrada].sort((a, b) => Number(b.id) - Number(a.id));
-
-  // 3. Lógica para "O que fazer hoje" (Ajustada para fuso horário)
-  const hojeStr = new Date().toLocaleDateString('en-CA'); // Retorna YYYY-MM-DD
-  const oQueFazerHoje = vitrineOrdenada.filter(ev => {
+  const oQueFazerHoje = eventos.filter(ev => {
     if (!ev.data_inicio) return false;
     const dataEvStr = new Date(ev.data_inicio).toLocaleDateString('en-CA');
     return dataEvStr === hojeStr;
   });
 
+  const ultimaChamada = eventos.filter(ev => {
+    if (!ev.data_inicio) return false;
+    const dataEv = new Date(ev.data_inicio);
+    const dataEvStr = dataEv.toLocaleDateString('en-CA');
+    if (dataEvStr === hojeStr) return false;
+    const diffTime = dataEv.getTime() - hojeObj.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays >= 1 && diffDays <= 2;
+  });
+
+  const vitrineFiltrada = eventos.filter(ev => {
+    const nomeMatch = ev.nome.toLowerCase().includes(buscaNome.toLowerCase());
+    const catMatch = categoriaAtiva === 'Todos' || ev.categoria === categoriaAtiva;
+    return nomeMatch && catMatch;
+  });
+
   return (
+    /* AJUSTE AQUI: flex flex-col e min-h-screen para o footer nunca sobrar */
     <div className="flex flex-col min-h-screen bg-[#F3F4F6] text-slate-900 font-sans">
       <Navbar />
 
@@ -116,6 +113,11 @@ export default function BuyTicketHome() {
                 placeholder="Qual evento você está procurando?" 
                 className="w-full bg-transparent outline-none text-base font-medium text-slate-800 placeholder:text-slate-400" 
               />
+              {buscaNome && (
+                <button onClick={() => setBuscaNome('')} className="ml-2 text-slate-400 hover:text-slate-600 transition-colors">
+                  <X size={18} />
+                </button>
+              )}
             </div>
             <div className="flex-1 flex items-center px-5 py-3 w-full group">
               <MapPin size={20} className="text-slate-400 mr-3 group-hover:text-[#ff0082] transition-colors shrink-0" />
@@ -142,20 +144,41 @@ export default function BuyTicketHome() {
         />
       </div>
 
+      {/* AJUSTE AQUI: flex-1 faz o conteúdo principal "empurrar" o footer para o fundo */}
       <main className="flex-1 max-w-7xl mx-auto px-6 py-10 space-y-20 w-full">
-        {!buscaNome && oQueFazerHoje.length > 0 && (
-          <section className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <SectionHeader title="O que fazer" highlight="hoje" />
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {oQueFazerHoje.map(ev => <EventCard key={ev.id} evento={ev} />)}
-            </div>
-          </section>
+        {!buscaNome && (
+          <>
+            {oQueFazerHoje.length > 0 && (
+              <section className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <SectionHeader title="O que fazer" highlight="hoje" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {oQueFazerHoje.map(ev => <EventCard key={ev.id} evento={ev} />)}
+                </div>
+              </section>
+            )}
+
+            {ultimaChamada.length > 0 && (
+              <section className="bg-white/50 p-8 rounded-[2.5rem] border border-white shadow-sm animate-in fade-in slide-in-from-bottom-6 duration-700">
+                <div className="flex items-center gap-3 mb-8">
+                  <div className="p-2 bg-pink-100 rounded-xl">
+                    <Clock className="text-[#ff0082] animate-pulse" size={24} />
+                  </div>
+                  <h2 className="text-2xl font-black text-slate-800 uppercase italic tracking-tighter">
+                    Última <span className="text-[#ff0082]">Chamada</span>
+                  </h2>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {ultimaChamada.map(ev => <EventCard key={ev.id} evento={ev} />)}
+                </div>
+              </section>
+            )}
+          </>
         )}
 
         <section id="vitrine-principal">
           <SectionHeader 
-            title={buscaNome ? `Resultados para "${buscaNome}"` : (categoriaAtiva === 'Todos' ? 'Novidades' : categoriaAtiva)} 
-            count={vitrineOrdenada.length} 
+            title={buscaNome ? `Resultados para "${buscaNome}"` : (categoriaAtiva === 'Todos' ? 'Perto de você' : categoriaAtiva)} 
+            count={vitrineFiltrada.length} 
           />
 
           {loading ? (
@@ -164,9 +187,9 @@ export default function BuyTicketHome() {
                 <div key={i} className="animate-pulse bg-white rounded-[2rem] h-[400px] border border-slate-100 shadow-sm" />
               ))}
             </div>
-          ) : vitrineOrdenada.length > 0 ? (
+          ) : vitrineFiltrada.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {vitrineOrdenada.map(ev => <EventCard key={ev.id} evento={ev} />)}
+              {vitrineFiltrada.map(ev => <EventCard key={ev.id} evento={ev} />)}
             </div>
           ) : (
             <div className="py-24 text-center bg-white rounded-[3rem] border border-dashed border-slate-300">
@@ -174,6 +197,9 @@ export default function BuyTicketHome() {
                 <FilterX size={48} className="text-slate-300" />
               </div>
               <h3 className="text-xl font-black text-slate-800 uppercase italic">Nenhum evento encontrado</h3>
+              <p className="text-slate-500 mt-2 max-w-md mx-auto">
+                Não encontramos nada com esses termos. Tente mudar a categoria ou limpar a busca para ver todos os eventos.
+              </p>
               <button 
                 onClick={() => {setBuscaNome(''); setCategoriaAtiva('Todos');}}
                 className="mt-6 text-[#ff0082] font-bold hover:underline"
@@ -185,6 +211,7 @@ export default function BuyTicketHome() {
         </section>
       </main>
 
+      {/* Footer agora sempre "colado" no final */}
       <Footer />
     </div>
   );
