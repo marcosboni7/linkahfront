@@ -43,6 +43,8 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
+      console.log("🚀 Tentando login para:", email.trim());
+      
       const response = await fetch(`${apiBaseUrl}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -70,12 +72,14 @@ export default function LoginPage() {
         window.localStorage.setItem('userEmail', emailUsuario);
         window.localStorage.setItem('userName', user?.nome || 'Produtor');
 
-        // 3. SALVAMENTO EM COOKIE (Para o Middleware não te expulsar)
-        // O max-age 86400 define que o login dura 24 horas
-        document.cookie = `userEmail=${emailUsuario}; path=/; max-age=86400; samesite=lax`;
+        // 3. SALVAMENTO EM COOKIE (CORRIGIDO PARA VERCEL HTTPS)
+        // O '; Secure' é obrigatório para sites com cadeado (HTTPS)
+        document.cookie = `userEmail=${emailUsuario}; path=/; max-age=86400; SameSite=Lax; Secure`;
 
-        // Pequena pausa para garantir a escrita dos dados
-        await new Promise(resolve => setTimeout(resolve, 200));
+        console.log("✅ Cookie gravado com sucesso. Redirecionando...");
+
+        // Pausa de segurança para o navegador registrar o cookie
+        await new Promise(resolve => setTimeout(resolve, 400));
 
         // 4. VERIFICAÇÃO DE PERFIL E REDIRECIONAMENTO
         try {
@@ -94,6 +98,7 @@ export default function LoginPage() {
           router.replace('/dashboard/perfil');
           
         } catch (checkError) {
+          // Se der erro na checagem de perfil, manda para eventos por segurança
           router.replace('/dashboard/eventos');
         }
         
@@ -102,7 +107,7 @@ export default function LoginPage() {
         setIsLoading(false);
       }
     } catch (error) {
-      console.error("Erro na conexão:", error);
+      console.error("❌ Erro na conexão:", error);
       setErrors({ email: 'Erro de conexão', senha: 'Não foi possível conectar ao servidor' });
       setIsLoading(false);
     }
