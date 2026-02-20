@@ -64,21 +64,27 @@ export default function LoginPage() {
 
       if (response.ok) {
         const user = data.user;
+        const emailUsuario = user?.email || email.trim().toLowerCase();
         
-        // Salvando no LocalStorage
-        window.localStorage.setItem('userEmail', user?.email || email.trim().toLowerCase());
+        // 1. SALVAR NO LOCALSTORAGE (Para o Frontend)
+        window.localStorage.setItem('userEmail', emailUsuario);
         window.localStorage.setItem('userName', user?.nome || 'Produtor');
+
+        // 2. SALVAR NO COOKIE (Para o Middleware liberar o acesso)
+        // Sem isso, o middleware redireciona de volta para o login
+        document.cookie = `userEmail=${emailUsuario}; path=/; max-age=86400; SameSite=Lax`;
+        console.log("✅ [DEBUG] Cookie de sessão criado!");
 
         console.log("🔍 [DEBUG] Perfil completo?", user?.perfil_completo);
 
         if (user?.perfil_completo) {
           console.log("➡️ [DEBUG] Redirecionando: Dashboard Eventos");
           window.localStorage.setItem('perfil_completo', 'true');
-          router.push('/dashboard/eventos');
+          window.location.href = '/dashboard/eventos'; 
         } else {
           console.log("➡️ [DEBUG] Redirecionando: Página de Perfil");
           window.localStorage.removeItem('perfil_completo');
-          router.push('/dashboard/perfil');
+          window.location.href = '/dashboard/perfil';
         }
         
       } else {
