@@ -36,13 +36,12 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (errors.email || errors.senha || !email || !senha) {
-      return;
-    }
+    if (errors.email || errors.senha || !email || !senha) return;
 
     setIsLoading(true);
 
     try {
+      // Chamada única ao servidor
       const response = await fetch(`${apiBaseUrl}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -58,26 +57,21 @@ export default function LoginPage() {
         const user = data.user;
         const emailUsuario = user?.email || email.trim().toLowerCase();
         
-        // 1. Salva informações básicas
+        // 1. Salva informações básicas no LocalStorage
         window.localStorage.setItem('userEmail', emailUsuario);
         window.localStorage.setItem('userName', user?.nome || 'Produtor');
 
-        // 2. CHECAGEM CRUCIAL: Se o login não trouxe os dados, perguntamos ao Perfil
-        try {
-          const perfilRes = await fetch(`${apiBaseUrl}/api/auth/perfil?email=${emailUsuario}`);
-          const perfilData = await perfilRes.json();
+        // 2. OTIMIZAÇÃO: Checa o perfil usando o que já veio no login
+        // Se o objeto 'user' do backend já trouxer dados como CPF ou CEP, 
+        // evitamos fazer o segundo fetch.
+        const isPerfilCompleto = !!(user?.cpf_cnpj || user?.cep || user?.cnpj);
 
-          // Se o perfilData tiver qualquer dado importante, marcamos como completo
-          if (perfilRes.ok && (perfilData.cpf_cnpj || perfilData.cep || user?.cpf_cnpj)) {
-            window.localStorage.setItem('perfil_completo', 'true');
-            router.push('/dashboard/eventos');
-          } else {
-            // Se realmente estiver vazio no banco, vai pro preenchimento
-            window.localStorage.removeItem('perfil_completo');
-            router.push('/dashboard/perfil');
-          }
-        } catch (checkError) {
-          // Se a checagem falhar, segue o fluxo padrão
+        if (isPerfilCompleto) {
+          window.localStorage.setItem('perfil_completo', 'true');
+          router.push('/dashboard/eventos');
+        } else {
+          // Se estiver faltando algo, manda para o perfil
+          window.localStorage.removeItem('perfil_completo');
           router.push('/dashboard/perfil');
         }
         
