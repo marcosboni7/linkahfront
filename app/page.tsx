@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Navbar } from './site/Navbar'; 
-import { EventCard } from './site/EventCard';
-import { Footer } from './site/Footer';
+import { Navbar } from '../app/site/Navbar'; 
+import { EventCard } from '../app/site/EventCard';
+import { Footer } from '../app/site/Footer';
 import { CategoryFilter } from './site/CategoryFilter';
 import { SectionHeader } from './site/SectionHeader';
 import { 
