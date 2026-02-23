@@ -21,7 +21,12 @@ export default function DetalhesEvento() {
   useEffect(() => {
     async function carregarEvento() {
       try {
-        const res = await fetch(`https://linkah-api.onrender.com/api/eventos/${id}`);
+        // Adicionamos ?t= no final para ignorar o cache e mostrar o que você acabou de salvar no admin
+        const timestamp = new Date().getTime();
+        const res = await fetch(`https://linkah-api.onrender.com/api/eventos/${id}?t=${timestamp}`, {
+          cache: 'no-store'
+        });
+        
         if (res.ok) {
           const data = await res.json();
           setEvento(data);
@@ -46,7 +51,11 @@ export default function DetalhesEvento() {
 
   if (!evento) return <div className="p-20 text-center text-slate-500 font-medium">Evento não encontrado.</div>;
 
-  const precoBase = evento.ingressos?.[0]?.preco ? Number(evento.ingressos[0].preco) : 0;
+  // Lógica de preço corrigida para evitar erros de renderização
+  const precoBase = evento.ingressos?.[0]?.preco 
+    ? Number(evento.ingressos[0].preco) 
+    : (evento.preco ? Number(evento.preco) : 0);
+    
   const total = precoBase * quantidade;
 
   return (
@@ -73,10 +82,10 @@ export default function DetalhesEvento() {
           </div>
         </div>
 
-        {/* HERO SECTION - CINEMATIC WIDE COM BORDAS ARREDONDADAS */}
+        {/* HERO SECTION */}
         <div className="relative w-full aspect-[21/9] rounded-[3rem] md:rounded-[4rem] overflow-hidden shadow-2xl mb-16 bg-slate-100 group">
           <img 
-            src={evento.imagem_capa || "https://images.unsplash.com/photo-1492684223066-81342ee5ff30"} 
+            src={evento.imagem || evento.imagem_capa || "https://images.unsplash.com/photo-1492684223066-81342ee5ff30"} 
             className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
             alt={evento.nome}
           />
@@ -102,7 +111,6 @@ export default function DetalhesEvento() {
           {/* COLUNA ESQUERDA: CONTEÚDO */}
           <div className="lg:col-span-8 space-y-16">
             
-            {/* INFO CARDS - CLEAN DESIGN */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div className="flex items-center gap-5">
                 <div className="w-16 h-16 rounded-[1.5rem] bg-orange-50 flex items-center justify-center text-[#ff4d4d] shrink-0">
@@ -111,9 +119,9 @@ export default function DetalhesEvento() {
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Data</p>
                   <p className="font-bold text-slate-800 text-lg">
-                    {new Date(evento.data_inicio).toLocaleDateString('pt-BR', {day: '2-digit', month: 'long'})}
+                    {evento.data_inicio ? new Date(evento.data_inicio).toLocaleDateString('pt-BR', {day: '2-digit', month: 'long'}) : 'Data a definir'}
                   </p>
-                  <p className="text-sm text-slate-500 font-medium">{evento.hora_inicio || '19:00'}</p>
+                  <p className="text-sm text-slate-500 font-medium">{evento.horario || evento.hora_inicio || '19:00'}</p>
                 </div>
               </div>
 
@@ -123,8 +131,8 @@ export default function DetalhesEvento() {
                 </div>
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Local</p>
-                  <p className="font-bold text-slate-800 text-lg line-clamp-1">{evento.link_transmissao ? 'Online' : evento.local_nome}</p>
-                  <p className="text-sm text-slate-500 font-medium line-clamp-1">{evento.cidade}, {evento.estado}</p>
+                  <p className="font-bold text-slate-800 text-lg line-clamp-1">{evento.link_transmissao ? 'Online' : (evento.local || evento.local_nome)}</p>
+                  <p className="text-sm text-slate-500 font-medium line-clamp-1">{evento.cidade || 'Brasil'}{evento.estado ? `, ${evento.estado}` : ''}</p>
                 </div>
               </div>
 
@@ -134,13 +142,12 @@ export default function DetalhesEvento() {
                 </div>
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Organizador</p>
-                  <p className="font-bold text-slate-800 text-lg line-clamp-1 capitalize">{evento.produtor_email.split('@')[0]}</p>
+                  <p className="font-bold text-slate-800 text-lg line-clamp-1 capitalize">{evento.produtor_email ? evento.produtor_email.split('@')[0] : 'Linkah'}</p>
                   <button className="text-sm text-[#ff4d4d] font-bold hover:underline">Ver Perfil</button>
                 </div>
               </div>
             </div>
 
-            {/* DESCRIÇÃO */}
             <div className="space-y-8">
               <div className="flex items-center gap-4">
                 <h3 className="text-2xl font-bold text-slate-900 tracking-tight">Sobre esta experiência</h3>
@@ -151,18 +158,17 @@ export default function DetalhesEvento() {
               </div>
             </div>
 
-            {/* BANNER DIGITAL (SE HOUVER) */}
             {evento.link_transmissao && (
-              <div className="bg-gradient-to-br from-[#702082] to-[#ff4d4d] rounded-[3rem] p-12 text-white flex flex-col md:flex-row items-center justify-between gap-10 shadow-2xl shadow-orange-100">
+              <div className="bg-gradient-to-br from-[#702082] to-[#ff4d4d] rounded-[3rem] p-12 text-white flex flex-col md:flex-row items-center justify-between gap-10 shadow-2xl">
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 bg-white/20 w-fit px-4 py-1.5 rounded-full backdrop-blur-md">
                     <Zap size={16} className="text-yellow-300 fill-yellow-300" />
-                    <span className="text-[11px] font-bold uppercase tracking-widest">Acesso Digital Linkah</span>
+                    <span className="text-[11px] font-bold uppercase tracking-widest">Acesso Digital</span>
                   </div>
                   <h3 className="text-4xl font-bold tracking-tight">Assista de qualquer lugar</h3>
                   <p className="text-white/80 text-lg">A sala virtual já está pronta para receber você.</p>
                 </div>
-                <a href={evento.link_transmissao} target="_blank" className="bg-white text-slate-900 px-10 py-6 rounded-2xl font-bold text-sm tracking-widest shadow-xl hover:scale-105 transition-all flex items-center gap-3 active:scale-95">
+                <a href={evento.link_transmissao} target="_blank" className="bg-white text-slate-900 px-10 py-6 rounded-2xl font-bold text-sm tracking-widest shadow-xl hover:scale-105 transition-all flex items-center gap-3">
                   ENTRAR AGORA
                   <ArrowRight size={18} />
                 </a>
@@ -170,7 +176,7 @@ export default function DetalhesEvento() {
             )}
           </div>
 
-          {/* COLUNA DIREITA: CHECKOUT - FLOATING CARD */}
+          {/* COLUNA DIREITA: CHECKOUT */}
           <div className="lg:col-span-4">
             <div className="sticky top-28">
               <div className="bg-white rounded-[3.5rem] border border-slate-100 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.12)] overflow-hidden">
@@ -194,18 +200,17 @@ export default function DetalhesEvento() {
                         </span>
                       </div>
 
-                      {/* QUANTITY SELECTOR */}
                       <div className="flex items-center justify-between bg-white p-2 rounded-2xl shadow-sm border border-slate-100">
                         <button 
                           onClick={() => setQuantidade(Math.max(1, quantidade - 1))} 
-                          className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 hover:text-[#ff4d4d] transition-all active:scale-90"
+                          className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 hover:text-[#ff4d4d]"
                         >
                           <Minus size={20} />
                         </button>
                         <span className="font-bold text-xl text-slate-900">{quantidade}</span>
                         <button 
                           onClick={() => setQuantidade(Math.min(10, quantidade + 1))} 
-                          className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 hover:text-[#ff4d4d] transition-all active:scale-90"
+                          className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 hover:text-[#ff4d4d]"
                         >
                           <Plus size={20} />
                         </button>
@@ -213,10 +218,9 @@ export default function DetalhesEvento() {
                     </div>
                   </div>
 
-                  {/* TOTAL & BUY BUTTON */}
                   <div className="space-y-8">
                     <div className="flex justify-between items-end px-2">
-                      <span className="text-slate-400 text-xs font-bold uppercase tracking-[0.2em] mb-1">Total a investir</span>
+                      <span className="text-slate-400 text-xs font-bold uppercase tracking-[0.2em] mb-1">Total</span>
                       <span className="text-4xl font-bold text-slate-900 tracking-tighter">
                         {total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                       </span>
@@ -224,25 +228,14 @@ export default function DetalhesEvento() {
 
                     <Link 
                       href={`/venda?eventoId=${id}&qtd=${quantidade}`}
-                      className="group flex items-center justify-center w-full bg-gradient-to-r from-[#ff4d4d] to-[#ff8c42] py-7 rounded-[2.5rem] font-bold text-white transition-all hover:scale-[1.02] shadow-xl shadow-orange-200 text-base gap-3 active:scale-95 overflow-hidden relative"
+                      className="group flex items-center justify-center w-full bg-gradient-to-r from-[#ff4d4d] to-[#ff8c42] py-7 rounded-[2.5rem] font-bold text-white transition-all hover:scale-[1.02] shadow-xl text-base gap-3"
                     >
-                      <Ticket size={24} className="group-hover:rotate-12 transition-transform" />
+                      <Ticket size={24} />
                       RESERVAR MEU LUGAR
                     </Link>
 
-                    {/* SECURITY FOOTER */}
-                    <div className="space-y-4 pt-4">
-                      <div className="flex items-center justify-center gap-3 text-slate-400">
-                        <Clock size={16} className="text-orange-400" />
-                        <p className="text-[11px] font-semibold italic">Processamento seguro em 2 min</p>
-                      </div>
-                      <div className="flex flex-col items-center gap-2 pt-6 border-t border-slate-50">
-                        <div className="flex items-center gap-2 opacity-40">
-                          <ShieldCheck size={18} className="text-emerald-500" />
-                          <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-slate-900">Linkah Secure Gateway</span>
-                        </div>
-                        <p className="text-[9px] text-slate-300 font-medium">Aceitamos Stripe & Pix</p>
-                      </div>
+                    <div className="space-y-4 pt-4 text-center">
+                      <p className="text-[11px] text-slate-400 font-medium">Aceitamos Stripe & Pix</p>
                     </div>
                   </div>
                 </div>
