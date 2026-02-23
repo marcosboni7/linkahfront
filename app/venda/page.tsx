@@ -4,12 +4,10 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Navbar } from '../site/Navbar';
 import { 
-  CreditCard, ShieldCheck, Lock, 
-  Loader2, ArrowLeft, Ticket as TicketIcon 
+  ShieldCheck, Lock, Loader2, ArrowLeft, 
+  Ticket as TicketIcon, Check, CreditCard
 } from 'lucide-react';
 import Link from 'next/link';
-
-// ATENÇÃO: Verifique se não há nenhum import de '@stripe/stripe-js' aqui no topo!
 
 function CheckoutContent() {
   const searchParams = useSearchParams();
@@ -18,11 +16,7 @@ function CheckoutContent() {
 
   const [loading, setLoading] = useState(false);
   const [evento, setEvento] = useState<any>(null);
-  
-  const [formData, setFormData] = useState({
-    nome: '',
-    email: '',
-  });
+  const [formData, setFormData] = useState({ nome: '', email: '' });
 
   useEffect(() => {
     async function carregarEvento() {
@@ -49,46 +43,28 @@ function CheckoutContent() {
   };
 
   const handleFinalizarCompra = async () => {
-    console.log("🚀 Iniciando Checkout...");
-    
     if (!formData.email || !formData.nome) {
       alert("Por favor, preencha seus dados.");
       return;
     }
-
     setLoading(true);
-
     try {
       const response = await fetch('https://linkah-api.onrender.com/api/pagamentos/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          evento: {
-            id: eventoId,
-            titulo: evento?.nome,
-            preco: precoBase,
-          },
+          evento: { id: eventoId, titulo: evento?.nome, preco: precoBase },
           usuarioEmail: formData.email,
           quantidade: qtd
         }),
       });
-
       const data = await response.json();
-      console.log("📥 Resposta recebida do backend:", data);
-
-      if (!response.ok) throw new Error(data.details || data.error || 'Erro no servidor');
-
-      // O SEGREDO: Se o backend mandou a URL, nós usamos o redirecionamento nativo do navegador.
-      // Isso ignora qualquer erro de "stripe.redirectToCheckout is no longer supported".
       if (data.url) {
-        console.log("🔗 URL encontrada! Redirecionando para Stripe...");
-        window.location.assign(data.url); // .assign é mais forte que .href para forçar a saída
+        window.location.assign(data.url);
       } else {
         throw new Error("Link de pagamento não recebido.");
       }
-
     } catch (err: any) {
-      console.error("❌ Erro capturado:", err.message);
       alert(`Ops! ${err.message}`);
     } finally {
       setLoading(false);
@@ -96,57 +72,98 @@ function CheckoutContent() {
   };
 
   return (
-    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 bg-white min-h-screen text-slate-900">
-      <div className="flex justify-between items-center mb-10">
-        <Link href={`/evento/${eventoId}`} className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors text-sm font-bold">
-          <ArrowLeft size={18} /> Voltar para o evento
+    <main className="max-w-4xl mx-auto px-6 py-12 bg-[#FCFBFA] min-h-screen">
+      {/* HEADER VOLTAR */}
+      <div className="mb-12">
+        <Link href={`/evento/${eventoId}`} className="inline-flex items-center gap-2 text-slate-400 hover:text-slate-900 transition-all text-sm font-medium">
+          <ArrowLeft size={16} /> Voltar para detalhes
         </Link>
-        <div className="hidden md:flex items-center gap-3 text-slate-400">
-           <ShieldCheck size={18} className="text-green-500" />
-           <span className="text-[10px] font-black uppercase text-slate-900">Pagamento Seguro</span>
-        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-        <div className="lg:col-span-7 space-y-10">
-          <section className="space-y-8">
-            <h3 className="text-2xl font-black italic tracking-tighter uppercase">1. Seus Dados</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <input name="nome" value={formData.nome} onChange={handleInputChange} placeholder="Nome Completo" className="w-full p-5 bg-slate-50 rounded-2xl border-2 border-transparent focus:border-rose-500 outline-none font-bold" />
-              <input name="email" type="email" value={formData.email} onChange={handleInputChange} placeholder="E-mail" className="w-full p-5 bg-slate-50 rounded-2xl border-2 border-transparent focus:border-rose-500 outline-none font-bold" />
-            </div>
-          </section>
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-16">
+        {/* FORMULÁRIO */}
+        <div className="lg:col-span-3 space-y-12">
+          <header className="space-y-2">
+            <h1 className="text-3xl font-bold tracking-tight">Finalizar Inscrição</h1>
+            <p className="text-slate-500">Preencha seus dados para receber o ingresso.</p>
+          </header>
 
-          <section className="space-y-8">
-            <h3 className="text-2xl font-black italic tracking-tighter uppercase">2. Pagamento</h3>
-            <div className="bg-slate-50 p-8 rounded-3xl text-center border-2 border-dashed border-slate-200">
-              <CreditCard size={32} className="mx-auto mb-4 text-slate-400" />
-              <p className="font-bold text-slate-500 uppercase text-[10px]">Redirecionando para a Stripe...</p>
+          <section className="space-y-6">
+            <div className="space-y-4">
+              <label className="text-sm font-bold text-slate-700 ml-1">Informações do Participante</label>
+              <input 
+                name="nome" 
+                value={formData.nome} 
+                onChange={handleInputChange} 
+                placeholder="Nome Completo" 
+                className="w-full p-4 bg-white rounded-2xl border border-slate-200 focus:border-[#ff4d4d] focus:ring-4 focus:ring-orange-50 outline-none transition-all shadow-sm" 
+              />
+              <input 
+                name="email" 
+                type="email" 
+                value={formData.email} 
+                onChange={handleInputChange} 
+                placeholder="E-mail principal" 
+                className="w-full p-4 bg-white rounded-2xl border border-slate-200 focus:border-[#ff4d4d] focus:ring-4 focus:ring-orange-50 outline-none transition-all shadow-sm" 
+              />
+            </div>
+
+            <div className="p-6 rounded-3xl bg-white border border-slate-100 shadow-sm space-y-4">
+              <div className="flex items-center gap-3 text-slate-600">
+                <CreditCard size={20} className="text-slate-400" />
+                <span className="text-sm font-medium">O pagamento será processado via Stripe</span>
+              </div>
+              <div className="flex items-center gap-3 text-slate-600">
+                <ShieldCheck size={20} className="text-emerald-500" />
+                <span className="text-sm font-medium">Ambiente 100% criptografado</span>
+              </div>
             </div>
           </section>
         </div>
 
-        <div className="lg:col-span-5">
-          <div className="bg-slate-900 p-10 rounded-[3rem] text-white shadow-2xl sticky top-10">
-            <h4 className="font-black uppercase italic tracking-tighter mb-8 text-xl">Resumo</h4>
-            <div className="flex items-center gap-4 mb-8 p-4 bg-white/5 rounded-2xl">
-              <TicketIcon className="text-rose-500" />
-              <div>
-                <p className="font-bold text-sm uppercase">{evento?.nome || 'Carregando...'}</p>
-                <p className="text-[10px] text-white/50 font-bold uppercase">{qtd}x Ingressos</p>
+        {/* RESUMO (LUMA STYLE) */}
+        <div className="lg:col-span-2">
+          <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm sticky top-10 space-y-8">
+            <div className="flex items-center gap-4 pb-6 border-b border-slate-50">
+              <div className="w-12 h-12 rounded-xl bg-orange-50 flex items-center justify-center text-[#ff4d4d]">
+                <TicketIcon size={24} />
+              </div>
+              <div className="flex-1">
+                <p className="font-bold text-slate-900 leading-tight line-clamp-1">{evento?.nome || 'Carregando...'}</p>
+                <p className="text-xs text-slate-400 font-medium">{qtd}x Ingressos</p>
               </div>
             </div>
-            <div className="flex justify-between items-end mb-8 border-t border-white/10 pt-6">
-              <span className="text-[10px] font-black uppercase text-white/40">Total</span>
-              <span className="text-4xl font-black tracking-tighter">{total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+
+            <div className="space-y-3">
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-500">Subtotal</span>
+                <span className="font-medium">{(precoBase * qtd).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-500">Taxa de serviço</span>
+                <span className="text-emerald-500 font-medium">Grátis</span>
+              </div>
+              <div className="pt-4 flex justify-between items-end border-t border-slate-50">
+                <span className="font-bold text-slate-900">Total</span>
+                <span className="text-3xl font-bold tracking-tight text-slate-900">
+                  {total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                </span>
+              </div>
             </div>
+
             <button 
               onClick={handleFinalizarCompra} 
               disabled={loading || !formData.nome || !formData.email} 
-              className="w-full bg-rose-600 py-6 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-rose-500 transition-all disabled:opacity-20 flex justify-center items-center gap-2"
+              className="w-full bg-slate-900 text-white py-5 rounded-2xl font-bold hover:bg-slate-800 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex justify-center items-center gap-2 shadow-lg shadow-slate-100"
             >
-              {loading ? <Loader2 className="animate-spin" /> : <><Lock size={16}/> Pagar Agora</>}
+              {loading ? <Loader2 className="animate-spin" size={20} /> : <><Lock size={18}/> Confirmar e Pagar</>}
             </button>
+
+            <div className="flex flex-col items-center gap-2 pt-2">
+              <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest text-center">
+                Powered by Linkah
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -156,11 +173,15 @@ function CheckoutContent() {
 
 export default function CheckoutPage() {
   return (
-    <>
+    <div className="bg-[#FCFBFA] min-h-screen">
       <Navbar />
-      <Suspense fallback={<div className="p-20 text-center font-bold">Carregando...</div>}>
+      <Suspense fallback={
+        <div className="h-screen flex items-center justify-center">
+          <Loader2 className="animate-spin text-slate-300" size={32} />
+        </div>
+      }>
         <CheckoutContent />
       </Suspense>
-    </>
+    </div>
   );
 }
