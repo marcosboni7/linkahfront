@@ -13,22 +13,12 @@ export default function AdminEventos() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [filtroBusca, setFiltroBusca] = useState('');
   
-  // Estado completo do formulário para garantir que nada se perca
   const [eventoParaEditar, setEventoParaEditar] = useState<any>({
-    id: '',
-    nome: '',
-    data: '',
-    horario: '',
-    local: '',
-    preco: '',
-    imagem: '',
-    descricao: '',
-    status: ''
+    id: '', nome: '', data: '', horario: '', local: '', preco: '', imagem: '', descricao: '', status: ''
   });
 
   const API_URL = 'https://linkah-api.onrender.com/api/eventos';
 
-  // Carrega os dados da API
   const carregarDados = async () => {
     setLoading(true);
     try {
@@ -38,7 +28,7 @@ export default function AdminEventos() {
         setEventos(Array.isArray(data) ? data.filter((ev: any) => ev.status !== 'Excluído') : []);
       }
     } catch (err) {
-      console.error("Erro ao carregar dados:", err);
+      console.error("Erro ao carregar:", err);
     } finally {
       setLoading(false);
     }
@@ -46,240 +36,141 @@ export default function AdminEventos() {
 
   useEffect(() => { carregarDados(); }, []);
 
-  // Preenche o modal com TODOS os dados do evento selecionado
   const abrirEdicao = (evento: any) => {
     setEventoParaEditar({
-      id: evento.id || '',
-      nome: evento.nome || '',
+      ...evento,
+      // Garante que se vier nulo do banco, o input não fique "uncontrolled"
       data: evento.data || '',
       horario: evento.horario || '',
       local: evento.local || '',
-      preco: evento.preco || '',
-      imagem: evento.imagem || '',
-      descricao: evento.descricao || '',
-      status: evento.status || 'Ativo'
+      preco: evento.preco || ''
     });
     setIsModalOpen(true);
   };
 
-  // Função que envia TODOS os campos para o Backend
   const salvarEdicao = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsProcessing('salvando');
+
+    // Montamos o corpo da requisição com nomes de campos idênticos ao Banco de Dados
+    const payload = {
+      nome: eventoParaEditar.nome,
+      data: eventoParaEditar.data,     // Enviando a string da data
+      horario: eventoParaEditar.horario, // Enviando a string do horário
+      local: eventoParaEditar.local,
+      preco: eventoParaEditar.preco,
+      imagem: eventoParaEditar.imagem,
+      descricao: eventoParaEditar.descricao,
+      status: eventoParaEditar.status || 'Ativo'
+    };
 
     try {
       const res = await fetch(`${API_URL}/${eventoParaEditar.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nome: eventoParaEditar.nome,
-          data: eventoParaEditar.data,
-          horario: eventoParaEditar.horario,
-          local: eventoParaEditar.local,
-          preco: eventoParaEditar.preco,
-          imagem: eventoParaEditar.imagem,
-          descricao: eventoParaEditar.descricao,
-          status: eventoParaEditar.status
-        })
+        body: JSON.stringify(payload)
       });
 
       if (res.ok) {
         setIsModalOpen(false);
-        carregarDados(); // Recarrega a lista para refletir as mudanças
+        await carregarDados(); // Recarrega para garantir que o front veja o dado novo
       } else {
-        const erro = await res.json();
-        alert(`Erro ao salvar: ${erro.message || 'Verifique o console'}`);
+        alert("Erro ao salvar. Verifique se os campos estão preenchidos.");
       }
     } catch (err) {
-      alert("Erro de conexão com o servidor.");
+      alert("Erro de conexão.");
     } finally {
       setIsProcessing(null);
     }
   };
 
-  const handleExcluir = async (evento: any) => {
-    if (!window.confirm(`⚠️ Deseja remover "${evento.nome}"?`)) return;
-    setIsProcessing(evento.id);
-    try {
-      // Usando PUT para mudar status para excluído (padrão que você usou antes)
-      await fetch(`${API_URL}/${evento.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...evento, status: 'Excluído' })
-      });
-      setEventos(prev => prev.filter(ev => ev.id !== evento.id));
-    } catch (err) {
-      alert("Erro ao excluir.");
-    } finally { setIsProcessing(null); }
-  };
-
   return (
     <div className="p-10 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
       
-      {/* HEADER */}
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <header className="flex justify-between items-center">
         <div>
-          <h1 className="text-4xl font-black tracking-tighter text-slate-900">Eventos</h1>
-          <p className="text-slate-500 font-medium tracking-tight">Gerenciamento completo da vitrine e detalhes.</p>
+          <h1 className="text-4xl font-black text-slate-900 tracking-tighter">Eventos</h1>
+          <p className="text-slate-500 font-medium text-sm">Gerencie horários, datas e locais.</p>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="relative group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-            <input 
-              type="text" 
-              placeholder="Buscar evento..." 
-              value={filtroBusca}
-              onChange={(e) => setFiltroBusca(e.target.value)}
-              className="pl-12 pr-6 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:ring-4 ring-red-500/10 font-medium shadow-sm w-full md:w-80 transition-all"
-            />
-          </div>
-          <button onClick={carregarDados} className="p-4 bg-white hover:bg-slate-50 border border-slate-200 rounded-2xl text-slate-400 transition-all shadow-sm">
-            <RefreshCcw size={20} className={loading ? 'animate-spin' : ''} />
-          </button>
-        </div>
+        <button onClick={carregarDados} className="p-4 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 transition-all">
+          <RefreshCcw size={20} className={loading ? 'animate-spin' : ''} />
+        </button>
       </header>
 
-      {/* TABELA */}
-      <div className="bg-white rounded-[3rem] border border-slate-200 shadow-xl shadow-slate-200/50 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50/50 text-slate-400 text-[11px] uppercase font-black tracking-widest border-b border-slate-100">
-                <th className="px-10 py-6">Informações</th>
-                <th className="px-10 py-6">Data & Horário</th>
-                <th className="px-10 py-6">Valor</th>
-                <th className="px-10 py-6 text-right">Ações</th>
+      {/* TABELA DE EVENTOS */}
+      <div className="bg-white rounded-[3rem] border border-slate-200 shadow-xl overflow-hidden">
+        <table className="w-full text-left">
+          <thead className="bg-slate-50 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
+            <tr>
+              <th className="px-8 py-5">Evento</th>
+              <th className="px-8 py-5">Data / Hora</th>
+              <th className="px-8 py-5 text-right">Ações</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {eventos.map((ev) => (
+              <tr key={ev.id} className="group hover:bg-slate-50/50">
+                <td className="px-8 py-6">
+                  <p className="font-black text-slate-900">{ev.nome}</p>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase">{ev.local}</p>
+                </td>
+                <td className="px-8 py-6">
+                  <div className="flex flex-col text-xs font-bold text-slate-600">
+                    <span className="flex items-center gap-1"><Calendar size={12} className="text-red-400"/> {ev.data}</span>
+                    <span className="flex items-center gap-1"><Clock size={12} className="text-blue-400"/> {ev.horario}</span>
+                  </div>
+                </td>
+                <td className="px-8 py-6 text-right">
+                  <button onClick={() => abrirEdicao(ev)} className="p-3 hover:bg-white border border-transparent hover:border-slate-200 rounded-xl text-slate-400 hover:text-blue-600 transition-all">
+                    <Edit3 size={18}/>
+                  </button>
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {eventos
-                .filter(ev => ev.nome?.toLowerCase().includes(filtroBusca.toLowerCase()))
-                .map((ev) => (
-                  <tr key={ev.id} className="hover:bg-slate-50/50 transition-colors group">
-                    <td className="px-10 py-6">
-                      <div className="flex items-center gap-4">
-                        {ev.imagem && <img src={ev.imagem} className="w-10 h-10 rounded-lg object-cover border border-slate-100" alt="" />}
-                        <div>
-                          <p className="font-black text-slate-900">{ev.nome}</p>
-                          <p className="text-[10px] text-slate-400 font-bold uppercase">{ev.local}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-10 py-6">
-                      <div className="text-xs font-bold text-slate-600 space-y-1">
-                        <div className="flex items-center gap-1"><Calendar size={14} className="text-red-400"/> {ev.data}</div>
-                        <div className="flex items-center gap-1"><Clock size={14} className="text-blue-400"/> {ev.horario}</div>
-                      </div>
-                    </td>
-                    <td className="px-10 py-6 text-sm font-black text-slate-900">
-                      {ev.preco ? `R$ ${ev.preco}` : 'Gratuito'}
-                    </td>
-                    <td className="px-10 py-6 text-right">
-                      <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => abrirEdicao(ev)} className="p-3 hover:bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-blue-500 transition-all shadow-sm"><Edit3 size={18}/></button>
-                        <button onClick={() => handleExcluir(ev)} className="p-3 hover:bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-red-500 transition-all shadow-sm" disabled={isProcessing === ev.id}>
-                          {isProcessing === ev.id ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18}/>}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-            </tbody>
-          </table>
-        </div>
+            ))}
+          </tbody>
+        </table>
       </div>
 
-      {/* MODAL DE EDIÇÃO COMPLETO */}
+      {/* MODAL DE EDIÇÃO */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-[100] flex items-center justify-center p-6">
-          <div className="bg-white w-full max-w-2xl rounded-[3rem] p-10 shadow-2xl animate-in zoom-in-95 duration-200 overflow-y-auto max-h-[90vh]">
+        <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-xl rounded-[3rem] p-10 shadow-2xl overflow-y-auto max-h-[90vh]">
             <div className="flex justify-between items-center mb-8">
-              <h2 className="text-2xl font-black text-slate-900 tracking-tighter">Editar Evento</h2>
-              <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400"><X size={24} /></button>
+              <h2 className="text-2xl font-black tracking-tighter">Editar Evento</h2>
+              <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-full"><X /></button>
             </div>
 
-            <form onSubmit={salvarEdicao} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              
-              {/* NOME */}
+            <form onSubmit={salvarEdicao} className="grid grid-cols-2 gap-5">
               <div className="col-span-2 space-y-1">
-                <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Título do Evento</label>
-                <input 
-                  className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none focus:ring-4 ring-slate-100" 
-                  value={eventoParaEditar.nome} 
-                  onChange={(e) => setEventoParaEditar({...eventoParaEditar, nome: e.target.value})} 
-                />
+                <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Nome</label>
+                <input className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border border-transparent focus:border-slate-200" 
+                  value={eventoParaEditar.nome} onChange={(e) => setEventoParaEditar({...eventoParaEditar, nome: e.target.value})} />
               </div>
 
-              {/* DATA */}
+              {/* DATA - Use texto se o seu banco não for Date formal, ou date para padrão ISO */}
               <div className="space-y-1">
                 <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Data</label>
-                <input 
-                  type="date"
-                  className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none" 
-                  value={eventoParaEditar.data} 
-                  onChange={(e) => setEventoParaEditar({...eventoParaEditar, data: e.target.value})} 
-                />
+                <input className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border border-transparent focus:border-slate-200" 
+                  value={eventoParaEditar.data} onChange={(e) => setEventoParaEditar({...eventoParaEditar, data: e.target.value})} placeholder="Ex: 23/02/2026" />
               </div>
 
-              {/* HORÁRIO */}
               <div className="space-y-1">
                 <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Horário</label>
-                <input 
-                  type="time"
-                  className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none" 
-                  value={eventoParaEditar.horario} 
-                  onChange={(e) => setEventoParaEditar({...eventoParaEditar, horario: e.target.value})} 
-                />
+                <input className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border border-transparent focus:border-slate-200" 
+                  value={eventoParaEditar.horario} onChange={(e) => setEventoParaEditar({...eventoParaEditar, horario: e.target.value})} placeholder="Ex: 19:00" />
               </div>
 
-              {/* LOCAL */}
-              <div className="space-y-1">
+              <div className="col-span-2 space-y-1">
                 <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Local</label>
-                <input 
-                  className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none" 
-                  value={eventoParaEditar.local} 
-                  onChange={(e) => setEventoParaEditar({...eventoParaEditar, local: e.target.value})} 
-                />
+                <input className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border border-transparent focus:border-slate-200" 
+                  value={eventoParaEditar.local} onChange={(e) => setEventoParaEditar({...eventoParaEditar, local: e.target.value})} />
               </div>
 
-              {/* PREÇO */}
-              <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Preço (R$)</label>
-                <input 
-                  className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none" 
-                  value={eventoParaEditar.preco} 
-                  onChange={(e) => setEventoParaEditar({...eventoParaEditar, preco: e.target.value})} 
-                />
-              </div>
-
-              {/* IMAGEM URL */}
-              <div className="col-span-2 space-y-1">
-                <label className="text-[10px] font-black uppercase text-slate-400 ml-2">URL da Imagem</label>
-                <input 
-                  className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl font-medium text-xs outline-none" 
-                  value={eventoParaEditar.imagem} 
-                  onChange={(e) => setEventoParaEditar({...eventoParaEditar, imagem: e.target.value})} 
-                />
-              </div>
-
-              {/* DESCRIÇÃO */}
-              <div className="col-span-2 space-y-1">
-                <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Descrição Detalhada</label>
-                <textarea 
-                  rows={3}
-                  className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl font-medium outline-none resize-none" 
-                  value={eventoParaEditar.descricao} 
-                  onChange={(e) => setEventoParaEditar({...eventoParaEditar, descricao: e.target.value})} 
-                />
-              </div>
-
-              <button 
-                type="submit" 
-                disabled={isProcessing === 'salvando'}
-                className="col-span-2 bg-slate-900 text-white py-5 rounded-3xl font-black uppercase tracking-widest hover:bg-blue-600 transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2"
+              <button type="submit" disabled={isProcessing === 'salvando'}
+                className="col-span-2 bg-slate-900 text-white py-5 rounded-3xl font-black uppercase tracking-widest hover:bg-blue-600 transition-all flex items-center justify-center gap-2"
               >
                 {isProcessing === 'salvando' ? <Loader2 className="animate-spin" /> : <Save size={20} />}
-                Confirmar Alterações
+                Confirmar e Salvar
               </button>
             </form>
           </div>
