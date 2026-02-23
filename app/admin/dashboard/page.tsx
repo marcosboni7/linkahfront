@@ -4,210 +4,225 @@ import { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, Users, Ticket, AlertCircle, 
   CheckCircle2, XCircle, Search, Filter, 
-  MoreVertical, Eye, Trash2, ArrowUpRight,
-  ShieldCheck, MessageSquare, Settings, LogOut
+  MoreVertical, Eye, Trash2, ShieldCheck, 
+  MessageSquare, Settings, LogOut, Save, X, Edit3
 } from 'lucide-react';
 
 export default function AdminDashboard() {
   const [eventos, setEventos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
-    totalVendas: 0,
-    novosUsuarios: 0,
-    eventosAtivos: 0,
-    pendentes: 0
-  });
+  const [eventoParaEditar, setEventoParaEditar] = useState<any>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  useEffect(() => {
-    async function fetchAdminData() {
-      try {
-        const res = await fetch('https://linkah-api.onrender.com/api/eventos/vitrine');
-        if (res.ok) {
-          const data = await res.json();
-          setEventos(data);
-          setStats({
-            totalVendas: 12540.50,
-            novosUsuarios: 84,
-            eventosAtivos: data.length,
-            pendentes: 3
-          });
-        }
-      } catch (err) {
-        console.error("Erro ao carregar dados de admin", err);
-      } finally {
-        setLoading(false);
+  const API_URL = 'https://linkah-api.onrender.com/api/eventos';
+
+  // 1. Carregar dados
+  const carregarDados = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/vitrine`);
+      if (res.ok) {
+        const data = await res.json();
+        setEventos(data);
       }
+    } catch (err) {
+      console.error("Erro ao carregar dados", err);
+    } finally {
+      setLoading(false);
     }
-    fetchAdminData();
-  }, []);
+  };
+
+  useEffect(() => { carregarDados(); }, []);
+
+  // 2. Função para Excluir
+  const handleExcluir = async (id: number) => {
+    if (!confirm("Tem certeza que deseja excluir permanentemente este evento?")) return;
+    try {
+      const res = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setEventos(eventos.filter(ev => ev.id !== id));
+        alert("Evento removido com sucesso!");
+      }
+    } catch (err) { alert("Erro ao excluir."); }
+  };
+
+  // 3. Função para Alterar Status (Ativo/Inativo)
+  const toggleStatus = async (evento: any) => {
+    const novoStatus = evento.status === 'Ativo' ? 'Inativo' : 'Ativo';
+    try {
+      const res = await fetch(`${API_URL}/${evento.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...evento, status: novoStatus })
+      });
+      if (res.ok) carregarDados();
+    } catch (err) { console.error(err); }
+  };
+
+  // 4. Salvar Edição Completa
+  const salvarEdicao = async (e: any) => {
+    e.preventDefault();
+    try {
+      const res = await fetch(`${API_URL}/${eventoParaEditar.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(eventoParaEditar)
+      });
+      if (res.ok) {
+        setIsModalOpen(false);
+        carregarDados();
+        alert("Evento atualizado!");
+      }
+    } catch (err) { alert("Erro ao salvar."); }
+  };
 
   return (
     <div className="flex min-h-screen bg-[#F8F9FA] text-slate-900 font-sans">
       
-      {/* SIDEBAR FIXA PARA STAFF */}
+      {/* SIDEBAR */}
       <aside className="w-64 bg-slate-950 text-white flex flex-col shrink-0">
         <div className="p-8">
           <div className="flex items-center gap-3 mb-10">
-            <div className="w-8 h-8 bg-[#ff4d4d] rounded-lg flex items-center justify-center">
-              <ShieldCheck size={20} className="text-white" />
-            </div>
-            <span className="text-xl font-black tracking-tighter">LINKAH <span className="text-[#ff4d4d]">STAFF</span></span>
+            <div className="w-8 h-8 bg-[#ff4d4d] rounded-lg flex items-center justify-center"><ShieldCheck size={20} /></div>
+            <span className="text-xl font-black tracking-tighter">LINKAH STAFF</span>
           </div>
-
           <nav className="space-y-2">
             <SidebarItem icon={<LayoutDashboard size={20}/>} label="Dashboard" active />
             <SidebarItem icon={<Ticket size={20}/>} label="Eventos" />
-            <SidebarItem icon={<Users size={20}/>} label="Usuários" />
-            <SidebarItem icon={<MessageSquare size={20}/>} label="Chat Moderação" />
-            <SidebarItem icon={<Settings size={20}/>} label="Configurações" />
+            <SidebarItem icon={<MessageSquare size={20}/>} label="Moderação Chat" />
           </nav>
-        </div>
-
-        <div className="mt-auto p-8 border-t border-white/10">
-          <button className="flex items-center gap-3 text-slate-400 hover:text-white transition-colors font-bold text-sm">
-            <LogOut size={18} /> Sair do Painel
-          </button>
         </div>
       </aside>
 
-      {/* CONTEÚDO PRINCIPAL */}
+      {/* CONTEÚDO */}
       <main className="flex-1 overflow-y-auto">
         <header className="bg-white border-b border-slate-100 px-10 py-6 flex items-center justify-between sticky top-0 z-10">
-          <div>
-            <h1 className="text-2xl font-black tracking-tight">Visão Geral</h1>
-            <p className="text-slate-400 text-sm font-medium">Bem-vindo ao centro de comando, Admin.</p>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            <div className="text-right hidden md:block">
-              <p className="text-sm font-bold leading-none">Equipe Linkah</p>
-              <p className="text-[10px] text-emerald-500 font-bold uppercase tracking-widest">Nível 01 • Master</p>
-            </div>
-            <div className="w-10 h-10 bg-slate-200 rounded-full border-2 border-white shadow-sm overflow-hidden">
-               <img src="https://ui-avatars.com/api/?name=Staff+Linkah&background=0f172a&color=fff" alt="staff" />
-            </div>
+          <h1 className="text-2xl font-black tracking-tight">Gestão de Eventos</h1>
+          <div className="flex items-center gap-3">
+             <div className="bg-emerald-50 text-emerald-600 px-4 py-2 rounded-full text-xs font-black uppercase">Staff Online</div>
           </div>
         </header>
 
-        <div className="p-10 max-w-7xl mx-auto space-y-10">
-          
-          {/* METRICS GRID */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <MetricCard title="Receita Bruta" value={`R$ ${stats.totalVendas}`} icon={<Ticket className="text-emerald-500" />} trend="+12.5%" />
-            <MetricCard title="Novos Membros" value={stats.novosUsuarios} icon={<Users className="text-blue-500" />} trend="+5.2%" />
-            <MetricCard title="Eventos Ativos" value={stats.eventosAtivos} icon={<LayoutDashboard className="text-purple-500" />} />
-            <MetricCard title="Denúncias" value={stats.pendentes} icon={<AlertCircle className="text-rose-500" />} color="bg-rose-50/30" />
-          </div>
-
-          {/* TABELA DE GESTÃO */}
+        <div className="p-10 max-w-7xl mx-auto">
           <div className="bg-white rounded-[2.5rem] border border-slate-200/60 shadow-sm overflow-hidden">
-            <div className="p-8 border-b border-slate-50 flex flex-col md:flex-row justify-between items-center gap-4">
-              <div className="flex items-center gap-3">
-                 <h3 className="text-xl font-black text-slate-900">Gestão de Eventos</h3>
-                 <span className="bg-slate-100 text-slate-500 text-[10px] font-black px-2 py-0.5 rounded-md">{eventos.length} TOTAL</span>
-              </div>
-              <div className="relative w-full md:w-auto">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                <input 
-                  type="text" 
-                  placeholder="Filtrar por nome ou produtor..." 
-                  className="pl-12 pr-6 py-3 bg-slate-50 border-none rounded-2xl w-full md:w-80 text-sm font-medium outline-none focus:ring-2 ring-[#ff4d4d]/10 transition-all"
-                />
-              </div>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-50/50 text-slate-400 text-[10px] uppercase tracking-[0.2em] font-black">
-                    <th className="px-8 py-5">Evento</th>
-                    <th className="px-8 py-5">Status</th>
-                    <th className="px-8 py-5">Categoria</th>
-                    <th className="px-8 py-5 text-right">Ações de Moderação</th>
+            <table className="w-full text-left">
+              <thead>
+                <tr className="bg-slate-50 text-slate-400 text-[10px] uppercase font-black tracking-widest">
+                  <th className="px-8 py-5">Evento</th>
+                  <th className="px-8 py-5">Status Atual</th>
+                  <th className="px-8 py-5">Categoria</th>
+                  <th className="px-8 py-5 text-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {eventos.map((ev) => (
+                  <tr key={ev.id} className="hover:bg-slate-50/50 transition-colors group">
+                    <td className="px-8 py-6">
+                      <div className="flex items-center gap-4">
+                        <img src={ev.imagem_capa || ev.imagem_url} className="w-12 h-12 rounded-2xl object-cover" />
+                        <div>
+                          <p className="font-bold text-slate-900 leading-none mb-1">{ev.nome}</p>
+                          <p className="text-xs text-slate-400">{ev.categoria}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-8 py-6">
+                      <button 
+                        onClick={() => toggleStatus(ev)}
+                        className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${
+                          ev.status === 'Ativo' ? 'bg-emerald-100 text-emerald-600 hover:bg-emerald-200' : 'bg-slate-100 text-slate-500 hover:bg-red-100 hover:text-red-600'
+                        }`}
+                      >
+                        <div className={`w-2 h-2 rounded-full ${ev.status === 'Ativo' ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                        {ev.status || 'Inativo'}
+                      </button>
+                    </td>
+                    <td className="px-8 py-6 text-sm font-bold text-slate-600">{ev.categoria}</td>
+                    <td className="px-8 py-6 text-right">
+                      <div className="flex justify-end gap-2">
+                        <button 
+                          onClick={() => { setEventoParaEditar(ev); setIsModalOpen(true); }}
+                          className="p-2 bg-slate-100 rounded-lg hover:bg-slate-900 hover:text-white transition-all"
+                        >
+                          <Edit3 size={18} />
+                        </button>
+                        <button 
+                          onClick={() => handleExcluir(ev.id)}
+                          className="p-2 bg-slate-100 rounded-lg hover:bg-red-500 hover:text-white transition-all"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50">
-                  {loading ? (
-                    [1,2,3].map(i => (
-                      <tr key={i} className="animate-pulse">
-                        <td colSpan={4} className="px-8 py-6 h-20 bg-slate-50/30" />
-                      </tr>
-                    ))
-                  ) : (
-                    eventos.map((ev) => (
-                      <tr key={ev.id} className="hover:bg-slate-50/50 transition-colors group">
-                        <td className="px-8 py-6">
-                          <div className="flex items-center gap-4">
-                            <img src={ev.imagem_capa || ev.imagem_url} className="w-12 h-12 rounded-2xl object-cover border border-slate-100 shadow-sm" />
-                            <div>
-                              <p className="font-bold text-slate-900 leading-none mb-1">{ev.nome}</p>
-                              <p className="text-xs text-slate-400 font-medium">ID: #{ev.id}</p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-8 py-6">
-                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[10px] font-black uppercase ${
-                            ev.status === 'Ativo' ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-500'
-                          }`}>
-                            <div className={`w-1.5 h-1.5 rounded-full ${ev.status === 'Ativo' ? 'bg-emerald-500' : 'bg-slate-400'}`} />
-                            {ev.status || 'Pendente'}
-                          </span>
-                        </td>
-                        <td className="px-8 py-6">
-                          <span className="text-xs font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded-md">{ev.categoria}</span>
-                        </td>
-                        <td className="px-8 py-6 text-right">
-                          <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
-                            <button title="Ver Detalhes" className="p-2.5 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-blue-500 hover:shadow-md transition-all">
-                              <Eye size={18} />
-                            </button>
-                            <button title="Banir Evento" className="p-2.5 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-red-500 hover:shadow-md transition-all">
-                              <Trash2 size={18} />
-                            </button>
-                            <button className="p-2.5 text-slate-400 hover:text-slate-900">
-                              <MoreVertical size={18} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       </main>
+
+      {/* MODAL DE EDIÇÃO */}
+      {isModalOpen && eventoParaEditar && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+          <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+               <h2 className="text-2xl font-black">Editar Evento</h2>
+               <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-200 rounded-full transition-all"><X /></button>
+            </div>
+            
+            <form onSubmit={salvarEdicao} className="p-8 space-y-6">
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-xs font-black uppercase text-slate-400">Nome do Evento</label>
+                  <input 
+                    className="w-full bg-slate-50 border-none rounded-2xl p-4 font-bold outline-none focus:ring-2 ring-[#ff4d4d]/20"
+                    value={eventoParaEditar.nome}
+                    onChange={(e) => setEventoParaEditar({...eventoParaEditar, nome: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-black uppercase text-slate-400">Categoria</label>
+                  <input 
+                    className="w-full bg-slate-50 border-none rounded-2xl p-4 font-bold outline-none focus:ring-2 ring-[#ff4d4d]/20"
+                    value={eventoParaEditar.categoria}
+                    onChange={(e) => setEventoParaEditar({...eventoParaEditar, categoria: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-black uppercase text-slate-400">Descrição</label>
+                <textarea 
+                  rows={4}
+                  className="w-full bg-slate-50 border-none rounded-2xl p-4 font-medium outline-none focus:ring-2 ring-[#ff4d4d]/20"
+                  value={eventoParaEditar.descricao}
+                  onChange={(e) => setEventoParaEditar({...eventoParaEditar, descricao: e.target.value})}
+                />
+              </div>
+
+              <div className="flex gap-4 pt-4">
+                <button 
+                  type="submit" 
+                  className="flex-1 bg-slate-900 text-white py-5 rounded-2xl font-black uppercase tracking-widest hover:bg-black transition-all flex items-center justify-center gap-2"
+                >
+                  <Save size={20} /> Salvar Alterações
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-// COMPONENTES AUXILIARES
-function SidebarItem({ icon, label, active = false }: { icon: any, label: string, active?: boolean }) {
+function SidebarItem({ icon, label, active = false }: any) {
   return (
     <button className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all ${
-      active ? 'bg-[#ff4d4d] text-white shadow-lg shadow-[#ff4d4d]/20' : 'text-slate-400 hover:bg-white/5 hover:text-white'
+      active ? 'bg-[#ff4d4d] text-white shadow-lg' : 'text-slate-400 hover:bg-white/5 hover:text-white'
     }`}>
-      {icon}
-      {label}
+      {icon} {label}
     </button>
-  );
-}
-
-function MetricCard({ title, value, icon, trend, color = "bg-white" }: any) {
-  return (
-    <div className={`${color} p-8 rounded-[2.5rem] border border-slate-200/50 shadow-sm relative group overflow-hidden`}>
-      <div className="flex justify-between items-start mb-6">
-        <div className="p-3 bg-white rounded-2xl shadow-sm border border-slate-100 group-hover:scale-110 transition-transform duration-300">{icon}</div>
-        {trend && (
-          <div className="flex flex-col items-end">
-             <span className="text-emerald-500 text-xs font-black">{trend}</span>
-             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Este mês</span>
-          </div>
-        )}
-      </div>
-      <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mb-1">{title}</p>
-      <h4 className="text-3xl font-black text-slate-900 tracking-tight">{value}</h4>
-    </div>
   );
 }
