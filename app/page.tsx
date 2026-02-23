@@ -9,7 +9,8 @@ import { SectionHeader } from './site/SectionHeader';
 import { 
   Search, Ticket, Music, Mic2, Theater, Gamepad2, 
   Utensils, GraduationCap, PartyPopper, Heart,
-  Clock, Sparkles, Users, ChevronRight
+  Clock, Sparkles, Users, ChevronRight, TrendingUp,
+  Zap, PlusCircle
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -46,8 +47,11 @@ export default function BuyTicketHome() {
     async function carregarDados() {
       setLoading(true);
       try {
-        // 1. Busca Eventos para a Vitrine
-        const resEventos = await fetch(API_URL);
+        const [resEventos, resComunidades] = await Promise.all([
+          fetch(API_URL),
+          fetch(API_COMUNIDADES)
+        ]);
+
         if (resEventos.ok) {
           const dados = await resEventos.json();
           setEventos(dados);
@@ -55,13 +59,10 @@ export default function BuyTicketHome() {
           setCategoriasExistentes(['Todos', ...Array.from(new Set(extrair)) as string[]]);
         }
 
-        // 2. Busca Eventos transformados em Chatrooms (Comunidades)
-        const resComunidades = await fetch(API_COMUNIDADES);
         if (resComunidades.ok) {
           const dadosCom = await resComunidades.json();
           setComunidades(dadosCom.slice(0, 3));
         }
-
       } catch (error) { 
         console.error("Erro ao carregar dados da API:", error); 
       } finally { 
@@ -71,10 +72,7 @@ export default function BuyTicketHome() {
     carregarDados();
   }, []);
 
-  // Lógica de Datas
-  const hojeObj = new Date();
-  const hojeStr = hojeObj.toLocaleDateString('en-CA');
-
+  const hojeStr = new Date().toLocaleDateString('en-CA');
   const oQueFazerHoje = eventos.filter(ev => ev.data_inicio && new Date(ev.data_inicio).toLocaleDateString('en-CA') === hojeStr);
   
   const vitrineFiltrada = eventos.filter(ev => {
@@ -87,93 +85,111 @@ export default function BuyTicketHome() {
     <div className="flex flex-col min-h-screen bg-[#FCFBFA] text-slate-900 font-sans">
       <Navbar />
 
-      {/* HERO SECTION */}
-      <section className="relative h-[600px] flex items-center justify-center overflow-hidden bg-slate-900 shrink-0">
+      {/* HERO SECTION COM BUSCA INTELIGENTE */}
+      <section className="relative h-[650px] flex items-center justify-center overflow-hidden bg-slate-900 shrink-0">
         {SLIDES.map((slide, index) => (
           <div key={slide.id} className={`absolute inset-0 transition-opacity duration-1000 ${index === currentSlide ? 'opacity-100' : 'opacity-0'}`}>
             <div className="absolute inset-0 bg-cover bg-center transition-transform duration-[8000ms] ease-out" style={{ backgroundImage: `url('${slide.url}')`, transform: index === currentSlide ? 'scale(1.05)' : 'scale(1.2)' }}>
-              <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/20 to-[#FCFBFA]" />
+              <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/20 to-[#FCFBFA]" />
             </div>
-            <div className="relative z-10 text-center px-6 mt-[-60px]">
+            <div className="relative z-10 text-center px-6 mt-[-80px]">
               <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md text-white text-[11px] font-bold uppercase tracking-[0.3em] px-5 py-2 rounded-full mb-6 border border-white/20">
                 <Sparkles size={14} className="text-[#ff4d4d]" /> Linkah Experience
               </div>
-              <h1 className="text-5xl md:text-8xl font-bold text-white mb-6 tracking-tight">
+              <h1 className="text-6xl md:text-9xl font-bold text-white mb-6 tracking-tighter">
                 {slide.title} <br /> <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#ff4d4d] to-[#ff8080]">{slide.highlight}</span>
               </h1>
             </div>
           </div>
         ))}
         
-        <div className="absolute bottom-12 z-30 w-full px-6">
+        {/* BARRA DE BUSCA FLUTUANTE */}
+        <div className="absolute bottom-16 z-30 w-full px-6">
           <div className="bg-white p-3 rounded-[2.5rem] shadow-2xl flex flex-col md:flex-row items-center max-w-4xl mx-auto border border-slate-100">
             <div className="flex-[1.5] flex items-center px-6 py-3 w-full border-b md:border-b-0 md:border-r border-slate-100">
-              <Search size={20} className="text-slate-400 mr-4" />
+              <Search size={22} className="text-slate-400 mr-4" />
               <input 
                 type="text" 
                 value={buscaNome} 
                 onChange={(e) => setBuscaNome(e.target.value)} 
                 placeholder="Qual evento ou chat você busca?" 
-                className="w-full bg-transparent outline-none text-base font-medium text-slate-800" 
+                className="w-full bg-transparent outline-none text-lg font-medium text-slate-800 placeholder:text-slate-400" 
               />
             </div>
-            <button className="bg-slate-900 hover:bg-black text-white px-10 py-5 rounded-[2rem] font-bold text-sm uppercase tracking-wider transition-all w-full md:w-auto">Explorar</button>
+            <button className="bg-[#ff4d4d] hover:bg-black text-white px-12 py-5 rounded-[2rem] font-bold text-sm uppercase tracking-wider transition-all w-full md:w-auto ml-2">Explorar</button>
           </div>
         </div>
       </section>
 
+      {/* FILTRO DE CATEGORIAS STICKY */}
       <div className="sticky top-[68px] z-40 bg-white/80 backdrop-blur-xl py-5 border-b border-slate-100">
         <CategoryFilter categories={categoriasExistentes} activeCategory={categoriaAtiva} onSelect={setCategoriaAtiva} iconMap={iconMap} />
       </div>
 
-      <main className="flex-1 max-w-7xl mx-auto px-6 py-16 space-y-24 w-full">
+      <main className="flex-1 max-w-7xl mx-auto px-6 py-16 space-y-28 w-full">
         {!buscaNome && categoriaAtiva === 'Todos' && (
           <>
-            {/* HOJE */}
+            {/* SEÇÃO 1: EVENTOS DE HOJE */}
             {oQueFazerHoje.length > 0 && (
               <section>
-                <SectionHeader title="Acontecendo" highlight="hoje" />
+                <div className="flex items-center gap-3 mb-8">
+                  <div className="bg-[#ff4d4d]/10 p-2 rounded-xl text-[#ff4d4d]"><Zap size={24} fill="currentColor"/></div>
+                  <SectionHeader title="Acontecendo" highlight="hoje" />
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                   {oQueFazerHoje.map(ev => <EventCard key={ev.id} evento={ev} />)}
                 </div>
               </section>
             )}
 
-            {/* SEÇÃO DE COMUNIDADES (CHATROOMS DOS EVENTOS) */}
+            {/* SEÇÃO 2: COMUNIDADES (Vibe Social) */}
             {comunidades.length > 0 && (
-              <section className="space-y-8">
+              <section className="space-y-10">
                 <div className="flex items-end justify-between">
                   <div>
-                    <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Salas de Chat <span className="text-[#ff4d4d]">em alta</span></h2>
-                    <p className="text-slate-400 mt-2 font-medium">Converse com quem também vai aos eventos.</p>
+                    <h2 className="text-4xl font-extrabold text-slate-900 tracking-tight">Comunidades <span className="text-[#ff4d4d]">em alta</span></h2>
+                    <p className="text-slate-500 mt-2 text-lg font-medium">Interaja com quem já garantiu o ingresso.</p>
                   </div>
                   <Link href="/eventos" className="hidden md:flex items-center gap-2 text-sm font-bold text-slate-900 hover:text-[#ff4d4d] transition-colors">
-                    Ver todos os eventos <ChevronRight size={16} />
+                    Ver todas as salas <ChevronRight size={16} />
                   </Link>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                   {comunidades.map((com) => (
                     <Link 
                       href={`/evento/${com.id}`} 
                       key={com.id} 
-                      className="group relative h-48 rounded-[2.5rem] overflow-hidden border border-slate-100 shadow-sm hover:shadow-xl transition-all"
+                      className="group relative h-64 rounded-[3rem] overflow-hidden border border-slate-100 shadow-sm hover:shadow-2xl transition-all duration-500"
                     >
                       <img 
                         src={com.imagem_url || 'https://images.unsplash.com/photo-1514525253361-bee8718a74a7?q=80&w=500'} 
-                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
                         alt={com.nome} 
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent" />
-                      <div className="absolute bottom-6 left-6 right-6 flex items-end justify-between">
-                        <div>
-                          <h4 className="text-white font-bold text-lg leading-tight">{com.nome}</h4>
-                          <div className="flex items-center gap-2 text-white/70 text-xs mt-1 font-medium">
-                            <Users size={12} /> {com.total_membros || 0} pessoas interagindo
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/20 to-transparent" />
+                      
+                      {/* BADGE DE ONLINE */}
+                      <div className="absolute top-6 left-6 bg-green-500/20 backdrop-blur-md border border-green-500/30 px-3 py-1 rounded-full flex items-center gap-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                        <span className="text-green-400 text-[10px] font-bold uppercase">Chat Ativo</span>
+                      </div>
+
+                      <div className="absolute bottom-8 left-8 right-8">
+                        <h4 className="text-white font-bold text-2xl leading-tight mb-3">{com.nome}</h4>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            {/* AVATARES DE EXEMPLO (SOCIAL PROOF) */}
+                            <div className="flex -space-x-2">
+                               {[1,2,3].map(i => (
+                                 <img key={i} className="h-6 w-6 rounded-full border-2 border-slate-900" src={`https://i.pravatar.cc/100?u=${com.id+i}`} alt="user"/>
+                               ))}
+                            </div>
+                            <span className="text-white/80 text-xs font-bold">+{com.total_membros} membros</span>
                           </div>
-                        </div>
-                        <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all">
-                          <ChevronRight size={20} />
+                          <div className="w-10 h-10 bg-[#ff4d4d] rounded-full flex items-center justify-center text-white transform translate-x-4 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all">
+                            <ChevronRight size={20} />
+                          </div>
                         </div>
                       </div>
                     </Link>
@@ -181,24 +197,62 @@ export default function BuyTicketHome() {
                 </div>
               </section>
             )}
+
+            {/* SEÇÃO 3: BANNER DE CHAMADA PARA PRODUTORES */}
+            <section className="bg-slate-900 rounded-[3.5rem] p-12 md:p-20 relative overflow-hidden text-white my-20">
+              <div className="relative z-10 max-w-2xl">
+                <div className="flex items-center gap-2 text-[#ff4d4d] font-bold text-sm uppercase tracking-widest mb-6">
+                  <TrendingUp size={18} /> Monetize sua paixão
+                </div>
+                <h3 className="text-4xl md:text-6xl font-black mb-6 leading-tight">Crie seu evento e <br/> <span className="text-[#ff4d4d]">venda em minutos.</span></h3>
+                <p className="text-slate-400 text-lg mb-10 font-medium max-w-md">
+                  A Linkah oferece gestão completa de ingressos, dashboard de vendas e salas de chat exclusivas para seus clientes.
+                </p>
+                <Link href="/dashboard" className="bg-white text-slate-900 hover:bg-[#ff4d4d] hover:text-white px-10 py-5 rounded-[2rem] font-bold inline-flex items-center gap-3 transition-all transform hover:scale-105">
+                  <PlusCircle size={20} /> Começar como Produtor
+                </Link>
+              </div>
+              <div className="absolute right-[-100px] bottom-[-100px] opacity-10 pointer-events-none">
+                 <Ticket size={500} className="rotate-12" />
+              </div>
+            </section>
           </>
         )}
 
-        {/* VITRINE PRINCIPAL */}
+        {/* VITRINE PRINCIPAL (TODOS OS EVENTOS) */}
         <section id="vitrine-principal">
-          <SectionHeader 
-            title={buscaNome ? `Resultados para "${buscaNome}"` : (categoriaAtiva === 'Todos' ? 'Explore todos os' : categoriaAtiva)} 
-            highlight={buscaNome ? "" : (categoriaAtiva === 'Todos' ? "eventos" : "")} 
-            count={vitrineFiltrada.length} 
-          />
+          <div className="flex items-center gap-4 mb-10">
+            <SectionHeader 
+              title={buscaNome ? `Resultados para "${buscaNome}"` : (categoriaAtiva === 'Todos' ? 'Descubra novas' : categoriaAtiva)} 
+              highlight={buscaNome ? "" : (categoriaAtiva === 'Todos' ? "experiências" : "")} 
+              count={vitrineFiltrada.length} 
+            />
+          </div>
+
           {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-              {[1, 2, 3, 4].map(i => <div key={i} className="animate-pulse bg-white rounded-[2.5rem] h-[450px] border border-slate-100" />)}
+              {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+                <div key={i} className="animate-pulse flex flex-col gap-4">
+                   <div className="bg-slate-200 rounded-[2.5rem] h-64 w-full" />
+                   <div className="h-4 bg-slate-200 rounded w-3/4" />
+                   <div className="h-4 bg-slate-200 rounded w-1/2" />
+                </div>
+              ))}
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-              {vitrineFiltrada.map(ev => <EventCard key={ev.id} evento={ev} />)}
-            </div>
+            <>
+              {vitrineFiltrada.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                  {vitrineFiltrada.map(ev => <EventCard key={ev.id} evento={ev} />)}
+                </div>
+              ) : (
+                <div className="text-center py-20 bg-slate-50 rounded-[3rem] border border-dashed border-slate-200">
+                  <Search size={48} className="mx-auto text-slate-300 mb-4" />
+                  <h3 className="text-xl font-bold text-slate-900">Nenhum evento encontrado</h3>
+                  <p className="text-slate-500">Tente buscar por outro nome ou categoria.</p>
+                </div>
+              )}
+            </>
           )}
         </section>
       </main>
