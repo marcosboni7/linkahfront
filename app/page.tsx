@@ -19,6 +19,7 @@ const iconMap: { [key: string]: any } = {
   'Festa': PartyPopper, 'Infantil': Heart,
 };
 
+// Cores do padrão Linkah (Imagens): #ff4d4d (laranja/coral) até #702082 (roxo/pink)
 const SLIDES = [
   { id: 1, url: 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?auto=format&fit=crop&q=80&w=2000', title: 'Linkah conectando', highlight: 'pessoas.' },
   { id: 2, url: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&q=80&w=2000', title: 'Momentos que se', highlight: 'tornam reais.' },
