@@ -10,7 +10,7 @@ import {
   Search, MapPin, Ticket, 
   Music, Mic2, Theater, Gamepad2, 
   Utensils, GraduationCap, PartyPopper, Heart,
-  Clock, X, FilterX, Sparkles
+  Clock, X, FilterX, Sparkles, Flame
 } from 'lucide-react';
 
 const iconMap: { [key: string]: any } = {
@@ -56,11 +56,25 @@ export default function BuyTicketHome() {
     carregarDados();
   }, []);
 
-  const hojeStr = new Date().toLocaleDateString('en-CA');
+  // --- LÓGICA DE FILTRAGEM POR DATA ---
+  const hojeObj = new Date();
+  const hojeStr = hojeObj.toLocaleDateString('en-CA');
 
   const oQueFazerHoje = eventos.filter(ev => {
     if (!ev.data_inicio) return false;
     return new Date(ev.data_inicio).toLocaleDateString('en-CA') === hojeStr;
+  });
+
+  const ultimaChamada = eventos.filter(ev => {
+    if (!ev.data_inicio) return false;
+    const dataEv = new Date(ev.data_inicio);
+    const dataEvStr = dataEv.toLocaleDateString('en-CA');
+    
+    if (dataEvStr === hojeStr) return false; // Se for hoje, já está na outra seção
+
+    const diffTime = dataEv.getTime() - hojeObj.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays >= 1 && diffDays <= 2; // Falta 1 ou 2 dias
   });
 
   const vitrineFiltrada = eventos.filter(ev => {
@@ -73,7 +87,7 @@ export default function BuyTicketHome() {
     <div className="flex flex-col min-h-screen bg-[#FCFBFA] text-slate-900 font-sans selection:bg-[#ff4d4d]/10">
       <Navbar />
 
-      {/* HERO SECTION - REFINADA */}
+      {/* HERO SECTION */}
       <section className="relative h-[600px] flex items-center justify-center overflow-hidden bg-slate-900 shrink-0">
         {SLIDES.map((slide, index) => (
           <div key={slide.id} className={`absolute inset-0 transition-opacity duration-1000 ${index === currentSlide ? 'opacity-100' : 'opacity-0'}`}>
@@ -146,6 +160,7 @@ export default function BuyTicketHome() {
       <main className="flex-1 max-w-7xl mx-auto px-6 py-16 space-y-24 w-full">
         {!buscaNome && categoriaAtiva === 'Todos' && (
           <>
+            {/* HOJE */}
             {oQueFazerHoje.length > 0 && (
               <section className="animate-in fade-in slide-in-from-bottom-4 duration-700">
                 <SectionHeader title="Acontecendo" highlight="hoje" />
@@ -155,10 +170,33 @@ export default function BuyTicketHome() {
               </section>
             )}
 
+            {/* ÚLTIMA CHAMADA (1-2 DIAS) */}
+            {ultimaChamada.length > 0 && (
+              <section className="bg-rose-50/40 p-10 rounded-[3rem] border border-rose-100/50 animate-in fade-in slide-in-from-bottom-6 duration-700">
+                <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-white rounded-2xl shadow-sm flex items-center justify-center text-rose-500">
+                      <Clock size={24} className="animate-pulse" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Última Chamada</h2>
+                      <p className="text-sm text-rose-400 font-medium">Eventos que começam em breve!</p>
+                    </div>
+                  </div>
+                  <div className="hidden md:flex items-center gap-2 bg-rose-100 text-rose-600 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest">
+                    <Flame size={14} /> Quase na hora
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                  {ultimaChamada.map(ev => <EventCard key={ev.id} evento={ev} />)}
+                </div>
+              </section>
+            )}
+
             {/* DESTAQUE DE CURADORIA */}
-            <section className="relative bg-slate-900 rounded-[3rem] p-12 overflow-hidden text-white">
+            <section className="relative bg-slate-900 rounded-[3rem] p-12 overflow-hidden text-white shadow-2xl shadow-slate-200">
               <div className="absolute top-0 right-0 w-1/2 h-full opacity-20 pointer-events-none">
-                 <img src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?q=80&w=2070" className="w-full h-full object-cover" />
+                 <img src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?q=80&w=2070" className="w-full h-full object-cover" alt="Curadoria" />
               </div>
               <div className="relative z-10 max-w-md space-y-4">
                 <span className="text-[#ff4d4d] font-bold text-xs uppercase tracking-[0.2em]">Exclusivo Linkah</span>
@@ -170,6 +208,7 @@ export default function BuyTicketHome() {
           </>
         )}
 
+        {/* VITRINE PRINCIPAL */}
         <section id="vitrine-principal">
           <SectionHeader 
             title={buscaNome ? `Resultados para "${buscaNome}"` : (categoriaAtiva === 'Todos' ? 'Explore todos os' : categoriaAtiva)} 
@@ -180,7 +219,7 @@ export default function BuyTicketHome() {
           {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="animate-pulse bg-white rounded-[2.5rem] h-[450px] border border-slate-100 shadow-sm" />
+                <div key={i} className="animate-pulse bg-white rounded-[2.5rem] h-[450px] border border-slate-100" />
               ))}
             </div>
           ) : vitrineFiltrada.length > 0 ? (
@@ -189,8 +228,8 @@ export default function BuyTicketHome() {
             </div>
           ) : (
             <div className="py-24 text-center bg-white rounded-[3rem] border border-slate-100 shadow-sm">
-              <div className="inline-flex items-center justify-center p-8 bg-slate-50 rounded-[2rem] mb-6">
-                <FilterX size={48} className="text-slate-300" />
+              <div className="inline-flex items-center justify-center p-8 bg-slate-50 rounded-[2rem] mb-6 text-slate-300">
+                <FilterX size={48} />
               </div>
               <h3 className="text-2xl font-bold text-slate-900">Nenhum evento encontrado</h3>
               <p className="text-slate-400 mt-2 max-w-sm mx-auto font-light">
