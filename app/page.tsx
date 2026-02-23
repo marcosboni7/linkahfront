@@ -72,23 +72,20 @@ export default function BuyTicketHome() {
     carregarDados();
   }, []);
 
-  // --- LÓGICA DE DATAS CORRIGIDA ---
-  // Pegamos a data atual sem horas para comparar apenas o dia
+  // --- LÓGICA DE DATAS NORMALIZADA ---
+  // Pegamos a data atual local no formato YYYY-MM-DD
   const hojeObj = new Date();
-  hojeObj.setHours(0, 0, 0, 0);
-  const hojeStr = hojeObj.toISOString().split('T')[0];
+  const hojeStr = hojeObj.toLocaleDateString('en-CA'); // Retorna YYYY-MM-DD
 
   const seteDiasDepois = new Date();
   seteDiasDepois.setDate(hojeObj.getDate() + 7);
-  seteDiasDepois.setHours(23, 59, 59, 999);
-  const seteDiasStr = seteDiasDepois.toISOString().split('T')[0];
+  const seteDiasStr = seteDiasDepois.toLocaleDateString('en-CA');
 
   // Função auxiliar para pegar a data independente do nome do campo no banco (data ou data_inicio)
   const formatarDataBanco = (ev: any) => {
     const d = ev.data || ev.data_inicio;
     if (!d) return "";
-    // Se a data vier como 2026-02-23T00:00... pegamos só a parte da data
-    return d.split('T')[0];
+    return d.split('T')[0]; // Pega apenas a parte da data caso venha com timestamp
   };
 
   const oQueFazerHoje = eventos.filter(ev => {

@@ -35,7 +35,12 @@ export default function AdminEventos() {
       const res = await fetch(`${API_URL}/vitrine`);
       if (res.ok) {
         const data = await res.json();
-        setEventos(Array.isArray(data) ? data.filter((ev: any) => ev.status !== 'Excluído') : []);
+        // Filtra excluídos e garante que a data venha limpa (YYYY-MM-DD)
+        const formatados = Array.isArray(data) ? data.filter((ev: any) => ev.status !== 'Excluído').map((ev: any) => ({
+            ...ev,
+            data: ev.data ? ev.data.split('T')[0] : '' 
+        })) : [];
+        setEventos(formatados);
       }
     } catch (err) {
       console.error("Erro ao carregar dados:", err);
@@ -74,6 +79,7 @@ export default function AdminEventos() {
         body: JSON.stringify({
           nome: eventoParaEditar.nome,
           data: eventoParaEditar.data,
+          data_inicio: eventoParaEditar.data, // Enviando duplicado para garantir compatibilidade
           horario: eventoParaEditar.horario,
           local: eventoParaEditar.local,
           preco: eventoParaEditar.preco,
@@ -85,7 +91,7 @@ export default function AdminEventos() {
 
       if (res.ok) {
         setIsModalOpen(false);
-        carregarDados(); // Recarrega a lista para refletir as mudanças
+        await carregarDados(); // Recarrega a lista para refletir as mudanças
       } else {
         const erro = await res.json();
         alert(`Erro ao salvar: ${erro.message || 'Verifique o console'}`);
@@ -101,7 +107,6 @@ export default function AdminEventos() {
     if (!window.confirm(`⚠️ Deseja remover "${evento.nome}"?`)) return;
     setIsProcessing(evento.id);
     try {
-      // Usando PUT para mudar status para excluído (padrão que você usou antes)
       await fetch(`${API_URL}/${evento.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -200,7 +205,6 @@ export default function AdminEventos() {
 
             <form onSubmit={salvarEdicao} className="grid grid-cols-1 md:grid-cols-2 gap-6">
               
-              {/* NOME */}
               <div className="col-span-2 space-y-1">
                 <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Título do Evento</label>
                 <input 
@@ -210,7 +214,6 @@ export default function AdminEventos() {
                 />
               </div>
 
-              {/* DATA */}
               <div className="space-y-1">
                 <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Data</label>
                 <input 
@@ -221,7 +224,6 @@ export default function AdminEventos() {
                 />
               </div>
 
-              {/* HORÁRIO */}
               <div className="space-y-1">
                 <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Horário</label>
                 <input 
@@ -232,7 +234,6 @@ export default function AdminEventos() {
                 />
               </div>
 
-              {/* LOCAL */}
               <div className="space-y-1">
                 <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Local</label>
                 <input 
@@ -242,7 +243,6 @@ export default function AdminEventos() {
                 />
               </div>
 
-              {/* PREÇO */}
               <div className="space-y-1">
                 <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Preço (R$)</label>
                 <input 
@@ -252,7 +252,6 @@ export default function AdminEventos() {
                 />
               </div>
 
-              {/* IMAGEM URL */}
               <div className="col-span-2 space-y-1">
                 <label className="text-[10px] font-black uppercase text-slate-400 ml-2">URL da Imagem</label>
                 <input 
@@ -262,7 +261,6 @@ export default function AdminEventos() {
                 />
               </div>
 
-              {/* DESCRIÇÃO */}
               <div className="col-span-2 space-y-1">
                 <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Descrição Detalhada</label>
                 <textarea 
