@@ -4,13 +4,15 @@ import {
   LayoutDashboard, Users, Ticket, MessageSquare, 
   ShieldCheck, LogOut 
 } from 'lucide-react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
-interface SidebarProps {
-  abaAtiva: string;
-  setAbaAtiva: (aba: string) => void;
-}
+export default function Sidebar() {
+  const pathname = usePathname();
 
-export function Sidebar({ abaAtiva, setAbaAtiva }: SidebarProps) {
+  // Função para verificar qual link está ativo baseada na URL
+  const isActive = (path: string) => pathname === path;
+
   return (
     <aside className="w-72 bg-slate-950 text-white flex flex-col shrink-0 min-h-screen sticky top-0">
       <div className="p-8">
@@ -25,52 +27,53 @@ export function Sidebar({ abaAtiva, setAbaAtiva }: SidebarProps) {
           </div>
         </div>
 
-        {/* NAVEGAÇÃO */}
+        {/* NAVEGAÇÃO REAL COM LINK */}
         <nav className="space-y-3">
           <SidebarItem 
+            href="/admin/dashboard"
             icon={<LayoutDashboard size={20}/>} 
             label="Dashboard" 
-            active={abaAtiva === 'dashboard'} 
-            onClick={() => setAbaAtiva('dashboard')}
+            active={isActive('/admin/dashboard')} 
           />
           <SidebarItem 
+            href="/admin/eventos"
             icon={<Ticket size={20}/>} 
             label="Eventos" 
-            active={abaAtiva === 'eventos'} 
-            onClick={() => setAbaAtiva('eventos')}
+            active={isActive('/admin/eventos')} 
           />
           <SidebarItem 
+            href="/admin/usuarios"
             icon={<Users size={20}/>} 
             label="Usuários" 
-            active={abaAtiva === 'usuarios'} 
-            onClick={() => setAbaAtiva('usuarios')}
+            active={isActive('/admin/usuarios')} 
           />
           <SidebarItem 
+            href="/admin/comunidades"
             icon={<MessageSquare size={20}/>} 
-            label="Chat" 
-            active={abaAtiva === 'chat'} 
-            onClick={() => setAbaAtiva('chat')}
+            label="Comunidades" 
+            active={isActive('/admin/comunidades')} 
           />
         </nav>
       </div>
       
       {/* BOTÃO SAIR */}
       <div className="mt-auto p-8">
-        <button 
-          onClick={() => window.location.href = '/'}
+        <Link 
+          href="/"
           className="w-full flex items-center gap-3 text-slate-500 hover:text-red-400 transition-colors font-bold text-sm px-6 py-4"
         >
           <LogOut size={20} /> Sair do Painel
-        </button>
+        </Link>
       </div>
     </aside>
   );
 }
 
-function SidebarItem({ icon, label, active, onClick }: any) {
+// Componente de Item refatorado para usar Link
+function SidebarItem({ icon, label, active, href }: any) {
   return (
-    <button 
-      onClick={onClick}
+    <Link 
+      href={href}
       className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl font-bold text-sm transition-all ${
         active 
           ? 'bg-[#ff4d4d] text-white shadow-lg shadow-[#ff4d4d]/20' 
@@ -78,6 +81,6 @@ function SidebarItem({ icon, label, active, onClick }: any) {
       }`}
     >
       {icon} {label}
-    </button>
+    </Link>
   );
 }
