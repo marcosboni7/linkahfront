@@ -8,8 +8,11 @@ import {
   MessageSquare, Settings, LogOut, Save, X, Edit3,
   Loader2, RefreshCcw, Calendar, MapPin
 } from 'lucide-react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 export default function AdminDashboard() {
+  const pathname = usePathname();
   const [eventos, setEventos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState<number | null>(null);
@@ -112,11 +115,18 @@ export default function AdminDashboard() {
             </div>
           </div>
           <nav className="space-y-3">
-            <SidebarItem icon={<LayoutDashboard size={20}/>} label="Dashboard" active />
-            <SidebarItem icon={<Ticket size={20}/>} label="Gerenciar Eventos" />
-            <SidebarItem icon={<Users size={20}/>} label="Usuários" />
-            <SidebarItem icon={<MessageSquare size={20}/>} label="Moderação Chat" />
+            <SidebarItem href="/admin/dashboard" icon={<LayoutDashboard size={20}/>} label="Dashboard" active={pathname === '/admin/dashboard'} />
+            <SidebarItem href="/admin/eventos" icon={<Ticket size={20}/>} label="Gerenciar Eventos" active={pathname === '/admin/eventos'} />
+            <SidebarItem href="/admin/usuarios" icon={<Users size={20}/>} label="Usuários" active={pathname === '/admin/usuarios'} />
+            <SidebarItem href="/admin/comunidades" icon={<MessageSquare size={20}/>} label="Comunidades" active={pathname === '/admin/comunidades'} />
           </nav>
+        </div>
+
+        {/* BOTÃO SAIR */}
+        <div className="mt-auto p-8">
+          <button onClick={() => window.location.href = '/login'} className="flex items-center gap-4 px-6 py-4 rounded-2xl font-bold text-sm text-slate-500 hover:text-white hover:bg-red-500/10 transition-all w-full">
+            <LogOut size={20}/> Sair
+          </button>
         </div>
       </aside>
 
@@ -124,7 +134,7 @@ export default function AdminDashboard() {
       <main className="flex-1 overflow-y-auto">
         <header className="bg-white border-b border-slate-200 px-10 py-8 flex items-center justify-between sticky top-0 z-10">
           <div>
-            <h1 className="text-3xl font-black tracking-tight text-slate-900">Eventos</h1>
+            <h1 className="text-3xl font-black tracking-tight text-slate-900">Gerenciar Eventos</h1>
             <p className="text-slate-400 text-sm font-medium">Controle total sobre a vitrine e status da plataforma.</p>
           </div>
           <button onClick={carregarDados} className="p-3 hover:bg-slate-100 rounded-full transition-all text-slate-400">
@@ -160,46 +170,50 @@ export default function AdminDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {eventosFiltrados.map((ev) => (
-                  <tr key={ev.id} className="hover:bg-slate-50/80 transition-colors group">
-                    <td className="px-8 py-6">
-                      <div className="flex items-center gap-5">
-                        <img src={ev.imagem_capa || ev.imagem_url} className="w-16 h-16 rounded-[1.2rem] object-cover shadow-sm border border-slate-200" />
-                        <div>
-                          <p className="font-black text-slate-900 text-lg leading-tight mb-1">{ev.nome}</p>
-                          <span className="text-[10px] font-black uppercase tracking-wider text-[#ff4d4d] bg-[#ff4d4d]/10 px-2 py-0.5 rounded-md">{ev.categoria || 'Geral'}</span>
+                {loading ? (
+                  <tr><td colSpan={4} className="px-8 py-20 text-center text-slate-400 font-bold animate-pulse">Lendo eventos...</td></tr>
+                ) : (
+                  eventosFiltrados.map((ev) => (
+                    <tr key={ev.id} className="hover:bg-slate-50/80 transition-colors group">
+                      <td className="px-8 py-6">
+                        <div className="flex items-center gap-5">
+                          <img src={ev.imagem_capa || ev.imagem_url} className="w-16 h-16 rounded-[1.2rem] object-cover shadow-sm border border-slate-200" />
+                          <div>
+                            <p className="font-black text-slate-900 text-lg leading-tight mb-1">{ev.nome}</p>
+                            <span className="text-[10px] font-black uppercase tracking-wider text-[#ff4d4d] bg-[#ff4d4d]/10 px-2 py-0.5 rounded-md">{ev.categoria || 'Geral'}</span>
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-8 py-6">
-                      <div className="flex flex-col gap-1">
-                        <span className="text-xs font-bold text-slate-600 flex items-center gap-1"><Calendar size={12}/> {ev.data || 'Sem data'}</span>
-                        <span className="text-xs text-slate-400 flex items-center gap-1"><MapPin size={12}/> {ev.local || 'Sem local'}</span>
-                      </div>
-                    </td>
-                    <td className="px-8 py-6">
-                      <button 
-                        onClick={() => toggleStatus(ev)}
-                        disabled={isProcessing === ev.id}
-                        className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                          ev.status === 'Ativo' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'
-                        }`}
-                      >
-                        {ev.status || 'Inativo'}
-                      </button>
-                    </td>
-                    <td className="px-8 py-6 text-right">
-                      <div className="flex justify-end gap-3">
-                        <button onClick={() => { setEventoParaEditar(ev); setIsModalOpen(true); }} className="p-3 bg-white border border-slate-200 rounded-xl hover:border-slate-900 transition-all shadow-sm">
-                          <Edit3 size={18} />
+                      </td>
+                      <td className="px-8 py-6">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-xs font-bold text-slate-600 flex items-center gap-1"><Calendar size={12}/> {ev.data || 'Sem data'}</span>
+                          <span className="text-xs text-slate-400 flex items-center gap-1"><MapPin size={12}/> {ev.local || 'Sem local'}</span>
+                        </div>
+                      </td>
+                      <td className="px-8 py-6">
+                        <button 
+                          onClick={() => toggleStatus(ev)}
+                          disabled={isProcessing === ev.id}
+                          className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                            ev.status === 'Ativo' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-slate-100 text-slate-400'
+                          }`}
+                        >
+                          {isProcessing === ev.id ? <Loader2 size={12} className="animate-spin" /> : (ev.status || 'Inativo')}
                         </button>
-                        <button onClick={() => handleExcluir(ev)} className="p-3 bg-white border border-slate-200 rounded-xl hover:bg-red-500 hover:text-white transition-all shadow-sm">
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="px-8 py-6 text-right">
+                        <div className="flex justify-end gap-3">
+                          <button onClick={() => { setEventoParaEditar(ev); setIsModalOpen(true); }} className="p-3 bg-white border border-slate-200 rounded-xl hover:border-slate-900 transition-all shadow-sm">
+                            <Edit3 size={18} />
+                          </button>
+                          <button onClick={() => handleExcluir(ev)} className="p-3 bg-white border border-slate-200 rounded-xl hover:bg-red-500 hover:text-white transition-all shadow-sm">
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -211,11 +225,11 @@ export default function AdminDashboard() {
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex items-center justify-center p-6">
           <div className="bg-white w-full max-w-2xl rounded-[3.5rem] shadow-2xl overflow-hidden animate-in zoom-in duration-300">
             <div className="p-10 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-               <h2 className="text-3xl font-black tracking-tight">Editar Evento</h2>
+               <h2 className="text-3xl font-black tracking-tight text-left">Editar Evento</h2>
                <button onClick={() => setIsModalOpen(false)} className="p-3 hover:bg-slate-200 rounded-full transition-all text-slate-400"><X /></button>
             </div>
             
-            <form onSubmit={salvarEdicao} className="p-10 space-y-6">
+            <form onSubmit={salvarEdicao} className="p-10 space-y-6 text-left">
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-[11px] font-black uppercase text-slate-400">Título</label>
@@ -269,12 +283,18 @@ export default function AdminDashboard() {
   );
 }
 
-function SidebarItem({ icon, label, active = false }: any) {
+// COMPONENTE DE ITEM DA SIDEBAR COM LINK
+function SidebarItem({ icon, label, href, active = false }: any) {
   return (
-    <button className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl font-bold text-sm transition-all ${
-      active ? 'bg-[#ff4d4d] text-white' : 'text-slate-500 hover:text-white'
-    }`}>
+    <Link 
+      href={href}
+      className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl font-bold text-sm transition-all ${
+        active 
+        ? 'bg-[#ff4d4d] text-white shadow-lg shadow-[#ff4d4d]/20' 
+        : 'text-slate-500 hover:text-white hover:bg-white/5'
+      }`}
+    >
       {icon} {label}
-    </button>
+    </Link>
   );
 }
