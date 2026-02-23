@@ -2,12 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { User, MapPin, Ticket, LogOut, X, Calendar, Hash, Loader2, MessagesSquare } from 'lucide-react';
+import { User, MapPin, Ticket, LogOut, X, Calendar, Hash, Loader2, MessagesSquare, ChevronRight } from 'lucide-react';
 
 export function Navbar() {
   const [usuario, setUsuario] = useState<{ nome: string; email?: string; role?: string } | null>(null);
-
-  // ESTADOS DO MODAL
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [buscandoTickets, setBuscandoTickets] = useState(false);
   const [meusIngressos, setMeusIngressos] = useState<any[]>([]);
@@ -18,7 +16,7 @@ export function Navbar() {
       try {
         setUsuario(JSON.parse(savedUser));
       } catch (e) {
-        console.error("Erro ao ler usuário do localStorage");
+        console.error("Erro ao ler usuário");
       }
     }
   }, []);
@@ -32,23 +30,16 @@ export function Navbar() {
 
   const carregarMeusIngressos = async () => {
     if (!usuario?.email) return;
-
     setIsModalOpen(true);
     setBuscandoTickets(true);
-
     try {
-      // Chamada para sua API no Render com o filtro de email
-   const response = await fetch(`https://linkah-api.onrender.com/api/compras/meus-ingressos?email=${usuario.email}`);
-
+      const response = await fetch(`https://linkah-api.onrender.com/api/compras/meus-ingressos?email=${usuario.email}`);
       if (response.ok) {
         const dados = await response.json();
-        // O Back-end já envia: id, evento, data (formatada), qtd, status
         setMeusIngressos(dados);
-      } else {
-        console.error("Erro ao buscar ingressos na API");
       }
     } catch (err) {
-      console.error("Erro de conexão ao buscar ingressos:", err);
+      console.error("Erro ao buscar ingressos:", err);
     } finally {
       setBuscandoTickets(false);
     }
@@ -56,146 +47,130 @@ export function Navbar() {
 
   return (
     <>
-      <nav className="bg-white border-b border-slate-100 px-6 md:px-12 py-4 flex items-center justify-between sticky top-0 z-50 backdrop-blur-md bg-white/90">
+      <nav className="bg-white/80 backdrop-blur-xl border-b border-slate-100 px-6 md:px-10 py-3 flex items-center justify-between sticky top-0 z-50">
 
-        {/* LADO ESQUERDO */}
-        <div className="flex items-center gap-4 md:gap-8">
-          <Link href="/" className="text-slate-900 text-2xl font-black tracking-tighter italic hover:opacity-80 transition-opacity">
-            LINKAH<span className="text-[#d6006d]">.</span>
+        {/* LOGO & NAVEGAÇÃO ESQUERDA */}
+        <div className="flex items-center gap-10">
+          <Link href="/" className="text-slate-900 text-xl font-bold tracking-tight hover:opacity-70 transition-all flex items-center gap-1">
+            LINKAH<span className="text-[#ff4d4d] text-2xl leading-none">.</span>
           </Link>
 
-          <Link 
-            href="/comunidades" 
-            className="group relative flex items-center gap-2 bg-[#d6006d]/5 border border-[#d6006d]/10 px-4 py-2.5 rounded-2xl hover:bg-[#d6006d] transition-all duration-500 shadow-sm"
-          >
-            <div className="relative">
-              <MessagesSquare size={16} className="text-[#d6006d] group-hover:text-white transition-colors" />
-              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse border-2 border-white"></span>
-            </div>
-            <span className="text-[10px] font-black uppercase tracking-[0.15em] text-[#d6006d] group-hover:text-white transition-colors">
-              Nossa Comunidade
-            </span>
-          </Link>
-
-          <button className="hidden xl:flex items-center gap-2 text-slate-400 border border-slate-100 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest bg-slate-50/50 transition-colors hover:border-[#d6006d]/20">
-            <MapPin size={14} className="text-[#d6006d]" /> Brasil
-          </button>
+          <div className="hidden md:flex items-center gap-6">
+            <Link 
+              href="/comunidades" 
+              className="group flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-slate-900 transition-colors"
+            >
+              <MessagesSquare size={16} className="text-slate-400 group-hover:text-[#ff4d4d] transition-colors" />
+              Comunidade
+            </Link>
+          </div>
         </div>
 
-        {/* LADO DIREITO */}
-        <div className="flex items-center gap-2 md:gap-4">
-          {usuario && (
-            <div className="flex items-center animate-in fade-in zoom-in-95 duration-300">
+        {/* LADO DIREITO (PERFIL) */}
+        <div className="flex items-center gap-3">
+          {usuario ? (
+            <div className="flex items-center gap-2">
               <button
                 onClick={carregarMeusIngressos}
-                className="flex items-center gap-2 text-slate-500 hover:text-[#d6006d] px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-colors"
+                className="hidden sm:flex items-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-600 px-4 py-2 rounded-xl text-xs font-bold transition-all border border-slate-100"
               >
-                <Ticket size={14} className="text-[#d6006d]" />
-                <span className="hidden sm:inline">Meus Ingressos</span>
+                <Ticket size={14} />
+                Ingressos
               </button>
-            </div>
-          )}
 
-          <div className="flex items-center gap-2 ml-2">
-            {usuario ? (
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-2xl border border-slate-100 group cursor-default">
-                  <div className="w-6 h-6 rounded-full bg-[#d6006d] flex items-center justify-center text-[10px] text-white font-bold shadow-sm">
-                    {usuario.nome.charAt(0).toUpperCase()}
-                  </div>
-                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-700 hidden md:block">
-                    {usuario.nome.split(' ')[0]}
-                  </span>
+              <div className="h-8 w-[1px] bg-slate-100 mx-2 hidden sm:block" />
+
+              <div className="flex items-center gap-3 pl-2">
+                <div className="flex flex-col items-end hidden md:flex">
+                  <span className="text-[11px] font-bold text-slate-900 leading-none">{usuario.nome.split(' ')[0]}</span>
+                  <span className="text-[9px] text-slate-400 font-medium">Membro</span>
                 </div>
-                <button
+                <button 
                   onClick={handleLogout}
-                  className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
-                  title="Sair"
+                  className="w-9 h-9 rounded-full bg-slate-900 flex items-center justify-center text-[11px] text-white font-bold hover:scale-105 transition-transform"
                 >
-                  <LogOut size={18} />
+                  {usuario.nome.charAt(0).toUpperCase()}
                 </button>
               </div>
-            ) : (
-              <Link
-                href="/site/login"
-                className="text-slate-900 text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-slate-50 px-5 py-3.5 rounded-2xl transition-all border border-slate-100 shadow-sm"
-              >
-                <User size={18} className="text-[#d6006d]" />
-                Entrar
-              </Link>
-            )}
-          </div>
+            </div>
+          ) : (
+            <Link
+              href="/site/login"
+              className="bg-slate-900 text-white text-xs font-bold px-6 py-2.5 rounded-full hover:bg-slate-800 transition-all shadow-lg shadow-slate-200"
+            >
+              Entrar
+            </Link>
+          )}
         </div>
       </nav>
 
-      {/* MODAL DE INGRESSOS */}
+      {/* MODAL DE INGRESSOS (ESTILO SIDEBAR/LUMA) */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsModalOpen(false)} />
+          <div className="absolute inset-0 bg-slate-900/20 backdrop-blur-sm transition-opacity" onClick={() => setIsModalOpen(false)} />
 
-          <div className="relative bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+          <div className="relative bg-[#FCFBFA] w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
+            <div className="p-8 border-b border-slate-100 flex justify-between items-center">
               <div>
-                <h2 className="text-xl font-black uppercase italic tracking-tighter text-slate-900"> Meus Ingressos</h2>
-                <p className="text-[9px] font-bold text-slate-400 uppercase">{usuario?.email}</p>
+                <h2 className="text-xl font-bold text-slate-900 tracking-tight">Meus Ingressos</h2>
+                <p className="text-xs text-slate-400 font-medium">{usuario?.email}</p>
               </div>
-              <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-200 rounded-full transition-colors">
-                <X size={20} />
+              <button onClick={() => setIsModalOpen(false)} className="w-10 h-10 flex items-center justify-center hover:bg-slate-100 rounded-full transition-colors">
+                <X size={20} className="text-slate-400" />
               </button>
             </div>
 
-            <div className="p-8">
-              <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                {buscandoTickets ? (
-                  <div className="flex flex-col items-center py-20 gap-4">
-                    <Loader2 className="animate-spin text-[#d6006d]" size={32} />
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Buscando seus ingressos...</p>
-                  </div>
-                ) : meusIngressos.length > 0 ? (
-                  meusIngressos.map((ticket) => (
-                    <div key={ticket.id} className="bg-white border-2 border-slate-100 rounded-2xl p-5 hover:border-[#d6006d]/20 transition-all group">
-                      <div className="flex justify-between items-start mb-4">
-                        <div>
-                          {/* Usa 'ticket.evento' vindo do 'as evento' no SQL */}
-                          <h4 className="font-black text-sm uppercase leading-tight text-slate-900">{ticket.evento}</h4>
-                          <div className="flex items-center gap-2 text-slate-400 text-[10px] mt-1 font-bold">
-                            {/* Usa 'ticket.data' vindo do 'TO_CHAR' no SQL */}
-                            <Calendar size={12} /> {ticket.data}
-                          </div>
+            <div className="p-6 max-h-[450px] overflow-y-auto space-y-4">
+              {buscandoTickets ? (
+                <div className="flex flex-col items-center py-20 gap-3">
+                  <Loader2 className="animate-spin text-slate-300" size={28} />
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Carregando...</p>
+                </div>
+              ) : meusIngressos.length > 0 ? (
+                meusIngressos.map((ticket) => (
+                  <div key={ticket.id} className="bg-white border border-slate-100 rounded-3xl p-5 shadow-sm hover:border-[#ff4d4d]/30 transition-all">
+                    <div className="flex justify-between items-start gap-4">
+                      <div className="space-y-1">
+                        <h4 className="font-bold text-slate-900 leading-tight">{ticket.evento}</h4>
+                        <div className="flex items-center gap-2 text-slate-400 text-[11px] font-medium">
+                          <Calendar size={12} /> {ticket.data}
                         </div>
-                        <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
-                          ticket.status === 'Aprovado' || ticket.status === 'completed' ? 'bg-green-100 text-green-600' : 'bg-yellow-100 text-yellow-600'
-                        }`}>
-                          {ticket.status === 'completed' ? 'Aprovado' : ticket.status || 'Aprovado'}
-                        </span>
                       </div>
-                      <div className="flex items-center justify-between pt-4 border-t border-dashed border-slate-100">
-                        <div className="flex items-center gap-2">
-                          <Hash size={14} className="text-slate-300" />
-                          <span className="text-[10px] font-mono font-bold text-slate-500 uppercase">
-                            {ticket.id.toString().substring(0, 12)}...
-                          </span>
-                        </div>
-                        <div className="text-xs font-black uppercase tracking-tighter text-[#d6006d]">
-                          {/* Usa 'ticket.qtd' vindo do 'as qtd' no SQL */}
-                          {ticket.qtd} {ticket.qtd > 1 ? 'INGRESSOS' : 'INGRESSO'}
-                        </div>
+                      <span className={`shrink-0 px-3 py-1 rounded-full text-[10px] font-bold ${
+                        ticket.status === 'Aprovado' || ticket.status === 'completed' 
+                        ? 'bg-emerald-50 text-emerald-600' 
+                        : 'bg-orange-50 text-orange-600'
+                      }`}>
+                        {ticket.status === 'completed' ? 'Aprovado' : ticket.status || 'Pendente'}
+                      </span>
+                    </div>
+
+                    <div className="mt-5 pt-4 border-t border-slate-50 flex items-center justify-between">
+                      <div className="text-[10px] font-mono text-slate-300 uppercase tracking-tighter">
+                        ID: {ticket.id.toString().substring(0, 8)}
+                      </div>
+                      <div className="text-xs font-bold text-slate-900 flex items-center gap-1">
+                         {ticket.qtd} {ticket.qtd > 1 ? 'lugares' : 'lugar'}
+                         <ChevronRight size={14} className="text-slate-300" />
                       </div>
                     </div>
-                  ))
-                ) : (
-                  <div className="text-center py-10 opacity-30">
-                    <Ticket size={48} className="mx-auto mb-4" />
-                    <p className="text-xs font-bold uppercase tracking-widest">Nenhum ingresso encontrado</p>
                   </div>
-                )}
-              </div>
+                ))
+              ) : (
+                <div className="text-center py-16">
+                  <Ticket size={40} className="mx-auto mb-4 text-slate-200" />
+                  <p className="text-sm font-medium text-slate-400 italic">Você ainda não possui ingressos.</p>
+                </div>
+              )}
             </div>
             
-            <div className="p-6 bg-slate-50 border-t border-slate-100 text-center">
-                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">
-                    Apresente seu documento na entrada do evento
-                </p>
+            <div className="p-8 bg-white border-t border-slate-100">
+              <button 
+                onClick={() => setIsModalOpen(false)}
+                className="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold text-sm hover:opacity-90 transition-all shadow-lg shadow-slate-200"
+              >
+                Fechar
+              </button>
             </div>
           </div>
         </div>
