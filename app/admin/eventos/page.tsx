@@ -13,29 +13,18 @@ export default function AdminEventos() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [filtroBusca, setFiltroBusca] = useState('');
   
-  // Estado completo do formulário para garantir que nada se perca
   const [eventoParaEditar, setEventoParaEditar] = useState<any>({
-    id: '',
-    nome: '',
-    data: '',
-    horario: '',
-    local: '',
-    preco: '',
-    imagem: '',
-    descricao: '',
-    status: ''
+    id: '', nome: '', data: '', horario: '', local: '', preco: '', imagem: '', descricao: '', status: ''
   });
 
   const API_URL = 'https://linkah-api.onrender.com/api/eventos';
 
-  // Carrega os dados da API
   const carregarDados = async () => {
     setLoading(true);
     try {
       const res = await fetch(`${API_URL}/vitrine`);
       if (res.ok) {
         const data = await res.json();
-        // Filtra excluídos e garante que a data venha limpa (YYYY-MM-DD)
         const formatados = Array.isArray(data) ? data.filter((ev: any) => ev.status !== 'Excluído').map((ev: any) => ({
             ...ev,
             data: ev.data ? ev.data.split('T')[0] : '' 
@@ -43,7 +32,7 @@ export default function AdminEventos() {
         setEventos(formatados);
       }
     } catch (err) {
-      console.error("Erro ao carregar dados:", err);
+      console.error("❌ Erro ao carregar dados:", err);
     } finally {
       setLoading(false);
     }
@@ -51,8 +40,8 @@ export default function AdminEventos() {
 
   useEffect(() => { carregarDados(); }, []);
 
-  // Preenche o modal com TODOS os dados do evento selecionado
   const abrirEdicao = (evento: any) => {
+    console.log("📂 Abrindo edição para o evento:", evento);
     setEventoParaEditar({
       id: evento.id || '',
       nome: evento.nome || '',
@@ -67,37 +56,44 @@ export default function AdminEventos() {
     setIsModalOpen(true);
   };
 
-  // Função que envia TODOS os campos para o Backend
   const salvarEdicao = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsProcessing('salvando');
+
+    const payload = {
+      nome: eventoParaEditar.nome,
+      data: eventoParaEditar.data,
+      data_inicio: eventoParaEditar.data, // Garante compatibilidade
+      horario: eventoParaEditar.horario,
+      local: eventoParaEditar.local,
+      preco: eventoParaEditar.preco,
+      imagem: eventoParaEditar.imagem,
+      descricao: eventoParaEditar.descricao,
+      status: eventoParaEditar.status
+    };
+
+    console.log("📤 Enviando atualização para ID:", eventoParaEditar.id);
+    console.log("📦 Dados enviados (Payload):", payload);
 
     try {
       const res = await fetch(`${API_URL}/${eventoParaEditar.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nome: eventoParaEditar.nome,
-          data: eventoParaEditar.data,
-          data_inicio: eventoParaEditar.data, // Enviando duplicado para garantir compatibilidade
-          horario: eventoParaEditar.horario,
-          local: eventoParaEditar.local,
-          preco: eventoParaEditar.preco,
-          imagem: eventoParaEditar.imagem,
-          descricao: eventoParaEditar.descricao,
-          status: eventoParaEditar.status
-        })
+        body: JSON.stringify(payload)
       });
 
       if (res.ok) {
+        console.log("✅ Sucesso! Evento atualizado.");
         setIsModalOpen(false);
-        await carregarDados(); // Recarrega a lista para refletir as mudanças
+        await carregarDados();
       } else {
-        const erro = await res.json();
-        alert(`Erro ao salvar: ${erro.message || 'Verifique o console'}`);
+        const erroTexto = await res.text();
+        console.error("⚠️ Erro na resposta do servidor:", res.status, erroTexto);
+        alert(`Erro ${res.status}: O servidor não salvou os dados.`);
       }
     } catch (err) {
-      alert("Erro de conexão com o servidor.");
+      console.error("❌ Erro de conexão/rede:", err);
+      alert("Erro de conexão com o servidor. Verifique o console.");
     } finally {
       setIsProcessing(null);
     }
@@ -107,25 +103,24 @@ export default function AdminEventos() {
     if (!window.confirm(`⚠️ Deseja remover "${evento.nome}"?`)) return;
     setIsProcessing(evento.id);
     try {
-      await fetch(`${API_URL}/${evento.id}`, {
+      const res = await fetch(`${API_URL}/${evento.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...evento, status: 'Excluído' })
       });
-      setEventos(prev => prev.filter(ev => ev.id !== evento.id));
+      if (res.ok) setEventos(prev => prev.filter(ev => ev.id !== evento.id));
     } catch (err) {
-      alert("Erro ao excluir.");
+      console.error("❌ Erro ao excluir:", err);
     } finally { setIsProcessing(null); }
   };
 
   return (
     <div className="p-10 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
       
-      {/* HEADER */}
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h1 className="text-4xl font-black tracking-tighter text-slate-900">Eventos</h1>
-          <p className="text-slate-500 font-medium tracking-tight">Gerenciamento completo da vitrine e detalhes.</p>
+          <p className="text-slate-500 font-medium tracking-tight">Gerenciamento completo da vitrine.</p>
         </div>
         <div className="flex items-center gap-4">
           <div className="relative group">
@@ -144,7 +139,6 @@ export default function AdminEventos() {
         </div>
       </header>
 
-      {/* TABELA */}
       <div className="bg-white rounded-[3rem] border border-slate-200 shadow-xl shadow-slate-200/50 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
@@ -152,7 +146,6 @@ export default function AdminEventos() {
               <tr className="bg-slate-50/50 text-slate-400 text-[11px] uppercase font-black tracking-widest border-b border-slate-100">
                 <th className="px-10 py-6">Informações</th>
                 <th className="px-10 py-6">Data & Horário</th>
-                <th className="px-10 py-6">Valor</th>
                 <th className="px-10 py-6 text-right">Ações</th>
               </tr>
             </thead>
@@ -176,9 +169,6 @@ export default function AdminEventos() {
                         <div className="flex items-center gap-1"><Clock size={14} className="text-blue-400"/> {ev.horario}</div>
                       </div>
                     </td>
-                    <td className="px-10 py-6 text-sm font-black text-slate-900">
-                      {ev.preco ? `R$ ${ev.preco}` : 'Gratuito'}
-                    </td>
                     <td className="px-10 py-6 text-right">
                       <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button onClick={() => abrirEdicao(ev)} className="p-3 hover:bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-blue-500 transition-all shadow-sm"><Edit3 size={18}/></button>
@@ -194,7 +184,6 @@ export default function AdminEventos() {
         </div>
       </div>
 
-      {/* MODAL DE EDIÇÃO COMPLETO */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-[100] flex items-center justify-center p-6">
           <div className="bg-white w-full max-w-2xl rounded-[3rem] p-10 shadow-2xl animate-in zoom-in-95 duration-200 overflow-y-auto max-h-[90vh]">
@@ -208,7 +197,7 @@ export default function AdminEventos() {
               <div className="col-span-2 space-y-1">
                 <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Título do Evento</label>
                 <input 
-                  className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none focus:ring-4 ring-slate-100" 
+                  className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none" 
                   value={eventoParaEditar.nome} 
                   onChange={(e) => setEventoParaEditar({...eventoParaEditar, nome: e.target.value})} 
                 />
