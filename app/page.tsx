@@ -10,7 +10,7 @@ import {
   Search, Ticket, Music, Mic2, Theater, Gamepad2, 
   Utensils, GraduationCap, PartyPopper, Heart,
   Clock, Sparkles, Users, ChevronRight, TrendingUp,
-  Zap, PlusCircle
+  Zap, PlusCircle, MessageCircle
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -85,7 +85,7 @@ export default function BuyTicketHome() {
     <div className="flex flex-col min-h-screen bg-[#FCFBFA] text-slate-900 font-sans">
       <Navbar />
 
-      {/* HERO SECTION COM BUSCA INTELIGENTE */}
+      {/* HERO SECTION */}
       <section className="relative h-[650px] flex items-center justify-center overflow-hidden bg-slate-900 shrink-0">
         {SLIDES.map((slide, index) => (
           <div key={slide.id} className={`absolute inset-0 transition-opacity duration-1000 ${index === currentSlide ? 'opacity-100' : 'opacity-0'}`}>
@@ -103,7 +103,7 @@ export default function BuyTicketHome() {
           </div>
         ))}
         
-        {/* BARRA DE BUSCA FLUTUANTE */}
+        {/* BUSCA */}
         <div className="absolute bottom-16 z-30 w-full px-6">
           <div className="bg-white p-3 rounded-[2.5rem] shadow-2xl flex flex-col md:flex-row items-center max-w-4xl mx-auto border border-slate-100">
             <div className="flex-[1.5] flex items-center px-6 py-3 w-full border-b md:border-b-0 md:border-r border-slate-100">
@@ -121,7 +121,7 @@ export default function BuyTicketHome() {
         </div>
       </section>
 
-      {/* FILTRO DE CATEGORIAS STICKY */}
+      {/* FILTROS */}
       <div className="sticky top-[68px] z-40 bg-white/80 backdrop-blur-xl py-5 border-b border-slate-100">
         <CategoryFilter categories={categoriasExistentes} activeCategory={categoriaAtiva} onSelect={setCategoriaAtiva} iconMap={iconMap} />
       </div>
@@ -129,7 +129,7 @@ export default function BuyTicketHome() {
       <main className="flex-1 max-w-7xl mx-auto px-6 py-16 space-y-28 w-full">
         {!buscaNome && categoriaAtiva === 'Todos' && (
           <>
-            {/* SEÇÃO 1: EVENTOS DE HOJE */}
+            {/* HOJE */}
             {oQueFazerHoje.length > 0 && (
               <section>
                 <div className="flex items-center gap-3 mb-8">
@@ -142,7 +142,7 @@ export default function BuyTicketHome() {
               </section>
             )}
 
-            {/* SEÇÃO 2: COMUNIDADES (Vibe Social) */}
+            {/* COMUNIDADES (ROTA CORRIGIDA PARA /comunidade) */}
             {comunidades.length > 0 && (
               <section className="space-y-10">
                 <div className="flex items-end justify-between">
@@ -158,7 +158,7 @@ export default function BuyTicketHome() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                   {comunidades.map((com) => (
                     <Link 
-                      href={`/evento/${com.id}`} 
+                      href={`/evento/${com.id}/comunidade`} 
                       key={com.id} 
                       className="group relative h-64 rounded-[3rem] overflow-hidden border border-slate-100 shadow-sm hover:shadow-2xl transition-all duration-500"
                     >
@@ -167,19 +167,17 @@ export default function BuyTicketHome() {
                         className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
                         alt={com.nome} 
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/20 to-transparent" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent" />
                       
-                      {/* BADGE DE ONLINE */}
                       <div className="absolute top-6 left-6 bg-green-500/20 backdrop-blur-md border border-green-500/30 px-3 py-1 rounded-full flex items-center gap-2">
                         <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                        <span className="text-green-400 text-[10px] font-bold uppercase">Chat Ativo</span>
+                        <span className="text-green-400 text-[10px] font-bold uppercase tracking-wider">Chat Ativo</span>
                       </div>
 
                       <div className="absolute bottom-8 left-8 right-8">
                         <h4 className="text-white font-bold text-2xl leading-tight mb-3">{com.nome}</h4>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            {/* AVATARES DE EXEMPLO (SOCIAL PROOF) */}
                             <div className="flex -space-x-2">
                                {[1,2,3].map(i => (
                                  <img key={i} className="h-6 w-6 rounded-full border-2 border-slate-900" src={`https://i.pravatar.cc/100?u=${com.id+i}`} alt="user"/>
@@ -187,8 +185,8 @@ export default function BuyTicketHome() {
                             </div>
                             <span className="text-white/80 text-xs font-bold">+{com.total_membros} membros</span>
                           </div>
-                          <div className="w-10 h-10 bg-[#ff4d4d] rounded-full flex items-center justify-center text-white transform translate-x-4 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all">
-                            <ChevronRight size={20} />
+                          <div className="bg-[#ff4d4d] text-white text-[10px] font-black uppercase px-4 py-2 rounded-full opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0 flex items-center gap-2">
+                            <MessageCircle size={12} /> Entrar
                           </div>
                         </div>
                       </div>
@@ -198,39 +196,37 @@ export default function BuyTicketHome() {
               </section>
             )}
 
-            {/* SEÇÃO 3: BANNER DE CHAMADA PARA PRODUTORES */}
+            {/* BANNER PRODUTOR */}
             <section className="bg-slate-900 rounded-[3.5rem] p-12 md:p-20 relative overflow-hidden text-white my-20">
               <div className="relative z-10 max-w-2xl">
                 <div className="flex items-center gap-2 text-[#ff4d4d] font-bold text-sm uppercase tracking-widest mb-6">
-                  <TrendingUp size={18} /> Monetize sua paixão
+                  <TrendingUp size={18} /> Expanda seu alcance
                 </div>
                 <h3 className="text-4xl md:text-6xl font-black mb-6 leading-tight">Crie seu evento e <br/> <span className="text-[#ff4d4d]">venda em minutos.</span></h3>
                 <p className="text-slate-400 text-lg mb-10 font-medium max-w-md">
-                  A Linkah oferece gestão completa de ingressos, dashboard de vendas e salas de chat exclusivas para seus clientes.
+                  A Linkah oferece gestão completa de ingressos e salas de chat exclusivas para conectar você ao seu público.
                 </p>
                 <Link href="/dashboard" className="bg-white text-slate-900 hover:bg-[#ff4d4d] hover:text-white px-10 py-5 rounded-[2rem] font-bold inline-flex items-center gap-3 transition-all transform hover:scale-105">
                   <PlusCircle size={20} /> Começar como Produtor
                 </Link>
               </div>
-              <div className="absolute right-[-100px] bottom-[-100px] opacity-10 pointer-events-none">
+              <div className="absolute right-[-100px] bottom-[-100px] opacity-10 pointer-events-none text-white">
                  <Ticket size={500} className="rotate-12" />
               </div>
             </section>
           </>
         )}
 
-        {/* VITRINE PRINCIPAL (TODOS OS EVENTOS) */}
+        {/* VITRINE PRINCIPAL */}
         <section id="vitrine-principal">
-          <div className="flex items-center gap-4 mb-10">
-            <SectionHeader 
-              title={buscaNome ? `Resultados para "${buscaNome}"` : (categoriaAtiva === 'Todos' ? 'Descubra novas' : categoriaAtiva)} 
-              highlight={buscaNome ? "" : (categoriaAtiva === 'Todos' ? "experiências" : "")} 
-              count={vitrineFiltrada.length} 
-            />
-          </div>
+          <SectionHeader 
+            title={buscaNome ? `Resultados para "${buscaNome}"` : (categoriaAtiva === 'Todos' ? 'Descubra novas' : categoriaAtiva)} 
+            highlight={buscaNome ? "" : (categoriaAtiva === 'Todos' ? "experiências" : "")} 
+            count={vitrineFiltrada.length} 
+          />
 
           {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mt-10">
               {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
                 <div key={i} className="animate-pulse flex flex-col gap-4">
                    <div className="bg-slate-200 rounded-[2.5rem] h-64 w-full" />
@@ -242,14 +238,14 @@ export default function BuyTicketHome() {
           ) : (
             <>
               {vitrineFiltrada.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mt-10">
                   {vitrineFiltrada.map(ev => <EventCard key={ev.id} evento={ev} />)}
                 </div>
               ) : (
-                <div className="text-center py-20 bg-slate-50 rounded-[3rem] border border-dashed border-slate-200">
+                <div className="text-center py-20 bg-slate-50 rounded-[3rem] border border-dashed border-slate-200 mt-10">
                   <Search size={48} className="mx-auto text-slate-300 mb-4" />
                   <h3 className="text-xl font-bold text-slate-900">Nenhum evento encontrado</h3>
-                  <p className="text-slate-500">Tente buscar por outro nome ou categoria.</p>
+                  <p className="text-slate-500 font-medium">Tente ajustar sua busca ou categoria.</p>
                 </div>
               )}
             </>
