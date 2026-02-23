@@ -6,12 +6,12 @@ import {
   CheckCircle2, XCircle, Search, Filter, 
   MoreVertical, Eye, Trash2, ShieldCheck, 
   MessageSquare, Settings, LogOut, Save, X, Edit3,
-  Loader2, RefreshCcw, Calendar, MapPin
+  Loader2, RefreshCcw, Calendar, MapPin, TrendingUp, DollarSign
 } from 'lucide-react';
 
 export default function AdminDashboard() {
   // --- ESTADOS DE NAVEGAÇÃO ---
-  const [abaAtiva, setAbaAtiva] = useState('eventos'); // Dashboard, eventos, usuarios, chat
+  const [abaAtiva, setAbaAtiva] = useState('eventos'); 
 
   // --- ESTADOS DE DADOS (EVENTOS) ---
   const [eventos, setEventos] = useState<any[]>([]);
@@ -106,15 +106,22 @@ export default function AdminDashboard() {
     switch (abaAtiva) {
       case 'dashboard':
         return (
-          <div className="p-10 flex flex-col items-center justify-center h-full text-slate-400">
-             <LayoutDashboard size={48} className="mb-4 opacity-20" />
-             <p className="text-xl font-bold">Visão Geral em desenvolvimento...</p>
+          <div className="p-10 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <StatCard title="Vendas Totais" value="R$ 12.450,00" icon={<DollarSign className="text-emerald-500"/>} />
+                <StatCard title="Novos Usuários" value="+128" icon={<Users className="text-blue-500"/>} />
+                <StatCard title="Eventos Ativos" value={eventos.filter(e => e.status === 'Ativo').length.toString()} icon={<Ticket className="text-[#ff4d4d]"/>} />
+             </div>
+             <div className="bg-white p-20 rounded-[2.5rem] border border-slate-200 flex flex-col items-center justify-center text-slate-400">
+                <TrendingUp size={48} className="mb-4 opacity-10" />
+                <p className="font-bold text-lg">Gráficos de performance em breve...</p>
+             </div>
           </div>
         );
+
       case 'eventos':
         return (
           <div className="p-10 max-w-7xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* BARRA DE PESQUISA */}
             <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
               <div className="relative w-full md:w-96">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
@@ -128,7 +135,6 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* TABELA */}
             <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-xl shadow-slate-200/50 overflow-hidden">
               <table className="w-full text-left">
                 <thead>
@@ -144,7 +150,7 @@ export default function AdminDashboard() {
                     <tr key={ev.id} className="hover:bg-slate-50/80 transition-colors group">
                       <td className="px-8 py-6">
                         <div className="flex items-center gap-5">
-                          <img src={ev.imagem_capa || ev.imagem_url} className="w-16 h-16 rounded-[1.2rem] object-cover shadow-sm border border-slate-200" />
+                          <img src={ev.imagem_capa || ev.imagem_url} className="w-16 h-16 rounded-[1.2rem] object-cover shadow-sm border border-slate-200" alt="Evento" />
                           <div>
                             <p className="font-black text-slate-900 text-lg leading-tight mb-1">{ev.nome}</p>
                             <span className="text-[10px] font-black uppercase tracking-wider text-[#ff4d4d] bg-[#ff4d4d]/10 px-2 py-0.5 rounded-md">{ev.categoria || 'Geral'}</span>
@@ -185,13 +191,26 @@ export default function AdminDashboard() {
             </div>
           </div>
         );
+
       case 'usuarios':
         return (
-          <div className="p-10 flex flex-col items-center justify-center h-full text-slate-400">
-             <Users size={48} className="mb-4 opacity-20" />
-             <p className="text-xl font-bold">Gestão de Usuários em breve...</p>
+          <div className="p-10 max-w-7xl mx-auto animate-in fade-in duration-500">
+             <div className="bg-white rounded-[2.5rem] border border-slate-200 p-20 flex flex-col items-center justify-center text-slate-400 shadow-xl shadow-slate-200/50">
+                <Users size={64} className="mb-6 opacity-20 text-[#ff4d4d]" />
+                <h2 className="text-2xl font-black text-slate-900 mb-2">Gestão de Usuários</h2>
+                <p className="font-medium text-center max-w-md">Em breve você poderá gerenciar permissões e visualizar o histórico de compras (Stripe/Pix).</p>
+             </div>
           </div>
         );
+
+      case 'chat':
+        return (
+          <div className="p-10 flex flex-col items-center justify-center h-[60vh] text-slate-400">
+             <MessageSquare size={48} className="mb-4 opacity-20" />
+             <p className="text-xl font-bold">Moderação de Chat em breve...</p>
+          </div>
+        );
+
       default:
         return null;
     }
@@ -241,7 +260,10 @@ export default function AdminDashboard() {
         </div>
         
         <div className="mt-auto p-8">
-            <button className="flex items-center gap-3 text-slate-500 hover:text-red-400 transition-colors font-bold text-sm">
+            <button 
+              onClick={() => window.location.href = '/'}
+              className="w-full flex items-center gap-3 text-slate-500 hover:text-red-400 transition-colors font-bold text-sm px-6 py-4"
+            >
                 <LogOut size={20} /> Sair do Painel
             </button>
         </div>
@@ -251,18 +273,25 @@ export default function AdminDashboard() {
       <main className="flex-1 overflow-y-auto">
         <header className="bg-white border-b border-slate-200 px-10 py-8 flex items-center justify-between sticky top-0 z-10">
           <div>
-            <h1 className="text-3xl font-black tracking-tight text-slate-900 capitalize">{abaAtiva}</h1>
+            <h1 className="text-3xl font-black tracking-tight text-slate-900 capitalize">
+              {abaAtiva === 'eventos' ? 'Gerenciar Eventos' : abaAtiva}
+            </h1>
             <p className="text-slate-400 text-sm font-medium">Controle total sobre a vitrine e status da plataforma.</p>
           </div>
-          <button onClick={carregarDados} className="p-3 hover:bg-slate-100 rounded-full transition-all text-slate-400">
-            <RefreshCcw size={20} className={loading ? 'animate-spin' : ''} />
-          </button>
+          <div className="flex items-center gap-4">
+            <button onClick={carregarDados} className="p-3 hover:bg-slate-100 rounded-full transition-all text-slate-400">
+                <RefreshCcw size={20} className={loading ? 'animate-spin' : ''} />
+            </button>
+            <div className="w-10 h-10 rounded-full bg-slate-200 border-2 border-white shadow-sm overflow-hidden">
+                <img src="https://ui-avatars.com/api/?name=Admin&background=ff4d4d&color=fff" alt="Avatar" />
+            </div>
+          </div>
         </header>
 
         {renderConteudo()}
       </main>
 
-      {/* MODAL DE EDIÇÃO (Mantido igual) */}
+      {/* MODAL DE EDIÇÃO */}
       {isModalOpen && eventoParaEditar && (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex items-center justify-center p-6">
           <div className="bg-white w-full max-w-2xl rounded-[3.5rem] shadow-2xl overflow-hidden animate-in zoom-in duration-300">
@@ -275,17 +304,17 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-[11px] font-black uppercase text-slate-400">Título</label>
-                  <input className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 font-bold outline-none" 
+                  <input className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 font-bold outline-none focus:ring-2 ring-[#ff4d4d]/20" 
                     value={eventoParaEditar.nome} onChange={(e) => setEventoParaEditar({...eventoParaEditar, nome: e.target.value})} />
                 </div>
                 <div className="space-y-2">
                   <label className="text-[11px] font-black uppercase text-slate-400">Categoria</label>
-                  <input className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 font-bold outline-none" 
+                  <input className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 font-bold outline-none focus:ring-2 ring-[#ff4d4d]/20" 
                     value={eventoParaEditar.categoria} onChange={(e) => setEventoParaEditar({...eventoParaEditar, categoria: e.target.value})} />
                 </div>
               </div>
-              <button type="submit" className="w-full bg-slate-900 text-white py-6 rounded-2xl font-black uppercase tracking-[0.2em] hover:bg-[#ff4d4d] transition-all shadow-xl">
-                <Save size={20} className="inline mr-2"/> Salvar Alterações
+              <button type="submit" className="w-full bg-slate-900 text-white py-6 rounded-2xl font-black uppercase tracking-[0.2em] hover:bg-[#ff4d4d] transition-all shadow-xl flex items-center justify-center gap-2">
+                <Save size={20} /> Salvar Alterações
               </button>
             </form>
           </div>
@@ -295,7 +324,7 @@ export default function AdminDashboard() {
   );
 }
 
-// SidebarItem com props de clique
+// Componentes Auxiliares
 function SidebarItem({ icon, label, active = false, onClick }: any) {
   return (
     <button 
@@ -307,4 +336,17 @@ function SidebarItem({ icon, label, active = false, onClick }: any) {
       {icon} {label}
     </button>
   );
+}
+
+function StatCard({ title, value, icon }: any) {
+    return (
+        <div className="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+                <div className="p-3 bg-slate-50 rounded-xl">{icon}</div>
+                <span className="text-[10px] font-black text-emerald-500 bg-emerald-50 px-2 py-1 rounded-lg">+12%</span>
+            </div>
+            <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">{title}</p>
+            <p className="text-2xl font-black text-slate-900">{value}</p>
+        </div>
+    );
 }
