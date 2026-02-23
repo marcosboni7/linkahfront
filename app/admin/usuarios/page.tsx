@@ -11,22 +11,20 @@ import Link from 'next/link';
 export default function AdminUsuarios() {
   const [usuarios, setUsuarios] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isProcessing, setIsProcessing] = useState<number | null>(null);
+  // Alterado para string | number para suportar email ou ID no loading
+  const [isProcessing, setIsProcessing] = useState<string | number | null>(null);
   const [userParaEditar, setUserParaEditar] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [filtroBusca, setFiltroBusca] = useState('');
 
-  // Endpoint principal de usuários
   const API_URL = 'https://linkah-api.onrender.com/api/usuarios';
 
   const carregarUsuarios = async () => {
     setLoading(true);
     try {
-      // Fazemos o fetch da lista completa
       const res = await fetch(API_URL);
       if (res.ok) {
         const data = await res.json();
-        // data deve ser o array com todos os registros do banco
         setUsuarios(Array.isArray(data) ? data : []);
       }
     } catch (err) {
@@ -38,42 +36,62 @@ export default function AdminUsuarios() {
 
   useEffect(() => { carregarUsuarios(); }, []);
 
+  // --- 🛡️ FUNÇÃO DE BANIMENTO CORRIGIDA ---
   const handleToggleBan = async (user: any) => {
+    // Se não tiver ID, usa o e-mail como identificador na URL
+    const idIdentificador = user.id || user.email;
+    
+    if (!idIdentificador) {
+      alert("Erro: Usuário sem identificador válido (ID ou Email).");
+      return;
+    }
+
     const novoStatus = user.status === 'Banido' ? 'Ativo' : 'Banido';
     const confirmar = window.confirm(`⚠️ Confirmar alteração: ${user.nome} ficará como ${novoStatus}?`);
     
     if (!confirmar) return;
 
-    setIsProcessing(user.id);
+    setIsProcessing(idIdentificador);
     try {
-      const res = await fetch(`${API_URL}/${user.id}`, {
+      const res = await fetch(`${API_URL}/${idIdentificador}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...user, status: novoStatus })
       });
 
       if (res.ok) {
-        setUsuarios(prev => prev.map(u => u.id === user.id ? { ...u, status: novoStatus } : u));
+        // Atualiza localmente comparando tanto ID quanto Email por segurança
+        setUsuarios(prev => prev.map(u => 
+          (u.id === user.id && u.email === user.email) || (u.email === user.email)
+            ? { ...u, status: novoStatus } 
+            : u
+        ));
+      } else {
+        alert("A API recusou a atualização.");
       }
     } catch (err) {
-      alert("Erro ao processar banimento.");
+      alert("Erro ao conectar com o servidor.");
     } finally {
       setIsProcessing(null);
     }
   };
 
+  // --- 📝 SALVAR EDIÇÃO CORRIGIDO ---
   const salvarEdicao = async (e: any) => {
     e.preventDefault();
-    setIsProcessing(userParaEditar.id);
+    const idIdentificador = userParaEditar.id || userParaEditar.email;
+
+    setIsProcessing(idIdentificador);
     try {
-      const res = await fetch(`${API_URL}/${userParaEditar.id}`, {
+      const res = await fetch(`${API_URL}/${idIdentificador}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(userParaEditar)
       });
+
       if (res.ok) {
         setIsModalOpen(false);
-        carregarUsuarios();
+        carregarUsuarios(); // Recarrega a lista para garantir sincronia
         alert("Dados e senha atualizados!");
       }
     } catch (err) {
@@ -83,7 +101,6 @@ export default function AdminUsuarios() {
     }
   };
 
-  // Busca em tempo real em todos os campos
   const usuariosFiltrados = usuarios.filter(u => 
     u.nome?.toLowerCase().includes(filtroBusca.toLowerCase()) ||
     u.email?.toLowerCase().includes(filtroBusca.toLowerCase()) ||
@@ -135,7 +152,6 @@ export default function AdminUsuarios() {
         </header>
 
         <div className="p-10 max-w-7xl mx-auto space-y-8">
-          
           <div className="relative w-full md:w-96">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <input 
@@ -162,10 +178,10 @@ export default function AdminUsuarios() {
                   <tr><td colSpan={4} className="px-8 py-20 text-center text-slate-400 font-bold animate-pulse">Lendo banco de dados...</td></tr>
                 ) : (
                   usuariosFiltrados.map((user) => (
-                    <tr key={user.id} className="hover:bg-slate-50/80 transition-colors">
+                    <tr key={user.id || user.email} className="hover:bg-slate-50/80 transition-colors">
                       <td className="px-8 py-6">
                         <div className="flex items-center gap-4">
-                          <span className="text-[10px] font-bold text-slate-300">#{user.id}</span>
+                          <span className="text-[10px] font-bold text-slate-300">#{user.id || 'PRO'}</span>
                           <p className="font-black text-slate-900">{user.nome || 'Sem Nome'}</p>
                         </div>
                       </td>
@@ -200,14 +216,18 @@ export default function AdminUsuarios() {
                           </button>
                           <button 
                             onClick={() => handleToggleBan(user)}
+                            disabled={isProcessing === (user.id || user.email)}
                             className={`p-3 border rounded-xl transition-all shadow-sm ${
                               user.status === 'Banido' 
                               ? 'bg-emerald-500 text-white border-emerald-500' 
                               : 'bg-white text-slate-400 border-slate-200 hover:bg-red-500 hover:text-white hover:border-red-500'
                             }`}
-                            title={user.status === 'Banido' ? "Reativar" : "Banir"}
                           >
-                            {user.status === 'Banido' ? <UserCheck size={18} /> : <UserMinus size={18} />}
+                            {isProcessing === (user.id || user.email) ? (
+                              <Loader2 size={18} className="animate-spin" />
+                            ) : (
+                              user.status === 'Banido' ? <UserCheck size={18} /> : <UserMinus size={18} />
+                            )}
                           </button>
                         </div>
                       </td>
@@ -220,16 +240,16 @@ export default function AdminUsuarios() {
         </div>
       </main>
 
-      {/* MODAL STAFF - ALTERAR SENHA E NOME */}
+      {/* MODAL STAFF */}
       {isModalOpen && userParaEditar && (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex items-center justify-center p-6 text-left">
-          <div className="bg-white w-full max-w-lg rounded-[3.5rem] shadow-2xl overflow-hidden animate-in zoom-in duration-300">
+          <div className="bg-white w-full max-w-lg rounded-[3.5rem] shadow-2xl overflow-hidden">
             <div className="p-10 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-               <div>
-                 <h2 className="text-2xl font-black">Editar Membro</h2>
-                 <p className="text-xs text-slate-400 uppercase font-bold tracking-widest mt-1">ID: #{userParaEditar.id}</p>
-               </div>
-               <button onClick={() => setIsModalOpen(false)} className="p-3 hover:bg-slate-200 rounded-full text-slate-400"><X /></button>
+                <div>
+                  <h2 className="text-2xl font-black">Editar Membro</h2>
+                  <p className="text-xs text-slate-400 uppercase font-bold tracking-widest mt-1">ID: #{userParaEditar.id || 'PRO'}</p>
+                </div>
+                <button onClick={() => setIsModalOpen(false)} className="p-3 hover:bg-slate-200 rounded-full text-slate-400"><X /></button>
             </div>
             
             <form onSubmit={salvarEdicao} className="p-10 space-y-6">
@@ -250,7 +270,6 @@ export default function AdminUsuarios() {
                   className="w-full bg-slate-50 border border-red-100 rounded-2xl p-5 font-bold outline-none focus:ring-4 ring-[#ff4d4d]/10"
                   onChange={(e) => setUserParaEditar({...userParaEditar, password: e.target.value})}
                 />
-                <p className="text-[10px] text-slate-400 italic font-medium">Ao salvar, a senha antiga será invalidada e esta passará a ser a nova.</p>
               </div>
 
               <div className="space-y-2">
@@ -262,14 +281,16 @@ export default function AdminUsuarios() {
                 >
                   <option value="user">Membro Comum</option>
                   <option value="admin">Staff Administrador</option>
+                  <option value="produtor">Produtor</option>
                 </select>
               </div>
 
               <button 
                 type="submit" 
-                className="w-full bg-slate-900 text-white py-6 rounded-2xl font-black uppercase tracking-widest hover:bg-[#ff4d4d] transition-all flex items-center justify-center gap-3 shadow-xl"
+                disabled={isProcessing === (userParaEditar.id || userParaEditar.email)}
+                className="w-full bg-slate-900 text-white py-6 rounded-2xl font-black uppercase tracking-widest hover:bg-[#ff4d4d] transition-all flex items-center justify-center gap-3 shadow-xl disabled:opacity-50"
               >
-                {isProcessing === userParaEditar.id ? <Loader2 className="animate-spin" /> : <Save size={20} />}
+                {isProcessing === (userParaEditar.id || userParaEditar.email) ? <Loader2 className="animate-spin" /> : <Save size={20} />}
                 Atualizar Perfil
               </button>
             </form>
