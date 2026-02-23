@@ -10,7 +10,7 @@ import {
   Search, Ticket, Music, Mic2, Theater, Gamepad2, 
   Utensils, GraduationCap, PartyPopper, Heart,
   Clock, Sparkles, Users, ChevronRight, TrendingUp,
-  Zap, PlusCircle, MessageCircle
+  Zap, PlusCircle, MessageCircle, Calendar
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -72,8 +72,21 @@ export default function BuyTicketHome() {
     carregarDados();
   }, []);
 
-  const hojeStr = new Date().toLocaleDateString('en-CA');
+  // Lógica de Datas para Seções
+  const hojeObj = new Date();
+  const hojeStr = hojeObj.toLocaleDateString('en-CA');
+  
+  const seteDiasDepois = new Date();
+  seteDiasDepois.setDate(hojeObj.getDate() + 7);
+  const seteDiasStr = seteDiasDepois.toLocaleDateString('en-CA');
+
   const oQueFazerHoje = eventos.filter(ev => ev.data_inicio && new Date(ev.data_inicio).toLocaleDateString('en-CA') === hojeStr);
+  
+  // Eventos que começam amanhã até os próximos 7 dias
+  const eventosChegando = eventos.filter(ev => {
+    const dataEv = ev.data_inicio ? new Date(ev.data_inicio).toLocaleDateString('en-CA') : '';
+    return dataEv > hojeStr && dataEv <= seteDiasStr;
+  });
   
   const vitrineFiltrada = eventos.filter(ev => {
     const nomeMatch = ev.nome.toLowerCase().includes(buscaNome.toLowerCase());
@@ -103,7 +116,6 @@ export default function BuyTicketHome() {
           </div>
         ))}
         
-        {/* BUSCA */}
         <div className="absolute bottom-16 z-30 w-full px-6">
           <div className="bg-white p-3 rounded-[2.5rem] shadow-2xl flex flex-col md:flex-row items-center max-w-4xl mx-auto border border-slate-100">
             <div className="flex-[1.5] flex items-center px-6 py-3 w-full border-b md:border-b-0 md:border-r border-slate-100">
@@ -121,7 +133,6 @@ export default function BuyTicketHome() {
         </div>
       </section>
 
-      {/* FILTROS */}
       <div className="sticky top-[68px] z-40 bg-white/80 backdrop-blur-xl py-5 border-b border-slate-100">
         <CategoryFilter categories={categoriasExistentes} activeCategory={categoriaAtiva} onSelect={setCategoriaAtiva} iconMap={iconMap} />
       </div>
@@ -129,7 +140,7 @@ export default function BuyTicketHome() {
       <main className="flex-1 max-w-7xl mx-auto px-6 py-16 space-y-28 w-full">
         {!buscaNome && categoriaAtiva === 'Todos' && (
           <>
-            {/* HOJE */}
+            {/* SEÇÃO 1: HOJE */}
             {oQueFazerHoje.length > 0 && (
               <section>
                 <div className="flex items-center gap-3 mb-8">
@@ -142,7 +153,20 @@ export default function BuyTicketHome() {
               </section>
             )}
 
-            {/* COMUNIDADES (ROTA CORRIGIDA PARA /comunidade) */}
+            {/* NOVA SEÇÃO: CHEGANDO EM BREVE (PRÓXIMOS 7 DIAS) */}
+            {eventosChegando.length > 0 && (
+              <section>
+                <div className="flex items-center gap-3 mb-8">
+                  <div className="bg-blue-500/10 p-2 rounded-xl text-blue-500"><Calendar size={24} /></div>
+                  <SectionHeader title="Chegando" highlight="em breve" />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                  {eventosChegando.map(ev => <EventCard key={ev.id} evento={ev} />)}
+                </div>
+              </section>
+            )}
+
+            {/* SEÇÃO 2: COMUNIDADES */}
             {comunidades.length > 0 && (
               <section className="space-y-10">
                 <div className="flex items-end justify-between">
@@ -168,12 +192,10 @@ export default function BuyTicketHome() {
                         alt={com.nome} 
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent" />
-                      
                       <div className="absolute top-6 left-6 bg-green-500/20 backdrop-blur-md border border-green-500/30 px-3 py-1 rounded-full flex items-center gap-2">
                         <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                         <span className="text-green-400 text-[10px] font-bold uppercase tracking-wider">Chat Ativo</span>
                       </div>
-
                       <div className="absolute bottom-8 left-8 right-8">
                         <h4 className="text-white font-bold text-2xl leading-tight mb-3">{com.nome}</h4>
                         <div className="flex items-center justify-between">
