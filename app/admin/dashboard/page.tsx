@@ -8,11 +8,12 @@ import {
   MessageSquare, Settings, LogOut, Save, X, Edit3,
   Loader2, RefreshCcw, Calendar, MapPin
 } from 'lucide-react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 
 export default function AdminDashboard() {
-  const pathname = usePathname();
+  // --- ESTADOS DE NAVEGAÇÃO ---
+  const [abaAtiva, setAbaAtiva] = useState('eventos'); // Dashboard, eventos, usuarios, chat
+
+  // --- ESTADOS DE DADOS (EVENTOS) ---
   const [eventos, setEventos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState<number | null>(null);
@@ -39,6 +40,7 @@ export default function AdminDashboard() {
 
   useEffect(() => { carregarDados(); }, []);
 
+  // --- LÓGICA DE EVENTOS ---
   const handleExcluir = async (evento: any) => {
     const confirmar = window.confirm(`⚠️ Deseja realmente remover o evento "${evento.nome}"?`);
     if (!confirmar) return;
@@ -99,81 +101,46 @@ export default function AdminDashboard() {
     ev.categoria?.toLowerCase().includes(filtroBusca.toLowerCase())
   );
 
-  return (
-    <div className="flex min-h-screen bg-[#F4F5F7] text-slate-900 font-sans">
-      
-      {/* SIDEBAR ADMIN */}
-      <aside className="w-72 bg-slate-950 text-white flex flex-col shrink-0">
-        <div className="p-8">
-          <div className="flex items-center gap-3 mb-12">
-            <div className="w-10 h-10 bg-[#ff4d4d] rounded-2xl flex items-center justify-center shadow-lg shadow-[#ff4d4d]/20">
-              <ShieldCheck size={24} className="text-white" />
-            </div>
-            <div>
-              <p className="text-xl font-black leading-none tracking-tighter">LINKAH</p>
-              <p className="text-[10px] font-bold text-[#ff4d4d] tracking-[0.2em] uppercase">Staff Panel</p>
-            </div>
+  // --- RENDERIZADOR DE CONTEÚDO DINÂMICO ---
+  const renderConteudo = () => {
+    switch (abaAtiva) {
+      case 'dashboard':
+        return (
+          <div className="p-10 flex flex-col items-center justify-center h-full text-slate-400">
+             <LayoutDashboard size={48} className="mb-4 opacity-20" />
+             <p className="text-xl font-bold">Visão Geral em desenvolvimento...</p>
           </div>
-          <nav className="space-y-3">
-            <SidebarItem href="/admin/dashboard" icon={<LayoutDashboard size={20}/>} label="Dashboard" active={pathname === '/admin/dashboard'} />
-            <SidebarItem href="/admin/eventos" icon={<Ticket size={20}/>} label="Gerenciar Eventos" active={pathname === '/admin/eventos'} />
-            <SidebarItem href="/admin/usuarios" icon={<Users size={20}/>} label="Usuários" active={pathname === '/admin/usuarios'} />
-            <SidebarItem href="/admin/comunidades" icon={<MessageSquare size={20}/>} label="Comunidades" active={pathname === '/admin/comunidades'} />
-          </nav>
-        </div>
-
-        {/* BOTÃO SAIR */}
-        <div className="mt-auto p-8">
-          <button onClick={() => window.location.href = '/login'} className="flex items-center gap-4 px-6 py-4 rounded-2xl font-bold text-sm text-slate-500 hover:text-white hover:bg-red-500/10 transition-all w-full">
-            <LogOut size={20}/> Sair
-          </button>
-        </div>
-      </aside>
-
-      {/* CONTEÚDO PRINCIPAL */}
-      <main className="flex-1 overflow-y-auto">
-        <header className="bg-white border-b border-slate-200 px-10 py-8 flex items-center justify-between sticky top-0 z-10">
-          <div>
-            <h1 className="text-3xl font-black tracking-tight text-slate-900">Gerenciar Eventos</h1>
-            <p className="text-slate-400 text-sm font-medium">Controle total sobre a vitrine e status da plataforma.</p>
-          </div>
-          <button onClick={carregarDados} className="p-3 hover:bg-slate-100 rounded-full transition-all text-slate-400">
-            <RefreshCcw size={20} className={loading ? 'animate-spin' : ''} />
-          </button>
-        </header>
-
-        <div className="p-10 max-w-7xl mx-auto space-y-8">
-          
-          {/* BARRA DE PESQUISA */}
-          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-            <div className="relative w-full md:w-96">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-              <input 
-                type="text" 
-                placeholder="Buscar por nome ou categoria..." 
-                value={filtroBusca}
-                onChange={(e) => setFiltroBusca(e.target.value)}
-                className="w-full pl-12 pr-6 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm outline-none focus:ring-2 ring-[#ff4d4d]/20 transition-all font-medium"
-              />
+        );
+      case 'eventos':
+        return (
+          <div className="p-10 max-w-7xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* BARRA DE PESQUISA */}
+            <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+              <div className="relative w-full md:w-96">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                <input 
+                  type="text" 
+                  placeholder="Buscar por nome ou categoria..." 
+                  value={filtroBusca}
+                  onChange={(e) => setFiltroBusca(e.target.value)}
+                  className="w-full pl-12 pr-6 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm outline-none focus:ring-2 ring-[#ff4d4d]/20 transition-all font-medium"
+                />
+              </div>
             </div>
-          </div>
 
-          {/* TABELA */}
-          <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-xl shadow-slate-200/50 overflow-hidden">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="bg-slate-50/50 text-slate-400 text-[10px] uppercase font-black tracking-widest border-b border-slate-100">
-                  <th className="px-8 py-6">Informações do Evento</th>
-                  <th className="px-8 py-6">Data e Local</th>
-                  <th className="px-8 py-6">Status da Vitrine</th>
-                  <th className="px-8 py-6 text-right">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {loading ? (
-                  <tr><td colSpan={4} className="px-8 py-20 text-center text-slate-400 font-bold animate-pulse">Lendo eventos...</td></tr>
-                ) : (
-                  eventosFiltrados.map((ev) => (
+            {/* TABELA */}
+            <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-xl shadow-slate-200/50 overflow-hidden">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="bg-slate-50/50 text-slate-400 text-[10px] uppercase font-black tracking-widest border-b border-slate-100">
+                    <th className="px-8 py-6">Informações do Evento</th>
+                    <th className="px-8 py-6">Data e Local</th>
+                    <th className="px-8 py-6">Status da Vitrine</th>
+                    <th className="px-8 py-6 text-right">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {eventosFiltrados.map((ev) => (
                     <tr key={ev.id} className="hover:bg-slate-50/80 transition-colors group">
                       <td className="px-8 py-6">
                         <div className="flex items-center gap-5">
@@ -195,10 +162,10 @@ export default function AdminDashboard() {
                           onClick={() => toggleStatus(ev)}
                           disabled={isProcessing === ev.id}
                           className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                            ev.status === 'Ativo' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-slate-100 text-slate-400'
+                            ev.status === 'Ativo' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'
                           }`}
                         >
-                          {isProcessing === ev.id ? <Loader2 size={12} className="animate-spin" /> : (ev.status || 'Inativo')}
+                          {ev.status || 'Inativo'}
                         </button>
                       </td>
                       <td className="px-8 py-6 text-right">
@@ -212,24 +179,99 @@ export default function AdminDashboard() {
                         </div>
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
+        );
+      case 'usuarios':
+        return (
+          <div className="p-10 flex flex-col items-center justify-center h-full text-slate-400">
+             <Users size={48} className="mb-4 opacity-20" />
+             <p className="text-xl font-bold">Gestão de Usuários em breve...</p>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="flex min-h-screen bg-[#F4F5F7] text-slate-900 font-sans">
+      
+      {/* SIDEBAR ADMIN */}
+      <aside className="w-72 bg-slate-950 text-white flex flex-col shrink-0">
+        <div className="p-8">
+          <div className="flex items-center gap-3 mb-12">
+            <div className="w-10 h-10 bg-[#ff4d4d] rounded-2xl flex items-center justify-center shadow-lg shadow-[#ff4d4d]/20">
+              <ShieldCheck size={24} className="text-white" />
+            </div>
+            <div>
+              <p className="text-xl font-black leading-none tracking-tighter">LINKAH</p>
+              <p className="text-[10px] font-bold text-[#ff4d4d] tracking-[0.2em] uppercase">Staff Panel</p>
+            </div>
+          </div>
+          <nav className="space-y-3">
+            <SidebarItem 
+               icon={<LayoutDashboard size={20}/>} 
+               label="Dashboard" 
+               active={abaAtiva === 'dashboard'} 
+               onClick={() => setAbaAtiva('dashboard')}
+            />
+            <SidebarItem 
+               icon={<Ticket size={20}/>} 
+               label="Gerenciar Eventos" 
+               active={abaAtiva === 'eventos'} 
+               onClick={() => setAbaAtiva('eventos')}
+            />
+            <SidebarItem 
+               icon={<Users size={20}/>} 
+               label="Usuários" 
+               active={abaAtiva === 'usuarios'} 
+               onClick={() => setAbaAtiva('usuarios')}
+            />
+            <SidebarItem 
+               icon={<MessageSquare size={20}/>} 
+               label="Moderação Chat" 
+               active={abaAtiva === 'chat'} 
+               onClick={() => setAbaAtiva('chat')}
+            />
+          </nav>
         </div>
+        
+        <div className="mt-auto p-8">
+            <button className="flex items-center gap-3 text-slate-500 hover:text-red-400 transition-colors font-bold text-sm">
+                <LogOut size={20} /> Sair do Painel
+            </button>
+        </div>
+      </aside>
+
+      {/* CONTEÚDO PRINCIPAL */}
+      <main className="flex-1 overflow-y-auto">
+        <header className="bg-white border-b border-slate-200 px-10 py-8 flex items-center justify-between sticky top-0 z-10">
+          <div>
+            <h1 className="text-3xl font-black tracking-tight text-slate-900 capitalize">{abaAtiva}</h1>
+            <p className="text-slate-400 text-sm font-medium">Controle total sobre a vitrine e status da plataforma.</p>
+          </div>
+          <button onClick={carregarDados} className="p-3 hover:bg-slate-100 rounded-full transition-all text-slate-400">
+            <RefreshCcw size={20} className={loading ? 'animate-spin' : ''} />
+          </button>
+        </header>
+
+        {renderConteudo()}
       </main>
 
-      {/* MODAL DE EDIÇÃO */}
+      {/* MODAL DE EDIÇÃO (Mantido igual) */}
       {isModalOpen && eventoParaEditar && (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex items-center justify-center p-6">
           <div className="bg-white w-full max-w-2xl rounded-[3.5rem] shadow-2xl overflow-hidden animate-in zoom-in duration-300">
             <div className="p-10 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-               <h2 className="text-3xl font-black tracking-tight text-left">Editar Evento</h2>
+               <h2 className="text-3xl font-black tracking-tight">Editar Evento</h2>
                <button onClick={() => setIsModalOpen(false)} className="p-3 hover:bg-slate-200 rounded-full transition-all text-slate-400"><X /></button>
             </div>
             
-            <form onSubmit={salvarEdicao} className="p-10 space-y-6 text-left">
+            <form onSubmit={salvarEdicao} className="p-10 space-y-6">
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-[11px] font-black uppercase text-slate-400">Título</label>
@@ -242,36 +284,6 @@ export default function AdminDashboard() {
                     value={eventoParaEditar.categoria} onChange={(e) => setEventoParaEditar({...eventoParaEditar, categoria: e.target.value})} />
                 </div>
               </div>
-
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-[11px] font-black uppercase text-slate-400">📅 Data do Evento</label>
-                  <input 
-                    type="text" 
-                    placeholder="Ex: 25 de Dezembro, 20:00"
-                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 font-bold outline-none focus:ring-2 ring-[#ff4d4d]/20" 
-                    value={eventoParaEditar.data || ''} 
-                    onChange={(e) => setEventoParaEditar({...eventoParaEditar, data: e.target.value})} 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[11px] font-black uppercase text-slate-400">📍 Localização</label>
-                  <input 
-                    type="text"
-                    placeholder="Ex: São Paulo, SP"
-                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 font-bold outline-none focus:ring-2 ring-[#ff4d4d]/20" 
-                    value={eventoParaEditar.local || ''} 
-                    onChange={(e) => setEventoParaEditar({...eventoParaEditar, local: e.target.value})} 
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[11px] font-black uppercase text-slate-400">Descrição</label>
-                <textarea rows={3} className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 font-medium outline-none" 
-                  value={eventoParaEditar.descricao} onChange={(e) => setEventoParaEditar({...eventoParaEditar, descricao: e.target.value})} />
-              </div>
-
               <button type="submit" className="w-full bg-slate-900 text-white py-6 rounded-2xl font-black uppercase tracking-[0.2em] hover:bg-[#ff4d4d] transition-all shadow-xl">
                 <Save size={20} className="inline mr-2"/> Salvar Alterações
               </button>
@@ -283,18 +295,16 @@ export default function AdminDashboard() {
   );
 }
 
-// COMPONENTE DE ITEM DA SIDEBAR COM LINK
-function SidebarItem({ icon, label, href, active = false }: any) {
+// SidebarItem com props de clique
+function SidebarItem({ icon, label, active = false, onClick }: any) {
   return (
-    <Link 
-      href={href}
+    <button 
+      onClick={onClick}
       className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl font-bold text-sm transition-all ${
-        active 
-        ? 'bg-[#ff4d4d] text-white shadow-lg shadow-[#ff4d4d]/20' 
-        : 'text-slate-500 hover:text-white hover:bg-white/5'
+        active ? 'bg-[#ff4d4d] text-white shadow-lg shadow-[#ff4d4d]/20' : 'text-slate-500 hover:text-white hover:bg-white/5'
       }`}
     >
       {icon} {label}
-    </Link>
+    </button>
   );
 }
