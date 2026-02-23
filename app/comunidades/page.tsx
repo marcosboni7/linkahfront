@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Lock, LogIn, UserPlus, ArrowRight } from 'lucide-react';
+import { Lock, LogIn, UserPlus, ArrowRight, MessageCircle, Users } from 'lucide-react';
 import { Navbar } from '../site/Navbar';
 import { Footer } from '../site/Footer';
 
@@ -12,18 +12,14 @@ export default function ListaComunidades() {
   const [estaLogado, setEstaLogado] = useState(false);
 
   useEffect(() => {
-    // 1. VERIFICAÇÃO DE SEGURANÇA (Mesma chave da Navbar)
     const savedUser = localStorage.getItem('@Linkah:User');
-    
     if (!savedUser) {
       setEstaLogado(false);
       setLoading(false);
       return;
     }
-
     setEstaLogado(true);
 
-    // 2. BUSCA OS DADOS (SÓ SE ESTIVER LOGADO)
     fetch('https://linkah-api.onrender.com/api/eventos/vitrine')
       .then(res => {
         if (!res.ok) throw new Error('Erro ao carregar comunidades');
@@ -39,107 +35,114 @@ export default function ListaComunidades() {
       });
   }, []);
 
-  // TELA DE LOADING
   if (loading) return (
-    <div className="flex justify-center items-center h-screen !bg-white">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#d6006d]"></div>
+    <div className="flex justify-center items-center h-screen bg-[#FCFBFA]">
+      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-slate-300"></div>
     </div>
   );
 
-  // TELA DE ANÚNCIO / BLOQUEIO (PARA QUEM NÃO ESTÁ LOGADO)
+  // TELA DE BLOQUEIO (ESTILO LUMA)
   if (!estaLogado) return (
-    <div className="min-h-screen flex flex-col !bg-[#F8FAFC]">
+    <div className="min-h-screen flex flex-col bg-[#FCFBFA]">
       <Navbar />
       <main className="flex-1 flex items-center justify-center p-6">
-        <div className="max-w-md w-full bg-white rounded-[2.5rem] p-10 shadow-xl shadow-slate-200/50 border border-slate-100 text-center animate-in fade-in zoom-in-95 duration-500">
-          <div className="w-20 h-20 bg-pink-50 rounded-3xl flex items-center justify-center mx-auto mb-6">
-            <Lock className="text-[#d6006d]" size={32} />
+        <div className="max-w-md w-full bg-white rounded-[3rem] p-12 shadow-sm border border-slate-100 text-center">
+          <div className="w-20 h-20 bg-orange-50 rounded-[2rem] flex items-center justify-center mx-auto mb-8">
+            <Lock className="text-[#ff4d4d]" size={32} />
           </div>
           
-          <h1 className="text-3xl font-black text-slate-900 leading-tight mb-4">
-            Acesse a nossa <br/><span className="text-[#d6006d]">Comunidade</span>
+          <h1 className="text-3xl font-bold text-slate-900 leading-tight mb-4 tracking-tight">
+            Acesso Restrito
           </h1>
           
-          <p className="text-slate-500 font-medium mb-8 leading-relaxed">
-            Para ver os eventos ativos e conversar com a galera, você precisa fazer parte da Linkah.
+          <p className="text-slate-500 font-light mb-10 leading-relaxed text-lg">
+            Esta comunidade é exclusiva para membros. Entre ou crie sua conta para participar das conversas.
           </p>
 
-          <div className="space-y-3">
+          <div className="space-y-4">
             <Link 
               href="/site/login"
-              className="flex items-center justify-center gap-2 w-full bg-[#d6006d] text-white py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-[#b5005c] transition-all shadow-lg shadow-pink-200 active:scale-95"
+              className="flex items-center justify-center gap-2 w-full bg-slate-900 text-white py-5 rounded-2xl font-bold hover:bg-slate-800 transition-all shadow-lg shadow-slate-100 active:scale-95"
             >
               <LogIn size={18} />
-              Fazer Login
+              Entrar agora
             </Link>
             
             <Link 
               href="/site/register" 
-              className="flex items-center justify-center gap-2 w-full bg-white text-slate-700 py-4 rounded-2xl font-black uppercase tracking-widest border border-slate-200 hover:bg-slate-50 transition-all active:scale-95"
+              className="flex items-center justify-center gap-2 w-full bg-white text-slate-600 py-5 rounded-2xl font-bold border border-slate-200 hover:bg-slate-50 transition-all active:scale-95"
             >
-              <UserPlus size={18} />
-              Criar minha conta
+              Criar conta gratuita
             </Link>
           </div>
-
-          <p className="mt-8 text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-            Rápido, fácil e gratuito. ⚡
-          </p>
         </div>
       </main>
       <Footer />
     </div>
   );
 
-  // CONTEÚDO LIBERADO (LISTA DE EVENTOS)
   return (
-    <div className="flex flex-col min-h-screen !bg-[#F8FAFC] !text-slate-900">
+    <div className="flex flex-col min-h-screen bg-[#FCFBFA] text-slate-900">
       <Navbar />
 
-      <main className="flex-1 max-w-6xl mx-auto px-6 pt-12 pb-20 w-full">
-        <div className="mb-12">
-          <span className="text-[#d6006d] font-black text-[10px] uppercase tracking-[0.3em]">Exclusivo Linkah</span>
-          <h1 className="text-4xl md:text-5xl font-black mt-2 mb-4 tracking-tight">
-            Nossa <span className="text-[#d6006d]">Comunidade</span>
+      <main className="flex-1 max-w-6xl mx-auto px-6 pt-16 pb-24 w-full">
+        {/* HEADER CLEAN */}
+        <div className="mb-16 text-center md:text-left space-y-4">
+          <div className="flex items-center justify-center md:justify-start gap-2">
+             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+             <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Comunidades Ativas</span>
+          </div>
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
+            Explore as <span className="text-[#ff4d4d]">Salas</span>
           </h1>
-          <p className="text-slate-500 max-w-lg leading-relaxed font-medium">
-            Escolha um evento abaixo para entrar na sala de conversa oficial.
+          <p className="text-slate-500 max-w-lg leading-relaxed text-lg font-light">
+            Conecte-se com pessoas que vão aos mesmos eventos que você.
           </p>
         </div>
 
         {erro && (
-          <div className="bg-amber-50 text-amber-600 p-4 rounded-2xl text-center mb-8 border border-amber-100 font-bold">
+          <div className="bg-orange-50 text-orange-600 p-5 rounded-2xl text-center mb-12 border border-orange-100 font-medium">
             {erro}
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {/* GRID DE CARDS ESTILO GALERIA */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
           {eventos.map((evento: any) => (
-            <div key={evento.id} className="group bg-white border border-slate-200 rounded-[2rem] overflow-hidden hover:shadow-2xl hover:shadow-pink-100 transition-all duration-500">
-              <div className="relative h-44">
+            <div key={evento.id} className="group bg-white rounded-[2.5rem] overflow-hidden border border-slate-100 hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-500 flex flex-col">
+              <div className="relative aspect-[4/3] overflow-hidden">
                 <img 
                   src={evento.imagem_capa || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800'} 
                   alt={evento.nome} 
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                 />
-                <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-[9px] font-black text-[#d6006d] uppercase">
-                  Ativo Agora
+                <div className="absolute top-4 left-4">
+                  <span className="bg-white/90 backdrop-blur-md px-4 py-1.5 rounded-full text-[10px] font-bold text-slate-900 uppercase tracking-wider shadow-sm flex items-center gap-1.5">
+                    <Users size={12} className="text-[#ff4d4d]" /> Chat Livre
+                  </span>
                 </div>
               </div>
 
-              <div className="p-6">
-                <h2 className="text-xl font-black mb-2 text-slate-800 line-clamp-1">{evento.nome}</h2>
-                <p className="text-slate-500 text-sm mb-6 line-clamp-2 min-h-[40px] font-medium">
-                  {evento.descricao || "Participe do chat oficial e conecte-se com os participantes."}
+              <div className="p-8 flex-1 flex flex-col">
+                <h2 className="text-xl font-bold mb-3 text-slate-900 line-clamp-1 group-hover:text-[#ff4d4d] transition-colors">
+                  {evento.nome}
+                </h2>
+                <p className="text-slate-500 text-sm mb-8 line-clamp-2 font-light leading-relaxed">
+                  {evento.descricao || "Participe do chat oficial e conecte-se com os participantes deste evento."}
                 </p>
                 
-                <Link 
-                  href={`/evento/${evento.id}/comunidade`}
-                  className="flex items-center justify-center w-full bg-slate-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-[11px] hover:bg-[#d6006d] transition-all group"
-                >
-                  Entrar no Chat
-                  <ArrowRight size={16} className="ml-2 group-hover:translate-x-1 transition-transform" />
-                </Link>
+                <div className="mt-auto">
+                  <Link 
+                    href={`/evento/${evento.id}/comunidade`}
+                    className="flex items-center justify-between w-full bg-slate-50 text-slate-900 p-5 rounded-2xl font-bold text-sm hover:bg-slate-900 hover:text-white transition-all group/btn"
+                  >
+                    <div className="flex items-center gap-2">
+                      <MessageCircle size={18} className="text-[#ff4d4d]" />
+                      Entrar no grupo
+                    </div>
+                    <ArrowRight size={18} className="group-hover/btn:translate-x-1 transition-transform opacity-50" />
+                  </Link>
+                </div>
               </div>
             </div>
           ))}
