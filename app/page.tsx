@@ -26,15 +26,10 @@ const SLIDES = [
   { id: 3, url: 'https://images.unsplash.com/photo-1514525253361-bee8718a74a7?q=80&w=2070&auto=format&fit=crop', title: 'Conecte-se com', highlight: 'novas experiências' }
 ];
 
-// Mock de Comunidades para destaque
-const COMUNIDADES_DESTAQUE = [
-  { id: 1, nome: 'Tech & Networking', membros: 1240, cor: 'bg-blue-500', img: 'https://images.unsplash.com/photo-1515187029135-18ee286d815b?q=80&w=500' },
-  { id: 2, nome: 'Lifestyle Gastronômico', membros: 850, cor: 'bg-orange-500', img: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=500' },
-  { id: 3, nome: 'Vibe Underground', membros: 2100, cor: 'bg-purple-500', img: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=500' },
-];
-
 export default function BuyTicketHome() {
   const [eventos, setEventos] = useState<any[]>([]);
+  // --- NOVO ESTADO PARA COMUNIDADES REAIS ---
+  const [comunidades, setComunidades] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [categoriaAtiva, setCategoriaAtiva] = useState('Todos');
   const [categoriasExistentes, setCategoriasExistentes] = useState<string[]>(['Todos']);
@@ -42,6 +37,7 @@ export default function BuyTicketHome() {
   const [currentSlide, setCurrentSlide] = useState(0);
 
   const API_URL = 'https://linkah-api.onrender.com/api/eventos/vitrine';
+  const API_COMUNIDADES = 'https://linkah-api.onrender.com/api/comunidades'; // Ajuste se a rota for diferente
 
   useEffect(() => {
     const interval = setInterval(() => setCurrentSlide((prev) => (prev === SLIDES.length - 1 ? 0 : prev + 1)), 6000);
@@ -52,18 +48,33 @@ export default function BuyTicketHome() {
     async function carregarDados() {
       setLoading(true);
       try {
-        const response = await fetch(API_URL);
-        if (response.ok) {
-          const dados = await response.json();
+        // Busca Eventos
+        const resEventos = await fetch(API_URL);
+        if (resEventos.ok) {
+          const dados = await resEventos.json();
           setEventos(dados);
           const extrair = dados.map((ev: any) => ev.categoria).filter(Boolean);
           setCategoriasExistentes(['Todos', ...Array.from(new Set(extrair)) as string[]]);
         }
-      } catch (error) { console.error("Erro API:", error); } finally { setLoading(false); }
+
+        // --- BUSCA COMUNIDADES REAIS ---
+        const resComunidades = await fetch(API_COMUNIDADES);
+        if (resComunidades.ok) {
+          const dadosCom = await resComunidades.json();
+          // Pegamos apenas as 3 primeiras para o destaque da Home
+          setComunidades(dadosCom.slice(0, 3));
+        }
+
+      } catch (error) { 
+        console.error("Erro API:", error); 
+      } finally { 
+        setLoading(false); 
+      }
     }
     carregarDados();
   }, []);
 
+  // Lógica de filtros de data (Hoje e Última Chamada)
   const hojeObj = new Date();
   const hojeStr = hojeObj.toLocaleDateString('en-CA');
 
@@ -122,6 +133,7 @@ export default function BuyTicketHome() {
       <main className="flex-1 max-w-7xl mx-auto px-6 py-16 space-y-24 w-full">
         {!buscaNome && categoriaAtiva === 'Todos' && (
           <>
+            {/* HOJE */}
             {oQueFazerHoje.length > 0 && (
               <section>
                 <SectionHeader title="Acontecendo" highlight="hoje" />
@@ -131,6 +143,7 @@ export default function BuyTicketHome() {
               </section>
             )}
 
+            {/* ÚLTIMA CHAMADA */}
             {ultimaChamada.length > 0 && (
               <section className="bg-rose-50/40 p-10 rounded-[3rem] border border-rose-100/50">
                 <div className="flex items-center gap-4 mb-8">
@@ -143,38 +156,45 @@ export default function BuyTicketHome() {
               </section>
             )}
 
-            {/* SEÇÃO DE COMUNIDADES EM DESTAQUE */}
-            <section className="space-y-8">
-              <div className="flex items-end justify-between">
-                <div>
-                  <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Comunidades <span className="text-[#ff4d4d]">em alta</span></h2>
-                  <p className="text-slate-400 mt-2 font-medium">Junte-se a pessoas que compartilham seus interesses.</p>
+            {/* SEÇÃO DE COMUNIDADES REAIS (SUBSTITUÍDO MOCK POR ESTADO) */}
+            {comunidades.length > 0 && (
+              <section className="space-y-8">
+                <div className="flex items-end justify-between">
+                  <div>
+                    <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Comunidades <span className="text-[#ff4d4d]">em alta</span></h2>
+                    <p className="text-slate-400 mt-2 font-medium">Junte-se a pessoas que compartilham seus interesses.</p>
+                  </div>
+                  <Link href="/comunidades" className="hidden md:flex items-center gap-2 text-sm font-bold text-slate-900 hover:text-[#ff4d4d] transition-colors">
+                    Ver todas <ChevronRight size={16} />
+                  </Link>
                 </div>
-                <Link href="/comunidades" className="hidden md:flex items-center gap-2 text-sm font-bold text-slate-900 hover:text-[#ff4d4d] transition-colors">
-                  Ver todas <ChevronRight size={16} />
-                </Link>
-              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {COMUNIDADES_DESTAQUE.map((com) => (
-                  <Link href={`/comunidades`} key={com.id} className="group relative h-48 rounded-[2.5rem] overflow-hidden border border-slate-100 shadow-sm hover:shadow-xl transition-all">
-                    <img src={com.img} className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={com.nome} />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/20 to-transparent" />
-                    <div className="absolute bottom-6 left-6 right-6 flex items-end justify-between">
-                      <div>
-                        <h4 className="text-white font-bold text-lg leading-tight">{com.nome}</h4>
-                        <div className="flex items-center gap-2 text-white/70 text-xs mt-1 font-medium">
-                          <Users size={12} /> {com.membros} membros
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {comunidades.map((com) => (
+                    <Link href={`/comunidade/${com.id}`} key={com.id} className="group relative h-48 rounded-[2.5rem] overflow-hidden border border-slate-100 shadow-sm hover:shadow-xl transition-all">
+                      {/* Se sua API trouxer 'imagem_capa' ou 'banner', use aqui. Senão ele usa uma fallback */}
+                      <img 
+                        src={com.imagem_url || com.banner || 'https://images.unsplash.com/photo-1515187029135-18ee286d815b?q=80&w=500'} 
+                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                        alt={com.nome} 
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent" />
+                      <div className="absolute bottom-6 left-6 right-6 flex items-end justify-between">
+                        <div>
+                          <h4 className="text-white font-bold text-lg leading-tight">{com.nome}</h4>
+                          <div className="flex items-center gap-2 text-white/70 text-xs mt-1 font-medium">
+                            <Users size={12} /> {com.total_membros || 0} membros
+                          </div>
+                        </div>
+                        <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all">
+                          <ChevronRight size={20} />
                         </div>
                       </div>
-                      <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all">
-                        <ChevronRight size={20} />
-                      </div>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </section>
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            )}
 
             {/* DESTAQUE DE CURADORIA */}
             <section className="relative bg-slate-900 rounded-[3rem] p-12 overflow-hidden text-white shadow-2xl">
