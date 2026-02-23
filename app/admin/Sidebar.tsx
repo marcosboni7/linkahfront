@@ -14,6 +14,7 @@ export function Sidebar({ abaAtiva, setAbaAtiva }: SidebarProps) {
   return (
     <aside className="w-72 bg-slate-950 text-white flex flex-col shrink-0 min-h-screen sticky top-0">
       <div className="p-8">
+        {/* LOGO */}
         <div className="flex items-center gap-3 mb-12">
           <div className="w-10 h-10 bg-[#ff4d4d] rounded-2xl flex items-center justify-center shadow-lg shadow-[#ff4d4d]/20">
             <ShieldCheck size={24} className="text-white" />
@@ -24,6 +25,7 @@ export function Sidebar({ abaAtiva, setAbaAtiva }: SidebarProps) {
           </div>
         </div>
 
+        {/* NAVEGAÇÃO */}
         <nav className="space-y-3">
           <SidebarItem 
             icon={<LayoutDashboard size={20}/>} 
@@ -33,7 +35,7 @@ export function Sidebar({ abaAtiva, setAbaAtiva }: SidebarProps) {
           />
           <SidebarItem 
             icon={<Ticket size={20}/>} 
-            label="Gerenciar Eventos" 
+            label="Eventos" 
             active={abaAtiva === 'eventos'} 
             onClick={() => setAbaAtiva('eventos')}
           />
@@ -45,13 +47,14 @@ export function Sidebar({ abaAtiva, setAbaAtiva }: SidebarProps) {
           />
           <SidebarItem 
             icon={<MessageSquare size={20}/>} 
-            label="Moderação Chat" 
+            label="Chat" 
             active={abaAtiva === 'chat'} 
             onClick={() => setAbaAtiva('chat')}
           />
         </nav>
       </div>
       
+      {/* BOTÃO SAIR */}
       <div className="mt-auto p-8">
         <button 
           onClick={() => window.location.href = '/'}
