@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Sidebar } from '../Sidebar'; 
+import Sidebar from '../Sidebar';
 import { 
   Search, Trash2, RefreshCcw, Calendar, MapPin, Save, X, Edit3, Ticket, Users, LayoutDashboard
 } from 'lucide-react';
