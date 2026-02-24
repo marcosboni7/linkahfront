@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Eye, EyeOff, Globe, ArrowRight, Sparkles, Loader2 } from 'lucide-react';
 
-// --- CONFIGURAÇÃO DA API DA AWS ---
-const API_URL_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://r8amtavirp.us-east-1.awsapprunner.com';
+// --- CONFIGURAÇÃO DA API DA AWS ATUALIZADA ---
+const API_URL_BASE = 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -39,18 +39,11 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    console.log("🚀 [DEBUG] Iniciando tentativa de login para:", email);
-    
-    if (errors.email || errors.senha || !email || !senha) {
-      console.warn("⚠️ [DEBUG] Validação impediu o envio:", errors);
-      return;
-    }
+    if (errors.email || errors.senha || !email || !senha) return;
 
     setIsLoading(true);
 
     try {
-      console.log("📡 [DEBUG] Chamando API AWS:", `${API_URL_BASE}/api/auth/login`);
-      
       const response = await fetch(`${API_URL_BASE}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -61,39 +54,34 @@ export default function LoginPage() {
       });
 
       const data = await response.json();
-      console.log("📦 [DEBUG] Dados recebidos do Backend:", data);
 
       if (response.ok) {
         const user = data.user;
         const emailUsuario = user?.email || email.trim().toLowerCase();
         
-        // 1. PERSISTÊNCIA NO LOCALSTORAGE
+        // 1. PERSISTÊNCIA DE SEGURANÇA NO LOCALSTORAGE
         window.localStorage.setItem('@Linkah:Token', data.token);
         window.localStorage.setItem('userEmail', emailUsuario);
         window.localStorage.setItem('userName', user?.nome || 'Produtor');
 
-        // 2. COOKIE PARA O MIDDLEWARE (Sessão de 24h)
+        // 2. COOKIE PARA MIDDLEWARE (Sessão 24h) - Essencial para proteção de rotas server-side
         document.cookie = `userEmail=${emailUsuario}; path=/; max-age=86400; SameSite=Lax`;
-        console.log("✅ [DEBUG] Cookie de sessão criado!");
 
-        // 3. LÓGICA DE REDIRECIONAMENTO POR PERFIL
+        // 3. REDIRECIONAMENTO INTELIGENTE
+        // Valida se o produtor já completou o cadastro básico após o registro
         if (user?.perfil_completo) {
-          console.log("➡️ [DEBUG] Redirecionando: Dashboard Eventos");
           window.localStorage.setItem('perfil_completo', 'true');
           window.location.href = '/dashboard/eventos'; 
         } else {
-          console.log("➡️ [DEBUG] Redirecionando: Página de Perfil");
           window.localStorage.removeItem('perfil_completo');
           window.location.href = '/dashboard/perfil';
         }
         
       } else {
-        console.error("❌ [DEBUG] Erro retornado pela API:", data.message);
-        setErrors({ email: ' ', senha: data.message || "Credenciais incorretas" });
+        setErrors({ email: ' ', senha: data.message || "Credenciais inválidas" });
       }
     } catch (error) {
-      console.error("🚨 [DEBUG] Erro fatal na requisição:", error);
-      setErrors({ email: 'Erro de conexão', senha: 'Não foi possível conectar ao servidor' });
+      setErrors({ email: 'Erro de conexão', senha: 'Servidor AWS indisponível' });
     } finally {
       setIsLoading(false);
     }
@@ -102,16 +90,15 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen bg-[#F8FAFC] font-sans antialiased text-slate-900">
       
-      {/* LADO ESQUERDO: BRANDING PRODUCER */}
-      <div className="hidden lg:flex w-[40%] bg-[#C22973] flex-col justify-between p-16 relative overflow-hidden shadow-[20px_0_40px_rgba(0,0,0,0.1)]">
+      {/* LADO ESQUERDO: BRANDING & INFRAESTRUTURA */}
+      <div className="hidden lg:flex w-[40%] bg-[#C22973] flex-col justify-between p-16 relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-full">
           <div className="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] bg-white/10 rounded-full blur-[120px] animate-pulse" />
-          <div className="absolute bottom-[-10%] left-[-10%] w-[400px] h-[400px] bg-black/20 rounded-full blur-[100px]" />
         </div>
 
         <div className="relative z-10">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-white rounded-[1.5rem] flex items-center justify-center shadow-xl transform rotate-6 hover:rotate-0 transition-all duration-500">
+            <div className="w-14 h-14 bg-white rounded-[1.5rem] flex items-center justify-center shadow-xl transform hover:rotate-6 transition-transform">
               <Globe className="text-[#C22973] w-8 h-8" />
             </div>
             <div>
@@ -123,54 +110,52 @@ export default function LoginPage() {
 
         <div className="relative z-10 text-white">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-[10px] font-black uppercase tracking-widest mb-6 backdrop-blur-md border border-white/10">
-            <Sparkles size={12} className="text-pink-300" /> Inteligência para Eventos
+            <Sparkles size={12} className="text-pink-300" /> Infraestrutura AWS
           </div>
           <h2 className="text-6xl font-black leading-[1] mb-8 tracking-tighter italic uppercase">
             Escale sua <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-200 to-white italic">produção.</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-200 to-white">produção.</span>
           </h2>
           <p className="text-pink-100/80 text-lg font-medium leading-relaxed max-w-sm">
-            A plataforma definitiva para quem transforma ideias em experiências inesquecíveis.
+            Gerencie seus eventos, membros e vendas com a performance da nuvem Linkah.
           </p>
         </div>
 
         <div className="relative z-10 flex items-center gap-6 text-pink-200/40 text-[10px] font-black uppercase tracking-[0.2em]">
-          <span>v2.1.0</span>
+          <span>v2.2.0</span>
           <span className="w-1 h-1 bg-pink-200/20 rounded-full" />
-          <span>AWS Infrastructure</span>
+          <span>Secure Session</span>
         </div>
       </div>
 
-      {/* LADO DIREITO: LOGIN FORM */}
-      <div className="flex-1 flex flex-col justify-center items-center px-8 lg:px-24 bg-[#F8FAFC]">
-        <div className="w-full max-w-[440px] bg-white p-10 rounded-[3.5rem] shadow-[0_10px_40px_rgba(0,0,0,0.03)] border border-slate-100">
+      {/* LADO DIREITO: FORMULÁRIO DE LOGIN */}
+      <div className="flex-1 flex flex-col justify-center items-center px-8 lg:px-24">
+        <div className="w-full max-w-[440px] bg-white p-10 rounded-[3.5rem] shadow-2xl shadow-slate-200/50 border border-slate-100">
+          
           <div className="mb-10 text-center">
-            <h1 className="text-4xl font-black tracking-tight text-slate-900 mb-3 uppercase italic">Bem-vindo</h1>
-            <p className="text-slate-400 font-bold uppercase text-[11px] tracking-widest">Acesse seu painel administrativo</p>
+            <h1 className="text-4xl font-black tracking-tight text-slate-900 mb-3 uppercase italic">Login</h1>
+            <p className="text-slate-400 font-bold uppercase text-[11px] tracking-widest">Acesse sua conta producer</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-6">
+            {/* INPUT E-MAIL */}
             <div className="space-y-2">
-              <label className={`text-[10px] font-black uppercase tracking-[0.15em] ml-2 ${errors.email ? 'text-red-500' : 'text-slate-400'}`}>
-                E-mail Corporativo <span className="text-red-500">*</span>
-              </label>
+              <label className="text-[10px] font-black uppercase tracking-[0.15em] ml-2 text-slate-400">E-mail Corporativo</label>
               <input
                 required
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="nome@empresa.com"
-                className={`w-full px-6 py-4 bg-slate-50 border ${errors.email && email ? 'border-red-400' : 'border-slate-100 focus:border-[#C22973]'} rounded-2xl outline-none focus:bg-white focus:ring-4 focus:ring-pink-50 transition-all font-bold placeholder:text-slate-300`}
+                placeholder="exemplo@linkah.com"
+                className={`w-full px-6 py-4 bg-slate-50 border ${errors.email ? 'border-red-300 ring-4 ring-red-50' : 'border-slate-100 focus:border-[#C22973] focus:ring-4 focus:ring-pink-50'} rounded-2xl outline-none transition-all font-bold placeholder:text-slate-200`}
               />
-              {errors.email && email && <p className="text-[10px] text-red-500 font-bold ml-2 uppercase italic">{errors.email}</p>}
+              {errors.email && <p className="text-[9px] text-red-500 font-black uppercase italic ml-2">{errors.email}</p>}
             </div>
 
+            {/* INPUT SENHA */}
             <div className="space-y-2">
               <div className="flex justify-between items-center px-2">
-                <label className={`text-[10px] font-black uppercase tracking-[0.15em] ${errors.senha ? 'text-red-500' : 'text-slate-400'}`}>
-                  Senha de Acesso <span className="text-red-500">*</span>
-                </label>
-                <Link href="#" className="text-[10px] font-black text-[#C22973] uppercase tracking-widest hover:opacity-70">Esqueceu?</Link>
+                <label className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400">Senha</label>
               </div>
               <div className="relative">
                 <input
@@ -179,7 +164,7 @@ export default function LoginPage() {
                   value={senha}
                   onChange={(e) => setSenha(e.target.value)}
                   placeholder="••••••••"
-                  className={`w-full px-6 py-4 bg-slate-50 border ${errors.senha && senha ? 'border-red-400' : 'border-slate-100 focus:border-[#C22973]'} rounded-2xl outline-none focus:bg-white focus:ring-4 focus:ring-pink-50 transition-all font-bold placeholder:text-slate-300`}
+                  className={`w-full px-6 py-4 bg-slate-50 border ${errors.senha && senha ? 'border-red-300 ring-4 ring-red-50' : 'border-slate-100 focus:border-[#C22973] focus:ring-4 focus:ring-pink-50'} rounded-2xl outline-none transition-all font-bold placeholder:text-slate-200`}
                 />
                 <button
                   type="button"
@@ -189,27 +174,40 @@ export default function LoginPage() {
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
-              {errors.senha && senha && <p className="text-[10px] text-red-500 font-bold ml-2 uppercase italic">{errors.senha}</p>}
             </div>
 
+            {/* MENSAGEM DE ERRO GERAL (API) */}
+            {errors.senha && !senha.length && (
+              <div className="p-4 bg-red-50 rounded-2xl border border-red-100">
+                <p className="text-[10px] text-red-500 font-bold text-center uppercase italic">{errors.senha}</p>
+              </div>
+            )}
+
+            {/* BOTÃO SUBMIT */}
             <button
               disabled={isLoading}
-              className="w-full bg-[#C22973] text-white py-5 rounded-[1.5rem] font-black uppercase text-xs tracking-[0.2em] shadow-xl shadow-pink-100 hover:bg-[#a62262] transition-all flex items-center justify-center gap-3 disabled:opacity-70 active:scale-95"
+              className="w-full bg-[#C22973] text-white py-5 rounded-[1.5rem] font-black uppercase text-xs tracking-[0.2em] shadow-xl shadow-pink-100 hover:bg-[#a62262] transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50"
             >
               {isLoading ? (
-                <Loader2 className="w-6 h-6 animate-spin" />
+                <Loader2 className="animate-spin" />
               ) : (
                 <>Acessar Painel <ArrowRight size={18} /></>
               )}
             </button>
           </form>
 
+          {/* RODAPÉ DO FORMULÁRIO */}
           <div className="mt-10 text-center">
             <p className="text-[11px] font-black uppercase tracking-widest text-slate-400">
-              Novo por aqui? <Link href="/auth/registro" className="text-[#C22973] hover:underline decoration-2 underline-offset-4 ml-1">Criar conta Producer</Link>
+              Ainda não tem conta? 
+              <Link href="/auth/registro" className="text-[#C22973] hover:underline ml-1">Registrar-se</Link>
             </p>
           </div>
         </div>
+
+        <p className="mt-8 text-[10px] font-bold text-slate-300 uppercase tracking-widest">
+          Linkah Cloud Systems &copy; 2026
+        </p>
       </div>
     </div>
   );

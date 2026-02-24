@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 
 // --- CONFIGURAÇÃO DA API DA AWS ---
-const API_URL = 'https://r8amtavirp.us-east-1.awsapprunner.com/api';
+const API_URL = 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
 
 export default function SalaLinkahSkype() {
   const { id } = useParams();
@@ -67,7 +67,6 @@ export default function SalaLinkahSkype() {
               const dataMsg = new Date(msg.criado_em).getTime();
               const segundosPassados = (AGORA - dataMsg) / 1000;
 
-              // Só mostra o convite se for pra mim, for recente (30s) e eu não estiver em outra call
               if (
                 destino === MEU_NOME_LIMPO && 
                 segundosPassados < 30 && 
@@ -95,7 +94,6 @@ export default function SalaLinkahSkype() {
             return acc;
           }, []);
           
-          // CORREÇÃO AQUI: Adicionado (u: any) para evitar erro de build
           setUsuariosOnline(ativosAgora.filter((u: any) => u.usuario_nome !== dadosUsuario.nome));
         }
         setCarregando(false);
@@ -133,7 +131,6 @@ export default function SalaLinkahSkype() {
     const par = [dadosUsuario.nome, nomeDestino].sort();
     const salaPrivada = `Linkah_Priv_${par[0].replace(/\s/g, '_')}_${par[1].replace(/\s/g, '_')}`;
     
-    // Envia o convite via texto invisível
     await fetch(`${API_URL}/comunidade/enviar`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -174,7 +171,7 @@ export default function SalaLinkahSkype() {
   if (carregando) return (
     <div className="h-screen flex flex-col items-center justify-center bg-white">
         <Loader2 className="animate-spin text-[#C22973] mb-4" size={48} />
-        <p className="font-black italic text-slate-900 uppercase tracking-widest text-xs">Conectando ao Jitsi...</p>
+        <p className="font-black italic text-slate-900 uppercase tracking-widest text-xs">Conectando à Comunidade...</p>
     </div>
   );
 
@@ -225,7 +222,7 @@ export default function SalaLinkahSkype() {
         <div className="flex-1 overflow-y-auto px-4 py-6 space-y-2">
           <p className="px-4 mb-4 text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">Pessoas Online</p>
           {usuariosOnline.length === 0 ? (
-            <p className="text-center text-[10px] font-bold text-slate-300 uppercase py-10 tracking-widest">Ninguém online agora</p>
+            <p className="text-center text-[10px] font-bold text-slate-300 uppercase py-10 tracking-widest">Aguardando membros...</p>
           ) : usuariosOnline.map((user, idx) => (
             <div 
               key={idx} 
@@ -255,7 +252,7 @@ export default function SalaLinkahSkype() {
             <div className="p-4 bg-slate-900 flex justify-between items-center border-b border-white/5">
               <div className="flex items-center gap-3">
                 <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                <span className="text-white font-black text-[10px] uppercase tracking-[0.3em]">Chamada Criptografada</span>
+                <span className="text-white font-black text-[10px] uppercase tracking-[0.3em]">Chamada Linkah Secured</span>
               </div>
               <button onClick={() => setChamadaAtiva(false)} className="bg-red-500 hover:bg-red-600 text-white px-8 py-3 rounded-2xl font-black text-[10px] tracking-widest shadow-xl shadow-red-500/20 transition-all active:scale-95 flex items-center gap-2">
                 <PhoneOff size={14} /> ENCERRAR
@@ -276,7 +273,7 @@ export default function SalaLinkahSkype() {
              <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-[#C22973] font-black border border-slate-100 uppercase italic text-lg shadow-inner">{dadosEvento?.nome?.charAt(0)}</div>
              <div>
                 <h3 className="font-black text-slate-900 text-base uppercase italic tracking-tighter">{dadosEvento?.nome}</h3>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Canal da Comunidade • {mensagens.length} msgs</p>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Linkah Community • {mensagens.length} msgs</p>
              </div>
           </div>
           <div className="flex items-center gap-6">
@@ -289,6 +286,7 @@ export default function SalaLinkahSkype() {
         {/* MENSAGENS */}
         <div className="flex-1 overflow-y-auto p-8 space-y-8 bg-slate-50/20">
           {mensagens.map((msg, idx) => {
+            // Esconde pings de sistema e convites da timeline principal
             if (msg.texto?.includes("system_ping") || msg.texto?.includes("CALL_INVITE|")) return null;
             const souEu = dadosUsuario?.nome === msg.usuario_nome;
             return (
@@ -323,7 +321,7 @@ export default function SalaLinkahSkype() {
                   const f = e.target.files?.[0];
                   if (f) { const r = new FileReader(); r.onloadend = () => setImagemAnexada(r.result as string); r.readAsDataURL(f); }
                 }} />
-                <input type="text" value={novoTexto} onChange={(e) => setNovoTexto(e.target.value)} placeholder="Sua mensagem aqui..." className="flex-1 bg-transparent border-none outline-none py-3 text-sm font-bold text-slate-900 placeholder:text-slate-300" />
+                <input type="text" value={novoTexto} onChange={(e) => setNovoTexto(e.target.value)} placeholder="Envie algo incrível..." className="flex-1 bg-transparent border-none outline-none py-3 text-sm font-bold text-slate-900 placeholder:text-slate-300" />
                 <Smile size={22} className="text-slate-300 hover:text-yellow-500 cursor-pointer transition-colors" />
               </div>
             </div>

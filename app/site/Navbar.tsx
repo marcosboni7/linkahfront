@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { User, MapPin, Ticket, LogOut, X, Calendar, Hash, Loader2, MessagesSquare, ChevronRight } from 'lucide-react';
 
-// --- CONFIGURAÇÃO DA API DA AWS ---
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://r8amtavirp.us-east-1.awsapprunner.com';
+// --- CONFIGURAÇÃO DA API DA AWS ATUALIZADA ---
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
 
 export function Navbar() {
   const [usuario, setUsuario] = useState<{ nome: string; email?: string; role?: string } | null>(null);
@@ -44,7 +44,7 @@ export function Navbar() {
     setIsModalOpen(true);
     setBuscandoTickets(true);
     try {
-      // Chamada atualizada para a API na AWS
+      // Chamada atualizada para o novo serviço AWS App Runner
       const response = await fetch(`${API_URL}/api/compras/meus-ingressos?email=${usuario.email}`);
       if (response.ok) {
         const dados = await response.json();

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { Navbar } from '../../site/Navbar';
 import { Footer } from '../../site/Footer';
 import { 
@@ -12,11 +12,12 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
-// --- CONFIGURAÇÃO DA API DA AWS ---
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://r8amtavirp.us-east-1.awsapprunner.com';
+// --- CONFIGURAÇÃO DA API DA AWS ATUALIZADA ---
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
 
 export default function DetalhesEvento() {
   const { id } = useParams();
+  const router = useRouter();
   const [evento, setEvento] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [quantidade, setQuantidade] = useState(1);
@@ -54,7 +55,7 @@ export default function DetalhesEvento() {
 
   if (!evento) return <div className="p-20 text-center text-slate-500 font-medium">Evento não encontrado na base de dados.</div>;
 
-  // Lógica de cálculo de preço
+  // Lógica de cálculo de preço (Tratando as variações da API)
   const precoBase = evento.ingressos?.[0]?.preco 
     ? Number(evento.ingressos[0].preco) 
     : (evento.preco ? Number(evento.preco) : 0);
@@ -69,12 +70,12 @@ export default function DetalhesEvento() {
         
         {/* NAVEGAÇÃO SUPERIOR */}
         <div className="flex justify-between items-center mb-8">
-          <Link href="/" className="group inline-flex items-center gap-2 text-slate-400 hover:text-[#ff4d4d] transition-all text-sm font-bold">
+          <button onClick={() => router.back()} className="group inline-flex items-center gap-2 text-slate-400 hover:text-[#ff4d4d] transition-all text-sm font-bold">
             <div className="p-2 rounded-full group-hover:bg-orange-50 transition-colors">
               <ChevronLeft size={20} />
             </div>
-            Explorar Eventos
-          </Link>
+            Voltar
+          </button>
           <div className="flex gap-3">
             <button className="p-3 rounded-full border border-slate-100 hover:bg-slate-50 transition-all text-slate-400 shadow-sm active:scale-90">
               <Share2 size={18} />
@@ -100,7 +101,7 @@ export default function DetalhesEvento() {
                   {evento.categoria || 'Experiência'}
                 </span>
                 <span className="flex items-center gap-1.5 text-[11px] font-semibold text-white/80 backdrop-blur-md bg-white/10 px-3 py-1.5 rounded-full border border-white/20">
-                  <Verified size={14} className="text-blue-400" /> Evento Verificado
+                  <Verified size={14} className="text-blue-400" /> Evento Verificado na AWS
                 </span>
              </div>
              <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-none drop-shadow-md">
@@ -134,7 +135,7 @@ export default function DetalhesEvento() {
                 </div>
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Local</p>
-                  <p className="font-bold text-slate-800 text-lg line-clamp-1">{evento.tipo === 'online' ? 'Online' : (evento.local_nome || evento.local)}</p>
+                  <p className="font-bold text-slate-800 text-lg line-clamp-1">{evento.tipo === 'online' ? 'Plataforma Linkah' : (evento.local_nome || evento.local)}</p>
                   <p className="text-sm text-slate-500 font-medium line-clamp-1">{evento.cidade || 'Linkah Transmissão'}{evento.estado ? `, ${evento.estado}` : ''}</p>
                 </div>
               </div>
@@ -207,14 +208,14 @@ export default function DetalhesEvento() {
                       <div className="flex items-center justify-between bg-white p-2 rounded-2xl shadow-sm border border-slate-100">
                         <button 
                           onClick={() => setQuantidade(Math.max(1, quantidade - 1))} 
-                          className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 hover:text-[#ff4d4d]"
+                          className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 hover:text-[#ff4d4d] transition-colors"
                         >
                           <Minus size={20} />
                         </button>
                         <span className="font-bold text-xl text-slate-900">{quantidade}</span>
                         <button 
                           onClick={() => setQuantidade(Math.min(10, quantidade + 1))} 
-                          className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 hover:text-[#ff4d4d]"
+                          className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 hover:text-[#ff4d4d] transition-colors"
                         >
                           <Plus size={20} />
                         </button>
@@ -235,17 +236,28 @@ export default function DetalhesEvento() {
                       className="group flex items-center justify-center w-full bg-gradient-to-r from-[#ff4d4d] to-[#ff8c42] py-7 rounded-[2.5rem] font-bold text-white transition-all hover:scale-[1.02] shadow-xl text-base gap-3"
                     >
                       <Ticket size={24} />
-                      RESERVAR MEU LUGAR
+                      COMPRAR AGORA
                     </Link>
 
                     <div className="space-y-4 pt-4 text-center">
-                      <p className="text-[11px] text-slate-400 font-medium">Pagamento seguro via Stripe & Pix</p>
-                      <div className="flex justify-center gap-4 opacity-30 grayscale">
-                         {/* Aqui você pode colocar ícones pequenos de cartões/pix se desejar */}
+                      <p className="text-[11px] text-slate-400 font-medium">Checkout AWS • Stripe & Pix</p>
+                      <div className="flex justify-center items-center gap-3 opacity-40 grayscale">
+                         <div className="w-8 h-5 bg-slate-200 rounded-sm" /> 
+                         <div className="w-8 h-5 bg-slate-200 rounded-sm" />
+                         <div className="w-8 h-5 bg-slate-200 rounded-sm" />
                       </div>
                     </div>
                   </div>
                 </div>
+              </div>
+              
+              <div className="mt-8 flex items-center gap-4 px-6">
+                <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-500">
+                  <ShieldCheck size={20} />
+                </div>
+                <p className="text-[11px] text-slate-400 font-bold leading-tight uppercase tracking-wider">
+                  Compra Protegida <br/> <span className="text-slate-900">Garantia Linkah</span>
+                </p>
               </div>
             </div>
           </div>

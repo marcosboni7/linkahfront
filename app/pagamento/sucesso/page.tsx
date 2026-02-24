@@ -2,11 +2,12 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+// CORREÇÃO: O pacote correto é lucide-react
 import { Ticket, Download, ArrowRight, Loader2, Calendar, User, Hash, MapPin, AlertCircle, CheckCircle2, Verified } from 'lucide-react';
 import Link from 'next/link';
 
-// --- CONFIGURAÇÃO DA API DA AWS ---
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://r8amtavirp.us-east-1.awsapprunner.com';
+// --- CONFIGURAÇÃO DA API DA AWS ATUALIZADA ---
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
 
 function TicketVisual() {
   const searchParams = useSearchParams();
@@ -17,7 +18,7 @@ function TicketVisual() {
 
   useEffect(() => {
     let tentativas = 0;
-    const maxTentativas = 4; // Aumentei para 4 para dar tempo do Webhook processar
+    const maxTentativas = 5; // Aumentei um pouco para dar tempo do Pix processar
 
     async function buscar() {
       if (!sessionId) { 
@@ -27,7 +28,7 @@ function TicketVisual() {
       }
 
       try {
-        // Busca os detalhes da compra na AWS
+        // Chamada para a nova URL da AWS App Runner
         const res = await fetch(`${API_URL}/api/pagamentos/detalhes/${sessionId}`);
         
         if (res.ok) {
@@ -35,10 +36,10 @@ function TicketVisual() {
           setCompra(data);
           setLoading(false);
         } else {
-          // Se não encontrar de primeira, espera 3 segundos e tenta de novo (tempo do webhook)
+          // Lógica de Retry: Útil para aguardar o Webhook do Stripe/Pix
           if (tentativas < maxTentativas) {
             tentativas++;
-            setTimeout(buscar, 3000);
+            setTimeout(buscar, 3000); 
           } else {
             setLoading(false);
             setErro(true);
@@ -56,145 +57,167 @@ function TicketVisual() {
   if (loading) return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-white gap-4">
       <Loader2 className="animate-spin text-rose-500" size={40} />
-      <p className="font-black text-slate-400 uppercase tracking-widest italic animate-pulse">Validando com a rede AWS...</p>
+      <p className="font-black text-slate-400 uppercase tracking-widest italic animate-pulse text-xs text-center px-6">
+        Sincronizando com a rede AWS... <br/>Gerando seu ticket oficial
+      </p>
     </div>
   );
 
   if (erro || !compra) return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 px-6 text-center gap-4">
-      <AlertCircle className="text-rose-500" size={40} />
-      <h3 className="font-black text-slate-800 uppercase italic text-xl">Ingresso em processamento</h3>
-      <p className="text-slate-500 text-sm max-w-xs">
-        Seu pagamento foi aprovado, mas estamos gerando seu QR Code. 
-        Por favor, <b>atualize a página</b> em instantes.
+      <div className="w-20 h-20 bg-rose-50 rounded-full flex items-center justify-center mb-2">
+        <AlertCircle className="text-rose-500" size={40} />
+      </div>
+      <h3 className="font-black text-slate-800 uppercase italic text-xl">Processando Dados</h3>
+      <p className="text-slate-500 text-sm max-w-xs leading-relaxed">
+        Seu pagamento foi confirmado, mas o servidor está finalizando a emissão do QR Code. 
       </p>
-      <button onClick={() => window.location.reload()} className="mt-4 bg-slate-900 text-white px-8 py-3 rounded-full font-bold uppercase text-xs">
-        Atualizar Agora
+      <button 
+        onClick={() => window.location.reload()} 
+        className="mt-4 bg-rose-500 hover:bg-rose-600 text-white px-10 py-4 rounded-full font-bold uppercase text-xs transition-all shadow-lg active:scale-95"
+      >
+        Atualizar Ticket
       </button>
     </div>
   );
 
   return (
-    <main className="max-w-2xl mx-auto px-4 py-8 min-h-screen bg-white">
+    <main className="max-w-2xl mx-auto px-4 py-12 min-h-screen bg-white">
       <style jsx global>{`
-        @media print { .no-print { display: none !important; } body { background: white; } .ticket-card { border: 2px solid #f43f5e !important; box-shadow: none !important; margin: 0; padding: 0; } }
+        @media print { 
+          .no-print { display: none !important; } 
+          body { background: white; padding: 0; } 
+          .ticket-card { 
+            border: 2px solid #e2e8f0 !important; 
+            box-shadow: none !important; 
+            margin: 0 !important;
+            -webkit-print-color-adjust: exact;
+          } 
+        }
         .ticket-mask {
-          mask-image: radial-gradient(circle at 0 72%, transparent 20px, black 21px), 
-                      radial-gradient(circle at 100% 72%, transparent 20px, black 21px);
+          mask-image: radial-gradient(circle at 0 75%, transparent 15px, black 16px), 
+                      radial-gradient(circle at 100% 75%, transparent 15px, black 16px);
         }
       `}</style>
 
       {/* HEADER DA PÁGINA */}
-      <div className="text-center mb-8 no-print">
-        <div className="inline-flex items-center gap-2 bg-emerald-50 text-emerald-600 px-4 py-2 rounded-full mb-4 border border-emerald-100">
+      <div className="text-center mb-10 no-print">
+        <div className="inline-flex items-center gap-2 bg-emerald-50 text-emerald-600 px-5 py-2.5 rounded-full mb-6 border border-emerald-100 shadow-sm">
           <CheckCircle2 size={16} />
-          <span className="font-bold text-xs uppercase tracking-wider">Acesso Garantido</span>
+          <span className="font-bold text-[10px] uppercase tracking-widest">Pagamento Verificado via Stripe</span>
         </div>
-        <h1 className="text-slate-900 font-black text-2xl italic tracking-tighter uppercase">Prepare sua Energia!</h1>
+        <h1 className="text-slate-900 font-black text-3xl italic tracking-tighter uppercase leading-none">
+          Sua entrada está liberada!
+        </h1>
       </div>
 
       {/* CARD DO INGRESSO */}
-      <div className="ticket-card ticket-mask bg-white rounded-[3rem] shadow-[0_40px_80px_-15px_rgba(244,63,94,0.15)] overflow-hidden border border-rose-100 relative mb-8">
+      <div className="ticket-card ticket-mask bg-white rounded-[3rem] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.1)] overflow-hidden border border-slate-100 relative mb-10">
         
-        {/* TOPO ESTILIZADO */}
-        <div className="bg-rose-500 p-8 text-center relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none flex flex-wrap gap-4 p-2">
-            {[...Array(15)].map((_, i) => <Ticket key={i} size={30} className="-rotate-12" />)}
+        <div className="bg-gradient-to-br from-rose-500 to-rose-600 p-10 text-center relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none flex flex-wrap gap-6 p-4">
+            {[...Array(12)].map((_, i) => <Ticket key={i} size={40} className="-rotate-12" />)}
           </div>
-          <h1 className="text-white font-black italic text-4xl tracking-tighter relative z-10 mb-1">LINKAH.</h1>
-          <p className="text-rose-100 font-bold text-[9px] uppercase tracking-[0.5em] relative z-10">Confirmação de Compra AWS</p>
+          <h1 className="text-white font-black italic text-5xl tracking-tighter relative z-10 mb-1">LINKAH.</h1>
+          <p className="text-rose-100 font-bold text-[10px] uppercase tracking-[0.4em] relative z-10 opacity-80">
+            Official AWS Secured Ticket
+          </p>
         </div>
 
-        <div className="p-8 space-y-8">
-          {/* NOME DO EVENTO */}
-          <div className="text-center space-y-2">
-            <h2 className="text-4xl font-black text-slate-900 uppercase italic tracking-tighter leading-none">
+        <div className="p-10 space-y-8">
+          <div className="text-center space-y-3">
+            <h2 className="text-4xl font-black text-slate-900 uppercase italic tracking-tighter leading-[0.9]">
               {compra.evento_nome}
             </h2>
-            <div className="flex items-center justify-center gap-2 text-rose-500 font-bold text-[10px] uppercase tracking-widest">
-               <Verified size={14} /> Linkah Verified Experience
+            <div className="flex items-center justify-center gap-2 text-rose-500 font-bold text-[11px] uppercase tracking-widest">
+               <Verified size={14} className="fill-rose-500 text-white" /> 
+               Ingresso Autêntico
             </div>
           </div>
 
-          {/* GRID DE INFORMAÇÕES */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 rounded-[2rem] p-6 border border-slate-100">
-            <div className="flex items-center gap-3">
-              <div className="bg-white p-2.5 rounded-xl shadow-sm border border-slate-100">
-                <User size={20} className="text-rose-500" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50/50 rounded-[2.5rem] p-8 border border-slate-100">
+            <div className="flex items-center gap-4">
+              <div className="bg-white p-3 rounded-2xl shadow-sm border border-slate-100 text-rose-500">
+                <User size={22} />
               </div>
-              <div>
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Comprador</p>
-                <p className="font-bold text-slate-700 text-sm uppercase truncate max-w-[150px]">
-                   {compra.usuario_email?.split('@')[0]}
+              <div className="min-w-0">
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Titular</p>
+                <p className="font-bold text-slate-700 text-sm uppercase truncate">
+                   {compra.usuario_email || 'Usuário Linkah'}
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <div className="bg-white p-2.5 rounded-xl shadow-sm border border-slate-100">
-                <Hash size={20} className="text-rose-500" />
+            <div className="flex items-center gap-4">
+              <div className="bg-white p-3 rounded-2xl shadow-sm border border-slate-100 text-rose-500">
+                <Hash size={22} />
               </div>
               <div>
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Quantidade</p>
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Quantidade</p>
                 <p className="font-bold text-slate-700 text-sm uppercase">
-                  {compra.quantidade} Ingresso(s)
+                  {compra.quantidade || 1} Un.
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <div className="bg-white p-2.5 rounded-xl shadow-sm border border-slate-100">
-                <Calendar size={20} className="text-rose-500" />
+            <div className="flex items-center gap-4">
+              <div className="bg-white p-3 rounded-2xl shadow-sm border border-slate-100 text-rose-500">
+                <Calendar size={22} />
               </div>
               <div>
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Data</p>
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Data</p>
                 <p className="font-bold text-slate-700 text-sm uppercase">
-                  {compra.data_evento_formatada || 'Em breve'}
+                  {compra.data_evento_formatada || 'Ver no app'}
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <div className="bg-white p-2.5 rounded-xl shadow-sm border border-slate-100">
-                <MapPin size={20} className="text-rose-500" />
+            <div className="flex items-center gap-4">
+              <div className="bg-white p-3 rounded-2xl shadow-sm border border-slate-100 text-rose-500">
+                <MapPin size={22} />
               </div>
-              <div>
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Localização</p>
-                <p className="font-bold text-slate-700 text-sm uppercase truncate max-w-[150px]">
-                  {compra.local_evento || 'Online / A Definir'}
+              <div className="min-w-0">
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Local</p>
+                <p className="font-bold text-slate-700 text-sm uppercase truncate">
+                  {compra.local_evento || 'Check-in Digital'}
                 </p>
               </div>
             </div>
           </div>
 
-          {/* ÁREA DO QR CODE */}
-          <div className="relative border-t-2 border-dashed border-slate-200 pt-8 flex flex-col items-center space-y-4">
-            <div className="bg-white p-4 rounded-3xl border-2 border-slate-100 shadow-inner">
+          <div className="relative border-t-2 border-dashed border-slate-200 pt-10 flex flex-col items-center space-y-6">
+            <div className="absolute -top-[13px] -left-[53px] w-6 h-6 bg-white rounded-full border-r border-slate-100 no-print" />
+            <div className="absolute -top-[13px] -right-[53px] w-6 h-6 bg-white rounded-full border-l border-slate-100 no-print" />
+            
+            <div className="bg-white p-6 rounded-[2.5rem] border-2 border-slate-50 shadow-2xl shadow-rose-500/10">
                <img 
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${sessionId}`} 
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${sessionId}&color=0f172a`} 
                 alt="QR Code"
-                className="w-36 h-36"
+                className="w-40 h-40"
                />
             </div>
-            <div className="text-center">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-2">
-                  Apresente na portaria
-                </p>
-                <code className="text-[10px] bg-slate-100 px-3 py-1 rounded-full text-slate-500 font-bold">
-                  AUTH_{sessionId?.slice(-8).toUpperCase()}
+            <div className="text-center space-y-2">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">Apresente no Local</p>
+                <code className="inline-block text-[11px] bg-slate-900 px-4 py-1.5 rounded-full text-white font-mono font-bold tracking-widest">
+                  {sessionId?.slice(-12).toUpperCase()}
                 </code>
             </div>
           </div>
         </div>
       </div>
 
-      {/* AÇÕES NO-PRINT */}
-      <div className="space-y-3 no-print max-w-md mx-auto">
-        <button onClick={() => window.print()} className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-3 shadow-xl hover:bg-black transition-all active:scale-95">
+      <div className="space-y-4 no-print max-w-sm mx-auto">
+        <button 
+          onClick={() => window.print()} 
+          className="w-full bg-slate-900 text-white py-5 rounded-3xl font-black uppercase text-[11px] tracking-widest flex items-center justify-center gap-3 shadow-2xl hover:bg-black transition-all active:scale-95"
+        >
           <Download size={18}/> Baixar Ingresso
         </button>
-        <Link href="/dashboard/meus-ingressos" className="w-full bg-slate-50 text-slate-500 py-5 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-3 hover:bg-slate-100 transition-all">
-          Ver na minha conta <ArrowRight size={18}/>
+        <Link 
+          href="/" 
+          className="w-full bg-slate-50 text-slate-500 py-5 rounded-3xl font-black uppercase text-[11px] tracking-widest flex items-center justify-center gap-3 hover:bg-slate-100 transition-all border border-slate-100"
+        >
+          Explorar mais eventos <ArrowRight size={18}/>
         </Link>
       </div>
     </main>
@@ -203,13 +226,15 @@ function TicketVisual() {
 
 export default function PaginaSucesso() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-4">
-        <Loader2 className="animate-spin text-rose-500" size={50} />
-        <p className="font-black text-rose-500 uppercase tracking-widest animate-pulse italic text-sm">Sincronizando com AWS...</p>
-      </div>
-    }>
-      <TicketVisual />
-    </Suspense>
+    <div className="bg-slate-50 min-h-screen">
+      <Suspense fallback={
+        <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-4">
+          <Loader2 className="animate-spin text-rose-500" size={50} />
+          <p className="font-black text-rose-500 uppercase tracking-widest animate-pulse italic text-sm">Validando transação...</p>
+        </div>
+      }>
+        <TicketVisual />
+      </Suspense>
+    </div>
   );
 }

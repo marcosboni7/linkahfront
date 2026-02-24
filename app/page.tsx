@@ -13,8 +13,8 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
-// --- CONFIGURAÇÃO DA API DA AWS ---
-const API_URL_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://r8amtavirp.us-east-1.awsapprunner.com';
+// --- CONFIGURAÇÃO DA API DA AWS ATUALIZADA ---
+const API_URL_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
 
 const iconMap: { [key: string]: any } = {
   'Todos': Ticket, 'Show': Music, 'Mentoria': Mic2, 'Teatro': Theater,
@@ -46,6 +46,7 @@ export default function BuyTicketHome() {
     async function carregarDados() {
       setLoading(true);
       try {
+        // Buscando eventos da vitrine e comunidades simultaneamente na nova API AWS
         const [resEventos, resComunidades] = await Promise.all([
           fetch(`${API_URL_BASE}/api/eventos/vitrine`),
           fetch(`${API_URL_BASE}/api/comunidades`)

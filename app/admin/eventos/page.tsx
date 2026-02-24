@@ -1,15 +1,16 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+// CORREÇÃO: Importado de 'lucide-react'
 import { 
   Search, Trash2, RefreshCcw, Calendar, MapPin, 
-  Save, X, Edit3, Loader2, Link, AlignLeft, DollarSign, Clock,
+  Save, X, Edit3, Loader2, Link, DollarSign, Clock,
   AlertCircle, Image as ImageIcon
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 
-// --- CONFIGURAÇÃO DA API DA AWS ---
-const API_URL = 'https://r8amtavirp.us-east-1.awsapprunner.com/api/eventos';
+// --- CONFIGURAÇÃO DA API DA AWS ATUALIZADA ---
+const API_URL = 'https://zmn9xuwd4y.us-east-1.awsapprunner.com/api/eventos';
 
 export default function AdminEventos() {
   const [eventos, setEventos] = useState<any[]>([]);
@@ -25,18 +26,19 @@ export default function AdminEventos() {
   const carregarDados = async () => {
     setLoading(true);
     try {
-      // Usando o endpoint de vitrine para listar eventos ativos
+      // Usando o endpoint de vitrine para listar eventos ativos no novo servidor AWS
       const res = await fetch(`${API_URL}/vitrine`);
       if (res.ok) {
         const data = await res.json();
+        // Garante que os dados sejam formatados corretamente para o input type="date"
         const formatados = Array.isArray(data) ? data.filter((ev: any) => ev.status !== 'Excluído').map((ev: any) => ({
             ...ev,
-            data: ev.data ? ev.data.split('T')[0] : '' 
+            data: ev.data_inicio ? ev.data_inicio.split('T')[0] : (ev.data ? ev.data.split('T')[0] : '') 
         })) : [];
         setEventos(formatados);
       }
     } catch (err) {
-      console.error("❌ Erro ao carregar dados:", err);
+      console.error("❌ Erro ao carregar dados da AWS:", err);
     } finally {
       setLoading(false);
     }
@@ -63,7 +65,12 @@ export default function AdminEventos() {
     e.preventDefault();
     setIsProcessing('salvando');
 
-    const payload = { ...eventoParaEditar, data_inicio: eventoParaEditar.data };
+    // Payload ajustado: garantimos que o banco receba 'data_inicio'
+    const payload = { 
+      ...eventoParaEditar, 
+      data_inicio: eventoParaEditar.data,
+      preco: parseFloat(eventoParaEditar.preco) || 0 
+    };
 
     try {
       const res = await fetch(`${API_URL}/${eventoParaEditar.id}`, {
@@ -77,16 +84,17 @@ export default function AdminEventos() {
         Swal.fire({
             icon: 'success',
             title: 'Evento Atualizado',
+            text: 'As alterações foram sincronizadas na AWS.',
             showConfirmButton: false,
             timer: 1500,
             customClass: { popup: 'rounded-[2rem]' }
         });
         await carregarDados();
       } else {
-        Swal.fire('Erro', 'Não foi possível salvar as alterações.', 'error');
+        Swal.fire('Erro', 'Não foi possível salvar as alterações no servidor.', 'error');
       }
     } catch (err) {
-      Swal.fire('Erro de Conexão', 'Verifique sua internet ou o servidor.', 'error');
+      Swal.fire('Erro de Conexão', 'Não foi possível contatar o App Runner.', 'error');
     } finally {
       setIsProcessing(null);
     }
@@ -95,10 +103,10 @@ export default function AdminEventos() {
   const handleExcluir = async (evento: any) => {
     const result = await Swal.fire({
         title: 'Tem certeza?',
-        text: `O evento "${evento.nome}" será removido da vitrine.`,
+        text: `O evento "${evento.nome}" será removido da vitrine pública.`,
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#C22973',
+        confirmButtonColor: '#ff4d4d',
         cancelButtonColor: '#cbd5e1',
         confirmButtonText: 'Sim, excluir!',
         cancelButtonText: 'Cancelar',
@@ -109,6 +117,7 @@ export default function AdminEventos() {
 
     setIsProcessing(evento.id);
     try {
+      // Exclusão lógica alterando o status para 'Excluído'
       const res = await fetch(`${API_URL}/${evento.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -116,6 +125,13 @@ export default function AdminEventos() {
       });
       if (res.ok) {
         setEventos(prev => prev.filter(ev => ev.id !== evento.id));
+        Swal.fire({
+          title: 'Removido!',
+          icon: 'success',
+          timer: 1000,
+          showConfirmButton: false,
+          customClass: { popup: 'rounded-[2rem]' }
+        });
       }
     } catch (err) {
       console.error("❌ Erro ao excluir:", err);
@@ -125,11 +141,11 @@ export default function AdminEventos() {
   return (
     <div className="p-6 lg:p-12 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-700">
       
-      {/* HEADER DINÂMICO */}
+      {/* HEADER */}
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h1 className="text-5xl font-black tracking-tighter text-slate-900 uppercase italic">Eventos</h1>
-          <p className="text-slate-400 font-bold text-xs uppercase tracking-[0.2em] mt-2">Gerenciamento e curadoria da vitrine Linkah</p>
+          <p className="text-slate-400 font-bold text-xs uppercase tracking-[0.2em] mt-2">Gerenciamento da vitrine Linkah</p>
         </div>
         
         <div className="flex items-center gap-4">
@@ -140,19 +156,19 @@ export default function AdminEventos() {
               placeholder="Localizar evento..." 
               value={filtroBusca}
               onChange={(e) => setFiltroBusca(e.target.value)}
-              className="pl-12 pr-6 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:ring-4 ring-[#C22973]/5 font-bold shadow-sm w-full md:w-80 transition-all placeholder:text-slate-200 text-sm"
+              className="pl-12 pr-6 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:ring-4 ring-rose-500/5 font-bold shadow-sm w-full md:w-80 transition-all text-sm"
             />
           </div>
           <button 
             onClick={carregarDados} 
             className="p-4 bg-white hover:bg-slate-50 border border-slate-200 rounded-2xl text-slate-400 transition-all shadow-sm active:scale-95"
           >
-            <RefreshCcw size={20} className={loading ? 'animate-spin text-[#C22973]' : ''} />
+            <RefreshCcw size={20} className={loading ? 'animate-spin text-rose-500' : ''} />
           </button>
         </div>
       </header>
 
-      {/* TABELA DE GESTÃO */}
+      {/* TABELA */}
       <div className="bg-white rounded-[3.5rem] border border-slate-100 shadow-2xl shadow-slate-200/40 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
@@ -176,7 +192,7 @@ export default function AdminEventos() {
                 <tr>
                     <td colSpan={4} className="px-10 py-20 text-center">
                       <AlertCircle className="mx-auto text-slate-100" size={48} />
-                      <p className="text-slate-300 font-black uppercase text-[10px] mt-4 tracking-widest">Nenhum evento encontrado</p>
+                      <p className="text-slate-300 font-black uppercase text-[10px] mt-4 tracking-widest">Nenhum evento na vitrine</p>
                     </td>
                 </tr>
               ) : (
@@ -192,31 +208,26 @@ export default function AdminEventos() {
                             ) : (
                                 <div className="w-full h-full rounded-2xl bg-slate-100 flex items-center justify-center text-slate-300"><ImageIcon size={20}/></div>
                             )}
-                            <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-white rounded-lg flex items-center justify-center shadow-sm border border-slate-50">
-                                <Link size={10} className="text-[#C22973]" />
-                            </div>
                           </div>
                           <div>
                             <p className="font-black text-slate-900 uppercase italic tracking-tight text-base leading-none mb-1">{ev.nome}</p>
                             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1">
-                                <MapPin size={10} className="text-[#C22973]"/> {ev.local}
+                                <MapPin size={10} className="text-rose-500"/> {ev.local}
                             </p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-10 py-6">
+                      <td className="px-10 py-6 text-center">
                         <div className="flex flex-col items-center gap-1">
                           <span className="px-3 py-1 bg-slate-900 text-white rounded-full text-[9px] font-black uppercase tracking-tighter">{ev.data}</span>
                           <span className="text-[11px] font-bold text-slate-400">{ev.horario || '--:--'}</span>
                         </div>
                       </td>
-                      <td className="px-10 py-6">
-                        <div className="flex justify-center">
-                            <span className="px-3 py-1 bg-emerald-50 text-emerald-500 rounded-lg text-[9px] font-black uppercase tracking-widest border border-emerald-100">Ativo</span>
-                        </div>
+                      <td className="px-10 py-6 text-center">
+                          <span className="px-3 py-1 bg-emerald-50 text-emerald-500 rounded-lg text-[9px] font-black uppercase tracking-widest border border-emerald-100">Ativo</span>
                       </td>
                       <td className="px-10 py-6 text-right">
-                        <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
+                        <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all">
                           <button onClick={() => abrirEdicao(ev)} className="w-11 h-11 flex items-center justify-center bg-white hover:bg-slate-900 hover:text-white border border-slate-200 rounded-xl text-slate-400 transition-all shadow-sm"><Edit3 size={18}/></button>
                           <button onClick={() => handleExcluir(ev)} className="w-11 h-11 flex items-center justify-center bg-white hover:bg-red-500 hover:text-white border border-slate-200 rounded-xl text-slate-400 transition-all shadow-sm" disabled={isProcessing === ev.id}>
                             {isProcessing === ev.id ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18}/>}
@@ -231,102 +242,37 @@ export default function AdminEventos() {
         </div>
       </div>
 
-      {/* MODAL DE EDIÇÃO AVANÇADA */}
+      {/* MODAL DE EDIÇÃO */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[100] flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-2xl rounded-[4rem] p-10 lg:p-14 shadow-2xl animate-in zoom-in-95 duration-300 overflow-y-auto max-h-[90vh] relative border border-white/20">
+          <div className="bg-white w-full max-w-2xl rounded-[4rem] p-10 lg:p-14 shadow-2xl overflow-y-auto max-h-[90vh] relative border border-white/20">
+            <button onClick={() => setIsModalOpen(false)} className="absolute top-8 right-8 text-slate-300 hover:text-slate-900"><X size={28} /></button>
+            <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic mb-10">Editar <span className="text-rose-500">Evento</span></h2>
             
-            <button onClick={() => setIsModalOpen(false)} className="absolute top-8 right-8 p-3 hover:bg-slate-100 rounded-full transition-colors text-slate-300 hover:text-slate-900"><X size={28} /></button>
-
-            <div className="mb-10">
-              <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic">Editar <span className="text-[#C22973]">Evento</span></h2>
-              <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">ID: {eventoParaEditar.id}</p>
-            </div>
-
             <form onSubmit={salvarEdicao} className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="col-span-2 space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Título do Evento</label>
+                <input className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl font-black italic uppercase text-slate-900 outline-none focus:bg-white transition-all" value={eventoParaEditar.nome} onChange={(e) => setEventoParaEditar({...eventoParaEditar, nome: e.target.value})} />
+              </div>
               
-              <div className="col-span-2 space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Título do Evento</label>
-                <input 
-                  className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl font-black italic uppercase text-slate-900 outline-none focus:bg-white focus:ring-4 ring-pink-50 transition-all" 
-                  value={eventoParaEditar.nome} 
-                  onChange={(e) => setEventoParaEditar({...eventoParaEditar, nome: e.target.value})} 
-                />
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Data</label>
+                <input type="date" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none focus:bg-white text-slate-800" value={eventoParaEditar.data} onChange={(e) => setEventoParaEditar({...eventoParaEditar, data: e.target.value})} />
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Data de Início</label>
-                <div className="relative">
-                    <Calendar size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" />
-                    <input 
-                    type="date"
-                    className="w-full pl-14 p-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none focus:bg-white transition-all" 
-                    value={eventoParaEditar.data} 
-                    onChange={(e) => setEventoParaEditar({...eventoParaEditar, data: e.target.value})} 
-                    />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Horário</label>
-                <div className="relative">
-                    <Clock size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" />
-                    <input 
-                    type="time"
-                    className="w-full pl-14 p-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none focus:bg-white transition-all" 
-                    value={eventoParaEditar.horario} 
-                    onChange={(e) => setEventoParaEditar({...eventoParaEditar, horario: e.target.value})} 
-                    />
-                </div>
-              </div>
-
-              <div className="col-span-2 md:col-span-1 space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Local / Endereço</label>
-                <input 
-                  className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none focus:bg-white transition-all text-sm" 
-                  value={eventoParaEditar.local} 
-                  onChange={(e) => setEventoParaEditar({...eventoParaEditar, local: e.target.value})} 
-                />
-              </div>
-
-              <div className="col-span-2 md:col-span-1 space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Preço Base (R$)</label>
-                <div className="relative">
-                    <DollarSign size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" />
-                    <input 
-                    className="w-full pl-14 p-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none focus:bg-white transition-all" 
-                    value={eventoParaEditar.preco} 
-                    onChange={(e) => setEventoParaEditar({...eventoParaEditar, preco: e.target.value})} 
-                    />
-                </div>
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Horário</label>
+                <input type="time" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none focus:bg-white text-slate-800" value={eventoParaEditar.horario} onChange={(e) => setEventoParaEditar({...eventoParaEditar, horario: e.target.value})} />
               </div>
 
               <div className="col-span-2 space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">URL da Capa (CDN)</label>
-                <input 
-                  className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-[10px] text-slate-400 outline-none focus:bg-white transition-all" 
-                  value={eventoParaEditar.imagem} 
-                  onChange={(e) => setEventoParaEditar({...eventoParaEditar, imagem: e.target.value})} 
-                />
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Local</label>
+                <input className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none focus:bg-white text-slate-800" value={eventoParaEditar.local} onChange={(e) => setEventoParaEditar({...eventoParaEditar, local: e.target.value})} />
               </div>
 
-              <div className="col-span-2 space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Descrição do Evento</label>
-                <textarea 
-                  rows={4}
-                  className="w-full p-6 bg-slate-50 border border-slate-100 rounded-3xl font-medium text-sm outline-none resize-none focus:bg-white transition-all" 
-                  value={eventoParaEditar.descricao} 
-                  onChange={(e) => setEventoParaEditar({...eventoParaEditar, descricao: e.target.value})} 
-                />
-              </div>
-
-              <button 
-                type="submit" 
-                disabled={isProcessing === 'salvando'}
-                className="col-span-2 bg-[#C22973] text-white py-6 rounded-3xl font-black uppercase tracking-[0.3em] hover:bg-[#a62262] transition-all shadow-2xl shadow-pink-200 active:scale-95 flex items-center justify-center gap-3 text-xs"
-              >
+              <button type="submit" disabled={isProcessing === 'salvando'} className="col-span-2 bg-slate-900 text-white py-6 rounded-3xl font-black uppercase tracking-[0.3em] hover:bg-rose-500 transition-all flex items-center justify-center gap-3 text-xs shadow-xl active:scale-95">
                 {isProcessing === 'salvando' ? <Loader2 className="animate-spin" /> : <Save size={20} />}
-                Salvar Alterações
+                Sincronizar Alterações
               </button>
             </form>
           </div>

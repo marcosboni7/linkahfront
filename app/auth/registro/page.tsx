@@ -10,8 +10,8 @@ import {
   Phone, MapPin, Loader2 
 } from 'lucide-react';
 
-// --- CONFIGURAÇÃO DA API DA AWS ---
-const API_URL_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://r8amtavirp.us-east-1.awsapprunner.com';
+// --- CONFIGURAÇÃO DA API DA AWS ATUALIZADA ---
+const API_URL_BASE = 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -53,7 +53,10 @@ export default function RegisterPage() {
       setErrors(newErrors);
       setIsLoading(false);
       const firstError = Object.keys(newErrors)[0];
-      document.getElementsByName(firstError)[0]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const element = document.getElementsByName(firstError)[0];
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
       return;
     }
 

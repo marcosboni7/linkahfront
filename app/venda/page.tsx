@@ -9,9 +9,8 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
-// --- CONFIGURAÇÃO DA API ---
-// Substituímos o link do Render pelo link oficial da sua API na AWS App Runner
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://r8amtavirp.us-east-1.awsapprunner.com';
+// --- CONFIGURAÇÃO DA API ATUALIZADA (AWS APP RUNNER) ---
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
 
 function CheckoutContent() {
   const searchParams = useSearchParams();
@@ -26,7 +25,7 @@ function CheckoutContent() {
     async function carregarEvento() {
       if (!eventoId) return;
       try {
-        // Agora buscando da API da AWS
+        // Busca os detalhes do evento diretamente na nova API da AWS
         const res = await fetch(`${API_URL}/api/eventos/${eventoId}`);
         if (res.ok) {
           const data = await res.json();
@@ -54,7 +53,7 @@ function CheckoutContent() {
     }
     setLoading(true);
     try {
-      // Chamada de checkout atualizada para o servidor AWS
+      // Inicia a sessão de Checkout do Stripe via Backend AWS
       const response = await fetch(`${API_URL}/api/pagamentos/checkout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -68,10 +67,10 @@ function CheckoutContent() {
       const data = await response.json();
       
       if (data.url) {
-        // Redireciona para o Stripe (onde o Pix deve aparecer se configurado no Dashboard do Stripe)
+        // Redireciona para o Stripe (onde o Pix aparecerá se habilitado no dashboard)
         window.location.assign(data.url);
       } else {
-        throw new Error("Link de pagamento não recebido do servidor AWS.");
+        throw new Error("Não foi possível gerar o link de pagamento.");
       }
     } catch (err: any) {
       alert(`Erro na transação: ${err.message}`);
@@ -84,20 +83,20 @@ function CheckoutContent() {
     <main className="max-w-4xl mx-auto px-6 py-12 bg-[#FCFBFA] min-h-screen">
       <div className="mb-12">
         <Link href={`/evento/${eventoId}`} className="inline-flex items-center gap-2 text-slate-400 hover:text-slate-900 transition-all text-sm font-medium">
-          <ArrowLeft size={16} /> Voltar para detalhes
+          <ArrowLeft size={16} /> Voltar para o evento
         </Link>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-16">
         <div className="lg:col-span-3 space-y-12">
           <header className="space-y-2">
-            <h1 className="text-3xl font-bold tracking-tight">Finalizar Inscrição</h1>
-            <p className="text-slate-500">Preencha seus dados para receber o ingresso.</p>
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900">Finalizar Compra</h1>
+            <p className="text-slate-500 font-medium">Os ingressos serão enviados para o seu e-mail.</p>
           </header>
 
           <section className="space-y-6">
             <div className="space-y-4">
-              <label className="text-sm font-bold text-slate-700 ml-1">Informações do Participante</label>
+              <label className="text-sm font-bold text-slate-700 ml-1">Seus Dados</label>
               <input 
                 name="nome" 
                 value={formData.nome} 
@@ -117,41 +116,41 @@ function CheckoutContent() {
 
             <div className="p-6 rounded-3xl bg-white border border-slate-100 shadow-sm space-y-4">
               <div className="flex items-center gap-3 text-slate-600">
-                <CreditCard size={20} className="text-slate-400" />
-                <span className="text-sm font-medium">O pagamento será processado via Stripe</span>
+                <CreditCard size={20} className="text-[#ff4d4d]" />
+                <span className="text-sm font-semibold">Pix ou Cartão via Stripe</span>
               </div>
               <div className="flex items-center gap-3 text-slate-600">
                 <ShieldCheck size={20} className="text-emerald-500" />
-                <span className="text-sm font-medium">Ambiente 100% seguro (AWS Cloud)</span>
+                <span className="text-sm font-medium">Pagamento seguro processado na AWS</span>
               </div>
             </div>
           </section>
         </div>
 
         <div className="lg:col-span-2">
-          <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm sticky top-10 space-y-8">
+          <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm sticky top-24 space-y-8">
             <div className="flex items-center gap-4 pb-6 border-b border-slate-50">
               <div className="w-12 h-12 rounded-xl bg-orange-50 flex items-center justify-center text-[#ff4d4d]">
                 <TicketIcon size={24} />
               </div>
               <div className="flex-1">
-                <p className="font-bold text-slate-900 leading-tight line-clamp-1">{evento?.nome || 'Carregando...'}</p>
-                <p className="text-xs text-slate-400 font-medium">{qtd}x Ingressos</p>
+                <p className="font-bold text-slate-900 leading-tight line-clamp-1">{evento?.nome || 'Processando...'}</p>
+                <p className="text-xs text-slate-400 font-bold uppercase tracking-tighter">{qtd}x Ingressos</p>
               </div>
             </div>
 
             <div className="space-y-3">
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-500">Subtotal</span>
-                <span className="font-medium">{(precoBase * qtd).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+              <div className="flex justify-between text-sm font-medium">
+                <span className="text-slate-500">Valor Unitário</span>
+                <span>{precoBase.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-500">Taxa de serviço</span>
-                <span className="text-emerald-500 font-medium">Grátis</span>
+              <div className="flex justify-between text-sm font-medium">
+                <span className="text-slate-500">Taxas</span>
+                <span className="text-emerald-500">R$ 0,00</span>
               </div>
               <div className="pt-4 flex justify-between items-end border-t border-slate-50">
                 <span className="font-bold text-slate-900">Total</span>
-                <span className="text-3xl font-bold tracking-tight text-slate-900">
+                <span className="text-3xl font-black tracking-tight text-slate-900">
                   {total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                 </span>
               </div>
@@ -160,16 +159,14 @@ function CheckoutContent() {
             <button 
               onClick={handleFinalizarCompra} 
               disabled={loading || !formData.nome || !formData.email} 
-              className="w-full bg-slate-900 text-white py-5 rounded-2xl font-bold hover:bg-slate-800 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex justify-center items-center gap-2 shadow-lg shadow-slate-100"
+              className="w-full bg-slate-900 text-white py-5 rounded-2xl font-bold hover:bg-black transition-all disabled:opacity-30 disabled:cursor-not-allowed flex justify-center items-center gap-2 shadow-xl active:scale-[0.98]"
             >
-              {loading ? <Loader2 className="animate-spin" size={20} /> : <><Lock size={18}/> Confirmar e Pagar</>}
+              {loading ? <Loader2 className="animate-spin" size={20} /> : <><Lock size={18}/> Ir para Pagamento</>}
             </button>
 
-            <div className="flex flex-col items-center gap-2 pt-2">
-              <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest text-center">
-                Powered by Linkah
-              </p>
-            </div>
+            <p className="text-[10px] text-slate-300 font-bold uppercase tracking-[0.2em] text-center">
+              Secured by Linkah AWS Architecture
+            </p>
           </div>
         </div>
       </div>
@@ -182,8 +179,9 @@ export default function CheckoutPage() {
     <div className="bg-[#FCFBFA] min-h-screen">
       <Navbar />
       <Suspense fallback={
-        <div className="h-screen flex items-center justify-center">
-          <Loader2 className="animate-spin text-slate-300" size={32} />
+        <div className="h-[80vh] flex flex-col items-center justify-center gap-4">
+          <Loader2 className="animate-spin text-[#ff4d4d]" size={40} />
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Preparando Checkout...</p>
         </div>
       }>
         <CheckoutContent />

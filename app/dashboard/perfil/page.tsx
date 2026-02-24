@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { UserCircle, Save, Loader2, ArrowLeft, Info } from 'lucide-react';
+import { UserCircle, Save, Loader2, ArrowLeft, Info, MapPin } from 'lucide-react';
 import Swal from 'sweetalert2';
 import Link from 'next/link';
 
-// --- CONFIGURAÇÃO DA API DA AWS ---
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://r8amtavirp.us-east-1.awsapprunner.com';
+// --- CONFIGURAÇÃO DA API DA AWS ATUALIZADA ---
+const API_URL = 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
 
 export default function PerfilPage() {
   const router = useRouter();
@@ -26,9 +26,9 @@ export default function PerfilPage() {
 
   useEffect(() => {
     const carregarDados = async () => {
-      // Busca resiliente do email
       const userStorage = localStorage.getItem('@Linkah:User');
       const emailLogado = userStorage ? JSON.parse(userStorage).email : localStorage.getItem('userEmail');
+      const token = localStorage.getItem('@Linkah:Token');
       
       if (!emailLogado) {
         router.push('/auth/login');
@@ -36,7 +36,9 @@ export default function PerfilPage() {
       }
 
       try {
-        const response = await fetch(`${API_URL}/api/auth/perfil?email=${emailLogado}`);
+        const response = await fetch(`${API_URL}/api/auth/perfil?email=${emailLogado}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
         const data = await response.json();
         
         if (response.ok && data) {
@@ -63,7 +65,6 @@ export default function PerfilPage() {
     carregarDados();
   }, [router]);
 
-  // AUTO-PREENCHIMENTO DE CEP
   const handleCepBlur = async (e: React.FocusEvent<HTMLInputElement>) => {
     const cep = e.target.value.replace(/\D/g, '');
     if (cep.length === 8) {
@@ -76,6 +77,9 @@ export default function PerfilPage() {
             rua: data.logradouro,
             bairro: data.bairro
           }));
+          setErrors(prev => ({ ...prev, cep: "" }));
+        } else {
+          setErrors(prev => ({ ...prev, cep: "CEP não encontrado" }));
         }
       } catch (err) {
         console.error("Erro ao buscar CEP");
@@ -86,10 +90,7 @@ export default function PerfilPage() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    
-    if (value.trim() !== "" && errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: "" }));
-    }
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: "" }));
   };
 
   const handleSalvar = async (e: React.FormEvent) => {
@@ -108,11 +109,15 @@ export default function PerfilPage() {
     setIsSaving(true);
     const userStorage = localStorage.getItem('@Linkah:User');
     const emailLogado = userStorage ? JSON.parse(userStorage).email : localStorage.getItem('userEmail');
+    const token = localStorage.getItem('@Linkah:Token');
 
     try {
       const response = await fetch(`${API_URL}/api/auth/perfil`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ 
           email_original: emailLogado, 
           ...formData 
@@ -124,12 +129,12 @@ export default function PerfilPage() {
         localStorage.setItem('userName', formData.nome);
 
         await Swal.fire({
-          title: '<span style="color: #C22973">✅ Dados Salvos!</span>',
-          text: 'Suas informações foram atualizadas na AWS.',
+          title: 'DADOS ATUALIZADOS!',
+          text: 'Suas informações de produtor foram sincronizadas com a AWS.',
           icon: 'success',
           confirmButtonColor: '#C22973',
-          confirmButtonText: 'VOLTAR AO PAINEL',
-          customClass: { popup: 'rounded-[2rem]' }
+          confirmButtonText: 'IR PARA O PAINEL',
+          customClass: { popup: 'rounded-[2rem] font-sans' }
         });
 
         router.push('/dashboard/eventos');
@@ -146,94 +151,104 @@ export default function PerfilPage() {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-white">
-        <Loader2 className="animate-spin text-[#C22973]" size={40} />
+      <div className="flex h-screen w-screen flex-col items-center justify-center bg-white gap-4">
+        <Loader2 className="animate-spin text-[#C22973]" size={48} />
+        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Autenticando na Cloud...</span>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] p-4 md:p-10">
-      <div className="max-w-[800px] mx-auto">
+    <div className="min-h-screen bg-[#FDFDFF] p-6 md:p-12 font-sans">
+      <div className="max-w-[850px] mx-auto">
         
-        <Link href="/dashboard/eventos" className="inline-flex items-center gap-2 text-slate-400 hover:text-[#C22973] transition-all mb-8 font-bold text-xs tracking-widest uppercase">
-          <ArrowLeft size={16} /> Voltar para Eventos
+        <Link href="/dashboard/eventos" className="inline-flex items-center gap-3 text-slate-400 hover:text-[#C22973] transition-all mb-10 font-black text-[10px] tracking-[0.2em] uppercase group">
+          <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" /> Voltar ao Dashboard
         </Link>
 
-        <div className="bg-white rounded-[3rem] shadow-xl shadow-slate-200/50 p-8 md:p-12 border border-white">
-          <div className="flex items-center gap-5 mb-12">
-            <div className="w-16 h-16 bg-pink-50 rounded-[1.5rem] flex items-center justify-center">
-              <UserCircle className="text-[#C22973]" size={35} />
+        <div className="bg-white rounded-[3.5rem] shadow-2xl shadow-pink-100/20 p-8 md:p-16 border border-slate-50 relative overflow-hidden">
+          {/* Detalhe estético de fundo */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-pink-50/50 rounded-bl-[5rem] -z-0"></div>
+
+          <div className="flex items-center gap-6 mb-16 relative z-10">
+            <div className="w-20 h-20 bg-[#C22973] rounded-[2rem] flex items-center justify-center shadow-lg shadow-pink-200">
+              <UserCircle className="text-white" size={40} />
             </div>
             <div>
-              <h2 className="text-3xl font-black text-slate-900 leading-none tracking-tight">Meus Dados</h2>
-              <p className="text-slate-400 mt-2 font-medium">Mantenha suas informações de produtor atualizadas</p>
+              <h2 className="text-4xl font-black text-slate-900 leading-none tracking-tighter italic">MEU PERFIL</h2>
+              <p className="text-slate-400 mt-2 font-bold uppercase text-[10px] tracking-widest italic">Configurações de Produtor Linkah</p>
             </div>
           </div>
           
-          <form onSubmit={handleSalvar} className="space-y-10">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="group">
-                <label className={`text-[11px] font-black uppercase tracking-[0.15em] mb-3 block ml-1 transition-colors ${errors.nome ? 'text-red-500' : 'text-slate-400 group-focus-within:text-[#C22973]'}`}>Nome Completo *</label>
+          <form onSubmit={handleSalvar} className="space-y-12 relative z-10">
+            {/* Seção Dados Pessoais */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+              <div className="space-y-3">
+                <label className={`text-[11px] font-black uppercase tracking-[0.2em] block ml-1 ${errors.nome ? 'text-red-500' : 'text-slate-400'}`}>Nome do Responsável *</label>
                 <input 
                   name="nome" 
                   value={formData.nome} 
                   onChange={handleChange} 
-                  className={`w-full border-2 p-4 rounded-2xl outline-none transition-all font-bold ${errors.nome ? 'border-red-200 bg-red-50' : 'border-slate-50 bg-slate-50/80 focus:border-[#C22973] focus:bg-white'}`} 
+                  placeholder="Nome completo ou Razão Social"
+                  className={`w-full border-2 p-5 rounded-[1.5rem] outline-none transition-all font-bold text-slate-700 shadow-sm ${errors.nome ? 'border-red-200 bg-red-50' : 'border-slate-50 bg-slate-50/50 focus:border-[#C22973] focus:bg-white'}`} 
                 />
               </div>
-              <div className="group">
-                <label className={`text-[11px] font-black uppercase tracking-[0.15em] mb-3 block ml-1 transition-colors ${errors.cpf_cnpj ? 'text-red-500' : 'text-slate-400 group-focus-within:text-[#C22973]'}`}>Documento (CPF/CNPJ) *</label>
+              <div className="space-y-3">
+                <label className={`text-[11px] font-black uppercase tracking-[0.2em] block ml-1 ${errors.cpf_cnpj ? 'text-red-500' : 'text-slate-400'}`}>Documento (CPF ou CNPJ) *</label>
                 <input 
                   name="cpf_cnpj" 
                   value={formData.cpf_cnpj} 
                   onChange={handleChange} 
-                  className={`w-full border-2 p-4 rounded-2xl outline-none transition-all font-bold ${errors.cpf_cnpj ? 'border-red-200 bg-red-50' : 'border-slate-50 bg-slate-50/80 focus:border-[#C22973] focus:bg-white'}`} 
+                  placeholder="000.000.000-00"
+                  className={`w-full border-2 p-5 rounded-[1.5rem] outline-none transition-all font-bold text-slate-700 shadow-sm ${errors.cpf_cnpj ? 'border-red-200 bg-red-50' : 'border-slate-50 bg-slate-50/50 focus:border-[#C22973] focus:bg-white'}`} 
                 />
               </div>
             </div>
 
-            <div className="pt-10 border-t border-slate-100 space-y-8">
-              <div className="flex items-center justify-between">
-                <h3 className="text-slate-900 font-black text-lg uppercase tracking-tight">Localização</h3>
+            {/* Seção Endereço */}
+            <div className="pt-12 border-t border-slate-100">
+              <div className="flex items-center gap-2 mb-8">
+                <MapPin size={18} className="text-[#C22973]" />
+                <h3 className="text-slate-900 font-black text-xs uppercase tracking-[0.3em] italic">Endereço de Faturamento</h3>
               </div>
               
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                <div className="col-span-1">
-                  <label className="text-[11px] text-slate-400 font-black uppercase tracking-[0.15em] mb-3 block">CEP *</label>
+                <div className="col-span-1 space-y-3">
+                  <label className="text-[11px] text-slate-400 font-black uppercase tracking-[0.15em] ml-1">CEP *</label>
                   <input 
                     name="cep" 
                     value={formData.cep} 
                     onChange={handleChange} 
                     onBlur={handleCepBlur}
-                    className="w-full border-2 border-slate-50 p-4 rounded-2xl outline-none focus:border-[#C22973] bg-slate-50/80 font-bold" 
+                    placeholder="00000-000"
+                    className={`w-full border-2 p-5 rounded-[1.5rem] outline-none transition-all font-bold text-slate-700 ${errors.cep ? 'border-red-200 bg-red-50' : 'border-slate-50 bg-slate-50/50 focus:border-[#C22973]'}`} 
                   />
                 </div>
-                <div className="col-span-2">
-                  <label className="text-[11px] text-slate-400 font-black uppercase tracking-[0.15em] mb-3 block">Rua *</label>
-                  <input name="rua" value={formData.rua} onChange={handleChange} className="w-full border-2 border-slate-50 p-4 rounded-2xl outline-none focus:border-[#C22973] bg-slate-50/80 font-bold" />
+                <div className="col-span-2 space-y-3">
+                  <label className="text-[11px] text-slate-400 font-black uppercase tracking-[0.15em] ml-1">Logradouro *</label>
+                  <input name="rua" value={formData.rua} onChange={handleChange} className="w-full border-2 border-slate-50 p-5 rounded-[1.5rem] outline-none focus:border-[#C22973] bg-slate-50/50 font-bold text-slate-700" />
                 </div>
-                <div className="col-span-1">
-                  <label className="text-[11px] text-slate-400 font-black uppercase tracking-[0.15em] mb-3 block">Número</label>
-                  <input name="numero" value={formData.numero} onChange={handleChange} className="w-full border-2 border-slate-50 p-4 rounded-2xl outline-none focus:border-[#C22973] bg-slate-50/80 font-bold" />
+                <div className="col-span-1 space-y-3">
+                  <label className="text-[11px] text-slate-400 font-black uppercase tracking-[0.15em] ml-1">Nº</label>
+                  <input name="numero" value={formData.numero} onChange={handleChange} className="w-full border-2 border-slate-50 p-5 rounded-[1.5rem] outline-none focus:border-[#C22973] bg-slate-50/50 font-bold text-slate-700 text-center" />
                 </div>
               </div>
             </div>
 
-            <div className="bg-pink-50 p-6 rounded-[2rem] flex gap-4 items-start border border-pink-100">
-              <Info className="text-[#C22973] shrink-0" size={20} />
-              <p className="text-[12px] text-pink-900 font-medium leading-relaxed">
-                As alterações salvas aqui serão refletidas em seus próximos contratos e faturamentos.
+            <div className="bg-pink-50/30 p-8 rounded-[2.5rem] flex gap-5 items-center border border-pink-100/50">
+              <Info className="text-[#C22973] shrink-0" size={24} />
+              <p className="text-[11px] text-pink-900 font-bold uppercase tracking-tight leading-relaxed">
+                Dados completos garantem a liberação de pagamentos via <span className="underline">Stripe</span> e <span className="underline">Pix</span> sem interrupções.
               </p>
             </div>
 
             <button 
               type="submit" 
               disabled={isSaving} 
-              className="w-full bg-[#C22973] text-white py-6 rounded-2xl font-black uppercase tracking-[0.3em] flex items-center justify-center gap-3 hover:bg-[#a62262] transition-all shadow-xl shadow-pink-100 disabled:opacity-50 active:scale-95"
+              className="w-full bg-[#C22973] text-white py-7 rounded-[2rem] font-black uppercase tracking-[0.4em] italic flex items-center justify-center gap-4 hover:bg-[#a62262] transition-all shadow-2xl shadow-pink-200 disabled:opacity-50 active:scale-95 group"
             >
-              {isSaving ? <Loader2 className="animate-spin" /> : <Save size={20} />} 
-              Atualizar Perfil
+              {isSaving ? <Loader2 className="animate-spin" /> : <Save size={22} className="group-hover:rotate-12 transition-transform" />} 
+              Salvar Alterações
             </button>
           </form>
         </div>
