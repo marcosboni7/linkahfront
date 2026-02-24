@@ -94,7 +94,9 @@ export default function SalaLinkahSkype() {
             }
             return acc;
           }, []);
-          setUsuariosOnline(ativosAgora.filter(u => u.usuario_nome !== dadosUsuario.nome));
+          
+          // CORREÇÃO AQUI: Adicionado (u: any) para evitar erro de build
+          setUsuariosOnline(ativosAgora.filter((u: any) => u.usuario_nome !== dadosUsuario.nome));
         }
         setCarregando(false);
       } catch (err) { console.error("Erro fetch:", err); }
@@ -179,14 +181,14 @@ export default function SalaLinkahSkype() {
   return (
     <div className="flex h-screen bg-white text-slate-700 font-sans overflow-hidden">
       
-      {/* MODAL DE CONVITE (ESTILO SKYPE/WHATSAPP) */}
+      {/* MODAL DE CONVITE */}
       {conviteRecebido && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/90 backdrop-blur-md p-4 animate-in fade-in duration-300">
           <div className="bg-white rounded-[3rem] p-10 max-w-sm w-full shadow-2xl text-center border border-white animate-in zoom-in duration-500">
             <div className="w-24 h-24 bg-pink-50 rounded-full flex items-center justify-center mx-auto mb-6 text-[#C22973] shadow-inner">
               <Phone size={48} className="animate-bounce" />
             </div>
-            <h2 className="text-2xl font-black text-slate-900 mb-1 uppercase italic italic tracking-tighter">Chamada de Vídeo</h2>
+            <h2 className="text-2xl font-black text-slate-900 mb-1 uppercase italic tracking-tighter">Chamada de Vídeo</h2>
             <p className="text-slate-400 mb-10 font-bold text-xs uppercase tracking-widest">{conviteRecebido.de} está chamando...</p>
             
             <div className="flex flex-col gap-3">
@@ -244,7 +246,7 @@ export default function SalaLinkahSkype() {
         </div>
       </aside>
 
-      {/* ÁREA PRINCIPAL: CHAT + CALL */}
+      {/* ÁREA PRINCIPAL */}
       <main className="flex-1 flex flex-col bg-white relative">
         
         {/* JANELA DE VÍDEO (JITSI) */}
