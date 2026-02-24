@@ -1,10 +1,9 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, ImageIcon, Search, Calendar, MapPin, X, Loader2 } from 'lucide-react';
+import { ChevronLeft, ImageIcon, Search, Calendar, MapPin, X, Loader2, AlertTriangle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-// --- CONFIGURAÇÃO DA API DA AWS ATUALIZADA ---
 const API_URL = 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
 
 export default function NovoEventoPresencial() {
@@ -24,10 +23,11 @@ export default function NovoEventoPresencial() {
     nome: '', categoria: '', status: 'Ativo', descricao: '',
     data_inicio: '', hora_inicio: '', data_termino: '', hora_termino: '',
     local_nome: '', cep: '', endereco: '', numero: '', complemento: '', cidade: '', estado: '',
-    tipo: 'Presencial'
+    tipo: 'Presencial',
+    preco: 0 // Campo numérico para evitar erro de cast no banco
   });
 
-  // Inicialização do Mapa e Autocomplete
+  // Inicialização do Mapa (Mantido conforme original)
   useEffect(() => {
     if (typeof window !== 'undefined' && window.google) {
       if (mapContainerRef.current && !googleMap.current) {
@@ -92,7 +92,7 @@ export default function NovoEventoPresencial() {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
     if (value.trim() !== "") {
-        setErrors(prev => ({ ...prev, [name]: false }));
+      setErrors(prev => ({ ...prev, [name]: false }));
     }
   };
 
@@ -107,22 +107,38 @@ export default function NovoEventoPresencial() {
     return Object.keys(newErrors).length === 0;
   };
 
+  // --- FUNÇÃO DE SALVAMENTO COM DEBUG ---
   const handleSalvar = async () => {
     const token = localStorage.getItem('@Linkah:Token');
     const emailProdutor = localStorage.getItem('userEmail');
 
     if (!token || !emailProdutor) {
-        alert("Sessão expirada. Faça login novamente.");
-        router.push('/auth/login');
-        return;
+      console.error("DEBUG: Token ou Email não encontrados no localStorage");
+      alert("Sessão expirada. Faça login novamente.");
+      router.push('/auth/login');
+      return;
     }
     
     if (!validate()) {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        return;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
     }
 
     setIsLoading(true);
+
+    // Preparação do Payload com tratamento de tipos
+    const payload = { 
+      ...formData, 
+      produtor_email: emailProdutor,
+      imagem_capa: previewImage,
+      preco: Number(formData.preco) || 0 // Garante que preço vá como número
+    };
+
+    console.group("🚀 DEBUG LINKAH: Enviando para AWS");
+    console.log("Endpoint:", `${API_URL}/api/eventos/novo-presencial`);
+    console.log("Payload:", payload);
+    console.groupEnd();
+
     try {
       const response = await fetch(`${API_URL}/api/eventos/novo-presencial`, {
         method: 'POST',
@@ -130,23 +146,22 @@ export default function NovoEventoPresencial() {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ 
-          ...formData, 
-          produtor_email: emailProdutor,
-          imagem_capa: previewImage 
-        }),
+        body: JSON.stringify(payload),
       });
 
+      // Tentamos capturar a resposta mesmo se for erro (para ver a mensagem do back)
       const data = await response.json();
+
       if (response.ok) {
-        // Redireciona para o passo 2 (ingressos) passando o ID gerado na AWS
+        console.log("✅ Sucesso AWS:", data);
         router.push(`/dashboard/eventos/novo/ingressos/${data.id}`);
       } else {
-        alert("Erro ao salvar: " + (data.message || "Erro desconhecido"));
+        console.error("❌ Erro 500/400 AWS:", data);
+        alert(`Erro ${response.status}: ${data.message || "Erro interno no servidor AWS"}`);
       }
     } catch (error) {
-      console.error("Erro na conexão AWS:", error);
-      alert("❌ Erro na conexão com o servidor da AWS.");
+      console.error("💥 Erro Fatal Conexão:", error);
+      alert("❌ Falha crítica de conexão. O servidor pode estar fora do ar ou o JSON é muito grande (imagem).");
     } finally {
       setIsLoading(false);
     }
@@ -154,6 +169,7 @@ export default function NovoEventoPresencial() {
 
   return (
     <div className="min-h-screen bg-[#FAFBFF] font-sans antialiased">
+      {/* HEADER */}
       <header className="border-b border-slate-100 px-6 md:px-10 py-5 flex justify-between items-center bg-white/90 backdrop-blur-md sticky top-0 z-50">
         <div className="flex items-center gap-6">
           <button onClick={() => router.back()} className="p-2 hover:bg-pink-50 rounded-full transition-all text-slate-400">
@@ -175,8 +191,7 @@ export default function NovoEventoPresencial() {
       </header>
 
       <main className="max-w-[1300px] mx-auto p-6 md:p-10">
-        
-        {/* PROGRESSO */}
+        {/* INDICADOR DE PROGRESSO */}
         <div className="flex justify-center items-center mb-16 px-4">
           <div className="flex items-center gap-4">
             <div className="w-10 h-10 rounded-2xl bg-[#C22973] text-white flex items-center justify-center shadow-lg shadow-pink-200 font-black text-sm italic">1</div>
@@ -196,24 +211,13 @@ export default function NovoEventoPresencial() {
               <div className="space-y-6">
                 <div className="flex flex-col gap-2">
                   <label className="text-[10px] text-slate-400 font-black uppercase ml-1 italic tracking-widest">Nome do Evento *</label>
-                  <input 
-                    name="nome" 
-                    value={formData.nome} 
-                    onChange={handleChange} 
-                    className={`w-full bg-slate-50 border ${errors.nome ? 'border-red-400 ring-4 ring-red-50' : 'border-slate-100 focus:border-[#C22973]'} p-4 rounded-2xl outline-none focus:bg-white transition-all font-bold text-slate-700`} 
-                    placeholder="Ex: Workshop Producer Masterclass" 
-                  />
+                  <input name="nome" value={formData.nome} onChange={handleChange} className={`w-full bg-slate-50 border ${errors.nome ? 'border-red-400 ring-4 ring-red-50' : 'border-slate-100 focus:border-[#C22973]'} p-4 rounded-2xl outline-none focus:bg-white transition-all font-bold text-slate-700`} placeholder="Ex: Workshop Producer Masterclass" />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="flex flex-col gap-2">
                     <label className="text-[10px] text-slate-400 font-black uppercase ml-1 italic tracking-widest">Categoria *</label>
-                    <select 
-                        name="categoria" 
-                        value={formData.categoria} 
-                        onChange={handleChange} 
-                        className={`w-full bg-slate-50 border ${errors.categoria ? 'border-red-400' : 'border-slate-100'} p-4 rounded-2xl outline-none bg-white font-bold text-slate-600`}
-                    >
+                    <select name="categoria" value={formData.categoria} onChange={handleChange} className={`w-full bg-slate-50 border ${errors.categoria ? 'border-red-400' : 'border-slate-100'} p-4 rounded-2xl outline-none bg-white font-bold text-slate-600`}>
                       <option value="">Selecione...</option>
                       <option value="Show">Música & Show</option>
                       <option value="Workshop">Workshop & Palestra</option>
@@ -233,7 +237,7 @@ export default function NovoEventoPresencial() {
 
                 <div className="flex flex-col gap-2">
                   <label className="text-[10px] text-slate-400 font-black uppercase ml-1 italic tracking-widest">Descrição do Evento</label>
-                  <textarea name="descricao" value={formData.descricao} rows={4} onChange={handleChange} className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none focus:bg-white focus:border-[#C22973] transition-all resize-none font-medium text-slate-600" placeholder="Conte detalhes sobre o evento para seu público..." />
+                  <textarea name="descricao" value={formData.descricao} rows={4} onChange={handleChange} className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none focus:bg-white focus:border-[#C22973] transition-all resize-none font-medium text-slate-600" placeholder="Conte detalhes sobre o evento..." />
                 </div>
               </div>
             </section>
@@ -241,10 +245,10 @@ export default function NovoEventoPresencial() {
             <section className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-sm border border-slate-50">
               <h3 className="text-[#C22973] text-[10px] font-black uppercase tracking-[0.3em] mb-8 flex items-center gap-2"><Calendar size={14}/> 2. Quando será?</h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <input name="data_inicio" value={formData.data_inicio} type="date" onChange={handleChange} className={`bg-slate-50 border ${errors.data_inicio ? 'border-red-400' : 'border-slate-100'} p-4 rounded-xl text-xs font-bold outline-none`} />
-                <input name="hora_inicio" value={formData.hora_inicio} type="time" onChange={handleChange} className="bg-slate-50 border border-slate-100 p-4 rounded-xl text-xs font-bold outline-none" />
-                <input name="data_termino" value={formData.data_termino} type="date" onChange={handleChange} className="bg-slate-50 border border-slate-100 p-4 rounded-xl text-xs font-bold outline-none" />
-                <input name="hora_termino" value={formData.hora_termino} type="time" onChange={handleChange} className="bg-slate-50 border border-slate-100 p-4 rounded-xl text-xs font-bold outline-none" />
+                <input name="data_inicio" value={formData.data_inicio} type="date" onChange={handleChange} className={`bg-slate-50 border ${errors.data_inicio ? 'border-red-400' : 'border-slate-100'} p-4 rounded-xl text-xs font-bold outline-none text-slate-600`} />
+                <input name="hora_inicio" value={formData.hora_inicio} type="time" onChange={handleChange} className="bg-slate-50 border border-slate-100 p-4 rounded-xl text-xs font-bold outline-none text-slate-600" />
+                <input name="data_termino" value={formData.data_termino} type="date" onChange={handleChange} className="bg-slate-50 border border-slate-100 p-4 rounded-xl text-xs font-bold outline-none text-slate-600" />
+                <input name="hora_termino" value={formData.hora_termino} type="time" onChange={handleChange} className="bg-slate-50 border border-slate-100 p-4 rounded-xl text-xs font-bold outline-none text-slate-600" />
               </div>
             </section>
 
@@ -253,22 +257,17 @@ export default function NovoEventoPresencial() {
               <div className="space-y-4">
                 <div className="relative group">
                   <Search size={16} className="absolute left-4 top-4 text-[#C22973]" />
-                  <input ref={searchInputRef} placeholder="Busque pelo endereço ou nome do local..." className="w-full bg-pink-50/40 border border-pink-100 p-4 pl-12 rounded-2xl outline-none italic text-sm font-bold focus:border-[#C22973] transition-all" />
+                  <input ref={searchInputRef} placeholder="Busque pelo endereço ou nome do local..." className="w-full bg-pink-50/40 border border-pink-100 p-4 pl-12 rounded-2xl outline-none italic text-sm font-bold focus:border-[#C22973] transition-all text-slate-700" />
                 </div>
                 <input name="local_nome" value={formData.local_nome} placeholder="Nome do Local (Ex: Teatro Municipal)" onChange={handleChange} className={`w-full bg-slate-50 border ${errors.local_nome ? 'border-red-400' : 'border-slate-100'} p-4 rounded-xl outline-none font-bold text-slate-700`} />
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                    <input name="cep" value={formData.cep} placeholder="CEP" onChange={handleChange} className="bg-slate-50 border border-slate-100 p-4 rounded-xl outline-none font-bold text-slate-700" />
                    <input name="endereco" value={formData.endereco} placeholder="Endereço" onChange={handleChange} className="md:col-span-2 bg-slate-50 border border-slate-100 p-4 rounded-xl outline-none font-bold text-slate-700" />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                   <input name="cidade" value={formData.cidade} placeholder="Cidade" onChange={handleChange} className="bg-slate-50 border border-slate-100 p-4 rounded-xl outline-none font-bold text-slate-700" />
-                   <input name="estado" value={formData.estado} placeholder="UF" onChange={handleChange} className="bg-slate-50 border border-slate-100 p-4 rounded-xl outline-none font-bold text-slate-700" />
-                </div>
               </div>
             </section>
           </div>
 
-          {/* SIDEBAR DE PREVIEW / MAPA */}
           <div className="lg:col-span-4 space-y-8">
             <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-50 text-center">
               <label className="text-[10px] text-slate-400 font-black uppercase mb-4 block tracking-widest italic">Capa do Evento</label>
@@ -288,13 +287,11 @@ export default function NovoEventoPresencial() {
                   </label>
                 )}
               </div>
+              <p className="mt-4 text-[9px] text-slate-400 font-bold uppercase">PNG ou JPG até 5MB</p>
             </div>
 
-            <div className="bg-white rounded-[2.5rem] p-2 shadow-sm border border-slate-50 h-[400px] relative overflow-hidden">
+            <div className="bg-white rounded-[2.5rem] p-2 shadow-sm border border-slate-50 h-[350px] relative overflow-hidden">
                 <div ref={mapContainerRef} className="w-full h-full rounded-[2.2rem]" />
-                <div className="absolute bottom-6 left-6 right-6 bg-white/90 backdrop-blur-md p-3 rounded-2xl border border-white/20 shadow-xl">
-                    <p className="text-[9px] font-black text-[#C22973] uppercase tracking-tighter italic">Preview Geo-localização</p>
-                </div>
             </div>
           </div>
         </div>
