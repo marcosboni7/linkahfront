@@ -6,6 +6,9 @@ import { UserCircle, Save, Loader2, ArrowLeft, Info } from 'lucide-react';
 import Swal from 'sweetalert2';
 import Link from 'next/link';
 
+// --- CONFIGURAÇÃO DA API DA AWS ---
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://r8amtavirp.us-east-1.awsapprunner.com';
+
 export default function PerfilPage() {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
@@ -21,11 +24,11 @@ export default function PerfilPage() {
     bairro: ''
   });
 
-  const apiBaseUrl = 'https://linkah-api.onrender.com';
-
   useEffect(() => {
     const carregarDados = async () => {
-      const emailLogado = localStorage.getItem('userEmail');
+      // Busca resiliente do email
+      const userStorage = localStorage.getItem('@Linkah:User');
+      const emailLogado = userStorage ? JSON.parse(userStorage).email : localStorage.getItem('userEmail');
       
       if (!emailLogado) {
         router.push('/auth/login');
@@ -33,7 +36,7 @@ export default function PerfilPage() {
       }
 
       try {
-        const response = await fetch(`${apiBaseUrl}/api/auth/perfil?email=${emailLogado}`);
+        const response = await fetch(`${API_URL}/api/auth/perfil?email=${emailLogado}`);
         const data = await response.json();
         
         if (response.ok && data) {
@@ -46,15 +49,12 @@ export default function PerfilPage() {
             bairro: data.bairro || ''
           });
 
-          // Se ao carregar, o sistema ver que já existem dados essenciais, 
-          // ele apenas garante que a trava do localStorage esteja ativa 
-          // para o Login não te jogar aqui à força, mas PERMITE que você edite.
           if (data.cpf_cnpj && data.cep) {
             localStorage.setItem('perfil_completo', 'true');
           }
         }
       } catch (error) {
-        console.error("❌ Erro ao carregar perfil:", error);
+        console.error("❌ Erro ao carregar perfil na AWS:", error);
       } finally {
         setIsLoading(false);
       }
@@ -62,6 +62,26 @@ export default function PerfilPage() {
 
     carregarDados();
   }, [router]);
+
+  // AUTO-PREENCHIMENTO DE CEP
+  const handleCepBlur = async (e: React.FocusEvent<HTMLInputElement>) => {
+    const cep = e.target.value.replace(/\D/g, '');
+    if (cep.length === 8) {
+      try {
+        const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+        const data = await res.json();
+        if (!data.erro) {
+          setFormData(prev => ({
+            ...prev,
+            rua: data.logradouro,
+            bairro: data.bairro
+          }));
+        }
+      } catch (err) {
+        console.error("Erro ao buscar CEP");
+      }
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -86,10 +106,11 @@ export default function PerfilPage() {
     }
 
     setIsSaving(true);
-    const emailLogado = localStorage.getItem('userEmail');
+    const userStorage = localStorage.getItem('@Linkah:User');
+    const emailLogado = userStorage ? JSON.parse(userStorage).email : localStorage.getItem('userEmail');
 
     try {
-      const response = await fetch(`${apiBaseUrl}/api/auth/perfil`, {
+      const response = await fetch(`${API_URL}/api/auth/perfil`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -99,13 +120,12 @@ export default function PerfilPage() {
       });
 
       if (response.ok) {
-        // Atualiza a trava de segurança e o nome exibido
         localStorage.setItem('perfil_completo', 'true');
         localStorage.setItem('userName', formData.nome);
 
         await Swal.fire({
           title: '<span style="color: #C22973">✅ Dados Salvos!</span>',
-          text: 'Suas informações foram atualizadas com sucesso.',
+          text: 'Suas informações foram atualizadas na AWS.',
           icon: 'success',
           confirmButtonColor: '#C22973',
           confirmButtonText: 'VOLTAR AO PAINEL',
@@ -113,13 +133,12 @@ export default function PerfilPage() {
         });
 
         router.push('/dashboard/eventos');
-
       } else {
         const err = await response.json();
         Swal.fire('Ops!', err.message || 'Falha ao salvar', 'error');
       }
     } catch (error) {
-      Swal.fire('Erro', 'Conexão interrompida com o servidor.', 'error');
+      Swal.fire('Erro', 'Conexão interrompida com o servidor AWS.', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -182,7 +201,13 @@ export default function PerfilPage() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                 <div className="col-span-1">
                   <label className="text-[11px] text-slate-400 font-black uppercase tracking-[0.15em] mb-3 block">CEP *</label>
-                  <input name="cep" value={formData.cep} onChange={handleChange} className="w-full border-2 border-slate-50 p-4 rounded-2xl outline-none focus:border-[#C22973] bg-slate-50/80 font-bold" />
+                  <input 
+                    name="cep" 
+                    value={formData.cep} 
+                    onChange={handleChange} 
+                    onBlur={handleCepBlur}
+                    className="w-full border-2 border-slate-50 p-4 rounded-2xl outline-none focus:border-[#C22973] bg-slate-50/80 font-bold" 
+                  />
                 </div>
                 <div className="col-span-2">
                   <label className="text-[11px] text-slate-400 font-black uppercase tracking-[0.15em] mb-3 block">Rua *</label>

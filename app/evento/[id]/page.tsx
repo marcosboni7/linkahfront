@@ -12,6 +12,9 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
+// --- CONFIGURAÇÃO DA API DA AWS ---
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://r8amtavirp.us-east-1.awsapprunner.com';
+
 export default function DetalhesEvento() {
   const { id } = useParams();
   const [evento, setEvento] = useState<any>(null);
@@ -21,9 +24,9 @@ export default function DetalhesEvento() {
   useEffect(() => {
     async function carregarEvento() {
       try {
-        // Adicionamos ?t= no final para ignorar o cache e mostrar o que você acabou de salvar no admin
+        // Cache: 'no-store' + timestamp garante que o usuário veja a versão mais recente salva na AWS
         const timestamp = new Date().getTime();
-        const res = await fetch(`https://linkah-api.onrender.com/api/eventos/${id}?t=${timestamp}`, {
+        const res = await fetch(`${API_URL}/api/eventos/${id}?t=${timestamp}`, {
           cache: 'no-store'
         });
         
@@ -32,7 +35,7 @@ export default function DetalhesEvento() {
           setEvento(data);
         }
       } catch (err) {
-        console.error("Erro ao carregar:", err);
+        console.error("Erro ao carregar da AWS:", err);
       } finally {
         setLoading(false);
       }
@@ -49,9 +52,9 @@ export default function DetalhesEvento() {
     </div>
   );
 
-  if (!evento) return <div className="p-20 text-center text-slate-500 font-medium">Evento não encontrado.</div>;
+  if (!evento) return <div className="p-20 text-center text-slate-500 font-medium">Evento não encontrado na base de dados.</div>;
 
-  // Lógica de preço corrigida para evitar erros de renderização
+  // Lógica de cálculo de preço
   const precoBase = evento.ingressos?.[0]?.preco 
     ? Number(evento.ingressos[0].preco) 
     : (evento.preco ? Number(evento.preco) : 0);
@@ -64,7 +67,7 @@ export default function DetalhesEvento() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-24">
         
-        {/* TOP NAVIGATION */}
+        {/* NAVEGAÇÃO SUPERIOR */}
         <div className="flex justify-between items-center mb-8">
           <Link href="/" className="group inline-flex items-center gap-2 text-slate-400 hover:text-[#ff4d4d] transition-all text-sm font-bold">
             <div className="p-2 rounded-full group-hover:bg-orange-50 transition-colors">
@@ -82,7 +85,7 @@ export default function DetalhesEvento() {
           </div>
         </div>
 
-        {/* HERO SECTION */}
+        {/* SEÇÃO HERO (BANNER) */}
         <div className="relative w-full aspect-[21/9] rounded-[3rem] md:rounded-[4rem] overflow-hidden shadow-2xl mb-16 bg-slate-100 group">
           <img 
             src={evento.imagem || evento.imagem_capa || "https://images.unsplash.com/photo-1492684223066-81342ee5ff30"} 
@@ -108,7 +111,7 @@ export default function DetalhesEvento() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
           
-          {/* COLUNA ESQUERDA: CONTEÚDO */}
+          {/* COLUNA ESQUERDA: INFORMAÇÕES */}
           <div className="lg:col-span-8 space-y-16">
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -121,7 +124,7 @@ export default function DetalhesEvento() {
                   <p className="font-bold text-slate-800 text-lg">
                     {evento.data_inicio ? new Date(evento.data_inicio).toLocaleDateString('pt-BR', {day: '2-digit', month: 'long'}) : 'Data a definir'}
                   </p>
-                  <p className="text-sm text-slate-500 font-medium">{evento.horario || evento.hora_inicio || '19:00'}</p>
+                  <p className="text-sm text-slate-500 font-medium">{evento.horario || evento.hora_inicio?.slice(0,5) || '19:00'}</p>
                 </div>
               </div>
 
@@ -131,8 +134,8 @@ export default function DetalhesEvento() {
                 </div>
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Local</p>
-                  <p className="font-bold text-slate-800 text-lg line-clamp-1">{evento.link_transmissao ? 'Online' : (evento.local || evento.local_nome)}</p>
-                  <p className="text-sm text-slate-500 font-medium line-clamp-1">{evento.cidade || 'Brasil'}{evento.estado ? `, ${evento.estado}` : ''}</p>
+                  <p className="font-bold text-slate-800 text-lg line-clamp-1">{evento.tipo === 'online' ? 'Online' : (evento.local_nome || evento.local)}</p>
+                  <p className="text-sm text-slate-500 font-medium line-clamp-1">{evento.cidade || 'Linkah Transmissão'}{evento.estado ? `, ${evento.estado}` : ''}</p>
                 </div>
               </div>
 
@@ -142,7 +145,7 @@ export default function DetalhesEvento() {
                 </div>
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Organizador</p>
-                  <p className="font-bold text-slate-800 text-lg line-clamp-1 capitalize">{evento.produtor_email ? evento.produtor_email.split('@')[0] : 'Linkah'}</p>
+                  <p className="font-bold text-slate-800 text-lg line-clamp-1 capitalize">{evento.produtor_nome || 'Produtor Verificado'}</p>
                   <button className="text-sm text-[#ff4d4d] font-bold hover:underline">Ver Perfil</button>
                 </div>
               </div>
@@ -158,25 +161,26 @@ export default function DetalhesEvento() {
               </div>
             </div>
 
-            {evento.link_transmissao && (
+            {evento.tipo === 'online' && (
               <div className="bg-gradient-to-br from-[#702082] to-[#ff4d4d] rounded-[3rem] p-12 text-white flex flex-col md:flex-row items-center justify-between gap-10 shadow-2xl">
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 bg-white/20 w-fit px-4 py-1.5 rounded-full backdrop-blur-md">
                     <Zap size={16} className="text-yellow-300 fill-yellow-300" />
                     <span className="text-[11px] font-bold uppercase tracking-widest">Acesso Digital</span>
                   </div>
-                  <h3 className="text-4xl font-bold tracking-tight">Assista de qualquer lugar</h3>
-                  <p className="text-white/80 text-lg">A sala virtual já está pronta para receber você.</p>
+                  <h3 className="text-4xl font-bold tracking-tight">Assista de casa</h3>
+                  <p className="text-white/80 text-lg">O link de acesso será enviado após a confirmação do pagamento.</p>
                 </div>
-                <a href={evento.link_transmissao} target="_blank" className="bg-white text-slate-900 px-10 py-6 rounded-2xl font-bold text-sm tracking-widest shadow-xl hover:scale-105 transition-all flex items-center gap-3">
-                  ENTRAR AGORA
-                  <ArrowRight size={18} />
-                </a>
+                <div className="bg-white/10 backdrop-blur-xl border border-white/20 p-6 rounded-[2rem] text-center">
+                   <Clock size={32} className="mx-auto mb-2 opacity-50" />
+                   <p className="text-[10px] font-black uppercase tracking-widest">Check-in Liberado</p>
+                   <p className="font-bold">15min antes</p>
+                </div>
               </div>
             )}
           </div>
 
-          {/* COLUNA DIREITA: CHECKOUT */}
+          {/* COLUNA DIREITA: CHECKOUT (COMPRA) */}
           <div className="lg:col-span-4">
             <div className="sticky top-28">
               <div className="bg-white rounded-[3.5rem] border border-slate-100 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.12)] overflow-hidden">
@@ -192,8 +196,8 @@ export default function DetalhesEvento() {
                     <div className="p-6 rounded-[2.5rem] bg-slate-50 border border-slate-100 space-y-4">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="font-bold text-slate-800">Entrada Padrão</p>
-                          <p className="text-xs text-slate-500 font-medium italic">Lote promocional</p>
+                          <p className="font-bold text-slate-800">Individual</p>
+                          <p className="text-xs text-slate-500 font-medium italic">Lote atual</p>
                         </div>
                         <span className="text-2xl font-bold text-slate-900">
                           {precoBase.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
@@ -235,7 +239,10 @@ export default function DetalhesEvento() {
                     </Link>
 
                     <div className="space-y-4 pt-4 text-center">
-                      <p className="text-[11px] text-slate-400 font-medium">Aceitamos Stripe & Pix</p>
+                      <p className="text-[11px] text-slate-400 font-medium">Pagamento seguro via Stripe & Pix</p>
+                      <div className="flex justify-center gap-4 opacity-30 grayscale">
+                         {/* Aqui você pode colocar ícones pequenos de cartões/pix se desejar */}
+                      </div>
                     </div>
                   </div>
                 </div>

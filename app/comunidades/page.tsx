@@ -1,9 +1,12 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Lock, LogIn, UserPlus, ArrowRight, MessageCircle, Users } from 'lucide-react';
+import { Lock, LogIn, UserPlus, ArrowRight, MessageCircle, Users, Loader2 } from 'lucide-react';
 import { Navbar } from '../site/Navbar';
 import { Footer } from '../site/Footer';
+
+// --- CONFIGURAÇÃO DA API DA AWS ---
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://r8amtavirp.us-east-1.awsapprunner.com';
 
 export default function ListaComunidades() {
   const [eventos, setEventos] = useState([]);
@@ -20,7 +23,8 @@ export default function ListaComunidades() {
     }
     setEstaLogado(true);
 
-    fetch('https://linkah-api.onrender.com/api/eventos/vitrine')
+    // Agora buscando a vitrine de comunidades no servidor da AWS
+    fetch(`${API_URL}/api/eventos/vitrine`)
       .then(res => {
         if (!res.ok) throw new Error('Erro ao carregar comunidades');
         return res.json();
@@ -30,18 +34,20 @@ export default function ListaComunidades() {
         setLoading(false);
       })
       .catch(err => {
-        setErro("O servidor está acordando... tente atualizar em alguns segundos.");
+        console.error("Erro na AWS:", err);
+        setErro("Não foi possível carregar as comunidades agora. Verifique se o servidor está ativo.");
         setLoading(false);
       });
   }, []);
 
   if (loading) return (
-    <div className="flex justify-center items-center h-screen bg-[#FCFBFA]">
-      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-slate-300"></div>
+    <div className="flex flex-col justify-center items-center h-screen bg-[#FCFBFA] gap-4">
+      <Loader2 className="animate-spin text-slate-300" size={32} />
+      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Carregando Salas...</p>
     </div>
   );
 
-  // TELA DE BLOQUEIO (ESTILO LUMA)
+  // TELA DE BLOQUEIO (Membros apenas)
   if (!estaLogado) return (
     <div className="min-h-screen flex flex-col bg-[#FCFBFA]">
       <Navbar />
@@ -86,7 +92,7 @@ export default function ListaComunidades() {
       <Navbar />
 
       <main className="flex-1 max-w-6xl mx-auto px-6 pt-16 pb-24 w-full">
-        {/* HEADER CLEAN */}
+        {/* HEADER */}
         <div className="mb-16 text-center md:text-left space-y-4">
           <div className="flex items-center justify-center md:justify-start gap-2">
              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -106,7 +112,7 @@ export default function ListaComunidades() {
           </div>
         )}
 
-        {/* GRID DE CARDS ESTILO GALERIA */}
+        {/* GRID DE CARDS */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
           {eventos.map((evento: any) => (
             <div key={evento.id} className="group bg-white rounded-[2.5rem] overflow-hidden border border-slate-100 hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-500 flex flex-col">

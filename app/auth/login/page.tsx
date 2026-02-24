@@ -5,6 +5,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, Globe, ArrowRight, Sparkles, Loader2 } from 'lucide-react';
 
+// --- CONFIGURAÇÃO DA API DA AWS ---
+const API_URL_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://r8amtavirp.us-east-1.awsapprunner.com';
+
 export default function LoginPage() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
@@ -15,8 +18,7 @@ export default function LoginPage() {
   
   const [errors, setErrors] = useState<{ email?: string; senha?: string }>({});
 
-  const apiBaseUrl = 'https://linkah-api.onrender.com';
-
+  // Validação em Tempo Real: E-mail
   useEffect(() => {
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setErrors(prev => ({ ...prev, email: 'E-mail inválido' }));
@@ -25,6 +27,7 @@ export default function LoginPage() {
     }
   }, [email]);
 
+  // Validação em Tempo Real: Senha
   useEffect(() => {
     if (senha && senha.length < 6) {
       setErrors(prev => ({ ...prev, senha: 'Mínimo 6 caracteres' }));
@@ -46,9 +49,9 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      console.log("📡 [DEBUG] Chamando API:", `${apiBaseUrl}/api/auth/login`);
+      console.log("📡 [DEBUG] Chamando API AWS:", `${API_URL_BASE}/api/auth/login`);
       
-      const response = await fetch(`${apiBaseUrl}/api/auth/login`, {
+      const response = await fetch(`${API_URL_BASE}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -57,8 +60,6 @@ export default function LoginPage() {
         }),
       });
 
-      console.log("📡 [DEBUG] Status da Resposta:", response.status);
-
       const data = await response.json();
       console.log("📦 [DEBUG] Dados recebidos do Backend:", data);
 
@@ -66,17 +67,16 @@ export default function LoginPage() {
         const user = data.user;
         const emailUsuario = user?.email || email.trim().toLowerCase();
         
-        // 1. SALVAR NO LOCALSTORAGE (Para o Frontend)
+        // 1. PERSISTÊNCIA NO LOCALSTORAGE
+        window.localStorage.setItem('@Linkah:Token', data.token);
         window.localStorage.setItem('userEmail', emailUsuario);
         window.localStorage.setItem('userName', user?.nome || 'Produtor');
 
-        // 2. SALVAR NO COOKIE (Para o Middleware liberar o acesso)
-        // Sem isso, o middleware redireciona de volta para o login
+        // 2. COOKIE PARA O MIDDLEWARE (Sessão de 24h)
         document.cookie = `userEmail=${emailUsuario}; path=/; max-age=86400; SameSite=Lax`;
         console.log("✅ [DEBUG] Cookie de sessão criado!");
 
-        console.log("🔍 [DEBUG] Perfil completo?", user?.perfil_completo);
-
+        // 3. LÓGICA DE REDIRECIONAMENTO POR PERFIL
         if (user?.perfil_completo) {
           console.log("➡️ [DEBUG] Redirecionando: Dashboard Eventos");
           window.localStorage.setItem('perfil_completo', 'true');
@@ -95,23 +95,23 @@ export default function LoginPage() {
       console.error("🚨 [DEBUG] Erro fatal na requisição:", error);
       setErrors({ email: 'Erro de conexão', senha: 'Não foi possível conectar ao servidor' });
     } finally {
-      console.log("🏁 [DEBUG] Finalizando estado de Loading.");
       setIsLoading(false);
     }
   };
 
   return (
     <div className="flex min-h-screen bg-[#F8FAFC] font-sans antialiased text-slate-900">
-      {/* LADO ESQUERDO - Visual */}
+      
+      {/* LADO ESQUERDO: BRANDING PRODUCER */}
       <div className="hidden lg:flex w-[40%] bg-[#C22973] flex-col justify-between p-16 relative overflow-hidden shadow-[20px_0_40px_rgba(0,0,0,0.1)]">
-        <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-full">
           <div className="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] bg-white/10 rounded-full blur-[120px] animate-pulse" />
           <div className="absolute bottom-[-10%] left-[-10%] w-[400px] h-[400px] bg-black/20 rounded-full blur-[100px]" />
         </div>
 
         <div className="relative z-10">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-white rounded-[1.5rem] flex items-center justify-center shadow-[0_20px_40px_rgba(0,0,0,0.2)] transform rotate-6 hover:rotate-0 transition-all duration-500">
+            <div className="w-14 h-14 bg-white rounded-[1.5rem] flex items-center justify-center shadow-xl transform rotate-6 hover:rotate-0 transition-all duration-500">
               <Globe className="text-[#C22973] w-8 h-8" />
             </div>
             <div>
@@ -122,36 +122,36 @@ export default function LoginPage() {
         </div>
 
         <div className="relative z-10 text-white">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-[10px] font-bold uppercase tracking-widest mb-6 backdrop-blur-md border border-white/10">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-[10px] font-black uppercase tracking-widest mb-6 backdrop-blur-md border border-white/10">
             <Sparkles size={12} className="text-pink-300" /> Inteligência para Eventos
           </div>
-          <h2 className="text-6xl font-black leading-[1] mb-8 tracking-tighter">
+          <h2 className="text-6xl font-black leading-[1] mb-8 tracking-tighter italic uppercase">
             Escale sua <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-200 to-white">produção.</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-200 to-white italic">produção.</span>
           </h2>
-          <p className="text-pink-100/80 text-lg font-light leading-relaxed max-w-sm">
+          <p className="text-pink-100/80 text-lg font-medium leading-relaxed max-w-sm">
             A plataforma definitiva para quem transforma ideias em experiências inesquecíveis.
           </p>
         </div>
 
         <div className="relative z-10 flex items-center gap-6 text-pink-200/40 text-[10px] font-black uppercase tracking-[0.2em]">
-          <span>v2.0.4</span>
+          <span>v2.1.0</span>
           <span className="w-1 h-1 bg-pink-200/20 rounded-full" />
-          <span>Suporte 24h</span>
+          <span>AWS Infrastructure</span>
         </div>
       </div>
 
-      {/* LADO DIREITO - Formulário */}
+      {/* LADO DIREITO: LOGIN FORM */}
       <div className="flex-1 flex flex-col justify-center items-center px-8 lg:px-24 bg-[#F8FAFC]">
-        <div className="w-full max-w-[440px] bg-white p-10 rounded-[3rem] shadow-[0_10px_40px_rgba(0,0,0,0.03)] border border-slate-100">
+        <div className="w-full max-w-[440px] bg-white p-10 rounded-[3.5rem] shadow-[0_10px_40px_rgba(0,0,0,0.03)] border border-slate-100">
           <div className="mb-10 text-center">
-            <h1 className="text-4xl font-black tracking-tight text-slate-900 mb-3">Bem-vindo</h1>
-            <p className="text-slate-400 font-medium">Insira suas credenciais para acessar.</p>
+            <h1 className="text-4xl font-black tracking-tight text-slate-900 mb-3 uppercase italic">Bem-vindo</h1>
+            <p className="text-slate-400 font-bold uppercase text-[11px] tracking-widest">Acesse seu painel administrativo</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-6">
-            <div className="space-y-2 group">
-              <label className={`text-[11px] font-black uppercase tracking-widest ml-2 ${errors.email ? 'text-red-500' : 'text-slate-400'}`}>
+            <div className="space-y-2">
+              <label className={`text-[10px] font-black uppercase tracking-[0.15em] ml-2 ${errors.email ? 'text-red-500' : 'text-slate-400'}`}>
                 E-mail Corporativo <span className="text-red-500">*</span>
               </label>
               <input
@@ -160,17 +160,17 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="nome@empresa.com"
-                className={`w-full px-6 py-4 bg-slate-50 border ${errors.email && email ? 'border-red-400 focus:ring-red-50' : 'border-slate-100 focus:border-[#C22973] focus:ring-pink-50'} rounded-2xl outline-none focus:bg-white focus:ring-4 transition-all font-bold`}
+                className={`w-full px-6 py-4 bg-slate-50 border ${errors.email && email ? 'border-red-400' : 'border-slate-100 focus:border-[#C22973]'} rounded-2xl outline-none focus:bg-white focus:ring-4 focus:ring-pink-50 transition-all font-bold placeholder:text-slate-300`}
               />
               {errors.email && email && <p className="text-[10px] text-red-500 font-bold ml-2 uppercase italic">{errors.email}</p>}
             </div>
 
-            <div className="space-y-2 group">
+            <div className="space-y-2">
               <div className="flex justify-between items-center px-2">
-                <label className={`text-[11px] font-black uppercase tracking-widest ${errors.senha ? 'text-red-500' : 'text-slate-400'}`}>
+                <label className={`text-[10px] font-black uppercase tracking-[0.15em] ${errors.senha ? 'text-red-500' : 'text-slate-400'}`}>
                   Senha de Acesso <span className="text-red-500">*</span>
                 </label>
-                <Link href="#" className="text-[10px] font-bold text-[#C22973]">Esqueceu?</Link>
+                <Link href="#" className="text-[10px] font-black text-[#C22973] uppercase tracking-widest hover:opacity-70">Esqueceu?</Link>
               </div>
               <div className="relative">
                 <input
@@ -179,12 +179,12 @@ export default function LoginPage() {
                   value={senha}
                   onChange={(e) => setSenha(e.target.value)}
                   placeholder="••••••••"
-                  className={`w-full px-6 py-4 bg-slate-50 border ${errors.senha && senha ? 'border-red-400 focus:ring-red-50' : 'border-slate-100 focus:border-[#C22973] focus:ring-pink-50'} rounded-2xl outline-none focus:bg-white focus:ring-4 transition-all font-bold`}
+                  className={`w-full px-6 py-4 bg-slate-50 border ${errors.senha && senha ? 'border-red-400' : 'border-slate-100 focus:border-[#C22973]'} rounded-2xl outline-none focus:bg-white focus:ring-4 focus:ring-pink-50 transition-all font-bold placeholder:text-slate-300`}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 hover:text-[#C22973]"
+                  className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 hover:text-[#C22973] transition-colors"
                 >
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
@@ -194,7 +194,7 @@ export default function LoginPage() {
 
             <button
               disabled={isLoading}
-              className="w-full bg-[#C22973] text-white py-5 rounded-[1.5rem] font-black uppercase tracking-[0.2em] shadow-xl shadow-pink-100 hover:bg-[#a62262] transition-all flex items-center justify-center gap-3 disabled:opacity-70 active:scale-95"
+              className="w-full bg-[#C22973] text-white py-5 rounded-[1.5rem] font-black uppercase text-xs tracking-[0.2em] shadow-xl shadow-pink-100 hover:bg-[#a62262] transition-all flex items-center justify-center gap-3 disabled:opacity-70 active:scale-95"
             >
               {isLoading ? (
                 <Loader2 className="w-6 h-6 animate-spin" />
@@ -205,8 +205,8 @@ export default function LoginPage() {
           </form>
 
           <div className="mt-10 text-center">
-            <p className="text-sm font-bold text-slate-400">
-              Não tem conta? <Link href="/auth/registro" className="text-[#C22973] hover:underline decoration-2 underline-offset-4">Criar uma conta</Link>
+            <p className="text-[11px] font-black uppercase tracking-widest text-slate-400">
+              Novo por aqui? <Link href="/auth/registro" className="text-[#C22973] hover:underline decoration-2 underline-offset-4 ml-1">Criar conta Producer</Link>
             </p>
           </div>
         </div>

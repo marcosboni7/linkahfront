@@ -4,6 +4,9 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { User, MapPin, Ticket, LogOut, X, Calendar, Hash, Loader2, MessagesSquare, ChevronRight } from 'lucide-react';
 
+// --- CONFIGURAÇÃO DA API DA AWS ---
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://r8amtavirp.us-east-1.awsapprunner.com';
+
 export function Navbar() {
   const [usuario, setUsuario] = useState<{ nome: string; email?: string; role?: string } | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -41,13 +44,14 @@ export function Navbar() {
     setIsModalOpen(true);
     setBuscandoTickets(true);
     try {
-      const response = await fetch(`https://linkah-api.onrender.com/api/compras/meus-ingressos?email=${usuario.email}`);
+      // Chamada atualizada para a API na AWS
+      const response = await fetch(`${API_URL}/api/compras/meus-ingressos?email=${usuario.email}`);
       if (response.ok) {
         const dados = await response.json();
         setMeusIngressos(dados);
       }
     } catch (err) {
-      console.error("Erro ao buscar ingressos:", err);
+      console.error("Erro ao buscar ingressos na AWS:", err);
     } finally {
       setBuscandoTickets(false);
     }
@@ -94,7 +98,7 @@ export function Navbar() {
                   <span className="text-[9px] text-slate-400 font-medium tracking-wide uppercase mt-0.5">Membro</span>
                 </div>
                 
-                {/* BOTÃO DE PERFIL COM LOGOUT INTEGRADO OU CLICK PARA MODAL */}
+                {/* BOTÃO DE PERFIL */}
                 <div className="relative group">
                   <button className="w-9 h-9 rounded-full bg-slate-900 flex items-center justify-center text-[11px] text-white font-bold hover:ring-4 hover:ring-slate-100 transition-all">
                     {usuario.nome.charAt(0).toUpperCase()}

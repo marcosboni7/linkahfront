@@ -5,9 +5,12 @@ import { ChevronLeft, Plus, Ticket, Trash2, CheckCircle2, Loader2, Info } from '
 import { useRouter, useParams } from 'next/navigation';
 import Swal from 'sweetalert2';
 
+// --- CONFIGURAÇÃO DA API DA AWS ---
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://r8amtavirp.us-east-1.awsapprunner.com';
+
 export default function CadastroIngressos() {
   const router = useRouter();
-  const { id } = useParams(); // Pega o ID do evento gerado na etapa anterior
+  const { id } = useParams(); // ID do evento gerado na etapa anterior
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -32,7 +35,7 @@ export default function CadastroIngressos() {
     }
   };
 
-  // Validação em tempo real (Inline)
+  // Validação em tempo real
   const validateField = (index: number, field: string, value: string) => {
     if (!value) {
       setErrors(prev => ({ ...prev, [`${index}-${field}`]: 'Obrigatório *' }));
@@ -40,7 +43,7 @@ export default function CadastroIngressos() {
   };
 
   const handleFinalizar = async () => {
-    // Validação básica antes de enviar
+    // Validação básica
     const hasEmpty = ingressos.some(ing => !ing.nome || !ing.preco || !ing.quantidade);
     if (hasEmpty) {
       Swal.fire('Atenção', 'Preencha todos os campos obrigatórios (*) de todos os ingressos.', 'warning');
@@ -49,9 +52,8 @@ export default function CadastroIngressos() {
 
     setLoading(true);
     try {
-      const apiBaseUrl = 'https://linkah-api.onrender.com';
-      
-      const response = await fetch(`${apiBaseUrl}/api/eventos/${id}/ingressos`, {
+      // Chamada atualizada para o servidor da AWS
+      const response = await fetch(`${API_URL}/api/eventos/${id}/ingressos`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ingressos }),
@@ -60,7 +62,7 @@ export default function CadastroIngressos() {
       if (response.ok) {
         Swal.fire({
           title: '<span style="color: #C22973">🎉 Sucesso!</span>',
-          text: 'Seu evento foi publicado e já está disponível para venda!',
+          text: 'Seu evento foi publicado e já está disponível para venda na AWS!',
           icon: 'success',
           confirmButtonColor: '#C22973',
           confirmButtonText: 'IR PARA MEUS EVENTOS',
@@ -69,10 +71,11 @@ export default function CadastroIngressos() {
           router.push('/dashboard/eventos');
         });
       } else {
-        Swal.fire('Erro', 'Não conseguimos salvar os ingressos. Tente novamente.', 'error');
+        Swal.fire('Erro', 'Não conseguimos salvar os ingressos no servidor AWS. Tente novamente.', 'error');
       }
     } catch (error) {
-      Swal.fire('Erro de Conexão', 'Não foi possível conectar ao servidor.', 'error');
+      console.error("Erro de conexão com AWS:", error);
+      Swal.fire('Erro de Conexão', 'Não foi possível conectar ao servidor da AWS.', 'error');
     } finally {
       setLoading(false);
     }
@@ -127,54 +130,54 @@ export default function CadastroIngressos() {
 
            {ingressos.map((ing, index) => (
              <div key={index} className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100 flex flex-col md:flex-row items-end gap-6 relative group animate-in slide-in-from-bottom-4 transition-all hover:shadow-md">
-                
-                {/* NOME DO INGRESSO */}
-                <div className="flex-1 w-full space-y-2">
-                  <label className="text-[10px] text-slate-400 font-black uppercase ml-1 tracking-widest">Tipo / Nome do Ingresso *</label>
-                  <input 
-                    value={ing.nome} 
-                    onBlur={(e) => validateField(index, 'nome', e.target.value)}
-                    onChange={(e) => handleChange(index, 'nome', e.target.value)}
-                    className={`w-full bg-slate-50 border ${errors[`${index}-nome`] ? 'border-red-500' : 'border-slate-100'} p-4 rounded-2xl outline-none focus:border-[#C22973] font-bold text-slate-700`} 
-                    placeholder="Ex: Ingresso Solidário"
-                  />
-                  {errors[`${index}-nome`] && <span className="text-[9px] text-red-500 font-bold ml-1">{errors[`${index}-nome`]}</span>}
-                </div>
+               
+               {/* NOME DO INGRESSO */}
+               <div className="flex-1 w-full space-y-2">
+                 <label className="text-[10px] text-slate-400 font-black uppercase ml-1 tracking-widest">Tipo / Nome do Ingresso *</label>
+                 <input 
+                   value={ing.nome} 
+                   onBlur={(e) => validateField(index, 'nome', e.target.value)}
+                   onChange={(e) => handleChange(index, 'nome', e.target.value)}
+                   className={`w-full bg-slate-50 border ${errors[`${index}-nome`] ? 'border-red-500' : 'border-slate-100'} p-4 rounded-2xl outline-none focus:border-[#C22973] font-bold text-slate-700`} 
+                   placeholder="Ex: Ingresso Solidário"
+                 />
+                 {errors[`${index}-nome`] && <span className="text-[9px] text-red-500 font-bold ml-1">{errors[`${index}-nome`]}</span>}
+               </div>
 
-                {/* PREÇO */}
-                <div className="w-full md:w-40 space-y-2">
-                  <label className="text-[10px] text-slate-400 font-black uppercase ml-1 tracking-widest">Preço R$ *</label>
-                  <input 
-                    type="number" 
-                    value={ing.preco} 
-                    onBlur={(e) => validateField(index, 'preco', e.target.value)}
-                    onChange={(e) => handleChange(index, 'preco', e.target.value)}
-                    className={`w-full bg-slate-50 border ${errors[`${index}-preco`] ? 'border-red-500' : 'border-slate-100'} p-4 rounded-2xl outline-none focus:border-[#C22973] font-bold text-slate-700`} 
-                    placeholder="0,00"
-                  />
-                  {errors[`${index}-preco`] && <span className="text-[9px] text-red-500 font-bold ml-1">{errors[`${index}-preco`]}</span>}
-                </div>
+               {/* PREÇO */}
+               <div className="w-full md:w-40 space-y-2">
+                 <label className="text-[10px] text-slate-400 font-black uppercase ml-1 tracking-widest">Preço R$ *</label>
+                 <input 
+                   type="number" 
+                   value={ing.preco} 
+                   onBlur={(e) => validateField(index, 'preco', e.target.value)}
+                   onChange={(e) => handleChange(index, 'preco', e.target.value)}
+                   className={`w-full bg-slate-50 border ${errors[`${index}-preco`] ? 'border-red-500' : 'border-slate-100'} p-4 rounded-2xl outline-none focus:border-[#C22973] font-bold text-slate-700`} 
+                   placeholder="0,00"
+                 />
+                 {errors[`${index}-preco`] && <span className="text-[9px] text-red-500 font-bold ml-1">{errors[`${index}-preco`]}</span>}
+               </div>
 
-                {/* QUANTIDADE */}
-                <div className="w-full md:w-32 space-y-2">
-                  <label className="text-[10px] text-slate-400 font-black uppercase ml-1 tracking-widest">Qtd Total *</label>
-                  <input 
-                    type="number" 
-                    value={ing.quantidade} 
-                    onBlur={(e) => validateField(index, 'quantidade', e.target.value)}
-                    onChange={(e) => handleChange(index, 'quantidade', e.target.value)}
-                    className={`w-full bg-slate-50 border ${errors[`${index}-quantidade`] ? 'border-red-500' : 'border-slate-100'} p-4 rounded-2xl outline-none focus:border-[#C22973] font-bold text-slate-700`} 
-                    placeholder="100"
-                  />
-                  {errors[`${index}-quantidade`] && <span className="text-[9px] text-red-500 font-bold ml-1">{errors[`${index}-quantidade`]}</span>}
-                </div>
+               {/* QUANTIDADE */}
+               <div className="w-full md:w-32 space-y-2">
+                 <label className="text-[10px] text-slate-400 font-black uppercase ml-1 tracking-widest">Qtd Total *</label>
+                 <input 
+                   type="number" 
+                   value={ing.quantidade} 
+                   onBlur={(e) => validateField(index, 'quantidade', e.target.value)}
+                   onChange={(e) => handleChange(index, 'quantidade', e.target.value)}
+                   className={`w-full bg-slate-50 border ${errors[`${index}-quantidade`] ? 'border-red-500' : 'border-slate-100'} p-4 rounded-2xl outline-none focus:border-[#C22973] font-bold text-slate-700`} 
+                   placeholder="100"
+                 />
+                 {errors[`${index}-quantidade`] && <span className="text-[9px] text-red-500 font-bold ml-1">{errors[`${index}-quantidade`]}</span>}
+               </div>
 
-                {/* REMOVER */}
-                {ingressos.length > 1 && (
-                  <button onClick={() => removeIngresso(index)} className="p-4 text-slate-300 hover:text-red-500 transition-colors mb-1">
-                    <Trash2 size={20} />
-                  </button>
-                )}
+               {/* REMOVER */}
+               {ingressos.length > 1 && (
+                 <button onClick={() => removeIngresso(index)} className="p-4 text-slate-300 hover:text-red-500 transition-colors mb-1">
+                   <Trash2 size={20} />
+                 </button>
+               )}
              </div>
            ))}
 

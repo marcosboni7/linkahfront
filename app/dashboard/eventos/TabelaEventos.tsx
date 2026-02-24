@@ -1,12 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import {
-  ChevronLeft, ChevronRight, ChevronDown, MapPin,
-  Globe, Calendar, Clock, Edit3, Trash2, Image as ImageIcon, X, Save, Loader2, Ticket
-} from 'lucide-react';
+import { 
+  ChevronLeft, ChevronRight, ChevronDown, MapPin, 
+  Globe, Calendar, Clock, Edit3, Trash2, Image as ImageIcon, X, Save, Loader2, Ticket 
+} from 'lucide-react'; // <--- O correto é react
 import { useRouter } from 'next/navigation';
 import Swal from 'sweetalert2';
+
+// --- CONFIGURAÇÃO DA API DA AWS ---
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://r8amtavirp.us-east-1.awsapprunner.com';
 
 export default function TabelaEventos() {
   const [isOpen, setIsOpen] = useState(false);
@@ -18,31 +21,32 @@ export default function TabelaEventos() {
   const [eventoParaEditar, setEventoParaEditar] = useState<any>(null);
   const [saving, setSaving] = useState(false);
 
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://linkah-api.onrender.com';
-
   // FUNÇÃO AUXILIAR PARA FORMATAR DATA SEM ERRO DE FUSO
   const formatarDataLocal = (dataString: string) => {
     if (!dataString) return 'S/D';
-    // Criamos o objeto de data e forçamos o formato PT-BR ignorando a distorção do fuso
     const data = new Date(dataString);
     return data.toLocaleDateString('pt-BR', { timeZone: 'UTC' });
   };
 
   const carregarEventos = async () => {
-    const email = localStorage.getItem('userEmail');
+    // Busca e-mail de forma resiliente
+    const userStorage = localStorage.getItem('@Linkah:User');
+    const email = userStorage ? JSON.parse(userStorage).email : localStorage.getItem('userEmail');
+
     if (!email) {
       setLoading(false);
       return;
     }
 
     try {
-      const res = await fetch(`${apiBaseUrl}/api/eventos/listar?email=${email}`);
+      // Agora apontando para a AWS
+      const res = await fetch(`${API_URL}/api/eventos/listar?email=${email}`);
       if (res.ok) {
         const data = await res.json();
         setEventos(data);
       }
     } catch (err) {
-      console.error("Erro ao carregar eventos:", err);
+      console.error("Erro ao carregar eventos da AWS:", err);
     } finally {
       setLoading(false);
     }
@@ -67,13 +71,13 @@ export default function TabelaEventos() {
 
     if (result.isConfirmed) {
       try {
-        const res = await fetch(`${apiBaseUrl}/api/eventos/${id}`, { method: 'DELETE' });
+        const res = await fetch(`${API_URL}/api/eventos/${id}`, { method: 'DELETE' });
         if (res.ok) {
           setEventos((prev: any) => prev.filter((ev: any) => ev.id !== id));
           Swal.fire({ title: 'Removido!', icon: 'success', confirmButtonColor: '#C22973', customClass: { popup: 'rounded-[2rem]' } });
         }
       } catch (err) {
-        Swal.fire('Erro', 'Erro ao conectar com o servidor.', 'error');
+        Swal.fire('Erro', 'Erro ao conectar com a AWS.', 'error');
       }
     }
   };
@@ -87,19 +91,19 @@ export default function TabelaEventos() {
     e.preventDefault();
     setSaving(true);
     try {
-      const res = await fetch(`${apiBaseUrl}/api/eventos/${eventoParaEditar.id}`, {
+      const res = await fetch(`${API_URL}/api/eventos/${eventoParaEditar.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(eventoParaEditar),
       });
 
       if (res.ok) {
-        Swal.fire({ title: 'Sucesso!', text: 'Evento atualizado.', icon: 'success', confirmButtonColor: '#C22973', customClass: { popup: 'rounded-[2rem]' } });
+        Swal.fire({ title: 'Sucesso!', text: 'Evento atualizado na AWS.', icon: 'success', confirmButtonColor: '#C22973', customClass: { popup: 'rounded-[2rem]' } });
         setIsEditModalOpen(false);
         carregarEventos();
       }
     } catch (err) {
-      Swal.fire('Erro', 'Falha ao salvar.', 'error');
+      Swal.fire('Erro', 'Falha ao salvar na AWS.', 'error');
     } finally {
       setSaving(false);
     }
@@ -189,7 +193,7 @@ export default function TabelaEventos() {
                               </div>
                             ))
                           ) : (
-                            <span className="text-[9px] text-slate-400 italic font-bold">Nenhum ingresso cadastrado</span>
+                            <span className="text-[9px] text-slate-400 italic font-bold">Nenhum ingresso</span>
                           )}
                         </div>
                       </div>
@@ -205,7 +209,6 @@ export default function TabelaEventos() {
 
                   <td className="px-4 py-5">
                     <div className="flex flex-col">
-                      {/* AQUI ESTÁ O AJUSTE DA DATA */}
                       <span className="text-xs font-bold text-slate-700">{formatarDataLocal(evento.data_inicio)}</span>
                       <span className="text-[10px] text-slate-400 font-bold uppercase">{evento.hora_inicio?.slice(0, 5)}h</span>
                     </div>
@@ -258,7 +261,6 @@ export default function TabelaEventos() {
         </table>
       </div>
 
-      {/* FOOTER DA TABELA */}
       <div className="p-6 bg-slate-50/50 border-t border-slate-50 flex justify-between items-center text-slate-400 text-[10px] font-black uppercase tracking-widest">
         <span>Mostrando {eventos.length} eventos</span>
         <div className="flex gap-4">

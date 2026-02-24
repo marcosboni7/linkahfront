@@ -3,11 +3,14 @@
 import { useState, useEffect } from 'react';
 import { 
   Users, Ticket, MessageCircle, TrendingUp, 
-  ArrowUpRight, Clock, Calendar, CheckCircle2, Loader2 
+  ArrowUpRight, Clock, Calendar, CheckCircle2, Loader2,
+  Activity, ShieldCheck
 } from 'lucide-react';
 
+// --- CONFIGURAÇÃO DA API DA AWS ---
+const API_URL_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://r8amtavirp.us-east-1.awsapprunner.com';
+
 export default function AdminDashboard() {
-  // Estados para os dados do backend
   const [stats, setStats] = useState({
     usuarios: 0,
     eventos: 0,
@@ -15,16 +18,15 @@ export default function AdminDashboard() {
   });
   const [loading, setLoading] = useState(true);
 
-  // URL base da sua API
-  const API_BASE = 'https://linkah-api.onrender.com/api';
-
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        // Buscamos os dados em paralelo para ser mais rápido
+        console.log("📡 [DEBUG] Sincronizando dados com AWS...");
+        
+        // Buscando dados em paralelo para otimizar o tempo de carregamento
         const [resUsers, resEvents] = await Promise.all([
-          fetch(`${API_BASE}/usuarios`),
-          fetch(`${API_BASE}/eventos`) // Assumindo que este endpoint existe
+          fetch(`${API_URL_BASE}/api/usuarios`),
+          fetch(`${API_URL_BASE}/api/eventos`)
         ]);
 
         const usersData = await resUsers.json();
@@ -33,10 +35,10 @@ export default function AdminDashboard() {
         setStats({
           usuarios: Array.isArray(usersData) ? usersData.length : 0,
           eventos: Array.isArray(eventsData) ? eventsData.length : 0,
-          comunidades: 24 // Exemplo estático ou mude para o seu endpoint de comunidades
+          comunidades: 12 // Valor exemplo para comunidades
         });
       } catch (error) {
-        console.error("Erro ao buscar estatísticas:", error);
+        console.error("🚨 [DEBUG] Erro ao sincronizar dashboard:", error);
       } finally {
         setLoading(false);
       }
@@ -46,114 +48,145 @@ export default function AdminDashboard() {
   }, []);
 
   return (
-    <div className="p-10 max-w-7xl mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="p-6 lg:p-12 max-w-7xl mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
       
-      {/* HEADER */}
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* HEADER DE COMANDO */}
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-4xl font-black tracking-tighter text-slate-900">Olá, Admin 👋</h1>
-          <p className="text-slate-500 font-medium tracking-tight text-sm">Status atualizado da plataforma Linkah.</p>
+          <div className="flex items-center gap-2 mb-1">
+            <ShieldCheck size={16} className="text-[#C22973]" />
+            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#C22973]">Administrator Access</span>
+          </div>
+          <h1 className="text-5xl font-black tracking-tighter text-slate-900 italic uppercase">
+            Console <span className="text-slate-400">Geral</span>
+          </h1>
+          <p className="text-slate-500 font-bold text-xs uppercase tracking-widest mt-2">Métricas em tempo real da infraestrutura Linkah.</p>
         </div>
-        <div className="flex gap-3">
-          <div className="bg-white px-5 py-2.5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full animate-pulse ${loading ? 'bg-amber-400' : 'bg-emerald-500'}`} />
-            <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">
-              {loading ? 'Sincronizando...' : 'Sistema Online'}
+
+        <div className="flex items-center gap-4">
+          <div className="bg-white px-6 py-3 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3">
+            <div className={`w-2.5 h-2.5 rounded-full ${loading ? 'bg-amber-400 animate-pulse' : 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]'}`} />
+            <span className="text-[11px] font-black text-slate-700 uppercase tracking-widest">
+              {loading ? 'Sincronizando...' : 'Sistema Estável'}
             </span>
           </div>
         </div>
       </header>
 
-      {/* CARDS PRINCIPAIS */}
+      {/* MÉTRICAS PRINCIPAIS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         
-        {/* Eventos */}
-        <div className="group bg-white p-8 rounded-[3rem] border border-slate-100 shadow-xl shadow-slate-200/50 hover:scale-[1.02] transition-all duration-300 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-red-50/50 rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-110" />
-          <div className="w-14 h-14 bg-red-50 text-[#ff4d4d] rounded-2xl flex items-center justify-center mb-6 shadow-inner">
-            <Ticket size={28} />
+        {/* EVENTOS */}
+        <div className="group bg-white p-8 rounded-[3.5rem] border border-slate-100 shadow-xl shadow-slate-200/40 hover:scale-[1.02] transition-all duration-500 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-pink-50/50 rounded-full -mr-16 -mt-16 group-hover:scale-125 transition-transform" />
+          <div className="w-16 h-16 bg-pink-50 text-[#C22973] rounded-3xl flex items-center justify-center mb-8 shadow-inner">
+            <Ticket size={32} />
           </div>
-          <p className="text-slate-400 text-[11px] font-black uppercase tracking-[0.15em]">Eventos Ativos</p>
-          <div className="flex items-baseline gap-2">
-            {loading ? <Loader2 className="animate-spin text-slate-200" /> : (
-              <p className="text-5xl font-black text-slate-900 tracking-tighter">{stats.eventos}</p>
+          <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mb-1">Eventos Ativos</p>
+          <div className="flex items-baseline gap-3">
+            {loading ? (
+              <Loader2 className="animate-spin text-slate-200" />
+            ) : (
+              <p className="text-6xl font-black text-slate-900 tracking-tighter">{stats.eventos}</p>
             )}
+            <span className="text-pink-500 text-xs font-black uppercase tracking-tighter">Live Now</span>
           </div>
         </div>
 
-        {/* Usuários */}
-        <div className="group bg-white p-8 rounded-[3rem] border border-slate-100 shadow-xl shadow-slate-200/50 hover:scale-[1.02] transition-all duration-300 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50/50 rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-110" />
-          <div className="w-14 h-14 bg-blue-50 text-blue-500 rounded-2xl flex items-center justify-center mb-6 shadow-inner">
-            <Users size={28} />
+        {/* USUÁRIOS */}
+        <div className="group bg-white p-8 rounded-[3.5rem] border border-slate-100 shadow-xl shadow-slate-200/40 hover:scale-[1.02] transition-all duration-500 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50/50 rounded-full -mr-16 -mt-16 group-hover:scale-125 transition-transform" />
+          <div className="w-16 h-16 bg-blue-50 text-blue-500 rounded-3xl flex items-center justify-center mb-8 shadow-inner">
+            <Users size={32} />
           </div>
-          <p className="text-slate-400 text-[11px] font-black uppercase tracking-[0.15em]">Membros Totais</p>
-          <div className="flex items-baseline gap-2">
-            {loading ? <Loader2 className="animate-spin text-slate-200" /> : (
-              <p className="text-5xl font-black text-slate-900 tracking-tighter">{stats.usuarios}</p>
+          <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mb-1">Total de Membros</p>
+          <div className="flex items-baseline gap-3">
+            {loading ? (
+              <Loader2 className="animate-spin text-slate-200" />
+            ) : (
+              <p className="text-6xl font-black text-slate-900 tracking-tighter">{stats.usuarios}</p>
             )}
-            <span className="text-emerald-500 text-xs font-bold flex items-center gap-1">
-              <ArrowUpRight size={14} /> +2%
-            </span>
+            <div className="flex items-center gap-1 text-emerald-500 text-xs font-black italic">
+              <ArrowUpRight size={14} /> +{stats.usuarios > 0 ? '12' : '0'}%
+            </div>
           </div>
         </div>
 
-        {/* Comunidades */}
-        <div className="group bg-white p-8 rounded-[3rem] border border-slate-100 shadow-xl shadow-slate-200/50 hover:scale-[1.02] transition-all duration-300 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50/50 rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-110" />
-          <div className="w-14 h-14 bg-emerald-50 text-emerald-500 rounded-2xl flex items-center justify-center mb-6 shadow-inner">
-            <MessageCircle size={28} />
+        {/* COMUNIDADES */}
+        <div className="group bg-white p-8 rounded-[3.5rem] border border-slate-100 shadow-xl shadow-slate-200/40 hover:scale-[1.02] transition-all duration-500 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50/50 rounded-full -mr-16 -mt-16 group-hover:scale-125 transition-transform" />
+          <div className="w-16 h-16 bg-indigo-50 text-indigo-500 rounded-3xl flex items-center justify-center mb-8 shadow-inner">
+            <MessageCircle size={32} />
           </div>
-          <p className="text-slate-400 text-[11px] font-black uppercase tracking-[0.15em]">Comunidades</p>
-          <div className="flex items-baseline gap-2">
-            <p className="text-5xl font-black text-slate-900 tracking-tighter">{stats.comunidades}</p>
-            <span className="text-slate-400 text-xs font-bold">Oficiais</span>
+          <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mb-1">Comunidades</p>
+          <div className="flex items-baseline gap-3">
+            <p className="text-6xl font-black text-slate-900 tracking-tighter">{stats.comunidades}</p>
+            <span className="text-slate-300 text-xs font-black uppercase tracking-widest italic">Hubs</span>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* ATIVIDADE RECENTE (Lógica para o histórico) */}
-        <div className="bg-white p-10 rounded-[3.5rem] border border-slate-100 shadow-xl shadow-slate-200/40">
-          <div className="flex items-center justify-between mb-8">
-            <h3 className="text-xl font-black text-slate-900 flex items-center gap-2">
-              <Clock className="text-slate-400" size={20} /> Histórico Local
+        {/* LOG DE ATIVIDADES */}
+        <div className="bg-white p-10 rounded-[4rem] border border-slate-100 shadow-xl shadow-slate-200/30">
+          <div className="flex items-center justify-between mb-10">
+            <h3 className="text-2xl font-black text-slate-900 uppercase italic flex items-center gap-3">
+              <Activity className="text-slate-300" size={24} /> Logs de Sistema
             </h3>
+            <button className="text-[10px] font-black text-[#C22973] uppercase tracking-[0.2em] hover:underline">Ver Todos</button>
           </div>
           
-          <div className="space-y-6">
-            <div className="flex items-center gap-4 group">
-              <div className="w-10 h-10 bg-blue-50 text-blue-500 rounded-xl flex items-center justify-center shrink-0">
-                <Users size={18} />
+          <div className="space-y-8">
+            <div className="flex items-center gap-5 group cursor-default">
+              <div className="w-12 h-12 bg-slate-50 text-slate-400 group-hover:bg-[#C22973] group-hover:text-white rounded-2xl flex items-center justify-center shrink-0 transition-all duration-300">
+                <CheckCircle2 size={20} />
               </div>
-              <div>
-                <p className="text-sm font-bold text-slate-800">Última checagem concluída</p>
-                <p className="text-[10px] font-medium text-slate-400 uppercase">Agora mesmo</p>
+              <div className="flex-1 border-b border-slate-50 pb-4">
+                <p className="text-sm font-black text-slate-800 uppercase tracking-tight">Sincronização com AWS concluída</p>
+                <div className="flex items-center gap-3 mt-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1"><Clock size={12}/> Agora</span>
+                    <span className="w-1 h-1 bg-slate-200 rounded-full"/>
+                    <span className="text-[10px] font-bold text-emerald-500 uppercase">Success</span>
+                </div>
               </div>
             </div>
-            {/* Adicione mais itens conforme necessário */}
+
+            <div className="flex items-center gap-5 group cursor-default opacity-60">
+              <div className="w-12 h-12 bg-slate-50 text-slate-400 rounded-2xl flex items-center justify-center shrink-0">
+                <Users size={20} />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-black text-slate-800 uppercase tracking-tight">Novo produtor registrado</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase mt-1">Há 14 minutos</p>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* GRÁFICO (CSS Puro) */}
-        <div className="bg-slate-900 p-10 rounded-[3.5rem] shadow-2xl relative overflow-hidden">
+        {/* PROJEÇÃO VISUAL */}
+        <div className="bg-slate-900 p-10 rounded-[4rem] shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[400px]">
+          {/* Background Decorative Element */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-[#C22973]/20 rounded-full blur-[100px]" />
+          
           <div className="relative z-10">
-            <h3 className="text-xl font-black text-white mb-2 flex items-center gap-2">
-              <TrendingUp className="text-[#ff4d4d]" size={20} /> Projeção Linkah
-            </h3>
-            <p className="text-slate-400 text-sm font-medium mb-8">Crescimento orgânico mensal.</p>
-            
-            <div className="flex items-end gap-3 h-32 mt-10">
-              {[30, 45, 35, 60, 55, 80, 95].map((h, i) => (
-                <div key={i} className="flex-1 flex flex-col items-center gap-2">
-                  <div 
-                    className="w-full bg-[#ff4d4d] rounded-t-lg transition-all duration-1000 ease-out shadow-[0_0_20px_rgba(255,77,77,0.4)]"
-                    style={{ height: `${h}%` }}
-                  />
-                  <span className="text-[9px] font-black text-slate-500">M{i+1}</span>
-                </div>
-              ))}
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[9px] font-black text-[#C22973] uppercase tracking-widest mb-4">
+               <TrendingUp size={12} /> Performance Anual
             </div>
+            <h3 className="text-3xl font-black text-white italic uppercase tracking-tighter">Métricas de <br/><span className="text-[#C22973]">Expansão</span></h3>
+          </div>
+          
+          <div className="relative z-10 flex items-end gap-3 h-40 mt-10">
+            {[20, 35, 25, 50, 40, 75, 90, 65, 85, 100].map((h, i) => (
+              <div key={i} className="flex-1 flex flex-col items-center gap-3 group">
+                <div 
+                  className="w-full bg-slate-800 group-hover:bg-[#C22973] rounded-xl transition-all duration-700 ease-out relative"
+                  style={{ height: `${h}%` }}
+                >
+                    {h === 100 && <div className="absolute -top-1 w-full h-1 bg-white rounded-full animate-pulse shadow-[0_0_15px_#fff]" />}
+                </div>
+                <span className="text-[8px] font-black text-slate-600 group-hover:text-slate-400 transition-colors uppercase">M{i+1}</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>

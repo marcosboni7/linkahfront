@@ -4,6 +4,9 @@ import { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ImageIcon, Search, Calendar, MapPin, CheckCircle2, X, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
+// --- CONFIGURAÇÃO DA API DA AWS ---
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://r8amtavirp.us-east-1.awsapprunner.com';
+
 export default function NovoEventoPresencial() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
@@ -24,6 +27,7 @@ export default function NovoEventoPresencial() {
     tipo: 'Presencial'
   });
 
+  // Inicialização do Mapa
   useEffect(() => {
     if (typeof window !== 'undefined' && window.google) {
       if (mapContainerRef.current && !googleMap.current) {
@@ -69,7 +73,6 @@ export default function NovoEventoPresencial() {
             cidade: getComponent('administrative_area_level_2'),
             estado: getUF(),
           }));
-          // Limpa erro de local ao selecionar
           setErrors(prev => ({ ...prev, local_nome: false }));
         });
       }
@@ -88,7 +91,6 @@ export default function NovoEventoPresencial() {
   const handleChange = (e: any) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
-    // Validação inline: remove o erro enquanto o usuário digita
     if (value.trim() !== "") {
         setErrors(prev => ({ ...prev, [name]: false }));
     }
@@ -106,7 +108,10 @@ export default function NovoEventoPresencial() {
   };
 
   const handleSalvar = async () => {
-    const emailProdutor = localStorage.getItem('userEmail');
+    // Busca e-mail do localStorage (pode ser 'userEmail' ou de dentro do objeto '@Linkah:User')
+    const userStorage = localStorage.getItem('@Linkah:User');
+    const emailProdutor = userStorage ? JSON.parse(userStorage).email : localStorage.getItem('userEmail');
+
     if (!emailProdutor) return alert("Sessão expirada. Faça login novamente.");
     
     if (!validate()) {
@@ -116,8 +121,8 @@ export default function NovoEventoPresencial() {
 
     setIsLoading(true);
     try {
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://linkah-api.onrender.com';
-      const response = await fetch(`${apiBaseUrl}/api/eventos/novo-presencial`, {
+      // Chamada para a nova API da AWS
+      const response = await fetch(`${API_URL}/api/eventos/novo-presencial`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -129,13 +134,14 @@ export default function NovoEventoPresencial() {
 
       const data = await response.json();
       if (response.ok) {
+        // Redireciona para o passo 2 (ingressos) passando o ID gerado na AWS
         router.push(`/dashboard/eventos/novo/ingressos/${data.id}`);
       } else {
-        alert("Erro ao salvar: " + (data.message || "Erro desconhecido"));
+        alert("Erro ao salvar na AWS: " + (data.message || "Erro desconhecido"));
       }
     } catch (error) {
-      console.error("Erro na conexão:", error);
-      alert("❌ Erro na conexão com o servidor.");
+      console.error("Erro na conexão AWS:", error);
+      alert("❌ Erro na conexão com o servidor da AWS.");
     } finally {
       setIsLoading(false);
     }

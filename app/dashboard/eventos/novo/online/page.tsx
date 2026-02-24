@@ -2,6 +2,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 
+// --- CONFIGURAÇÃO DA API DA AWS ---
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://r8amtavirp.us-east-1.awsapprunner.com';
+
 const gerarCorTag = (nome: string) => {
   const cores = ['bg-purple-500', 'bg-indigo-500', 'bg-violet-600', 'bg-fuchsia-500', 'bg-blue-500'];
   let hash = 0;
@@ -22,7 +25,8 @@ export default function SalaComunidade() {
 
   // 1. LÓGICA DE PROTEÇÃO E CAPTURA DE NOME
   useEffect(() => {
-    const userStorage = localStorage.getItem('user') || localStorage.getItem('userData');
+    // Tenta ler o padrão da Navbar ou os padrões secundários
+    const userStorage = localStorage.getItem('@Linkah:User') || localStorage.getItem('user') || localStorage.getItem('userData');
     
     if (userStorage) {
       try {
@@ -36,26 +40,28 @@ export default function SalaComunidade() {
         setNaoAutorizado(true);
       }
     } else {
-      // Se não houver login, bloqueia e redireciona
       setNaoAutorizado(true);
       setTimeout(() => {
-        router.push('/login'); // Ajuste para sua rota de login
+        router.push('/site/login'); // Rota padrão que vimos na Navbar
       }, 3000);
     }
   }, [router]);
 
-  // 2. BUSCA DE MENSAGENS
+  // 2. BUSCA DE MENSAGENS NA AWS
   const carregarMensagens = async () => {
     if (!id || naoAutorizado) return;
     try {
-      const res = await fetch(`https://linkah-api.onrender.com/api/comunidade/${id}?t=${Date.now()}`, { cache: 'no-store' });
+      // Agora apontando para a AWS
+      const res = await fetch(`${API_URL}/api/comunidade/${id}?t=${Date.now()}`, { cache: 'no-store' });
       if (res.ok) setMensagens(await res.json());
-    } catch (err) { console.error(err); }
+    } catch (err) { 
+        console.error("Erro ao carregar mensagens da AWS:", err); 
+    }
   };
 
   useEffect(() => {
     carregarMensagens();
-    const interval = setInterval(carregarMensagens, 3000);
+    const interval = setInterval(carregarMensagens, 3000); // Polling a cada 3s
     return () => clearInterval(interval);
   }, [id, naoAutorizado]);
 
@@ -63,19 +69,27 @@ export default function SalaComunidade() {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [mensagens]);
 
-  // 3. ENVIO DE MENSAGEM
+  // 3. ENVIO DE MENSAGEM PARA AWS
   const enviarMensagem = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!novoTexto.trim() || !dadosUsuario) return;
-    const txt = novoTexto; setNovoTexto('');
+    const txt = novoTexto; 
+    setNovoTexto('');
     try {
-      await fetch('https://linkah-api.onrender.com/api/comunidade/enviar', {
+      await fetch(`${API_URL}/api/comunidade/enviar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ evento_id: Number(id), usuario_nome: dadosUsuario.nome, texto: txt })
+        body: JSON.stringify({ 
+            evento_id: Number(id), 
+            usuario_nome: dadosUsuario.nome, 
+            texto: txt 
+        })
       });
       carregarMensagens();
-    } catch (err) { setNovoTexto(txt); }
+    } catch (err) { 
+        console.error("Erro ao enviar para AWS:", err);
+        setNovoTexto(txt); 
+    }
   };
 
   // TELA DE "NÃO LOGADO"
@@ -88,7 +102,7 @@ export default function SalaComunidade() {
     </div>
   );
 
-  if (carregando) return <div className="h-screen !bg-white flex items-center justify-center text-indigo-600 font-bold">Carregando...</div>;
+  if (carregando) return <div className="h-screen !bg-white flex items-center justify-center text-indigo-600 font-bold">Carregando Chat...</div>;
 
   return (
     <div className="flex flex-col h-screen !bg-white !text-slate-900 font-sans overflow-hidden">
@@ -103,7 +117,7 @@ export default function SalaComunidade() {
           <h1 className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600 italic">Linkah Chat</h1>
           <div className="flex items-center gap-1.5 justify-center">
              <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
-             <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Conectado</span>
+             <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Conectado (AWS)</span>
           </div>
         </div>
 
@@ -112,7 +126,7 @@ export default function SalaComunidade() {
         </div>
       </header>
 
-      {/* ÁREA DE CHAT (FUNDO CINZA LEVE) */}
+      {/* ÁREA DE CHAT */}
       <main className="flex-1 overflow-y-auto p-4 space-y-6 !bg-[#f8fafc] custom-scrollbar">
         {mensagens.map((msg, idx) => {
           const meuNome = (dadosUsuario?.nome || "").trim().toLowerCase();
@@ -143,7 +157,7 @@ export default function SalaComunidade() {
         <div ref={scrollRef} className="h-4" />
       </main>
 
-      {/* INPUT BRANCO */}
+      {/* INPUT */}
       <footer className="p-4 !bg-white border-t border-slate-100 shrink-0">
         <form onSubmit={enviarMensagem} className="flex items-center gap-2 max-w-4xl mx-auto !bg-slate-50 p-1.5 rounded-2xl border border-slate-200 focus-within:!bg-white focus-within:border-indigo-400 transition-all shadow-sm">
           <input 
