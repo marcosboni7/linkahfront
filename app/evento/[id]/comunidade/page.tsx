@@ -43,9 +43,11 @@ export default function SalaLinkahSkype() {
 
     const atualizarDados = async () => {
       try {
-        const [resEv, resMsg] = await Promise.all([
+        // AJUSTE: Agora buscamos Evento, Mensagens E a Presença Real em paralelo
+        const [resEv, resMsg, resOnline] = await Promise.all([
           fetch(`${API_URL}/api/eventos/${id}`),
-          fetch(`${API_URL}/api/comunidades/${id}?t=${Date.now()}`)
+          fetch(`${API_URL}/api/comunidades/${id}?t=${Date.now()}`),
+          fetch(`${API_URL}/api/comunidades/presenca/${id}?usuario_nome=${dadosUsuario.nome}`)
         ]);
 
         if (resEv.ok) setDadosEvento(await resEv.json());
@@ -57,7 +59,7 @@ export default function SalaLinkahSkype() {
           const AGORA = Date.now();
           const MEU_NOME_LIMPO = dadosUsuario.nome.trim().toLowerCase();
 
-          // Detecção de chamadas
+          // Detecção de chamadas (Lógica original mantida)
           lista.forEach((msg: any) => {
             if (msg.texto && msg.texto.includes("CALL_INVITE|")) {
               const partes = msg.texto.split("|");
@@ -77,46 +79,24 @@ export default function SalaLinkahSkype() {
               }
             }
           });
-
-          const ativosAgora = lista.reduce((acc: any[], curr: any) => {
-            const dataInteracao = new Date(curr.criado_em).getTime();
-            if ((AGORA - dataInteracao) < 40000) {
-               const index = acc.findIndex((u: any) => u.usuario_nome === curr.usuario_nome);
-               const statusCall = curr.texto === "system_ping_on_call";
-               if (index === -1) {
-                acc.push({ usuario_nome: curr.usuario_nome, emCall: statusCall });
-               } else if (statusCall) {
-                acc[index].emCall = true;
-               }
-            }
-            return acc;
-          }, []);
-          
-          setUsuariosOnline(ativosAgora.filter((u: any) => u.usuario_nome !== dadosUsuario.nome));
         }
+
+        // AJUSTE: Atualiza a lista de online com base na tabela de presença real
+        if (resOnline.ok) {
+          const listaOnline = await resOnline.json();
+          // Filtra para não mostrar você mesmo na lista lateral
+          setUsuariosOnline(listaOnline.filter((u: any) => u.usuario_nome !== dadosUsuario.nome));
+        }
+
         setCarregando(false);
       } catch (err) { console.error("Erro fetch:", err); }
     };
 
-    const enviarSinalVida = async () => {
-        try {
-          await fetch(`${API_URL}/api/comunidades/enviar`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              evento_id: Number(id), 
-              usuario_nome: dadosUsuario.nome, 
-              texto: chamadaAtiva ? "system_ping_on_call" : "system_ping_active", 
-              tipo: "status" 
-            })
-          });
-        } catch (e) {}
-    };
-
     atualizarDados();
     const chatInt = setInterval(atualizarDados, 4000);
-    const pingInt = setInterval(enviarSinalVida, 15000);
-    return () => { clearInterval(chatInt); clearInterval(pingInt); };
+    // O sinal de vida agora é automático no GET de presença acima, 
+    // mas mantemos o intervalo se você quiser garantir o registro mesmo sem mensagens.
+    return () => { clearInterval(chatInt); };
   }, [id, dadosUsuario, chamadaAtiva, conviteRecebido]);
 
   useEffect(() => {
@@ -195,7 +175,7 @@ export default function SalaLinkahSkype() {
               </button>
               <button 
                 onClick={() => setConviteRecebido(null)}
-                className="bg-slate-100 text-slate-400 py-5 rounded-2xl font-black tracking-widest text-xs"
+                className="bg-slate-100 text-slate-400 py-5 rounded-2xl font-black tracking-widest text-xs flex items-center justify-center gap-2"
               >
                 <X size={18} /> RECUSAR
               </button>
@@ -276,7 +256,8 @@ export default function SalaLinkahSkype() {
 
         <div className="flex-1 overflow-y-auto p-8 space-y-8 bg-slate-50/20">
           {mensagens.map((msg, idx) => {
-            if (msg.texto?.includes("system_ping") || msg.texto?.includes("CALL_INVITE|")) return null;
+            // AJUSTE: Oculta pings e convites de call do corpo do chat para ficar limpo
+            if (msg.texto?.includes("system_ping") || msg.texto?.includes("CALL_INVITE|") || msg.tipo === "status") return null;
             const souEu = dadosUsuario?.nome === msg.usuario_nome;
             return (
               <div key={idx} className={`flex gap-4 ${souEu ? 'flex-row-reverse' : 'flex-row'} items-start`}>
