@@ -19,6 +19,27 @@ const translations = {
     places: "lugar",
     placesPlural: "lugares",
 
+    // --- HOME / VITRINE (Novas chaves adicionadas) ---
+    slide1Title: "Descubra o seu",
+    slide1Highlight: "próximo momento",
+    slide2Title: "Sinta a vibe dos",
+    slide2Highlight: "melhores shows",
+    slide3Title: "Conecte-se com",
+    slide3Highlight: "novas experiências",
+    searchPlaceholder: "Busque por eventos, shows ou workshops...",
+    explore: "Explorar",
+    happening: "Acontecendo",
+    today: "hoje",
+    coming: "Chegando",
+    soon: "em breve",
+    trending: "em alta",
+    communitySub: "Conecte-se com quem compartilha sua vibe.",
+    membersCount: "membros",
+    discoverNew: "Descubra novas",
+    experiences: "experiências",
+    resultsFor: "Resultados para",
+    noEventsFound: "Nenhum evento encontrado para esta seleção.",
+
     // Filtros e Categorias
     filterVibe: "Filtrar por Vibe",
     allCategories: "Todos",
@@ -47,12 +68,10 @@ const translations = {
     // Gestão de Eventos (Admin / Tabela)
     eventsTitle: "Gestão de Eventos",
     eventsSub: "Controle total das produções Linkah na AWS",
-    searchPlaceholder: "Buscar evento por nome...",
     syncingShowcase: "Sincronizando vitrine...",
     noEvents: "Nenhum evento encontrado.",
     thThumbnail: "Capa / Nome",
     thDateTime: "Data & Horário",
-    // thStatus: "Status", <-- REMOVIDO DAQUI PARA EVITAR DUPLICATA
     thActions: "Ações",
     editEventTitle: "Editar Produção",
     labelEventTitle: "Título do Evento",
@@ -172,7 +191,7 @@ const translations = {
     thLocation: "Localização",
     thDateTimeShort: "Data & Hora",
     thSales: "Vendas",
-    thStatus: "Status", // CHAVE ÚNICA MANTIDA AQUI
+    thStatus: "Status",
     thManagement: "Gestão",
     awsCloudSync: "Acessando AWS Cloud...",
     emptyList: "Sua lista está vazia",
@@ -250,6 +269,27 @@ const translations = {
     places: "seat",
     placesPlural: "seats",
 
+    // --- HOME / SHOWCASE (Added keys) ---
+    slide1Title: "Discover your",
+    slide1Highlight: "next moment",
+    slide2Title: "Feel the vibe of",
+    slide2Highlight: "best shows",
+    slide3Title: "Connect with",
+    slide3Highlight: "new experiences",
+    searchPlaceholder: "Search for events, shows or workshops...",
+    explore: "Explore",
+    happening: "Happening",
+    today: "today",
+    coming: "Coming",
+    soon: "soon",
+    trending: "trending",
+    communitySub: "Connect with people who share your vibe.",
+    membersCount: "members",
+    discoverNew: "Discover new",
+    experiences: "experiences",
+    resultsFor: "Results for",
+    noEventsFound: "No events found for this selection.",
+
     // Filters and Categories
     filterVibe: "Filter by Vibe",
     allCategories: "All",
@@ -278,12 +318,10 @@ const translations = {
     // Event Management (Admin / Table)
     eventsTitle: "Event Management",
     eventsSub: "Full control of Linkah productions on AWS",
-    searchPlaceholder: "Search event by name...",
     syncingShowcase: "Syncing showcase...",
     noEvents: "No events found.",
     thThumbnail: "Cover / Name",
     thDateTime: "Date & Time",
-    // thStatus: "Status", <-- REMOVIDO DAQUI
     thActions: "Actions",
     editEventTitle: "Edit Production",
     labelEventTitle: "Event Title",
@@ -403,7 +441,7 @@ const translations = {
     thLocation: "Location",
     thDateTimeShort: "Date & Time",
     thSales: "Sales",
-    thStatus: "Status", // CHAVE ÚNICA MANTIDA AQUI
+    thStatus: "Status",
     thManagement: "Management",
     awsCloudSync: "Accessing AWS Cloud...",
     emptyList: "Your list is empty",

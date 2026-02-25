@@ -6,6 +6,7 @@ import { EventCard } from './site/EventCard';
 import { Footer } from './site/Footer';
 import { CategoryFilter } from './site/CategoryFilter';
 import { SectionHeader } from './site/SectionHeader';
+import { useLanguage } from '@/app/context/LanguageContext'; // 🟢 Importante!
 import { 
   Search, Ticket, Music, Mic2, Theater, Gamepad2, 
   Utensils, GraduationCap, PartyPopper, Heart,
@@ -13,7 +14,6 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
-// --- CONFIGURAÇÃO DA API DA AWS ATUALIZADA ---
 const API_URL_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
 
 const iconMap: { [key: string]: any } = {
@@ -22,13 +22,15 @@ const iconMap: { [key: string]: any } = {
   'Festa': PartyPopper, 'Infantil': Heart,
 };
 
+// --- SLIDES COM CHAVES DE TRADUÇÃO ---
 const SLIDES = [
-  { id: 1, url: 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?q=80&w=2070', title: 'Descubra o seu', highlight: 'próximo momento' },
-  { id: 2, url: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=2070', title: 'Sinta a vibe dos', highlight: 'melhores shows' },
-  { id: 3, url: 'https://images.unsplash.com/photo-1514525253361-bee8718a74a7?q=80&w=2070', title: 'Conecte-se com', highlight: 'novas experiências' }
+  { id: 1, url: 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?q=80&w=2070', titleKey: 'slide1Title', highlightKey: 'slide1Highlight' },
+  { id: 2, url: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=2070', titleKey: 'slide2Title', highlightKey: 'slide2Highlight' },
+  { id: 3, url: 'https://images.unsplash.com/photo-1514525253361-bee8718a74a7?q=80&w=2070', titleKey: 'slide3Title', highlightKey: 'slide3Highlight' }
 ];
 
 export default function BuyTicketHome() {
+  const { t, language } = useLanguage(); // 🟢 Puxando as traduções globais
   const [eventos, setEventos] = useState<any[]>([]);
   const [comunidades, setComunidades] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,7 +48,6 @@ export default function BuyTicketHome() {
     async function carregarDados() {
       setLoading(true);
       try {
-        // Buscando eventos da vitrine e comunidades simultaneamente na nova API AWS
         const [resEventos, resComunidades] = await Promise.all([
           fetch(`${API_URL_BASE}/api/eventos/vitrine`),
           fetch(`${API_URL_BASE}/api/comunidades`)
@@ -64,7 +65,7 @@ export default function BuyTicketHome() {
           setComunidades(dadosCom.slice(0, 3));
         }
       } catch (error) { 
-        console.error("Erro ao carregar dados da AWS:", error); 
+        console.error("Erro ao carregar dados:", error); 
       } finally { 
         setLoading(false); 
       }
@@ -72,12 +73,11 @@ export default function BuyTicketHome() {
     carregarDados();
   }, []);
 
-  // --- LÓGICA DE FILTRAGEM TEMPORAL ---
+  // Filtragem temporal
   const hojeStr = new Date().toLocaleDateString('en-CA');
   const seteDiasDepois = new Date();
   seteDiasDepois.setDate(seteDiasDepois.getDate() + 7);
   const seteDiasStr = seteDiasDepois.toLocaleDateString('en-CA');
-
   const formatarDataBanco = (ev: any) => (ev.data || ev.data_inicio || "").split('T')[0];
 
   const oQueFazerHoje = eventos.filter(ev => formatarDataBanco(ev) === hojeStr);
@@ -96,7 +96,7 @@ export default function BuyTicketHome() {
     <div className="flex flex-col min-h-screen bg-[#FCFBFA] text-slate-900 font-sans antialiased">
       <Navbar />
 
-      {/* HERO SECTION COM SLIDER */}
+      {/* HERO SECTION */}
       <section className="relative h-[650px] flex items-center justify-center overflow-hidden bg-slate-900 shrink-0">
         {SLIDES.map((slide, index) => (
           <div key={slide.id} className={`absolute inset-0 transition-opacity duration-1000 ${index === currentSlide ? 'opacity-100' : 'opacity-0'}`}>
@@ -109,16 +109,17 @@ export default function BuyTicketHome() {
                 <Sparkles size={14} className="text-[#ff4d4d]" /> Linkah Experience
               </div>
               <h1 className="text-6xl md:text-8xl font-black text-white mb-6 tracking-tighter uppercase italic leading-none">
-                {slide.title} <br /> 
+                {/* 🟢 Tradução dinâmica do Slider */}
+                {(t as any)[slide.titleKey]} <br /> 
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#ff4d4d] to-[#ff8080]">
-                  {slide.highlight}
+                  {(t as any)[slide.highlightKey]}
                 </span>
               </h1>
             </div>
           </div>
         ))}
         
-        {/* BARRA DE BUSCA FLOATING */}
+        {/* BARRA DE BUSCA */}
         <div className="absolute bottom-16 z-30 w-full px-6">
           <div className="bg-white p-3 rounded-[2.5rem] shadow-2xl flex flex-col md:flex-row items-center max-w-4xl mx-auto border border-slate-100 transition-all hover:shadow-[#ff4d4d]/10">
             <div className="flex-[1.5] flex items-center px-6 py-3 w-full border-b md:border-b-0 md:border-r border-slate-100">
@@ -127,18 +128,17 @@ export default function BuyTicketHome() {
                 type="text" 
                 value={buscaNome} 
                 onChange={(e) => setBuscaNome(e.target.value)} 
-                placeholder="Busque por eventos, shows ou workshops..." 
+                placeholder={t.searchPlaceholder} // 🟢 Traduzido
                 className="w-full bg-transparent outline-none text-lg font-bold text-slate-800 placeholder:text-slate-300" 
               />
             </div>
             <button className="bg-slate-950 hover:bg-[#ff4d4d] text-white px-12 py-5 rounded-[2rem] font-black text-xs uppercase tracking-widest transition-all w-full md:w-auto ml-2 active:scale-95">
-              Explorar
+              {t.explore} {/* 🟢 Traduzido */}
             </button>
           </div>
         </div>
       </section>
 
-      {/* FILTRO DE CATEGORIAS STICKY */}
       <div className="sticky top-[68px] z-40 bg-white/80 backdrop-blur-xl py-5 border-b border-slate-100 shadow-sm">
         <CategoryFilter categories={categoriasExistentes} activeCategory={categoriaAtiva} onSelect={setCategoriaAtiva} iconMap={iconMap} />
       </div>
@@ -147,7 +147,7 @@ export default function BuyTicketHome() {
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
             <Loader2 className="animate-spin text-[#ff4d4d]" size={40} />
-            <p className="font-black text-slate-400 uppercase tracking-widest text-xs italic">Sincronizando vitrine...</p>
+            <p className="font-black text-slate-400 uppercase tracking-widest text-xs italic">{t.sync}</p>
           </div>
         ) : (
           <>
@@ -158,7 +158,7 @@ export default function BuyTicketHome() {
                   <section className="animate-in fade-in slide-in-from-bottom-4 duration-700">
                     <div className="flex items-center gap-3 mb-8">
                       <div className="bg-[#ff4d4d]/10 p-2.5 rounded-2xl text-[#ff4d4d] shadow-sm"><Zap size={24} fill="currentColor"/></div>
-                      <SectionHeader title="Acontecendo" highlight="hoje" />
+                      <SectionHeader title={t.happening} highlight={t.today} />
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                       {oQueFazerHoje.map(ev => <EventCard key={ev.id} evento={ev} />)}
@@ -171,7 +171,7 @@ export default function BuyTicketHome() {
                   <section className="animate-in fade-in slide-in-from-bottom-4 duration-1000">
                     <div className="flex items-center gap-3 mb-8">
                       <div className="bg-blue-500/10 p-2.5 rounded-2xl text-blue-500 shadow-sm"><Calendar size={24} /></div>
-                      <SectionHeader title="Chegando" highlight="em breve" />
+                      <SectionHeader title={t.coming} highlight={t.soon} />
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                       {eventosChegando.map(ev => <EventCard key={ev.id} evento={ev} />)}
@@ -183,8 +183,8 @@ export default function BuyTicketHome() {
                 {comunidades.length > 0 && (
                   <section className="space-y-10 py-10 bg-slate-50 -mx-6 px-6 rounded-[4rem] border border-slate-100">
                     <div className="flex flex-col">
-                        <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic">Comunidades <span className="text-[#ff4d4d]">em alta</span></h2>
-                        <p className="text-slate-500 mt-2 text-lg font-medium">Conecte-se com quem compartilha sua vibe.</p>
+                        <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic">{t.communities} <span className="text-[#ff4d4d]">{t.trending}</span></h2>
+                        <p className="text-slate-500 mt-2 text-lg font-medium">{t.communitySub}</p>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                       {comunidades.map((com) => (
@@ -198,7 +198,7 @@ export default function BuyTicketHome() {
                                 <div className="flex -space-x-2">
                                     {[1,2,3].map(i => <div key={i} className="w-6 h-6 rounded-full border-2 border-slate-900 bg-slate-700" />)}
                                 </div>
-                                <span className="text-white/80 text-[10px] font-black uppercase tracking-widest">+{com.total_membros} membros</span>
+                                <span className="text-white/80 text-[10px] font-black uppercase tracking-widest">+{com.total_membros} {t.membersCount}</span>
                             </div>
                           </div>
                         </Link>
@@ -209,11 +209,11 @@ export default function BuyTicketHome() {
               </>
             )}
 
-            {/* VITRINE PRINCIPAL / RESULTADOS */}
+            {/* VITRINE PRINCIPAL */}
             <section id="vitrine-principal" className="pt-10">
               <SectionHeader 
-                title={buscaNome ? `Resultados para "${buscaNome}"` : (categoriaAtiva === 'Todos' ? 'Descubra novas' : categoriaAtiva)} 
-                highlight={buscaNome ? "" : (categoriaAtiva === 'Todos' ? "experiências" : "")} 
+                title={buscaNome ? `${t.resultsFor} "${buscaNome}"` : (categoriaAtiva === 'Todos' ? t.discoverNew : (language === 'PT' ? categoriaAtiva : categoriaAtiva))} 
+                highlight={buscaNome ? "" : (categoriaAtiva === 'Todos' ? t.experiences : "")} 
                 count={vitrineFiltrada.length} 
               />
               {vitrineFiltrada.length > 0 ? (
@@ -222,7 +222,7 @@ export default function BuyTicketHome() {
                 </div>
               ) : (
                 <div className="py-20 text-center">
-                    <p className="text-slate-400 font-bold italic">Nenhum evento encontrado para esta seleção.</p>
+                    <p className="text-slate-400 font-bold italic">{t.noEventsFound}</p>
                 </div>
               )}
             </section>
