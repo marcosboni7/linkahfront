@@ -44,8 +44,8 @@ export default function SalaLinkahSkype() {
     const atualizarDados = async () => {
       try {
         const [resEv, resMsg] = await Promise.all([
-          fetch(`${API_URL}/eventos/${id}`),
-          fetch(`${API_URL}/comunidade/${id}?t=${Date.now()}`)
+          fetch(`${API_URL}/api/eventos/${id}`),
+          fetch(`${API_URL}/api/comunidade/${id}?t=${Date.now()}`)
         ]);
 
         if (resEv.ok) setDadosEvento(await resEv.json());
@@ -102,7 +102,7 @@ export default function SalaLinkahSkype() {
 
     const enviarSinalVida = async () => {
         try {
-          await fetch(`${API_URL}/comunidade/enviar`, {
+          await fetch(`${API_URL}/api/comunidade/enviar`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
@@ -131,7 +131,7 @@ export default function SalaLinkahSkype() {
     const par = [dadosUsuario.nome, nomeDestino].sort();
     const salaPrivada = `Linkah_Priv_${par[0].replace(/\s/g, '_')}_${par[1].replace(/\s/g, '_')}`;
     
-    await fetch(`${API_URL}/comunidade/enviar`, {
+    await fetch(`${API_URL}/api/comunidade/enviar`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
@@ -160,7 +160,7 @@ export default function SalaLinkahSkype() {
 
     setNovoTexto(''); setImagemAnexada(null);
     try {
-      await fetch(`${API_URL}/comunidade/enviar`, {
+      await fetch(`${API_URL}/api/comunidade/enviar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -286,7 +286,6 @@ export default function SalaLinkahSkype() {
         {/* MENSAGENS */}
         <div className="flex-1 overflow-y-auto p-8 space-y-8 bg-slate-50/20">
           {mensagens.map((msg, idx) => {
-            // Esconde pings de sistema e convites da timeline principal
             if (msg.texto?.includes("system_ping") || msg.texto?.includes("CALL_INVITE|")) return null;
             const souEu = dadosUsuario?.nome === msg.usuario_nome;
             return (
