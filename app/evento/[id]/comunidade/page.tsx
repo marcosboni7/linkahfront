@@ -4,7 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { 
   Search, Paperclip, Send, Video, Phone, 
   MoreVertical, Smile, ChevronLeft, X, 
-  PhoneOff, Check, Ban, Loader2
+  Check, Loader2 
 } from 'lucide-react';
 
 // --- CONFIGURAÇÃO DA API DA AWS ---
@@ -22,7 +22,7 @@ export default function SalaLinkahSkype() {
 
   const [chamadaAtiva, setChamadaAtiva] = useState(false);
   const [nomeSalaCall, setNomeSalaCall] = useState(''); 
-  const [conviteRecebido, setConviteRecebido] = useState<{ de: string, sala: string, idMsg: any } | null>(null);
+  const [conviteRecebido, setConviteRecebido] = useState<any>(null);
 
   const [novoTexto, setNovoTexto] = useState('');
   const [imagemAnexada, setImagemAnexada] = useState<string | null>(null);
@@ -33,18 +33,21 @@ export default function SalaLinkahSkype() {
   // 1. Autenticação e Perfil
   useEffect(() => {
     const savedUser = localStorage.getItem('@Linkah:User');
-    if (savedUser) setDadosUsuario(JSON.parse(savedUser));
-    else router.push('/site/login');
+    if (savedUser) {
+      setDadosUsuario(JSON.parse(savedUser));
+    } else {
+      router.push('/site/login');
+    }
   }, [router]);
 
   // 2. Loop de Sincronização (Polling)
   useEffect(() => {
     if (!id || !dadosUsuario?.nome) return;
 
-    const atualizarDados = async () => {
+    const atualizar = async () => {
       try {
-        // AJUSTE: Agora buscamos Evento, Mensagens E a Presença Real em paralelo
-        const [resEv, resMsg, resOnline] = await Promise.all([
+        // Buscamos Evento, Mensagens e a Presença Real simultaneamente
+        const [resEv, resMsg, resOn] = await Promise.all([
           fetch(`${API_URL}/api/eventos/${id}`),
           fetch(`${API_URL}/api/comunidades/${id}?t=${Date.now()}`),
           fetch(`${API_URL}/api/comunidades/presenca/${id}?usuario_nome=${dadosUsuario.nome}`)
@@ -52,16 +55,24 @@ export default function SalaLinkahSkype() {
 
         if (resEv.ok) setDadosEvento(await resEv.json());
 
+        // Atualiza Lista de Usuários Online
+        if (resOn.ok) {
+          const on = await resOn.json();
+          // Filtra para não mostrar você mesmo na lista lateral
+          setUsuariosOnline(on.filter((u: any) => u.usuario_nome !== dadosUsuario.nome));
+        }
+
+        // Atualiza Mensagens e Detecta Convites de Call
         if (resMsg.ok) {
-          const lista = await resMsg.json();
-          setMensagens(lista);
+          const msgs = await resMsg.json();
+          setMensagens(msgs);
 
           const AGORA = Date.now();
           const MEU_NOME_LIMPO = dadosUsuario.nome.trim().toLowerCase();
 
-          // Detecção de chamadas (Lógica original mantida)
-          lista.forEach((msg: any) => {
-            if (msg.texto && msg.texto.includes("CALL_INVITE|")) {
+          // Analisa as últimas mensagens em busca de um CALL_INVITE para mim
+          msgs.slice(-5).forEach((msg: any) => {
+            if (msg.texto?.includes("CALL_INVITE|")) {
               const partes = msg.texto.split("|");
               const destino = partes[1]?.trim().toLowerCase();
               const salaSugerida = partes[2];
@@ -70,146 +81,146 @@ export default function SalaLinkahSkype() {
 
               if (
                 destino === MEU_NOME_LIMPO && 
-                segundosPassados < 30 && 
+                segundosPassados < 25 && 
                 msg.usuario_nome.trim().toLowerCase() !== MEU_NOME_LIMPO &&
                 !chamadaAtiva && 
-                conviteRecebido?.idMsg !== msg.id
+                conviteRecebido?.sala !== salaSugerida
               ) {
-                setConviteRecebido({ de: msg.usuario_nome, sala: salaSugerida, idMsg: msg.id });
+                setConviteRecebido({ de: msg.usuario_nome, sala: salaSugerida });
               }
             }
           });
         }
-
-        // AJUSTE: Atualiza a lista de online com base na tabela de presença real
-        if (resOnline.ok) {
-          const listaOnline = await resOnline.json();
-          // Filtra para não mostrar você mesmo na lista lateral
-          setUsuariosOnline(listaOnline.filter((u: any) => u.usuario_nome !== dadosUsuario.nome));
-        }
-
         setCarregando(false);
-      } catch (err) { console.error("Erro fetch:", err); }
+      } catch (e) { 
+        console.error("Erro na sincronização:", e); 
+      }
     };
 
-    atualizarDados();
-    const chatInt = setInterval(atualizarDados, 4000);
-    // O sinal de vida agora é automático no GET de presença acima, 
-    // mas mantemos o intervalo se você quiser garantir o registro mesmo sem mensagens.
-    return () => { clearInterval(chatInt); };
+    atualizar();
+    const int = setInterval(atualizar, 4000);
+    return () => clearInterval(int);
   }, [id, dadosUsuario, chamadaAtiva, conviteRecebido]);
 
+  // Scroll automático para a última mensagem
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [mensagens]);
 
   // 3. Funções de Ação
-  const iniciarCallPrivada = async (nomeDestino: string) => {
-    if (!dadosUsuario) return;
-    const par = [dadosUsuario.nome, nomeDestino].sort();
-    const salaPrivada = `Linkah_Priv_${par[0].replace(/\s/g, '_')}_${par[1].replace(/\s/g, '_')}`;
-    
-    await fetch(`${API_URL}/api/comunidades/enviar`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        evento_id: Number(id), 
-        usuario_nome: dadosUsuario.nome, 
-        texto: `CALL_INVITE|${nomeDestino}|${salaPrivada}`, 
-        tipo: "status" 
-      })
-    });
-
-    setNomeSalaCall(salaPrivada);
-    setChamadaAtiva(true);
-  };
-
-  const enviarMensagem = async (e: React.FormEvent) => {
+  const enviarMensagem = async (e: any) => {
     e.preventDefault();
-    if ((!novoTexto.trim() && !imagemAnexada) || !dadosUsuario) return;
-    
+    if (!novoTexto.trim() && !imagemAnexada) return;
+
     const payload = { 
       evento_id: Number(id), 
       usuario_nome: dadosUsuario.nome, 
       texto: novoTexto, 
       imagem: imagemAnexada, 
-      tipo: "chat" 
+      tipo: 'chat' 
     };
 
-    setNovoTexto(''); setImagemAnexada(null);
+    setNovoTexto(''); 
+    setImagemAnexada(null);
+
     try {
       await fetch(`${API_URL}/api/comunidades/enviar`, {
-        method: 'POST',
+        method: 'POST', 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-    } catch (err) { console.error(err); }
+    } catch (err) { 
+      console.error(err); 
+    }
+  };
+
+  const iniciarCall = async (destino: string) => {
+    if (!dadosUsuario) return;
+    const sala = `Call_${id}_${Date.now()}`;
+    
+    // Envia o convite via sistema (tipo status para não poluir o chat)
+    await fetch(`${API_URL}/api/comunidades/enviar`, {
+      method: 'POST', 
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        evento_id: Number(id), 
+        usuario_nome: dadosUsuario.nome, 
+        texto: `CALL_INVITE|${destino}|${sala}`, 
+        tipo: 'status' 
+      })
+    });
+
+    setNomeSalaCall(sala); 
+    setChamadaAtiva(true);
   };
 
   if (carregando) return (
     <div className="h-screen flex flex-col items-center justify-center bg-white">
-        <Loader2 className="animate-spin text-[#C22973] mb-4" size={48} />
-        <p className="font-black italic text-slate-900 uppercase tracking-widest text-xs">Conectando à Comunidade...</p>
+      <Loader2 className="animate-spin text-[#C22973] mb-4" size={40} />
+      <p className="font-black italic text-slate-900 uppercase tracking-widest text-xs">Conectando...</p>
     </div>
   );
 
   return (
-    <div className="flex h-screen bg-white text-slate-700 font-sans overflow-hidden">
+    <div className="flex h-screen bg-white overflow-hidden text-slate-700 font-sans">
       
-      {/* MODAL DE CONVITE */}
+      {/* MODAL CONVITE RECEBIDO */}
       {conviteRecebido && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/90 backdrop-blur-md p-4">
-          <div className="bg-white rounded-[3rem] p-10 max-w-sm w-full shadow-2xl text-center border border-white">
-            <div className="w-24 h-24 bg-pink-50 rounded-full flex items-center justify-center mx-auto mb-6 text-[#C22973]">
-              <Phone size={48} className="animate-bounce" />
+        <div className="fixed inset-0 z-[999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white p-8 rounded-[2rem] text-center max-w-xs w-full shadow-2xl">
+            <div className="w-20 h-20 bg-pink-50 rounded-full flex items-center justify-center mx-auto mb-4 text-[#C22973]">
+              <Phone size={40} className="animate-bounce" />
             </div>
-            <h2 className="text-2xl font-black text-slate-900 mb-1 uppercase italic tracking-tighter">Chamada de Vídeo</h2>
-            <p className="text-slate-400 mb-10 font-bold text-xs uppercase tracking-widest">{conviteRecebido.de} está chamando...</p>
-            
-            <div className="flex flex-col gap-3">
+            <p className="font-black uppercase text-xs mb-6 text-slate-400 tracking-widest">
+              {conviteRecebido.de} está chamando...
+            </p>
+            <div className="flex flex-col gap-2">
               <button 
-                onClick={() => { setNomeSalaCall(conviteRecebido.sala); setChamadaAtiva(true); setConviteRecebido(null); }}
-                className="bg-emerald-500 text-white py-5 rounded-2xl font-black tracking-widest text-xs shadow-xl flex items-center justify-center gap-2"
+                onClick={() => { setNomeSalaCall(conviteRecebido.sala); setChamadaAtiva(true); setConviteRecebido(null); }} 
+                className="w-full bg-emerald-500 text-white py-4 rounded-2xl font-black text-xs tracking-widest shadow-lg"
               >
-                <Check size={20} /> ACEITAR
+                ACEITAR
               </button>
               <button 
-                onClick={() => setConviteRecebido(null)}
-                className="bg-slate-100 text-slate-400 py-5 rounded-2xl font-black tracking-widest text-xs flex items-center justify-center gap-2"
+                onClick={() => setConviteRecebido(null)} 
+                className="w-full bg-slate-100 text-slate-400 py-4 rounded-2xl font-black text-xs tracking-widest"
               >
-                <X size={18} /> RECUSAR
+                RECUSAR
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* SIDEBAR */}
-      <aside className="w-80 bg-[#fbfbfc] border-r border-slate-100 flex flex-col hidden lg:flex">
-        <div className="p-6 bg-white border-b border-slate-50">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 rounded-2xl bg-[#C22973] flex items-center justify-center text-white font-black italic text-xl shadow-lg">{dadosUsuario?.nome?.charAt(0)}</div>
-            <div className="font-black text-slate-900 italic uppercase tracking-tighter truncate">{dadosUsuario?.nome}</div>
-          </div>
+      {/* SIDEBAR ONLINE */}
+      <aside className="w-80 border-r hidden lg:flex flex-col bg-[#fbfbfc]">
+        <div className="p-6 border-b bg-white">
+          <h2 className="font-black italic text-[#C22973] uppercase tracking-tighter text-2xl mb-6">Linkah</h2>
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
             <input type="text" placeholder="Buscar membros..." className="w-full bg-slate-50 border-none rounded-xl py-3 pl-12 pr-4 text-xs font-bold outline-none" />
           </div>
         </div>
         
-        <div className="flex-1 overflow-y-auto px-4 py-6 space-y-2">
-          <p className="px-4 mb-4 text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">Pessoas Online</p>
+        <div className="flex-1 overflow-y-auto p-4 space-y-2">
+          <p className="text-[10px] font-black text-slate-300 uppercase p-2 tracking-[0.2em]">Membros Online</p>
           {usuariosOnline.length === 0 ? (
-            <p className="text-center text-[10px] font-bold text-slate-300 uppercase py-10 tracking-widest">Aguardando membros...</p>
-          ) : usuariosOnline.map((user, idx) => (
-            <div key={idx} onClick={() => iniciarCallPrivada(user.usuario_nome)} className="flex items-center gap-4 p-4 rounded-[1.5rem] cursor-pointer hover:bg-white transition-all group border border-transparent hover:border-slate-50">
+            <p className="text-center text-[10px] font-bold text-slate-300 uppercase py-10">Ninguém online agora</p>
+          ) : usuariosOnline.map((u, i) => (
+            <div 
+              key={i} 
+              onClick={() => iniciarCall(u.usuario_nome)} 
+              className="flex items-center gap-3 p-3 hover:bg-white rounded-2xl cursor-pointer transition-all border border-transparent hover:border-slate-100 group shadow-sm hover:shadow-md"
+            >
               <div className="relative">
-                <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center font-black uppercase text-slate-400 group-hover:bg-pink-50 group-hover:text-[#C22973]">{user.usuario_nome.charAt(0)}</div>
-                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-4 border-white rounded-full"></div>
+                <div className="w-10 h-10 rounded-xl bg-pink-50 text-[#C22973] flex items-center justify-center font-black uppercase tracking-tighter">
+                  {u.usuario_nome.charAt(0)}
+                </div>
+                <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></div>
               </div>
               <div className="flex-1 min-w-0">
-                <h4 className="text-sm font-black text-slate-900 truncate uppercase italic">{user.usuario_nome}</h4>
-                <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">Disponível</p>
+                <p className="text-sm font-black truncate uppercase italic tracking-tighter">{u.usuario_nome}</p>
+                <p className="text-[9px] font-bold text-emerald-500 uppercase">Disponível</p>
               </div>
               <Video size={18} className="text-slate-200 group-hover:text-[#C22973]" />
             </div>
@@ -217,84 +228,140 @@ export default function SalaLinkahSkype() {
         </div>
       </aside>
 
-      {/* ÁREA PRINCIPAL */}
-      <main className="flex-1 flex flex-col bg-white relative">
+      {/* CHAT PRINCIPAL */}
+      <main className="flex-1 flex flex-col relative bg-white">
+        
+        {/* TELA DE CHAMADA (JITSI) */}
         {chamadaAtiva && (
-          <div className="absolute inset-0 z-[100] bg-slate-900 flex flex-col">
-            <div className="p-4 bg-slate-900 flex justify-between items-center border-b border-white/5">
-              <div className="flex items-center gap-3">
+          <div className="absolute inset-0 z-50 bg-slate-900 flex flex-col">
+            <div className="p-4 flex justify-between items-center bg-slate-900 border-b border-white/10">
+              <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                <span className="text-white font-black text-[10px] uppercase tracking-[0.3em]">Chamada Linkah Secured</span>
+                <span className="text-white text-[10px] font-black tracking-[0.3em] uppercase">Linkah Live Secured</span>
               </div>
-              <button onClick={() => setChamadaAtiva(false)} className="bg-red-500 text-white px-8 py-3 rounded-2xl font-black text-[10px] tracking-widest">
+              <button 
+                onClick={() => setChamadaAtiva(false)} 
+                className="bg-red-500 text-white px-8 py-2 rounded-xl text-[10px] font-black tracking-widest hover:bg-red-600 transition-colors"
+              >
                 ENCERRAR
               </button>
             </div>
             <iframe 
-              src={`https://meet.jit.si/${nomeSalaCall}#userInfo.displayName="${dadosUsuario?.nome}"&config.prejoinPageEnabled=false&config.startWithAudioMuted=false&config.disableDeepLinking=true`}
-              className="flex-1 w-full border-none"
-              allow="camera; microphone; display-capture; autoplay; clipboard-write"
+              src={`https://meet.jit.si/${nomeSalaCall}#userInfo.displayName="${dadosUsuario?.nome}"&config.prejoinPageEnabled=false`} 
+              className="flex-1 border-none" 
+              allow="camera; microphone; display-capture; autoplay; clipboard-write" 
             />
           </div>
         )}
 
-        <header className="px-8 py-4 border-b border-slate-50 flex items-center justify-between bg-white/80 backdrop-blur-md z-10">
+        {/* HEADER DO CHAT */}
+        <header className="p-6 border-b flex justify-between items-center bg-white/80 backdrop-blur-md z-10">
           <div className="flex items-center gap-4">
-             <button onClick={() => router.back()} className="lg:hidden text-slate-400"><ChevronLeft /></button>
-             <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-[#C22973] font-black border border-slate-100 uppercase italic text-lg">{dadosEvento?.nome?.charAt(0)}</div>
-             <div>
-                <h3 className="font-black text-slate-900 text-base uppercase italic tracking-tighter">{dadosEvento?.nome}</h3>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Linkah Community • {mensagens.length} msgs</p>
-             </div>
+            <div className="w-12 h-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center font-black text-xl italic border-4 border-slate-100 shadow-lg">
+              {dadosEvento?.nome?.charAt(0)}
+            </div>
+            <div>
+              <h1 className="font-black uppercase italic text-base tracking-tighter text-slate-900">{dadosEvento?.nome}</h1>
+              <p className="text-[10px] text-emerald-500 font-black uppercase tracking-widest flex items-center gap-1">
+                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span> Comunidade Ativa
+              </p>
+            </div>
           </div>
-          <div className="flex items-center gap-6">
-             <Video size={22} className="cursor-pointer text-slate-300 hover:text-[#C22973]" onClick={() => { setNomeSalaCall(`Group_${id}`); setChamadaAtiva(true); }} />
-             <Phone size={20} className="cursor-pointer text-slate-300 hover:text-[#C22973]" onClick={() => { setNomeSalaCall(`Group_${id}`); setChamadaAtiva(true); }} />
-             <MoreVertical size={22} className="text-slate-200" />
+          <div className="flex items-center gap-4 lg:gap-6">
+            <Video size={22} className="text-slate-300 hover:text-[#C22973] cursor-pointer" onClick={() => iniciarCall('Todos')} />
+            <Phone size={20} className="text-slate-300 hover:text-[#C22973] cursor-pointer" onClick={() => iniciarCall('Todos')} />
+            <MoreVertical size={22} className="text-slate-200" />
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-8 space-y-8 bg-slate-50/20">
-          {mensagens.map((msg, idx) => {
-            // AJUSTE: Oculta pings e convites de call do corpo do chat para ficar limpo
-            if (msg.texto?.includes("system_ping") || msg.texto?.includes("CALL_INVITE|") || msg.tipo === "status") return null;
-            const souEu = dadosUsuario?.nome === msg.usuario_nome;
+        {/* ÁREA DE MENSAGENS */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/30">
+          {mensagens.map((m, i) => {
+            // Esconde pings de sistema e convites do fluxo principal de texto
+            if(m.tipo === 'status' || m.texto?.includes("CALL_INVITE|")) return null;
+            
+            const souEu = m.usuario_nome === dadosUsuario.nome;
             return (
-              <div key={idx} className={`flex gap-4 ${souEu ? 'flex-row-reverse' : 'flex-row'} items-start`}>
-                <div className="w-10 h-10 rounded-xl bg-slate-200 flex-shrink-0 flex items-center justify-center text-[11px] font-black text-slate-400 uppercase">{msg.usuario_nome.charAt(0)}</div>
-                <div className={`flex flex-col ${souEu ? 'items-end' : 'items-start'} max-w-[70%]`}>
-                  <span className="text-[10px] font-black text-slate-300 mb-2 uppercase tracking-widest">{msg.usuario_nome}</span>
-                  <div className={`px-6 py-4 rounded-[2rem] text-[15px] font-medium shadow-sm ${souEu ? 'bg-[#C22973] text-white rounded-tr-none' : 'bg-white text-slate-700 border border-slate-100 rounded-tl-none'}`}>
-                    {msg.imagem && <img src={msg.imagem} className="rounded-2xl mb-3 max-h-80 w-full object-cover" alt="Anexo" />}
-                    {msg.texto && <p className="leading-relaxed">{msg.texto}</p>}
+              <div key={i} className={`flex ${souEu ? 'justify-end' : 'justify-start'} items-end gap-2`}>
+                {!souEu && (
+                  <div className="w-8 h-8 rounded-lg bg-slate-200 flex items-center justify-center text-[10px] font-black text-slate-400 uppercase mb-1">
+                    {m.usuario_nome.charAt(0)}
                   </div>
+                )}
+                <div className={`max-w-[75%] p-4 rounded-[2rem] shadow-sm ${
+                  souEu 
+                  ? 'bg-[#C22973] text-white rounded-br-none shadow-pink-100' 
+                  : 'bg-white border border-slate-100 text-slate-700 rounded-bl-none'
+                }`}>
+                  {!souEu && (
+                    <p className="text-[9px] font-black uppercase mb-1 opacity-50 tracking-widest">{m.usuario_nome}</p>
+                  )}
+                  {m.imagem && (
+                    <img src={m.imagem} className="rounded-2xl mb-2 max-h-80 w-full object-cover border border-black/5" alt="Anexo" />
+                  )}
+                  {m.texto && <p className="text-[15px] font-medium leading-relaxed">{m.texto}</p>}
                 </div>
               </div>
-            );
+            )
           })}
           <div ref={scrollRef} />
         </div>
 
-        <footer className="p-6 bg-white border-t border-slate-50">
-          <form onSubmit={enviarMensagem} className="max-w-5xl mx-auto flex items-end gap-4">
-            <div className="flex-1 bg-slate-50 rounded-[2rem] p-3 flex flex-col focus-within:bg-white border-2 border-transparent focus-within:border-pink-50 transition-all">
+        {/* FOOTER - ENTRADA DE TEXTO */}
+        <footer className="p-6 border-t bg-white">
+          <form onSubmit={enviarMensagem} className="max-w-5xl mx-auto flex gap-4 items-end">
+            <div className="flex-1 bg-slate-50 rounded-[2rem] p-2 flex flex-col focus-within:bg-white border-2 border-transparent focus-within:border-pink-50 transition-all">
               {imagemAnexada && (
                 <div className="p-3 relative inline-block">
-                  <img src={imagemAnexada} className="h-24 w-24 object-cover rounded-2xl border-4 border-white shadow-lg" alt="Preview" />
-                  <button type="button" onClick={() => setImagemAnexada(null)} className="absolute top-1 right-1 bg-slate-900 text-white rounded-full p-1"><X size={14} /></button>
+                  <img src={imagemAnexada} className="h-24 w-24 object-cover rounded-2xl border-2 border-white shadow-md" alt="Preview" />
+                  <button 
+                    type="button" 
+                    onClick={() => setImagemAnexada(null)} 
+                    className="absolute top-1 right-1 bg-slate-900 text-white rounded-full p-1 shadow-lg hover:scale-110 transition-transform"
+                  >
+                    <X size={12} />
+                  </button>
                 </div>
               )}
-              <div className="flex items-center gap-3">
-                <button type="button" onClick={() => fileInputRef.current?.click()} className="p-3 text-slate-300 hover:text-[#C22973]"><Paperclip size={22} /></button>
-                <input type="file" accept="image/*" hidden ref={fileInputRef} onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) { const r = new FileReader(); r.onloadend = () => setImagemAnexada(r.result as string); r.readAsDataURL(f); }
-                }} />
-                <input type="text" value={novoTexto} onChange={(e) => setNovoTexto(e.target.value)} placeholder="Envie algo incrível..." className="flex-1 bg-transparent border-none outline-none py-3 text-sm font-bold text-slate-900" />
-                <Smile size={22} className="text-slate-300 hover:text-yellow-500 cursor-pointer" />
+              <div className="flex items-center gap-2">
+                <button 
+                  type="button" 
+                  onClick={() => fileInputRef.current?.click()} 
+                  className="p-3 text-slate-400 hover:text-[#C22973] transition-colors"
+                >
+                  <Paperclip size={22} />
+                </button>
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  hidden 
+                  accept="image/*"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if(f){ 
+                      const r = new FileReader(); 
+                      r.onloadend = () => setImagemAnexada(r.result as string); 
+                      r.readAsDataURL(f); 
+                    }
+                  }} 
+                />
+                <input 
+                  value={novoTexto} 
+                  onChange={e => setNovoTexto(e.target.value)} 
+                  className="flex-1 bg-transparent py-4 text-sm font-bold outline-none text-slate-800" 
+                  placeholder="Escreva sua mensagem..." 
+                />
+                <button type="button" className="p-3 text-slate-300">
+                  <Smile size={22} />
+                </button>
               </div>
             </div>
-            <button type="submit" className="bg-[#C22973] text-white p-5 rounded-[1.5rem] shadow-xl active:scale-90"><Send size={24} /></button>
+            <button 
+              type="submit" 
+              className="bg-[#C22973] text-white p-5 rounded-[1.5rem] shadow-xl shadow-pink-100 hover:scale-105 active:scale-95 transition-all"
+            >
+              <Send size={24} />
+            </button>
           </form>
         </footer>
       </main>
