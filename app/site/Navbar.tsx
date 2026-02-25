@@ -120,21 +120,31 @@ export function Navbar() {
         {/* LADO DIREITO */}
         <div className="flex items-center gap-4">
           
-          {/* SELETOR DE IDIOMA */}
-          <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-100">
+          {/* SELETOR DE IDIOMA - ESTILO TOGGLE PREMIUM */}
+          <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 shadow-inner">
             <button 
               onClick={() => toggleLanguage('PT')}
-              className={`px-2 py-1 text-[10px] font-bold rounded-lg transition-all ${idioma === 'PT' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-400'}`}
+              className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all duration-200 ${
+                idioma === 'PT' 
+                ? 'bg-white shadow-sm text-[#ff4d4d] scale-105' 
+                : 'text-slate-400 hover:text-slate-600'
+              }`}
             >
               PT
             </button>
             <button 
               onClick={() => toggleLanguage('EN')}
-              className={`px-2 py-1 text-[10px] font-bold rounded-lg transition-all ${idioma === 'EN' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-400'}`}
+              className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all duration-200 ${
+                idioma === 'EN' 
+                ? 'bg-white shadow-sm text-[#ff4d4d] scale-105' 
+                : 'text-slate-400 hover:text-slate-600'
+              }`}
             >
               EN
             </button>
           </div>
+
+          <div className="h-6 w-[1px] bg-slate-200 mx-1 hidden sm:block" />
 
           {usuario ? (
             <div className="flex items-center gap-2 animate-in fade-in duration-500">
