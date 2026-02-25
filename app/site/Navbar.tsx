@@ -44,8 +44,8 @@ export function Navbar() {
     setIsModalOpen(true);
     setBuscandoTickets(true);
     try {
-      // Chamada atualizada para o novo serviço AWS App Runner
-const response = await fetch(`${API_URL}/api/pagamentos/meus-ingressos?email=${usuario.email}`);
+      // Chamada para o serviço AWS App Runner (Rota de Pagamentos)
+      const response = await fetch(`${API_URL}/api/pagamentos/meus-ingressos?email=${usuario.email}`);
       
       if (response.ok) {
         const dados = await response.json();
@@ -158,10 +158,20 @@ const response = await fetch(`${API_URL}/api/pagamentos/meus-ingressos?email=${u
                 </div>
               ) : meusIngressos.length > 0 ? (
                 meusIngressos.map((ticket) => (
-                  <div key={ticket.id} className="bg-white border border-slate-100 rounded-3xl p-5 shadow-sm hover:border-[#ff4d4d]/20 transition-all hover:translate-y-[-2px]">
+                  <div 
+                    key={ticket.id} 
+                    onClick={() => {
+                      setIsModalOpen(false);
+                      // Redireciona para os detalhes usando o stripe_session_id que agora vem no seu SQL
+                      window.location.href = `/pagamento/sucesso?session_id=${ticket.stripe_session_id}`;
+                    }}
+                    className="bg-white border border-slate-100 rounded-3xl p-5 shadow-sm hover:border-[#ff4d4d]/30 transition-all hover:translate-y-[-2px] cursor-pointer group/card"
+                  >
                     <div className="flex justify-between items-start gap-4">
                       <div className="space-y-1">
-                        <h4 className="font-bold text-slate-900 leading-tight">{ticket.evento}</h4>
+                        <h4 className="font-bold text-slate-900 leading-tight group-hover/card:text-[#ff4d4d] transition-colors">
+                          {ticket.evento}
+                        </h4>
                         <div className="flex items-center gap-2 text-slate-400 text-[11px] font-medium">
                           <Calendar size={12} className="text-slate-300" /> {ticket.data}
                         </div>
@@ -177,9 +187,9 @@ const response = await fetch(`${API_URL}/api/pagamentos/meus-ingressos?email=${u
 
                     <div className="mt-5 pt-4 border-t border-slate-50 flex items-center justify-between">
                       <div className="text-[10px] font-mono text-slate-300 uppercase tracking-tighter">
-                        REF: {ticket.id.toString().substring(0, 8)}
+                        REF: {ticket.id.toString().padStart(6, '0')}
                       </div>
-                      <div className="text-xs font-bold text-slate-900 flex items-center gap-1 bg-slate-50 px-3 py-1.5 rounded-lg">
+                      <div className="text-xs font-bold text-slate-900 flex items-center gap-1 bg-slate-50 px-3 py-1.5 rounded-lg group-hover/card:bg-slate-100 transition-colors">
                          {ticket.qtd} {ticket.qtd > 1 ? 'lugares' : 'lugar'}
                          <ChevronRight size={14} className="text-[#ff4d4d]" />
                       </div>
