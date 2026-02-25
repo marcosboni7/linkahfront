@@ -6,7 +6,7 @@ import { useLanguage } from '@/app/context/LanguageContext';
 import { 
   Ticket, LogOut, X, Calendar, 
   Loader2, MessagesSquare, ChevronRight,
-  User, ChevronDown, Sparkles, MapPin
+  User, ChevronDown, MapPin
 } from 'lucide-react';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
@@ -18,7 +18,8 @@ export function Navbar() {
   const [buscandoTickets, setBuscandoTickets] = useState(false);
   const [meusIngressos, setMeusIngressos] = useState<any[]>([]);
   
-  const { language, setLanguage, t } = useLanguage();
+  // Tipando t como any temporariamente para evitar erros de propriedade inexistente no TS
+  const { language, setLanguage, t }: any = useLanguage();
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -63,44 +64,41 @@ export function Navbar() {
 
   return (
     <>
-      <nav className="fixed top-0 left-0 right-0 z-[60] bg-white/80 backdrop-blur-xl border-b border-slate-200/50">
-        <div className="max-w-7xl mx-auto px-4 md:px-8 h-20 flex items-center justify-between">
+      <nav className="fixed top-0 left-0 right-0 z-[60] bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
           
-          {/* LOGO */}
-          <div className="flex items-center gap-10">
-            <Link href="/" className="relative group">
-              <span className="text-2xl font-black tracking-tighter text-slate-900 flex items-center gap-1">
-                LINKAH<span className="w-2 h-2 rounded-full bg-gradient-to-tr from-red-600 to-rose-400 group-hover:scale-125 transition-transform" />
+          {/* ESQUERDA: LOGO E NAVEGAÇÃO PRINCIPAL */}
+          <div className="flex items-center gap-8">
+            <Link href="/" className="flex items-center">
+              <span className="text-2xl font-black tracking-tighter text-blue-600">
+                LINKAH
               </span>
             </Link>
 
-            {/* LINKS PRINCIPAIS */}
-            <div className="hidden md:flex items-center gap-2">
+            <div className="hidden lg:flex items-center gap-6">
               <Link 
                 href="/comunidades" 
-                className="group px-5 py-2 text-sm font-semibold text-slate-600 hover:text-slate-900 rounded-2xl hover:bg-slate-50 transition-all flex items-center gap-2"
+                className="flex items-center gap-2 text-gray-600 hover:text-blue-600 transition-colors text-sm font-medium"
               >
-                <div className="w-8 h-8 rounded-lg bg-slate-100 group-hover:bg-indigo-50 flex items-center justify-center transition-colors">
-                    <MessagesSquare size={16} className="group-hover:text-indigo-600" />
-                </div>
-                {t.community}
+                <MessagesSquare size={18} strokeWidth={2} />
+                {t.community || 'Comunidade'}
               </Link>
             </div>
           </div>
 
-          {/* ACTIONS DIREITA */}
+          {/* DIREITA: ACTIONS E PERFIL */}
           <div className="flex items-center gap-4">
             
-            {/* IDIOMA - VISUAL CLEAN */}
-            <div className="hidden sm:flex bg-slate-100 p-1 rounded-xl">
+            {/* SELETOR DE IDIOMA */}
+            <div className="hidden sm:flex bg-gray-100 p-1 rounded-lg mr-2">
               {['PT', 'EN'].map((lang) => (
                 <button
                   key={lang}
                   onClick={() => setLanguage(lang as any)}
-                  className={`px-3 py-1.5 text-[11px] font-bold rounded-lg transition-all ${
+                  className={`px-2 py-1 text-[10px] font-bold rounded-md transition-all ${
                     language === lang 
-                    ? 'bg-white text-slate-900 shadow-sm' 
-                    : 'text-slate-400 hover:text-slate-600'
+                    ? 'bg-white text-gray-900 shadow-sm' 
+                    : 'text-gray-400 hover:text-gray-600'
                   }`}
                 >
                   {lang}
@@ -109,55 +107,63 @@ export function Navbar() {
             </div>
 
             {usuario ? (
-              <div className="relative" ref={menuRef}>
+              <div className="relative flex items-center gap-4" ref={menuRef}>
+                {/* BOTÃO MEUS INGRESSOS RÁPIDO */}
                 <button 
-                  onClick={() => setIsMenuOpen(!isMenuOpen)}
-                  className="flex items-center gap-2.5 p-1.5 pr-4 rounded-2xl bg-slate-50 border border-slate-100 hover:border-slate-200 hover:bg-white transition-all shadow-sm"
+                  onClick={carregarMeusIngressos}
+                  className="hidden md:flex items-center gap-2 text-gray-600 hover:text-blue-600 transition-colors text-sm font-medium"
                 >
-                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-slate-800 to-slate-950 text-white flex items-center justify-center text-sm font-bold shadow-md">
-                    {usuario.nome.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="hidden lg:block text-left leading-none">
-                    <p className="text-xs font-bold text-slate-900 mb-0.5">{usuario.nome.split(' ')[0]}</p>
-                    <p className="text-[10px] text-slate-400 font-medium">{t.member}</p>
-                  </div>
-                  <ChevronDown size={14} className={`text-slate-400 transition-transform ${isMenuOpen ? 'rotate-180' : ''}`} />
+                  <Ticket size={18} />
+                  {t.myTickets || 'Meus Ingressos'}
                 </button>
 
-                {/* DROPDOWN LUXO */}
+                <div className="w-[1px] h-6 bg-gray-200 hidden md:block" />
+
+                <button 
+                  onClick={() => setIsMenuOpen(!isMenuOpen)}
+                  className="flex items-center gap-2 p-1 pl-3 border border-gray-200 rounded-full hover:shadow-md transition-all bg-white"
+                >
+                  <div className="flex flex-col items-end hidden sm:block">
+                    <span className="text-[12px] font-bold text-gray-900 leading-none">{usuario.nome.split(' ')[0]}</span>
+                    <span className="text-[10px] text-blue-500 font-medium">{t.member || 'Membro'}</span>
+                  </div>
+                  <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center border border-gray-200">
+                    <User size={16} className="text-gray-500" />
+                  </div>
+                  <ChevronDown size={14} className={`text-gray-400 transition-transform ${isMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {/* DROPDOWN MENU */}
                 {isMenuOpen && (
-                  <div className="absolute right-0 mt-3 w-64 bg-white/95 backdrop-blur-lg border border-slate-200 rounded-[24px] shadow-2xl shadow-slate-200/50 p-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                    <div className="px-4 py-3 mb-2">
-                        <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">{t.myAccount}</p>
+                  <div className="absolute right-0 top-full mt-2 w-56 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+                    <div className="p-4 border-b border-gray-50 bg-gray-50/50">
+                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Conta</p>
+                      <p className="text-xs font-bold text-gray-900 truncate mt-1">{usuario.email}</p>
+                    </div>
+                    
+                    <div className="p-1">
+                      <button 
+                        onClick={carregarMeusIngressos}
+                        className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors group"
+                      >
+                        <Ticket size={16} className="text-gray-400 group-hover:text-blue-600" />
+                        {t.myTickets || 'Meus Ingressos'}
+                      </button>
+                      
+                      <Link href="/perfil" className="flex items-center gap-3 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors group">
+                        <User size={16} className="text-gray-400 group-hover:text-blue-600" />
+                        Perfil
+                      </Link>
                     </div>
 
-                    <button 
-                      onClick={carregarMeusIngressos}
-                      className="w-full flex items-center gap-3 p-3 text-sm text-slate-600 font-bold hover:bg-red-50 hover:text-red-600 rounded-2xl transition-all group"
-                    >
-                      <div className="w-10 h-10 rounded-xl bg-red-100/50 flex items-center justify-center group-hover:bg-red-500 group-hover:text-white transition-all shadow-sm">
-                        <Ticket size={18} />
-                      </div>
-                      {t.myTickets}
-                    </button>
-
-                    <Link href="/perfil" className="w-full flex items-center gap-3 p-3 text-sm text-slate-600 font-bold hover:bg-indigo-50 hover:text-indigo-600 rounded-2xl transition-all group">
-                      <div className="w-10 h-10 rounded-xl bg-indigo-100/50 flex items-center justify-center group-hover:bg-indigo-500 group-hover:text-white transition-all shadow-sm">
-                        <User size={18} />
-                      </div>
-                      {t.myProfileTitle}
-                    </Link>
-
-                    <div className="mt-2 pt-2 border-t border-slate-100">
-                        <button 
+                    <div className="p-1 border-t border-gray-100">
+                      <button 
                         onClick={handleLogout}
-                        className="w-full flex items-center gap-3 p-3 text-sm text-rose-500 font-bold hover:bg-rose-50 rounded-2xl transition-all"
-                        >
-                        <div className="w-10 h-10 flex items-center justify-center">
-                            <LogOut size={18} />
-                        </div>
-                        {t.logout}
-                        </button>
+                        className="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      >
+                        <LogOut size={16} />
+                        {t.logout || 'Sair'}
+                      </button>
                     </div>
                   </div>
                 )}
@@ -165,73 +171,67 @@ export function Navbar() {
             ) : (
               <Link
                 href="/site/login"
-                className="relative overflow-hidden group bg-slate-900 text-white text-sm font-bold px-8 py-3 rounded-2xl hover:shadow-xl hover:shadow-slate-200 transition-all active:scale-95"
+                className="bg-blue-600 text-white text-sm font-bold px-6 py-2 rounded-lg hover:bg-blue-700 transition-all active:scale-95 shadow-sm"
               >
-                <span className="relative z-10">{t.login}</span>
-                <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-rose-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                {t.login || 'Entrar'}
               </Link>
             )}
           </div>
         </div>
       </nav>
 
-      {/* MODAL DE INGRESSOS REESTILIZADO */}
+      {/* MODAL DE INGRESSOS */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md animate-in fade-in" onClick={() => setIsModalOpen(false)} />
+          <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setIsModalOpen(false)} />
           
-          <div className="relative bg-slate-50 w-full max-w-lg rounded-[40px] shadow-2xl overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-10 duration-500">
-            {/* Header Modal */}
-            <div className="bg-white px-8 py-8 flex justify-between items-center border-b border-slate-100">
+          <div className="relative bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-white">
               <div>
-                <h2 className="text-2xl font-black text-slate-900 flex items-center gap-2">
-                  {t.myTickets} <Sparkles className="text-amber-400" size={20} />
-                </h2>
-                <p className="text-xs font-medium text-slate-400 mt-1">{usuario?.email}</p>
+                <h2 className="text-xl font-bold text-gray-900 tracking-tight">{t.myTickets || 'Meus Ingressos'}</h2>
+                <p className="text-xs text-gray-400 mt-0.5 font-medium">{usuario?.email}</p>
               </div>
-              <button onClick={() => setIsModalOpen(false)} className="w-12 h-12 bg-slate-100 flex items-center justify-center rounded-full hover:bg-slate-200 transition-colors">
-                <X size={20} className="text-slate-600" />
+              <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                <X size={20} className="text-gray-400" />
               </button>
             </div>
 
-            {/* Content */}
-            <div className="p-6 max-h-[50vh] overflow-y-auto custom-scrollbar">
+            <div className="p-4 max-h-[60vh] overflow-y-auto bg-gray-50/30">
               {buscandoTickets ? (
-                <div className="flex flex-col items-center py-16">
-                  <div className="relative">
-                    <Loader2 className="animate-spin text-slate-900" size={40} />
-                    <div className="absolute inset-0 animate-ping rounded-full bg-slate-200 opacity-20" />
-                  </div>
-                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest mt-6">{t.sync}</p>
+                <div className="flex flex-col items-center py-20">
+                  <Loader2 className="animate-spin text-blue-600" size={32} />
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-4">{t.sync || 'Sincronizando'}</p>
                 </div>
               ) : meusIngressos.length > 0 ? (
-                <div className="grid gap-4">
+                <div className="grid gap-3">
                   {meusIngressos.map((ticket) => (
                     <div 
                       key={ticket.id} 
                       onClick={() => window.location.href = `/pagamento/sucesso?session_id=${ticket.stripe_session_id}`}
-                      className="group bg-white rounded-[28px] p-5 hover:shadow-xl hover:shadow-slate-200/50 transition-all cursor-pointer border border-transparent hover:border-slate-100 flex gap-4"
+                      className="group bg-white border border-gray-200 rounded-xl p-4 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer relative"
                     >
-                      <div className="w-16 h-16 rounded-2xl bg-slate-900 flex flex-col items-center justify-center text-white shrink-0 group-hover:scale-105 transition-transform">
-                         <span className="text-[10px] font-black uppercase opacity-60">Qtd</span>
-                         <span className="text-xl font-black">{ticket.qtd}</span>
-                      </div>
-                      
-                      <div className="flex-1">
-                        <div className="flex justify-between items-start">
-                           <h4 className="font-bold text-slate-900 text-lg group-hover:text-red-500 transition-colors">{ticket.evento}</h4>
-                           <div className="px-2 py-1 bg-green-50 text-green-600 text-[9px] font-black rounded-lg uppercase tracking-wider border border-green-100">
-                              {t.done}
-                           </div>
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <h4 className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors leading-tight">{ticket.evento}</h4>
+                          <div className="flex flex-wrap items-center gap-3 mt-2">
+                            <div className="flex items-center gap-1.5 text-gray-500 text-[11px] font-medium">
+                              <Calendar size={13} className="text-gray-400" /> {ticket.data}
+                            </div>
+                            <div className="flex items-center gap-1.5 text-gray-500 text-[11px] font-medium">
+                              <MapPin size={13} className="text-gray-400" /> Presencial
+                            </div>
+                          </div>
                         </div>
-                        
-                        <div className="flex items-center gap-4 mt-2">
-                           <div className="flex items-center gap-1.5 text-slate-400 text-[11px] font-bold">
-                              <Calendar size={13} className="text-slate-300" /> {ticket.data}
-                           </div>
-                           <div className="flex items-center gap-1.5 text-slate-400 text-[11px] font-bold">
-                              <MapPin size={13} className="text-slate-300" /> Presencial
-                           </div>
+                        <div className="bg-green-50 text-green-700 text-[10px] font-bold px-2 py-1 rounded border border-green-100 uppercase">
+                          {t.done || 'Confirmado'}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-50">
+                        <span className="text-[10px] font-mono text-gray-300">ID: {(ticket.id || 0).toString().slice(-6).toUpperCase()}</span>
+                        <div className="flex items-center gap-1 text-xs font-bold text-gray-700">
+                          {ticket.qtd} {ticket.qtd > 1 ? (t.placesPlural || 'Ingressos') : (t.places || 'Ingresso')}
+                          <ChevronRight size={14} className="text-gray-400 group-hover:translate-x-0.5 transition-transform" />
                         </div>
                       </div>
                     </div>
@@ -239,27 +239,24 @@ export function Navbar() {
                 </div>
               ) : (
                 <div className="text-center py-16">
-                  <div className="w-20 h-20 bg-slate-100 rounded-[32px] flex items-center justify-center mx-auto mb-6">
-                    <Ticket size={32} className="text-slate-300" />
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Ticket size={24} className="text-gray-300" />
                   </div>
-                  <p className="text-base font-bold text-slate-400">{t.noTickets}</p>
+                  <p className="text-sm font-bold text-gray-400">{t.noTickets || 'Nenhum ingresso encontrado'}</p>
                 </div>
               )}
             </div>
             
-            <div className="p-8 bg-white border-t border-slate-100">
-              <button 
-                onClick={() => setIsModalOpen(false)} 
-                className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-sm hover:bg-indigo-600 transition-all shadow-xl shadow-slate-200 active:scale-95"
-              >
-                {t.done}
+            <div className="p-4 bg-white border-t border-gray-100">
+              <button onClick={() => setIsModalOpen(false)} className="w-full bg-gray-900 text-white py-3.5 rounded-xl font-bold text-sm hover:bg-gray-800 transition-all">
+                {t.done || 'Fechar'}
               </button>
             </div>
           </div>
         </div>
       )}
       
-      <div className="h-20" />
+      <div className="h-16" />
     </>
   );
 }
