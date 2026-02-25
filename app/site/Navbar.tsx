@@ -45,7 +45,8 @@ export function Navbar() {
     setBuscandoTickets(true);
     try {
       // Chamada atualizada para o novo serviço AWS App Runner
-      const response = await fetch(`${API_URL}/api/compras/meus-ingressos?email=${usuario.email}`);
+const response = await fetch(`${API_URL}/api/pagamentos/meus-ingressos?email=${usuario.email}`);
+      
       if (response.ok) {
         const dados = await response.json();
         setMeusIngressos(dados);
