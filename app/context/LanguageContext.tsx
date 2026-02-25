@@ -52,7 +52,7 @@ const translations = {
     noEvents: "Nenhum evento encontrado.",
     thThumbnail: "Capa / Nome",
     thDateTime: "Data & Horário",
-    thStatus: "Status",
+    // thStatus: "Status", <-- REMOVIDO DAQUI PARA EVITAR DUPLICATA
     thActions: "Ações",
     editEventTitle: "Editar Produção",
     labelEventTitle: "Título do Evento",
@@ -172,7 +172,7 @@ const translations = {
     thLocation: "Localização",
     thDateTimeShort: "Data & Hora",
     thSales: "Vendas",
-    thStatus: "Status",
+    thStatus: "Status", // CHAVE ÚNICA MANTIDA AQUI
     thManagement: "Gestão",
     awsCloudSync: "Acessando AWS Cloud...",
     emptyList: "Sua lista está vazia",
@@ -196,8 +196,8 @@ const translations = {
     syncing: "Sincronizando...",
     activeEvents: "Eventos Ativos",
     totalMembers: "Total de Membros",
-    communities: "Comunidades", // Usado no AdminDashboard
-    communitiesTitle: "Gestão de Comunidades", // Usado no AdminComunidades
+    communities: "Comunidades", 
+    communitiesTitle: "Gestão de Comunidades", 
     communitiesSub: "Gerencie os grupos e chats vinculados aos seus eventos.",
     systemLogs: "Logs de Sistema",
     syncSuccess: "Sincronização com AWS concluída",
@@ -283,7 +283,7 @@ const translations = {
     noEvents: "No events found.",
     thThumbnail: "Cover / Name",
     thDateTime: "Date & Time",
-    thStatus: "Status",
+    // thStatus: "Status", <-- REMOVIDO DAQUI
     thActions: "Actions",
     editEventTitle: "Edit Production",
     labelEventTitle: "Event Title",
@@ -323,7 +323,7 @@ const translations = {
     btnPublish: "FINISH AND PUBLISH",
     ticketAlert: "Define your event batches. You can create different categories like 'VIP', 'General Admission' or 'Student'.",
     labelTicketName: "Ticket Type / Name *",
-    labelUnitPrice: "Unit Price *",
+    labelUnitPrice: "Ticket Price *",
     labelStock: "Stock *",
     placeholderTicket: "Ex: Phase 01 - Early Bird",
     btnAddCategory: "Add New Category",
@@ -403,7 +403,7 @@ const translations = {
     thLocation: "Location",
     thDateTimeShort: "Date & Time",
     thSales: "Sales",
-    thStatus: "Status",
+    thStatus: "Status", // CHAVE ÚNICA MANTIDA AQUI
     thManagement: "Management",
     awsCloudSync: "Accessing AWS Cloud...",
     emptyList: "Your list is empty",
@@ -427,8 +427,8 @@ const translations = {
     syncing: "Syncing...",
     activeEvents: "Active Events",
     totalMembers: "Total Members",
-    communities: "Communities", // Used in AdminDashboard
-    communitiesTitle: "Community Management", // Used in AdminComunidades
+    communities: "Communities",
+    communitiesTitle: "Community Management",
     communitiesSub: "Manage groups and chats linked to your events.",
     systemLogs: "System Logs",
     syncSuccess: "AWS Synchronization completed",
