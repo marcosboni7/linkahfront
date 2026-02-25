@@ -2,42 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useLanguage } from '@/app/context/LanguageContext'; // Garanta que o caminho está correto
 import { 
-  User, MapPin, Ticket, LogOut, X, Calendar, 
-  Hash, Loader2, MessagesSquare, ChevronRight, Globe 
+  Ticket, LogOut, X, Calendar, 
+  Loader2, MessagesSquare, ChevronRight 
 } from 'lucide-react';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
-
-// 1. OBJETO DE TRADUÇÃO
-const translations = {
-  PT: {
-    community: "Comunidade",
-    tickets: "Ingressos",
-    member: "Membro",
-    logout: "Sair da conta",
-    login: "Entrar",
-    myTickets: "Meus Ingressos",
-    sync: "Sincronizando...",
-    noTickets: "Nenhum ingresso ativo.",
-    done: "Concluído",
-    places: "lugar",
-    placesPlural: "lugares"
-  },
-  EN: {
-    community: "Community",
-    tickets: "Tickets",
-    member: "Member",
-    logout: "Logout",
-    login: "Sign In",
-    myTickets: "My Tickets",
-    sync: "Syncing...",
-    noTickets: "No active tickets.",
-    done: "Done",
-    places: "seat",
-    placesPlural: "seats"
-  }
-};
 
 export function Navbar() {
   const [usuario, setUsuario] = useState<{ nome: string; email?: string; role?: string } | null>(null);
@@ -45,31 +16,23 @@ export function Navbar() {
   const [buscandoTickets, setBuscandoTickets] = useState(false);
   const [meusIngressos, setMeusIngressos] = useState<any[]>([]);
   
-  // 2. ESTADO DO IDIOMA
-  const [idioma, setIdioma] = useState<'PT' | 'EN'>('PT');
+  // 🟢 CONEXÃO COM O CONTEXTO GLOBAL (Isso faz o site todo traduzir)
+  const { language, setLanguage, t } = useLanguage();
 
   useEffect(() => {
-    // Carregar idioma salvo
-    const savedLang = localStorage.getItem('@Linkah:Lang') as 'PT' | 'EN';
-    if (savedLang) setIdioma(savedLang);
-
     const savedUser = localStorage.getItem('@Linkah:User');
     if (savedUser) {
-      try { setUsuario(JSON.parse(savedUser)); } catch (e) { console.error("Erro ao ler usuário"); }
+      try { 
+        setUsuario(JSON.parse(savedUser)); 
+      } catch (e) { 
+        console.error("Erro ao ler usuário"); 
+      }
     }
 
     const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') setIsModalOpen(false); };
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
   }, []);
-
-  // Função para mudar idioma
-  const toggleLanguage = (lang: 'PT' | 'EN') => {
-    setIdioma(lang);
-    localStorage.setItem('@Linkah:Lang', lang);
-  };
-
-  const t = translations[idioma];
 
   const handleLogout = () => {
     setIsModalOpen(false);
@@ -120,12 +83,12 @@ export function Navbar() {
         {/* LADO DIREITO */}
         <div className="flex items-center gap-4">
           
-          {/* SELETOR DE IDIOMA - ESTILO TOGGLE PREMIUM */}
+          {/* SELETOR DE IDIOMA GLOBAL */}
           <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 shadow-inner">
             <button 
-              onClick={() => toggleLanguage('PT')}
+              onClick={() => setLanguage('PT')}
               className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all duration-200 ${
-                idioma === 'PT' 
+                language === 'PT' 
                 ? 'bg-white shadow-sm text-[#ff4d4d] scale-105' 
                 : 'text-slate-400 hover:text-slate-600'
               }`}
@@ -133,9 +96,9 @@ export function Navbar() {
               PT
             </button>
             <button 
-              onClick={() => toggleLanguage('EN')}
+              onClick={() => setLanguage('EN')}
               className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all duration-200 ${
-                idioma === 'EN' 
+                language === 'EN' 
                 ? 'bg-white shadow-sm text-[#ff4d4d] scale-105' 
                 : 'text-slate-400 hover:text-slate-600'
               }`}
@@ -207,7 +170,7 @@ export function Navbar() {
               </button>
             </div>
 
-            <div className="p-6 max-h-[450px] overflow-y-auto space-y-4 custom-scrollbar">
+            <div className="p-6 max-h-[450px] overflow-y-auto space-y-4">
               {buscandoTickets ? (
                 <div className="flex flex-col items-center py-24 gap-4">
                   <Loader2 className="animate-spin text-slate-300" size={32} />
@@ -230,8 +193,8 @@ export function Navbar() {
                           <Calendar size={12} className="text-slate-300" /> {ticket.data}
                         </div>
                       </div>
-                      <span className={`shrink-0 px-3 py-1 rounded-full text-[10px] font-bold ${ticket.status === 'completed' || ticket.status === 'Aprovado' ? 'bg-emerald-50 text-emerald-600' : 'bg-orange-50 text-orange-600'}`}>
-                        {ticket.status === 'completed' ? (idioma === 'PT' ? 'Aprovado' : 'Approved') : (ticket.status || 'Pendente')}
+                      <span className="shrink-0 px-3 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-600">
+                        {ticket.status === 'completed' ? (language === 'PT' ? 'Aprovado' : 'Approved') : (ticket.status || 'Pendente')}
                       </span>
                     </div>
 
