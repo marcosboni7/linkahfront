@@ -3,8 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ChevronLeft, Send, Loader2, ShieldCheck, Clock } from 'lucide-react';
+import { useLanguage } from '@/app/context/LanguageContext';
 
-// --- CONFIGURAÇÃO DA API DA AWS ATUALIZADA ---
 const API_URL = 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
 
 const gerarCorTag = (nome: string) => {
@@ -16,6 +16,7 @@ const gerarCorTag = (nome: string) => {
 };
 
 export default function SalaComunidade() {
+  const { t } = useLanguage();
   const { id } = useParams();
   const router = useRouter();
   const [mensagens, setMensagens] = useState<any[]>([]);
@@ -25,7 +26,6 @@ export default function SalaComunidade() {
   const [naoAutorizado, setNaoAutorizado] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // 1. LÓGICA DE PROTEÇÃO E IDENTIFICAÇÃO (Padrão Linkah)
   useEffect(() => {
     const token = localStorage.getItem('@Linkah:Token');
     const nomeSalvo = localStorage.getItem('userName');
@@ -45,7 +45,6 @@ export default function SalaComunidade() {
     }
   }, [router]);
 
-  // 2. BUSCA DE MENSAGENS NA AWS (Polling de 3s)
   const carregarMensagens = async () => {
     if (!id || naoAutorizado) return;
     try {
@@ -60,7 +59,7 @@ export default function SalaComunidade() {
         setMensagens(data);
       }
     } catch (err) { 
-        console.error("Erro ao carregar mensagens da AWS:", err); 
+        console.error("AWS Error:", err); 
     }
   };
 
@@ -70,12 +69,10 @@ export default function SalaComunidade() {
     return () => clearInterval(interval);
   }, [id, naoAutorizado]);
 
-  // Scroll automático para a última mensagem
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [mensagens]);
 
-  // 3. ENVIO DE MENSAGEM PARA AWS
   const enviarMensagem = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!novoTexto.trim() || !dadosUsuario) return;
@@ -98,21 +95,19 @@ export default function SalaComunidade() {
       });
       carregarMensagens();
     } catch (err) { 
-        console.error("Erro ao enviar para AWS:", err);
-        setNovoTexto(textoParaEnviar); // Devolve o texto em caso de erro
+        setNovoTexto(textoParaEnviar);
     }
   };
 
-  // TELA DE ACESSO NEGADO
   if (naoAutorizado) return (
     <div className="h-screen bg-white flex flex-col items-center justify-center p-6 text-center">
       <div className="w-20 h-20 bg-pink-50 rounded-full flex items-center justify-center mb-6 animate-bounce">
         <ShieldCheck className="text-[#C22973]" size={40} />
       </div>
-      <h2 className="text-2xl font-black text-slate-800 uppercase italic">Acesso Restrito</h2>
-      <p className="text-slate-400 mt-2 font-medium">Você precisa estar logado para entrar nesta sala.</p>
+      <h2 className="text-2xl font-black text-slate-800 uppercase italic">{t.chatRestrictedTitle}</h2>
+      <p className="text-slate-400 mt-2 font-medium">{t.chatRestrictedSub}</p>
       <div className="mt-6 flex items-center gap-2 text-[#C22973] font-bold text-xs uppercase tracking-[0.2em]">
-        <Loader2 className="animate-spin" size={16} /> Redirecionando...
+        <Loader2 className="animate-spin" size={16} /> {t.chatRedirecting}
       </div>
     </div>
   );
@@ -120,14 +115,13 @@ export default function SalaComunidade() {
   if (carregando) return (
     <div className="h-screen bg-white flex flex-col items-center justify-center">
       <Loader2 className="animate-spin text-[#C22973] mb-4" size={32} />
-      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Iniciando Encriptação...</span>
+      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t.chatEncrypting}</span>
     </div>
   );
 
   return (
     <div className="flex flex-col h-screen bg-[#F8FAFC] text-slate-900 font-sans overflow-hidden">
       
-      {/* HEADER DA SALA */}
       <header className="p-4 flex items-center justify-between border-b border-slate-100 bg-white shadow-sm z-10 shrink-0">
         <button onClick={() => router.back()} className="p-2 hover:bg-slate-50 rounded-xl text-slate-400 transition-all active:scale-90">
           <ChevronLeft size={24} strokeWidth={3} />
@@ -137,21 +131,20 @@ export default function SalaComunidade() {
           <h1 className="text-[11px] font-black uppercase tracking-[0.25em] text-[#C22973] italic">Linkah Community</h1>
           <div className="flex items-center gap-1.5 justify-center">
              <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
-             <span className="text-[9px] text-slate-400 font-black uppercase tracking-widest">AWS Cloud Node Active</span>
+             <span className="text-[9px] text-slate-400 font-black uppercase tracking-widest">{t.chatCloudActive}</span>
           </div>
         </div>
 
-        <div className="w-10 h-10 rounded-2xl bg-[#C22973] flex items-center justify-center text-[12px] font-black text-white shadow-lg shadow-pink-100 border border-white/20">
+        <div className="w-10 h-10 rounded-2xl bg-[#C22973] flex items-center justify-center text-[12px] font-black text-white shadow-lg shadow-pink-100">
           {dadosUsuario?.nome?.substring(0,2).toUpperCase()}
         </div>
       </header>
 
-      {/* LISTA DE MENSAGENS */}
       <main className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
         {mensagens.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center opacity-30 grayscale">
             <Clock size={40} className="mb-4" />
-            <p className="text-[10px] font-black uppercase tracking-widest text-center">Nenhuma mensagem ainda.<br/>Seja o primeiro a falar!</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-center">{t.chatNoMessages}<br/>{t.chatFirstSpeak}</p>
           </div>
         ) : (
           mensagens.map((msg, idx) => {
@@ -160,7 +153,7 @@ export default function SalaComunidade() {
             const souEu = meuNome === nomeDestaMsg && meuNome !== "";
 
             return (
-              <div key={idx} className={`flex flex-col ${souEu ? 'items-end' : 'items-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
+              <div key={idx} className={`flex flex-col ${souEu ? 'items-end' : 'items-start'} animate-in fade-in slide-in-from-bottom-2`}>
                 <div className={`px-2 py-0.5 rounded-md text-[9px] font-black text-white mb-1 shadow-sm ${
                   souEu ? 'bg-[#C22973]' : `${gerarCorTag(msg.usuario_nome)}`
                 }`}>
@@ -172,9 +165,9 @@ export default function SalaComunidade() {
                     ? 'bg-[#C22973] border-pink-400 text-white rounded-tr-none' 
                     : 'bg-white border-slate-200 text-slate-700 rounded-tl-none'
                 }`}>
-                  <p className="text-[14px] leading-relaxed font-bold tracking-tight">{msg.texto}</p>
-                  <div className={`text-[8px] mt-1.5 font-black uppercase tracking-tighter ${souEu ? 'text-pink-200 text-right' : 'text-slate-300 text-left'}`}>
-                    {msg.criado_em ? new Date(msg.criado_em).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : 'Agora'}
+                  <p className="text-[14px] leading-relaxed font-bold">{msg.texto}</p>
+                  <div className={`text-[8px] mt-1.5 font-black uppercase ${souEu ? 'text-pink-200 text-right' : 'text-slate-300 text-left'}`}>
+                    {msg.criado_em ? new Date(msg.criado_em).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : t.chatTimeNow}
                   </div>
                 </div>
               </div>
@@ -184,20 +177,19 @@ export default function SalaComunidade() {
         <div ref={scrollRef} className="h-4" />
       </main>
 
-      {/* INPUT DE ENVIO */}
       <footer className="p-4 bg-white border-t border-slate-100 shrink-0">
-        <form onSubmit={enviarMensagem} className="flex items-center gap-2 max-w-4xl mx-auto bg-slate-50 p-2 rounded-[1.5rem] border border-slate-200 focus-within:bg-white focus-within:border-[#C22973] focus-within:ring-4 focus-within:ring-pink-50 transition-all shadow-sm">
+        <form onSubmit={enviarMensagem} className="flex items-center gap-2 max-w-4xl mx-auto bg-slate-50 p-2 rounded-[1.5rem] border border-slate-200 focus-within:bg-white focus-within:border-[#C22973] transition-all">
           <input 
             type="text" 
             value={novoTexto} 
             onChange={(e) => setNovoTexto(e.target.value)}
-            className="flex-1 bg-transparent border-none outline-none text-sm px-4 py-2 text-slate-800 placeholder:text-slate-400 font-bold" 
-            placeholder={`Ecreva aqui, ${dadosUsuario?.nome.split(' ')[0]}...`}
+            className="flex-1 bg-transparent border-none outline-none text-sm px-4 py-2 text-slate-800 font-bold" 
+            placeholder={t.chatPlaceholder.replace('{name}', dadosUsuario?.nome.split(' ')[0] || '')}
           />
           <button 
             type="submit" 
             disabled={!novoTexto.trim()}
-            className="bg-[#C22973] hover:bg-[#a62262] disabled:opacity-20 text-white w-12 h-12 rounded-2xl flex items-center justify-center shadow-xl shadow-pink-100 active:scale-90 transition-all"
+            className="bg-[#C22973] hover:bg-[#a62262] disabled:opacity-20 text-white w-12 h-12 rounded-2xl flex items-center justify-center shadow-xl active:scale-90 transition-all"
           >
             <Send size={20} fill="currentColor" />
           </button>

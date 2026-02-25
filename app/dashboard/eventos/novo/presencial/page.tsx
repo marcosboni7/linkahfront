@@ -1,17 +1,18 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, ImageIcon, Search, Calendar, MapPin, X, Loader2, AlertTriangle } from 'lucide-react';
+import { ChevronLeft, ImageIcon, Search, Calendar, MapPin, X, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useLanguage } from '@/app/context/LanguageContext';
 
 const API_URL = 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
 
 export default function NovoEventoPresencial() {
+  const { t } = useLanguage();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: boolean }>({});
   
-  // Refs para Google Maps
   const searchInputRef = useRef<HTMLInputElement>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const googleMap = useRef<any>(null);
@@ -24,10 +25,9 @@ export default function NovoEventoPresencial() {
     data_inicio: '', hora_inicio: '', data_termino: '', hora_termino: '',
     local_nome: '', cep: '', endereco: '', numero: '', complemento: '', cidade: '', estado: '',
     tipo: 'Presencial',
-    preco: 0 // Campo numérico para evitar erro de cast no banco
+    preco: 0 
   });
 
-  // Inicialização do Mapa (Mantido conforme original)
   useEffect(() => {
     if (typeof window !== 'undefined' && window.google) {
       if (mapContainerRef.current && !googleMap.current) {
@@ -46,7 +46,6 @@ export default function NovoEventoPresencial() {
       if (searchInputRef.current && !autocompleteRef.current) {
         autocompleteRef.current = new window.google.maps.places.Autocomplete(searchInputRef.current, {
           types: ['geocode', 'establishment'],
-          componentRestrictions: { country: 'br' },
           fields: ['address_components', 'formatted_address', 'name', 'geometry']
         });
 
@@ -88,9 +87,9 @@ export default function NovoEventoPresencial() {
     }
   };
 
-  const handleChange = (e: any) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    setFormData(prev => ({ ...prev, [name]: value }));
     if (value.trim() !== "") {
       setErrors(prev => ({ ...prev, [name]: false }));
     }
@@ -107,14 +106,12 @@ export default function NovoEventoPresencial() {
     return Object.keys(newErrors).length === 0;
   };
 
-  // --- FUNÇÃO DE SALVAMENTO COM DEBUG ---
   const handleSalvar = async () => {
     const token = localStorage.getItem('@Linkah:Token');
     const emailProdutor = localStorage.getItem('userEmail');
 
     if (!token || !emailProdutor) {
-      console.error("DEBUG: Token ou Email não encontrados no localStorage");
-      alert("Sessão expirada. Faça login novamente.");
+      alert(t.errorSession);
       router.push('/auth/login');
       return;
     }
@@ -126,18 +123,12 @@ export default function NovoEventoPresencial() {
 
     setIsLoading(true);
 
-    // Preparação do Payload com tratamento de tipos
     const payload = { 
       ...formData, 
       produtor_email: emailProdutor,
       imagem_capa: previewImage,
-      preco: Number(formData.preco) || 0 // Garante que preço vá como número
+      preco: Number(formData.preco) || 0 
     };
-
-    console.group("🚀 DEBUG LINKAH: Enviando para AWS");
-    console.log("Endpoint:", `${API_URL}/api/eventos/novo-presencial`);
-    console.log("Payload:", payload);
-    console.groupEnd();
 
     try {
       const response = await fetch(`${API_URL}/api/eventos/novo-presencial`, {
@@ -149,19 +140,15 @@ export default function NovoEventoPresencial() {
         body: JSON.stringify(payload),
       });
 
-      // Tentamos capturar a resposta mesmo se for erro (para ver a mensagem do back)
       const data = await response.json();
 
       if (response.ok) {
-        console.log("✅ Sucesso AWS:", data);
         router.push(`/dashboard/eventos/novo/ingressos/${data.id}`);
       } else {
-        console.error("❌ Erro 500/400 AWS:", data);
-        alert(`Erro ${response.status}: ${data.message || "Erro interno no servidor AWS"}`);
+        alert(`Error ${response.status}: ${data.message || "AWS Server Error"}`);
       }
     } catch (error) {
-      console.error("💥 Erro Fatal Conexão:", error);
-      alert("❌ Falha crítica de conexão. O servidor pode estar fora do ar ou o JSON é muito grande (imagem).");
+      alert("Critical connection failure.");
     } finally {
       setIsLoading(false);
     }
@@ -169,81 +156,80 @@ export default function NovoEventoPresencial() {
 
   return (
     <div className="min-h-screen bg-[#FAFBFF] font-sans antialiased">
-      {/* HEADER */}
       <header className="border-b border-slate-100 px-6 md:px-10 py-5 flex justify-between items-center bg-white/90 backdrop-blur-md sticky top-0 z-50">
         <div className="flex items-center gap-6">
           <button onClick={() => router.back()} className="p-2 hover:bg-pink-50 rounded-full transition-all text-slate-400">
             <ChevronLeft size={22} />
           </button>
           <div>
-            <h1 className="text-slate-800 font-black text-lg tracking-tight uppercase italic">Novo Evento Presencial</h1>
-            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em]">Configuração Inicial • Passo 1</p>
+            <h1 className="text-slate-800 font-black text-lg tracking-tight uppercase italic">{t.eventPresencialTitle}</h1>
+            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em]">{t.eventInitialConfig}</p>
           </div>
         </div>
         
         <button 
           onClick={handleSalvar}
           disabled={isLoading}
-          className="bg-[#C22973] text-white px-8 md:px-10 py-3 rounded-2xl font-black uppercase text-[11px] tracking-widest hover:bg-[#a62262] transition-all shadow-xl shadow-pink-100 disabled:opacity-50 flex items-center gap-2 active:scale-95"
+          className="bg-[#C22973] text-white px-8 md:px-10 py-3 rounded-2xl font-black uppercase text-[11px] tracking-widest hover:bg-[#a62262] transition-all shadow-xl shadow-pink-100 disabled:opacity-50 flex items-center gap-2"
         >
-          {isLoading ? <Loader2 className="animate-spin" size={16} /> : 'PRÓXIMO PASSO'}
+          {isLoading ? <Loader2 className="animate-spin" size={16} /> : t.btnNextStep}
         </button>
       </header>
 
       <main className="max-w-[1300px] mx-auto p-6 md:p-10">
-        {/* INDICADOR DE PROGRESSO */}
+        {/* STEPPER CORRIGIDO PARA USAR AS CHAVES DO CONTEXTO */}
         <div className="flex justify-center items-center mb-16 px-4">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-2xl bg-[#C22973] text-white flex items-center justify-center shadow-lg shadow-pink-200 font-black text-sm italic">1</div>
-            <span className="text-xs font-black text-slate-800 uppercase tracking-widest italic">Dados</span>
+            <div className="w-10 h-10 rounded-2xl bg-[#C22973] text-white flex items-center justify-center shadow-lg font-black text-sm italic">1</div>
+            <span className="text-xs font-black text-slate-800 uppercase tracking-widest italic">{t.stepInfo}</span>
           </div>
           <div className="w-24 md:w-40 h-[2px] bg-slate-100 mx-4"></div>
           <div className="flex items-center gap-4 opacity-30">
             <div className="w-10 h-10 rounded-2xl bg-white border-2 border-slate-200 text-slate-400 flex items-center justify-center font-black text-sm italic">2</div>
-            <span className="text-xs font-black text-slate-400 uppercase tracking-widest italic">Ingressos</span>
+            <span className="text-xs font-black text-slate-400 uppercase tracking-widest italic">{t.stepTickets}</span>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
           <div className="lg:col-span-8 space-y-8">
             <section className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-sm border border-slate-50">
-              <h3 className="text-[#C22973] text-[10px] font-black uppercase tracking-[0.3em] mb-8">1. O que vai acontecer?</h3>
+              <h3 className="text-[#C22973] text-[10px] font-black uppercase tracking-[0.3em] mb-8">{t.sectionWhat}</h3>
               <div className="space-y-6">
                 <div className="flex flex-col gap-2">
-                  <label className="text-[10px] text-slate-400 font-black uppercase ml-1 italic tracking-widest">Nome do Evento *</label>
-                  <input name="nome" value={formData.nome} onChange={handleChange} className={`w-full bg-slate-50 border ${errors.nome ? 'border-red-400 ring-4 ring-red-50' : 'border-slate-100 focus:border-[#C22973]'} p-4 rounded-2xl outline-none focus:bg-white transition-all font-bold text-slate-700`} placeholder="Ex: Workshop Producer Masterclass" />
+                  <label className="text-[10px] text-slate-400 font-black uppercase ml-1 italic tracking-widest">{t.labelEventName}</label>
+                  <input name="nome" value={formData.nome} onChange={handleChange} className={`w-full bg-slate-50 border ${errors.nome ? 'border-red-400 ring-4 ring-red-50' : 'border-slate-100 focus:border-[#C22973]'} p-4 rounded-2xl outline-none font-bold text-slate-700`} placeholder={t.placeholderEventName} />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="flex flex-col gap-2">
-                    <label className="text-[10px] text-slate-400 font-black uppercase ml-1 italic tracking-widest">Categoria *</label>
+                    <label className="text-[10px] text-slate-400 font-black uppercase ml-1 italic tracking-widest">{t.labelCategory}</label>
                     <select name="categoria" value={formData.categoria} onChange={handleChange} className={`w-full bg-slate-50 border ${errors.categoria ? 'border-red-400' : 'border-slate-100'} p-4 rounded-2xl outline-none bg-white font-bold text-slate-600`}>
-                      <option value="">Selecione...</option>
-                      <option value="Show">Música & Show</option>
-                      <option value="Workshop">Workshop & Palestra</option>
-                      <option value="Teatro">Teatro & Cultura</option>
-                      <option value="Esportes">Esportes</option>
-                      <option value="Gastronomia">Gastronomia</option>
+                      <option value="">{t.selectDefault}</option>
+                      <option value="Show">{t.catMusic}</option>
+                      <option value="Workshop">{t.catWorkshop}</option>
+                      <option value="Teatro">{t.catTheater}</option>
+                      <option value="Esportes">{t.catSports}</option>
+                      <option value="Gastronomia">{t.catFood}</option>
                     </select>
                   </div>
                   <div className="flex flex-col gap-2">
-                    <label className="text-[10px] text-slate-400 font-black uppercase ml-1 italic tracking-widest">Visibilidade</label>
+                    <label className="text-[10px] text-slate-400 font-black uppercase ml-1 italic tracking-widest">{t.labelVisibility}</label>
                     <select name="status" value={formData.status} onChange={handleChange} className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none bg-white font-bold text-slate-600">
-                      <option value="Ativo">Publicar Imediatamente</option>
-                      <option value="Rascunho">Salvar Rascunho</option>
+                      <option value="Ativo">{t.visActive}</option>
+                      <option value="Rascunho">{t.visDraft}</option>
                     </select>
                   </div>
                 </div>
 
                 <div className="flex flex-col gap-2">
-                  <label className="text-[10px] text-slate-400 font-black uppercase ml-1 italic tracking-widest">Descrição do Evento</label>
-                  <textarea name="descricao" value={formData.descricao} rows={4} onChange={handleChange} className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none focus:bg-white focus:border-[#C22973] transition-all resize-none font-medium text-slate-600" placeholder="Conte detalhes sobre o evento..." />
+                  <label className="text-[10px] text-slate-400 font-black uppercase ml-1 italic tracking-widest">{t.labelDescription}</label>
+                  <textarea name="descricao" value={formData.descricao} rows={4} onChange={handleChange} className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none focus:bg-white focus:border-[#C22973] transition-all resize-none font-medium text-slate-600" placeholder={t.placeholderDescription} />
                 </div>
               </div>
             </section>
 
             <section className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-sm border border-slate-50">
-              <h3 className="text-[#C22973] text-[10px] font-black uppercase tracking-[0.3em] mb-8 flex items-center gap-2"><Calendar size={14}/> 2. Quando será?</h3>
+              <h3 className="text-[#C22973] text-[10px] font-black uppercase tracking-[0.3em] mb-8 flex items-center gap-2"><Calendar size={14}/> {t.sectionWhen}</h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <input name="data_inicio" value={formData.data_inicio} type="date" onChange={handleChange} className={`bg-slate-50 border ${errors.data_inicio ? 'border-red-400' : 'border-slate-100'} p-4 rounded-xl text-xs font-bold outline-none text-slate-600`} />
                 <input name="hora_inicio" value={formData.hora_inicio} type="time" onChange={handleChange} className="bg-slate-50 border border-slate-100 p-4 rounded-xl text-xs font-bold outline-none text-slate-600" />
@@ -253,16 +239,16 @@ export default function NovoEventoPresencial() {
             </section>
 
             <section className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-sm border border-slate-50">
-              <h3 className="text-[#C22973] text-[10px] font-black uppercase tracking-[0.3em] mb-8 flex items-center gap-2"><MapPin size={14}/> 3. Onde será?</h3>
+              <h3 className="text-[#C22973] text-[10px] font-black uppercase tracking-[0.3em] mb-8 flex items-center gap-2"><MapPin size={14}/> {t.sectionWhere}</h3>
               <div className="space-y-4">
                 <div className="relative group">
                   <Search size={16} className="absolute left-4 top-4 text-[#C22973]" />
-                  <input ref={searchInputRef} placeholder="Busque pelo endereço ou nome do local..." className="w-full bg-pink-50/40 border border-pink-100 p-4 pl-12 rounded-2xl outline-none italic text-sm font-bold focus:border-[#C22973] transition-all text-slate-700" />
+                  <input ref={searchInputRef} placeholder={t.placeholderSearchMap} className="w-full bg-pink-50/40 border border-pink-100 p-4 pl-12 rounded-2xl outline-none italic text-sm font-bold focus:border-[#C22973] transition-all text-slate-700" />
                 </div>
-                <input name="local_nome" value={formData.local_nome} placeholder="Nome do Local (Ex: Teatro Municipal)" onChange={handleChange} className={`w-full bg-slate-50 border ${errors.local_nome ? 'border-red-400' : 'border-slate-100'} p-4 rounded-xl outline-none font-bold text-slate-700`} />
+                <input name="local_nome" value={formData.local_nome} placeholder={t.placeholderVenue} onChange={handleChange} className={`w-full bg-slate-50 border ${errors.local_nome ? 'border-red-400' : 'border-slate-100'} p-4 rounded-xl outline-none font-bold text-slate-700`} />
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                   <input name="cep" value={formData.cep} placeholder="CEP" onChange={handleChange} className="bg-slate-50 border border-slate-100 p-4 rounded-xl outline-none font-bold text-slate-700" />
-                   <input name="endereco" value={formData.endereco} placeholder="Endereço" onChange={handleChange} className="md:col-span-2 bg-slate-50 border border-slate-100 p-4 rounded-xl outline-none font-bold text-slate-700" />
+                   <input name="cep" value={formData.cep} placeholder="CEP / Zip" onChange={handleChange} className="bg-slate-50 border border-slate-100 p-4 rounded-xl outline-none font-bold text-slate-700" />
+                   <input name="endereco" value={formData.endereco} placeholder="Address" onChange={handleChange} className="md:col-span-2 bg-slate-50 border border-slate-100 p-4 rounded-xl outline-none font-bold text-slate-700" />
                 </div>
               </div>
             </section>
@@ -270,7 +256,7 @@ export default function NovoEventoPresencial() {
 
           <div className="lg:col-span-4 space-y-8">
             <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-50 text-center">
-              <label className="text-[10px] text-slate-400 font-black uppercase mb-4 block tracking-widest italic">Capa do Evento</label>
+              <label className="text-[10px] text-slate-400 font-black uppercase mb-4 block tracking-widest italic">{t.labelCover}</label>
               <div className="relative">
                 {previewImage ? (
                   <div className="relative w-full h-64 rounded-[2.5rem] overflow-hidden group shadow-lg">
@@ -283,11 +269,11 @@ export default function NovoEventoPresencial() {
                     <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mb-4 shadow-sm group-hover:scale-110 transition-transform">
                         <ImageIcon size={28} className="text-[#C22973]" />
                     </div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Enviar Imagem</p>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t.labelUpload}</p>
                   </label>
                 )}
               </div>
-              <p className="mt-4 text-[9px] text-slate-400 font-bold uppercase">PNG ou JPG até 5MB</p>
+              <p className="mt-4 text-[9px] text-slate-400 font-bold uppercase">{t.uploadRules}</p>
             </div>
 
             <div className="bg-white rounded-[2.5rem] p-2 shadow-sm border border-slate-50 h-[350px] relative overflow-hidden">

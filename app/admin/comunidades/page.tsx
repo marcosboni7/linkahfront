@@ -1,14 +1,22 @@
 'use client';
 
-import { MessageCircle, ExternalLink, RefreshCcw } from 'lucide-react';
+import { MessageCircle, RefreshCcw } from 'lucide-react';
+import { useLanguage } from '@/app/context/LanguageContext'; 
 
 export default function AdminComunidades() {
+  const { t } = useLanguage(); 
+
   return (
     <div className="p-10 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
       <header className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-black tracking-tight text-slate-900">Comunidades</h1>
-          <p className="text-slate-400 text-sm font-medium">Gerencie os grupos de WhatsApp e Telegram.</p>
+          {/* Agora t.communitiesTitle existe! */}
+          <h1 className="text-3xl font-black tracking-tight text-slate-900">
+            {t.communitiesTitle}
+          </h1>
+          <p className="text-slate-400 text-sm font-medium">
+            {t.communitiesSub}
+          </p>
         </div>
         <button className="p-3 hover:bg-white rounded-full text-slate-400 shadow-sm transition-all">
           <RefreshCcw size={20} />
@@ -19,9 +27,11 @@ export default function AdminComunidades() {
         <div className="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center mx-auto mb-6 text-slate-300">
           <MessageCircle size={40} />
         </div>
-        <h2 className="text-xl font-black text-slate-900 mb-2">Módulo de Comunidades</h2>
+        <h2 className="text-xl font-black text-slate-900 mb-2">
+            {t.communitiesModule}
+        </h2>
         <p className="text-slate-400 font-medium max-w-xs mx-auto">
-          Em breve você poderá gerenciar os links de convite e membros por aqui.
+          {t.communitiesComingSoon}
         </p>
       </div>
     </div>

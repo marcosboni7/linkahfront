@@ -1,0 +1,509 @@
+'use client';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+
+type Language = 'PT' | 'EN';
+
+const translations = {
+  PT: {
+    // Navbar e Geral
+    welcome: "Bem-vindo",
+    community: "Comunidade",
+    tickets: "Ingressos",
+    member: "Membro",
+    logout: "Sair da conta",
+    login: "Entrar",
+    myTickets: "Meus Ingressos",
+    sync: "Sincronizando...",
+    noTickets: "Nenhum ingresso ativo.",
+    done: "Concluído",
+    places: "lugar",
+    placesPlural: "lugares",
+
+    // Filtros e Categorias
+    filterVibe: "Filtrar por Vibe",
+    allCategories: "Todos",
+    catMusic: "Música & Show",
+    catWorkshop: "Workshop & Palestra",
+    catTheater: "Teatro & Cultura",
+    catSports: "Esportes",
+    catFood: "Gastronomia",
+
+    // Ticket Visual (Página de Sucesso / AWS)
+    ticketTitle: "Sua entrada está liberada!",
+    ticketVerified: "Pagamento Verificado via Stripe & Pix",
+    ticketAuthentic: "Ingresso Autêntico",
+    ticketHolder: "Titular",
+    ticketQuantity: "Quantidade",
+    ticketDate: "Data",
+    ticketVenue: "Local",
+    ticketPresent: "Apresente no Local",
+    ticketDownload: "Baixar Ingresso",
+    ticketExplore: "Explorar mais eventos",
+    ticketSyncing: "Sincronizando com a rede AWS...",
+    ticketGenerating: "Gerando seu ticket oficial",
+    ticketProcessError: "Seu pagamento foi confirmado, mas o servidor está finalizando a emissão do QR Code.",
+    ticketRefresh: "Atualizar Ticket",
+
+    // Gestão de Eventos (Admin / Tabela)
+    eventsTitle: "Gestão de Eventos",
+    eventsSub: "Controle total das produções Linkah na AWS",
+    searchPlaceholder: "Buscar evento por nome...",
+    syncingShowcase: "Sincronizando vitrine...",
+    noEvents: "Nenhum evento encontrado.",
+    thThumbnail: "Capa / Nome",
+    thDateTime: "Data & Horário",
+    thStatus: "Status",
+    thActions: "Ações",
+    editEventTitle: "Editar Produção",
+    labelEventTitle: "Título do Evento",
+    labelDate: "Data de Início",
+    labelTime: "Horário",
+    labelLocation: "Local do Evento",
+    btnSyncChanges: "Sincronizar Alterações",
+
+    // Cadastro de Evento Presencial (Passo 1)
+    eventPresencialTitle: "Novo Evento Presencial",
+    eventInitialConfig: "Configuração Inicial • Passo 1",
+    btnNextStep: "PRÓXIMO PASSO",
+    stepInfo: "Informações",
+    stepTickets: "Ingressos",
+    sectionWhat: "1. O que vai acontecer?",
+    labelEventName: "Nome do Evento *",
+    placeholderEventName: "Ex: Workshop Producer Masterclass",
+    labelCategory: "Categoria *",
+    selectDefault: "Selecione...",
+    labelVisibility: "Visibilidade",
+    visActive: "Publicar Imediatamente",
+    visDraft: "Salvar Rascunho",
+    labelDescription: "Descrição do Evento",
+    placeholderDescription: "Conte detalhes sobre o evento...",
+    sectionWhen: "2. Quando será?",
+    sectionWhere: "3. Onde será?",
+    placeholderSearchMap: "Busque pelo endereço ou nome do local...",
+    placeholderVenue: "Nome do Local (Ex: Teatro Municipal)",
+    labelCover: "Capa do Evento",
+    labelUpload: "Enviar Imagem",
+    uploadRules: "PNG ou JPG até 5MB",
+    errorSession: "Sessão expirada. Faça login novamente.",
+
+    // Fluxo de Cadastro de Ingressos (Passo 2)
+    setupTickets: "Configurar Ingressos",
+    finalStep: "Etapa Final de Publicação",
+    btnPublish: "FINALIZAR E PUBLICAR",
+    ticketAlert: "Defina os lotes do seu evento. Você pode criar categorias diferentes como 'VIP', 'Pista' ou 'Meia Entrada'.",
+    labelTicketName: "Tipo / Nome do Ingresso *",
+    labelUnitPrice: "Preço Unitário *",
+    labelStock: "Estoque *",
+    placeholderTicket: "Ex: Lote 01 - Promocional",
+    btnAddCategory: "Adicionar Nova Categoria",
+    errorIncomplete: "Campos Incompletos",
+    errorIncompleteText: "Por favor, preencha nome, preço e quantidade de todos os ingressos.",
+    publishSuccess: "🎉 EVENTO PUBLICADO!",
+    publishSuccessText: "Seus ingressos já estão disponíveis para venda no Producer Hub.",
+    btnViewEvents: "VER MEUS EVENTOS",
+    fieldRequired: "Obrigatório *",
+
+    // Fluxo de Venda / Checkout
+    checkoutTitle: "Finalizar Compra",
+    checkoutSub: "Complete seus dados para receber o ingresso.",
+    labelFullName: "Nome Completo",
+    labelEmail: "E-mail de Entrega",
+    paymentMethod: "Método de Pagamento",
+    btnPayPix: "Pagar com Pix",
+    btnPayStripe: "Cartão de Crédito",
+    orderSummary: "Resumo do Pedido",
+    totalPayable: "Total a pagar",
+    secureCheckout: "Checkout Seguro Linkah",
+    processingPayment: "Processando seu pagamento...",
+    paymentSuccess: "Pagamento Aprovado!",
+    paymentError: "Houve um erro no processamento.",
+
+    // Perfil do Produtor
+    myProfileTitle: "Meu Perfil",
+    profileSubtitle: "Configurações de Produtor Linkah",
+    labelResponsibleName: "Nome do Responsável",
+    labelDocument: "Documento (CPF ou CNPJ)",
+    placeholderName: "Nome completo ou Razão Social",
+    sectionBillingAddress: "Endereço de Faturamento",
+    labelAddress: "Logradouro",
+    profileStripeWarning: "Dados completos garantem a liberação de pagamentos via Stripe e Pix sem interrupções.",
+    btnSaveProfile: "Salvar Alterações",
+    btnBackToDashboard: "Voltar ao Dashboard",
+    profileUpdatedTitle: "DADOS ATUALIZADOS!",
+    profileUpdatedText: "Suas informações de produtor foram sincronizadas com a AWS.",
+    btnGoToDashboard: "IR PARA O PAINEL",
+    errorCepNotFound: "CEP não encontrado",
+    errorRequired: "Obrigatório",
+    errorSave: "Falha ao salvar dados",
+    errorAWSConnection: "Conexão interrompida com o servidor AWS.",
+
+    // Sala de Chat / Comunidade Real-time (Linkah Skype)
+    chatRestrictedTitle: "Acesso Restrito",
+    chatRestrictedSub: "Você precisa estar logado para entrar nesta sala.",
+    chatRedirecting: "Redirecionando...",
+    chatEncrypting: "Iniciando Encriptação...",
+    chatCloudActive: "AWS Cloud Node Ativo",
+    chatNoMessages: "Nenhuma mensagem ainda.",
+    chatFirstSpeak: "Seja o primeiro a falar!",
+    chatPlaceholder: "Escreva aqui, {name}...",
+    chatTimeNow: "Agora",
+    chatIsCalling: "está chamando...",
+    btnAccept: "ACEITAR",
+    btnDecline: "RECUSAR",
+    btnEndCall: "ENCERRAR",
+    membersOnline: "Membros Online",
+    noOneOnline: "Ninguém online agora",
+    statusAvailable: "Disponível",
+
+    // Dashboard e Gestão
+    dashboard: "Painel Principal",
+    myEvents: "Meus Eventos",
+    finances: "Financeiro",
+    settings: "Configurações",
+    newTicket: "Novo Ingresso",
+    hiWelcome: "Olá, bem-vindo",
+    myAccount: "Minha Conta",
+    producerDefaultName: "Produtor",
+    manageEvents: "Gerenciar Eventos",
+    newEvent: "Novo Evento",
+    btnPresencial: "Presencial",
+    btnOnline: "Online",
+    thEventInfo: "Evento / Infos",
+    thLocation: "Localização",
+    thDateTimeShort: "Data & Hora",
+    thSales: "Vendas",
+    thStatus: "Status",
+    thManagement: "Gestão",
+    awsCloudSync: "Acessando AWS Cloud...",
+    emptyList: "Sua lista está vazia",
+    showingActive: "Mostrando {count} produções ativas",
+    editTitle: "Editar",
+    editSub: "Configurações de Produção",
+    labelWorkTitle: "Título da Obra",
+    labelCity: "Cidade",
+    labelState: "UF",
+    btnSyncAWS: "Sincronizar AWS",
+    confirmDeleteTitle: "EXCLUIR EVENTO?",
+    confirmDeleteText: "Isso apagará todos os ingressos e registros vinculados.",
+    btnConfirmDelete: "SIM, APAGAR",
+    btnCancel: "CANCELAR",
+
+    // Admin / Console e Comunidades
+    consoleTitle: "Console",
+    consoleGeneral: "Geral",
+    infraSub: "Métricas em tempo real da infraestrutura Linkah.",
+    systemStable: "Sistema Estável",
+    syncing: "Sincronizando...",
+    activeEvents: "Eventos Ativos",
+    totalMembers: "Total de Membros",
+    communities: "Comunidades", // Usado no AdminDashboard
+    communitiesTitle: "Gestão de Comunidades", // Usado no AdminComunidades
+    communitiesSub: "Gerencie os grupos e chats vinculados aos seus eventos.",
+    systemLogs: "Logs de Sistema",
+    syncSuccess: "Sincronização com AWS concluída",
+    membersTitle: "Membros",
+    membersSub: "Moderação de contas da infraestrutura Linkah",
+    searchMembersPlaceholder: "Localizar por nome ou e-mail...",
+    accessingDatabase: "Acessando Database...",
+    thMember: "Membro",
+    statusBanned: "Suspenso",
+    statusActive: "Ativo",
+    newPasswordTitle: "Nova Senha",
+    labelMinChars: "Mínimo 6 caracteres",
+    btnSavePassword: "Salvar Nova Senha",
+    promptReactivateTitle: "Reativar Membro?",
+    promptSuspendTitle: "Suspender Membro?",
+    promptConfirmReactivate: "Sim, Reativar",
+    promptConfirmSuspend: "Sim, Suspender",
+
+    // Vitrine de Comunidades
+    restrictedAccess: "Acesso Restrito",
+    restrictedSub: "Esta área é exclusiva para membros da nossa rede.",
+    createFreeAccount: "Criar conta gratuita",
+    exploreRooms: "Explore as Salas",
+    exploreSub: "Conecte-se em tempo real com quem frequenta os mesmos eventos.",
+    cloudSyncActive: "Cloud Sync: Ativo",
+    activeChat: "Chat Ativo",
+    joinGroup: "Entrar no grupo",
+    noCommunities: "Nenhuma comunidade disponível no momento.",
+    errorLoadingCommunities: "Não foi possível carregar as comunidades agora.",
+
+    // Alertas de Produtor
+    producerAlertTitle: "Complete seu perfil de produtor!",
+    producerAlertSub: "Para começar a criar e publicar seus eventos, precisamos que você configure seus dados profissionais.",
+    btnConfigureData: "Configurar meus Dados",
+    communitiesModule: "Módulo de Comunidades",
+    communitiesComingSoon: "Em breve você poderá gerenciar os links por aqui.",
+  },
+  EN: {
+    // Navbar e Geral
+    welcome: "Welcome",
+    community: "Community",
+    tickets: "Tickets",
+    member: "Member",
+    logout: "Logout",
+    login: "Sign In",
+    myTickets: "My Tickets",
+    sync: "Syncing...",
+    noTickets: "No active tickets.",
+    done: "Done",
+    places: "seat",
+    placesPlural: "seats",
+
+    // Filters and Categories
+    filterVibe: "Filter by Vibe",
+    allCategories: "All",
+    catMusic: "Music & Shows",
+    catWorkshop: "Workshop & Lectures",
+    catTheater: "Theater & Culture",
+    catSports: "Sports",
+    catFood: "Gastronomy",
+
+    // Ticket Visual (Success Page / AWS)
+    ticketTitle: "Your entry is granted!",
+    ticketVerified: "Payment Verified via Stripe & Pix",
+    ticketAuthentic: "Authentic Ticket",
+    ticketHolder: "Holder",
+    ticketQuantity: "Quantity",
+    ticketDate: "Date",
+    ticketVenue: "Venue",
+    ticketPresent: "Present at Venue",
+    ticketDownload: "Download Ticket",
+    ticketExplore: "Explore more events",
+    ticketSyncing: "Syncing with AWS network...",
+    ticketGenerating: "Generating your official ticket",
+    ticketProcessError: "Your payment was confirmed, but the server is finalizing the QR Code issuance.",
+    ticketRefresh: "Refresh Ticket",
+
+    // Event Management (Admin / Table)
+    eventsTitle: "Event Management",
+    eventsSub: "Full control of Linkah productions on AWS",
+    searchPlaceholder: "Search event by name...",
+    syncingShowcase: "Syncing showcase...",
+    noEvents: "No events found.",
+    thThumbnail: "Cover / Name",
+    thDateTime: "Date & Time",
+    thStatus: "Status",
+    thActions: "Actions",
+    editEventTitle: "Edit Production",
+    labelEventTitle: "Event Title",
+    labelDate: "Start Date",
+    labelTime: "Time",
+    labelLocation: "Event Venue",
+    btnSyncChanges: "Sync Changes",
+
+    // In-person Event Creation
+    eventPresencialTitle: "New In-person Event",
+    eventInitialConfig: "Initial Setup • Step 1",
+    btnNextStep: "NEXT STEP",
+    stepInfo: "Information",
+    stepTickets: "Tickets",
+    sectionWhat: "1. What is going to happen?",
+    labelEventName: "Event Name *",
+    placeholderEventName: "e.g., Producer Masterclass Workshop",
+    labelCategory: "Category *",
+    selectDefault: "Select...",
+    labelVisibility: "Visibility",
+    visActive: "Publish Immediately",
+    visDraft: "Save Draft",
+    labelDescription: "Event Description",
+    placeholderDescription: "Tell more about the event...",
+    sectionWhen: "2. When will it be?",
+    sectionWhere: "3. Where will it be?",
+    placeholderSearchMap: "Search by address or venue name...",
+    placeholderVenue: "Venue Name (e.g., Grand Hall)",
+    labelCover: "Event Cover",
+    labelUpload: "Upload Image",
+    uploadRules: "PNG or JPG up to 5MB",
+    errorSession: "Session expired. Please log in again.",
+
+    // Ticket Setup Flow (Step 2)
+    setupTickets: "Setup Tickets",
+    finalStep: "Final Publication Step",
+    btnPublish: "FINISH AND PUBLISH",
+    ticketAlert: "Define your event batches. You can create different categories like 'VIP', 'General Admission' or 'Student'.",
+    labelTicketName: "Ticket Type / Name *",
+    labelUnitPrice: "Unit Price *",
+    labelStock: "Stock *",
+    placeholderTicket: "Ex: Phase 01 - Early Bird",
+    btnAddCategory: "Add New Category",
+    errorIncomplete: "Incomplete Fields",
+    errorIncompleteText: "Please fill in the name, price, and quantity for all tickets.",
+    publishSuccess: "🎉 EVENT PUBLISHED!",
+    publishSuccessText: "Your tickets are now available for sale on the Producer Hub.",
+    btnViewEvents: "VIEW MY EVENTS",
+    fieldRequired: "Required *",
+
+    // Sale Flow / Checkout
+    checkoutTitle: "Checkout",
+    checkoutSub: "Complete your details to receive your ticket.",
+    labelFullName: "Full Name",
+    labelEmail: "Delivery E-mail",
+    paymentMethod: "Payment Method",
+    btnPayPix: "Pay with Pix",
+    btnPayStripe: "Credit Card",
+    orderSummary: "Order Summary",
+    totalPayable: "Total payable",
+    secureCheckout: "Linkah Secure Checkout",
+    processingPayment: "Processing your payment...",
+    paymentSuccess: "Payment Approved!",
+    paymentError: "An error occurred during processing.",
+
+    // Producer Profile
+    myProfileTitle: "My Profile",
+    profileSubtitle: "Linkah Producer Settings",
+    labelResponsibleName: "Responsible Name",
+    labelDocument: "Document (ID or TAX Number)",
+    placeholderName: "Full Name or Company Name",
+    sectionBillingAddress: "Billing Address",
+    labelAddress: "Address",
+    profileStripeWarning: "Complete data ensures seamless Stripe and Pix payment processing.",
+    btnSaveProfile: "Save Changes",
+    btnBackToDashboard: "Back to Dashboard",
+    profileUpdatedTitle: "DATA UPDATED!",
+    profileUpdatedText: "Your producer information has been synced with AWS.",
+    btnGoToDashboard: "GO TO DASHBOARD",
+    errorCepNotFound: "Postal Code not found",
+    errorRequired: "Required",
+    errorSave: "Failed to save data",
+    errorAWSConnection: "Interrupted connection with AWS server.",
+
+    // Chat Room / Community (Linkah Skype)
+    chatRestrictedTitle: "Restricted Access",
+    chatRestrictedSub: "You must be logged in to enter this room.",
+    chatRedirecting: "Redirecting...",
+    chatEncrypting: "Starting Encryption...",
+    chatCloudActive: "AWS Cloud Node Active",
+    chatNoMessages: "No messages yet.",
+    chatFirstSpeak: "Be the first to speak!",
+    chatPlaceholder: "Write here, {name}...",
+    chatTimeNow: "Just now",
+    chatIsCalling: "is calling...",
+    btnAccept: "ACCEPT",
+    btnDecline: "DECLINE",
+    btnEndCall: "END CALL",
+    membersOnline: "Members Online",
+    noOneOnline: "No one online right now",
+    statusAvailable: "Available",
+
+    // Dashboard and Management
+    dashboard: "Dashboard",
+    myEvents: "My Events",
+    finances: "Finances",
+    settings: "Settings",
+    newTicket: "New Ticket",
+    hiWelcome: "Hi, welcome",
+    myAccount: "My Account",
+    producerDefaultName: "Producer",
+    manageEvents: "Manage Events",
+    newEvent: "New Event",
+    btnPresencial: "In-person",
+    btnOnline: "Online",
+    thEventInfo: "Event / Info",
+    thLocation: "Location",
+    thDateTimeShort: "Date & Time",
+    thSales: "Sales",
+    thStatus: "Status",
+    thManagement: "Management",
+    awsCloudSync: "Accessing AWS Cloud...",
+    emptyList: "Your list is empty",
+    showingActive: "Showing {count} active productions",
+    editTitle: "Edit",
+    editSub: "Production Settings",
+    labelWorkTitle: "Work Title",
+    labelCity: "City",
+    labelState: "State",
+    btnSyncAWS: "Sync AWS",
+    confirmDeleteTitle: "DELETE EVENT?",
+    confirmDeleteText: "This will delete all linked tickets and records.",
+    btnConfirmDelete: "YES, DELETE",
+    btnCancel: "CANCEL",
+
+    // Admin / Console and Communities
+    consoleTitle: "Console",
+    consoleGeneral: "General",
+    infraSub: "Real-time metrics of the Linkah infrastructure.",
+    systemStable: "System Stable",
+    syncing: "Syncing...",
+    activeEvents: "Active Events",
+    totalMembers: "Total Members",
+    communities: "Communities", // Used in AdminDashboard
+    communitiesTitle: "Community Management", // Used in AdminComunidades
+    communitiesSub: "Manage groups and chats linked to your events.",
+    systemLogs: "System Logs",
+    syncSuccess: "AWS Synchronization completed",
+    membersTitle: "Members",
+    membersSub: "Linkah infrastructure account moderation",
+    searchMembersPlaceholder: "Find by name or email...",
+    accessingDatabase: "Accessing Database...",
+    thMember: "Member",
+    statusBanned: "Suspended",
+    statusActive: "Active",
+    newPasswordTitle: "New Password",
+    labelMinChars: "Minimum 6 characters",
+    btnSavePassword: "Save New Password",
+    promptReactivateTitle: "Reactivate Member?",
+    promptSuspendTitle: "Suspend Member?",
+    promptConfirmReactivate: "Yes, Reactivate",
+    promptConfirmSuspend: "Yes, Suspend",
+
+    // Community Showcase
+    restrictedAccess: "Restricted Access",
+    restrictedSub: "This area is exclusive to members of our network.",
+    createFreeAccount: "Create free account",
+    exploreRooms: "Explore the Rooms",
+    exploreSub: "Connect in real-time with people attending the same events.",
+    cloudSyncActive: "Cloud Sync: Active",
+    activeChat: "Active Chat",
+    joinGroup: "Join Group",
+    noCommunities: "No communities available at the moment.",
+    errorLoadingCommunities: "Could not load communities right now.",
+
+    // Producer Alerts
+    producerAlertTitle: "Complete your producer profile!",
+    producerAlertSub: "To start creating and publishing your events, we need you to set up your professional details.",
+    btnConfigureData: "Set up my Details",
+    communitiesModule: "Communities Module",
+    communitiesComingSoon: "Soon you will be able to manage invitation links here.",
+  }
+};
+
+export interface LanguageContextType {
+  language: Language;
+  setLanguage: (lang: Language) => void;
+  t: typeof translations.PT; 
+}
+
+const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
+
+export function LanguageProvider({ children }: { children: React.ReactNode }) {
+  const [language, setLanguage] = useState<Language>('PT');
+
+  useEffect(() => {
+    const saved = localStorage.getItem('@Linkah:Lang') as Language;
+    if (saved) setLanguage(saved);
+  }, []);
+
+  const handleSetLanguage = (lang: Language) => {
+    setLanguage(lang);
+    localStorage.setItem('@Linkah:Lang', lang);
+  };
+
+  return (
+    <LanguageContext.Provider value={{ 
+      language, 
+      setLanguage: handleSetLanguage, 
+      t: translations[language] 
+    }}>
+      {children}
+    </LanguageContext.Provider>
+  );
+}
+
+export const useLanguage = () => {
+  const context = useContext(LanguageContext);
+  if (!context) {
+    throw new Error('useLanguage deve ser usado dentro de um LanguageProvider');
+  }
+  return context;
+};

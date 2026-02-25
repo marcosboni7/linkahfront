@@ -5,11 +5,12 @@ import { useRouter } from 'next/navigation';
 import { UserCircle, Save, Loader2, ArrowLeft, Info, MapPin } from 'lucide-react';
 import Swal from 'sweetalert2';
 import Link from 'next/link';
+import { useLanguage } from '@/app/context/LanguageContext';
 
-// --- CONFIGURAÇÃO DA API DA AWS ATUALIZADA ---
 const API_URL = 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
 
 export default function PerfilPage() {
+  const { t } = useLanguage();
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -56,7 +57,7 @@ export default function PerfilPage() {
           }
         }
       } catch (error) {
-        console.error("❌ Erro ao carregar perfil na AWS:", error);
+        console.error("❌ Erro ao carregar perfil:", error);
       } finally {
         setIsLoading(false);
       }
@@ -79,7 +80,7 @@ export default function PerfilPage() {
           }));
           setErrors(prev => ({ ...prev, cep: "" }));
         } else {
-          setErrors(prev => ({ ...prev, cep: "CEP não encontrado" }));
+          setErrors(prev => ({ ...prev, cep: t.errorCepNotFound || "CEP não encontrado" }));
         }
       } catch (err) {
         console.error("Erro ao buscar CEP");
@@ -97,9 +98,9 @@ export default function PerfilPage() {
     e.preventDefault();
     
     const newErrors: Record<string, string> = {};
-    if (!formData.nome) newErrors.nome = "Obrigatório";
-    if (!formData.cpf_cnpj) newErrors.cpf_cnpj = "Obrigatório";
-    if (!formData.cep) newErrors.cep = "Obrigatório";
+    if (!formData.nome) newErrors.nome = t.errorRequired || "Obrigatório";
+    if (!formData.cpf_cnpj) newErrors.cpf_cnpj = t.errorRequired || "Obrigatório";
+    if (!formData.cep) newErrors.cep = t.errorRequired || "Obrigatório";
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -129,21 +130,21 @@ export default function PerfilPage() {
         localStorage.setItem('userName', formData.nome);
 
         await Swal.fire({
-          title: 'DADOS ATUALIZADOS!',
-          text: 'Suas informações de produtor foram sincronizadas com a AWS.',
+          title: t.profileUpdatedTitle || 'DADOS ATUALIZADOS!',
+          text: t.profileUpdatedText || 'Suas informações foram sincronizadas.',
           icon: 'success',
           confirmButtonColor: '#C22973',
-          confirmButtonText: 'IR PARA O PAINEL',
+          confirmButtonText: t.btnGoToDashboard || 'IR PARA O PAINEL',
           customClass: { popup: 'rounded-[2rem] font-sans' }
         });
 
         router.push('/dashboard/eventos');
       } else {
         const err = await response.json();
-        Swal.fire('Ops!', err.message || 'Falha ao salvar', 'error');
+        Swal.fire('Ops!', err.message || t.errorSave, 'error');
       }
     } catch (error) {
-      Swal.fire('Erro', 'Conexão interrompida com o servidor AWS.', 'error');
+      Swal.fire('Erro', t.errorAWSConnection, 'error');
     } finally {
       setIsSaving(false);
     }
@@ -153,7 +154,7 @@ export default function PerfilPage() {
     return (
       <div className="flex h-screen w-screen flex-col items-center justify-center bg-white gap-4">
         <Loader2 className="animate-spin text-[#C22973]" size={48} />
-        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Autenticando na Cloud...</span>
+        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">{t.awsCloudSync || "Sincronizando..."}</span>
       </div>
     );
   }
@@ -163,11 +164,10 @@ export default function PerfilPage() {
       <div className="max-w-[850px] mx-auto">
         
         <Link href="/dashboard/eventos" className="inline-flex items-center gap-3 text-slate-400 hover:text-[#C22973] transition-all mb-10 font-black text-[10px] tracking-[0.2em] uppercase group">
-          <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" /> Voltar ao Dashboard
+          <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" /> {t.btnBackToDashboard || "Voltar ao Dashboard"}
         </Link>
 
         <div className="bg-white rounded-[3.5rem] shadow-2xl shadow-pink-100/20 p-8 md:p-16 border border-slate-50 relative overflow-hidden">
-          {/* Detalhe estético de fundo */}
           <div className="absolute top-0 right-0 w-32 h-32 bg-pink-50/50 rounded-bl-[5rem] -z-0"></div>
 
           <div className="flex items-center gap-6 mb-16 relative z-10">
@@ -175,26 +175,25 @@ export default function PerfilPage() {
               <UserCircle className="text-white" size={40} />
             </div>
             <div>
-              <h2 className="text-4xl font-black text-slate-900 leading-none tracking-tighter italic">MEU PERFIL</h2>
-              <p className="text-slate-400 mt-2 font-bold uppercase text-[10px] tracking-widest italic">Configurações de Produtor Linkah</p>
+              <h2 className="text-4xl font-black text-slate-900 leading-none tracking-tighter italic uppercase">{t.myProfileTitle || "Meu Perfil"}</h2>
+              <p className="text-slate-400 mt-2 font-bold uppercase text-[10px] tracking-widest italic">{t.profileSubtitle || "Configurações de Produtor"}</p>
             </div>
           </div>
           
           <form onSubmit={handleSalvar} className="space-y-12 relative z-10">
-            {/* Seção Dados Pessoais */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
               <div className="space-y-3">
-                <label className={`text-[11px] font-black uppercase tracking-[0.2em] block ml-1 ${errors.nome ? 'text-red-500' : 'text-slate-400'}`}>Nome do Responsável *</label>
+                <label className={`text-[11px] font-black uppercase tracking-[0.2em] block ml-1 ${errors.nome ? 'text-red-500' : 'text-slate-400'}`}>{t.labelResponsibleName || "Nome do Responsável"} *</label>
                 <input 
                   name="nome" 
                   value={formData.nome} 
                   onChange={handleChange} 
-                  placeholder="Nome completo ou Razão Social"
+                  placeholder={t.placeholderName}
                   className={`w-full border-2 p-5 rounded-[1.5rem] outline-none transition-all font-bold text-slate-700 shadow-sm ${errors.nome ? 'border-red-200 bg-red-50' : 'border-slate-50 bg-slate-50/50 focus:border-[#C22973] focus:bg-white'}`} 
                 />
               </div>
               <div className="space-y-3">
-                <label className={`text-[11px] font-black uppercase tracking-[0.2em] block ml-1 ${errors.cpf_cnpj ? 'text-red-500' : 'text-slate-400'}`}>Documento (CPF ou CNPJ) *</label>
+                <label className={`text-[11px] font-black uppercase tracking-[0.2em] block ml-1 ${errors.cpf_cnpj ? 'text-red-500' : 'text-slate-400'}`}>{t.labelDocument || "Documento (CPF/CNPJ)"} *</label>
                 <input 
                   name="cpf_cnpj" 
                   value={formData.cpf_cnpj} 
@@ -205,11 +204,10 @@ export default function PerfilPage() {
               </div>
             </div>
 
-            {/* Seção Endereço */}
             <div className="pt-12 border-t border-slate-100">
               <div className="flex items-center gap-2 mb-8">
                 <MapPin size={18} className="text-[#C22973]" />
-                <h3 className="text-slate-900 font-black text-xs uppercase tracking-[0.3em] italic">Endereço de Faturamento</h3>
+                <h3 className="text-slate-900 font-black text-xs uppercase tracking-[0.3em] italic">{t.sectionBillingAddress || "Endereço de Faturamento"}</h3>
               </div>
               
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
@@ -225,7 +223,7 @@ export default function PerfilPage() {
                   />
                 </div>
                 <div className="col-span-2 space-y-3">
-                  <label className="text-[11px] text-slate-400 font-black uppercase tracking-[0.15em] ml-1">Logradouro *</label>
+                  <label className="text-[11px] text-slate-400 font-black uppercase tracking-[0.15em] ml-1">{t.labelAddress || "Logradouro"} *</label>
                   <input name="rua" value={formData.rua} onChange={handleChange} className="w-full border-2 border-slate-50 p-5 rounded-[1.5rem] outline-none focus:border-[#C22973] bg-slate-50/50 font-bold text-slate-700" />
                 </div>
                 <div className="col-span-1 space-y-3">
@@ -238,7 +236,7 @@ export default function PerfilPage() {
             <div className="bg-pink-50/30 p-8 rounded-[2.5rem] flex gap-5 items-center border border-pink-100/50">
               <Info className="text-[#C22973] shrink-0" size={24} />
               <p className="text-[11px] text-pink-900 font-bold uppercase tracking-tight leading-relaxed">
-                Dados completos garantem a liberação de pagamentos via <span className="underline">Stripe</span> e <span className="underline">Pix</span> sem interrupções.
+                {t.profileStripeWarning || "Dados completos garantem a liberação de pagamentos sem interrupções."}
               </p>
             </div>
 
@@ -248,7 +246,7 @@ export default function PerfilPage() {
               className="w-full bg-[#C22973] text-white py-7 rounded-[2rem] font-black uppercase tracking-[0.4em] italic flex items-center justify-center gap-4 hover:bg-[#a62262] transition-all shadow-2xl shadow-pink-200 disabled:opacity-50 active:scale-95 group"
             >
               {isSaving ? <Loader2 className="animate-spin" /> : <Save size={22} className="group-hover:rotate-12 transition-transform" />} 
-              Salvar Alterações
+              {t.btnSaveProfile || "Salvar Alterações"}
             </button>
           </form>
         </div>

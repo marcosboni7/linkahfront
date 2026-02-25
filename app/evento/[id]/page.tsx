@@ -4,20 +4,23 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Navbar } from '../../site/Navbar';
 import { Footer } from '../../site/Footer';
+import { useLanguage } from '@/app/context/LanguageContext';
 import { 
   Calendar, MapPin, Ticket, ShieldCheck, Share2, 
   Loader2, Plus, Minus, Zap, ChevronLeft,
-  CheckCircle2, Clock, Heart, Users, Verified,
-  ArrowRight
+  CheckCircle2, Clock, Heart, Users, Verified
 } from 'lucide-react';
 import Link from 'next/link';
 
-// --- CONFIGURAÇÃO DA API DA AWS ATUALIZADA ---
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
 
 export default function DetalhesEvento() {
   const { id } = useParams();
   const router = useRouter();
+  
+  // CORREÇÃO AQUI: Desestruturando language e t separadamente
+  const { t, language } = useLanguage(); 
+  
   const [evento, setEvento] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [quantidade, setQuantidade] = useState(1);
@@ -25,7 +28,6 @@ export default function DetalhesEvento() {
   useEffect(() => {
     async function carregarEvento() {
       try {
-        // Cache: 'no-store' + timestamp garante que o usuário veja a versão mais recente salva na AWS
         const timestamp = new Date().getTime();
         const res = await fetch(`${API_URL}/api/eventos/${id}?t=${timestamp}`, {
           cache: 'no-store'
@@ -48,14 +50,13 @@ export default function DetalhesEvento() {
     <div className="h-screen w-full flex items-center justify-center bg-white">
       <div className="flex flex-col items-center gap-4">
         <Loader2 className="animate-spin text-[#ff4d4d]" size={40} />
-        <p className="text-slate-400 font-medium animate-pulse">Carregando experiência...</p>
+        <p className="text-slate-400 font-medium animate-pulse">{t.sync}</p>
       </div>
     </div>
   );
 
-  if (!evento) return <div className="p-20 text-center text-slate-500 font-medium">Evento não encontrado na base de dados.</div>;
+  if (!evento) return <div className="p-20 text-center text-slate-500 font-medium">Evento não encontrado.</div>;
 
-  // Lógica de cálculo de preço (Tratando as variações da API)
   const precoBase = evento.ingressos?.[0]?.preco 
     ? Number(evento.ingressos[0].preco) 
     : (evento.preco ? Number(evento.preco) : 0);
@@ -74,7 +75,8 @@ export default function DetalhesEvento() {
             <div className="p-2 rounded-full group-hover:bg-orange-50 transition-colors">
               <ChevronLeft size={20} />
             </div>
-            Voltar
+            {/* Ajuste dinâmico baseado no idioma */}
+            {language === 'PT' ? 'Voltar' : 'Back'}
           </button>
           <div className="flex gap-3">
             <button className="p-3 rounded-full border border-slate-100 hover:bg-slate-50 transition-all text-slate-400 shadow-sm active:scale-90">
@@ -86,7 +88,7 @@ export default function DetalhesEvento() {
           </div>
         </div>
 
-        {/* SEÇÃO HERO (BANNER) */}
+        {/* SEÇÃO HERO */}
         <div className="relative w-full aspect-[21/9] rounded-[3rem] md:rounded-[4rem] overflow-hidden shadow-2xl mb-16 bg-slate-100 group">
           <img 
             src={evento.imagem || evento.imagem_capa || "https://images.unsplash.com/photo-1492684223066-81342ee5ff30"} 
@@ -96,17 +98,17 @@ export default function DetalhesEvento() {
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
           
           <div className="absolute bottom-10 left-10 right-10 text-white">
-             <div className="flex items-center gap-3 mb-4">
+              <div className="flex items-center gap-3 mb-4">
                 <span className="bg-gradient-to-r from-[#ff4d4d] to-[#ff8c42] px-5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-widest shadow-lg">
-                  {evento.categoria || 'Experiência'}
+                  {evento.categoria || t.catMusic}
                 </span>
                 <span className="flex items-center gap-1.5 text-[11px] font-semibold text-white/80 backdrop-blur-md bg-white/10 px-3 py-1.5 rounded-full border border-white/20">
-                  <Verified size={14} className="text-blue-400" /> Evento Verificado na AWS
+                  <Verified size={14} className="text-blue-400" /> {language === 'PT' ? 'Verificado na AWS' : 'AWS Verified'}
                 </span>
-             </div>
-             <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-none drop-shadow-md">
+              </div>
+              <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-none drop-shadow-md">
                 {evento.nome}
-             </h1>
+              </h1>
           </div>
         </div>
 
@@ -114,16 +116,15 @@ export default function DetalhesEvento() {
           
           {/* COLUNA ESQUERDA: INFORMAÇÕES */}
           <div className="lg:col-span-8 space-y-16">
-            
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div className="flex items-center gap-5">
                 <div className="w-16 h-16 rounded-[1.5rem] bg-orange-50 flex items-center justify-center text-[#ff4d4d] shrink-0">
                   <Calendar size={28} />
                 </div>
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Data</p>
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">{language === 'PT' ? 'DATA' : 'DATE'}</p>
                   <p className="font-bold text-slate-800 text-lg">
-                    {evento.data_inicio ? new Date(evento.data_inicio).toLocaleDateString('pt-BR', {day: '2-digit', month: 'long'}) : 'Data a definir'}
+                    {evento.data_inicio ? new Date(evento.data_inicio).toLocaleDateString(language === 'PT' ? 'pt-BR' : 'en-US', {day: '2-digit', month: 'long'}) : '---'}
                   </p>
                   <p className="text-sm text-slate-500 font-medium">{evento.horario || evento.hora_inicio?.slice(0,5) || '19:00'}</p>
                 </div>
@@ -134,8 +135,10 @@ export default function DetalhesEvento() {
                   <MapPin size={28} />
                 </div>
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Local</p>
-                  <p className="font-bold text-slate-800 text-lg line-clamp-1">{evento.tipo === 'online' ? 'Plataforma Linkah' : (evento.local_nome || evento.local)}</p>
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">{t.thLocation}</p>
+                  <p className="font-bold text-slate-800 text-lg line-clamp-1">
+                    {evento.tipo === 'online' ? (language === 'PT' ? 'Plataforma Linkah' : 'Linkah Platform') : (evento.local_nome || evento.local)}
+                  </p>
                   <p className="text-sm text-slate-500 font-medium line-clamp-1">{evento.cidade || 'Linkah Transmissão'}{evento.estado ? `, ${evento.estado}` : ''}</p>
                 </div>
               </div>
@@ -145,16 +148,16 @@ export default function DetalhesEvento() {
                   <Users size={28} />
                 </div>
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Organizador</p>
-                  <p className="font-bold text-slate-800 text-lg line-clamp-1 capitalize">{evento.produtor_nome || 'Produtor Verificado'}</p>
-                  <button className="text-sm text-[#ff4d4d] font-bold hover:underline">Ver Perfil</button>
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">{language === 'PT' ? 'ORGANIZADOR' : 'ORGANIZER'}</p>
+                  <p className="font-bold text-slate-800 text-lg line-clamp-1 capitalize">{evento.produtor_nome || t.producerDefaultName}</p>
+                  <button className="text-sm text-[#ff4d4d] font-bold hover:underline">{language === 'PT' ? 'Ver Perfil' : 'View Profile'}</button>
                 </div>
               </div>
             </div>
 
             <div className="space-y-8">
               <div className="flex items-center gap-4">
-                <h3 className="text-2xl font-bold text-slate-900 tracking-tight">Sobre esta experiência</h3>
+                <h3 className="text-2xl font-bold text-slate-900 tracking-tight">{language === 'PT' ? 'Sobre esta experiência' : 'About this experience'}</h3>
                 <div className="h-[1px] flex-1 bg-slate-100"></div>
               </div>
               <div className="text-slate-600 leading-relaxed text-xl font-light whitespace-pre-line max-w-3xl">
@@ -167,29 +170,29 @@ export default function DetalhesEvento() {
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 bg-white/20 w-fit px-4 py-1.5 rounded-full backdrop-blur-md">
                     <Zap size={16} className="text-yellow-300 fill-yellow-300" />
-                    <span className="text-[11px] font-bold uppercase tracking-widest">Acesso Digital</span>
+                    <span className="text-[11px] font-bold uppercase tracking-widest">{language === 'PT' ? 'Acesso Digital' : 'Digital Access'}</span>
                   </div>
-                  <h3 className="text-4xl font-bold tracking-tight">Assista de casa</h3>
-                  <p className="text-white/80 text-lg">O link de acesso será enviado após a confirmação do pagamento.</p>
+                  <h3 className="text-4xl font-bold tracking-tight">{language === 'PT' ? 'Assista de casa' : 'Watch from home'}</h3>
+                  <p className="text-white/80 text-lg">{language === 'PT' ? 'O link será enviado após o pagamento.' : 'The link will be sent after payment.'}</p>
                 </div>
                 <div className="bg-white/10 backdrop-blur-xl border border-white/20 p-6 rounded-[2rem] text-center">
                    <Clock size={32} className="mx-auto mb-2 opacity-50" />
-                   <p className="text-[10px] font-black uppercase tracking-widest">Check-in Liberado</p>
+                   <p className="text-[10px] font-black uppercase tracking-widest">Check-in</p>
                    <p className="font-bold">15min antes</p>
                 </div>
               </div>
             )}
           </div>
 
-          {/* COLUNA DIREITA: CHECKOUT (COMPRA) */}
+          {/* COLUNA DIREITA: CHECKOUT */}
           <div className="lg:col-span-4">
             <div className="sticky top-28">
               <div className="bg-white rounded-[3.5rem] border border-slate-100 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.12)] overflow-hidden">
                 <div className="p-10 space-y-10">
                   <div className="flex justify-between items-center">
-                    <h4 className="font-bold text-slate-900 text-xl tracking-tight">Ingressos</h4>
+                    <h4 className="font-bold text-slate-900 text-xl tracking-tight">{t.tickets}</h4>
                     <span className="flex items-center gap-1.5 bg-emerald-50 text-emerald-600 text-[11px] font-bold px-3 py-1.5 rounded-full border border-emerald-100">
-                      <CheckCircle2 size={12} /> DISPONÍVEL
+                      <CheckCircle2 size={12} /> {language === 'PT' ? 'DISPONÍVEL' : 'AVAILABLE'}
                     </span>
                   </div>
 
@@ -197,11 +200,11 @@ export default function DetalhesEvento() {
                     <div className="p-6 rounded-[2.5rem] bg-slate-50 border border-slate-100 space-y-4">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="font-bold text-slate-800">Individual</p>
-                          <p className="text-xs text-slate-500 font-medium italic">Lote atual</p>
+                          <p className="font-bold text-slate-800">{language === 'PT' ? 'Individual' : 'Single Ticket'}</p>
+                          <p className="text-xs text-slate-500 font-medium italic">{language === 'PT' ? 'Lote atual' : 'Current batch'}</p>
                         </div>
                         <span className="text-2xl font-bold text-slate-900">
-                          {precoBase.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                          {total.toLocaleString(language === 'PT' ? 'pt-BR' : 'en-US', { style: 'currency', currency: 'BRL' })}
                         </span>
                       </div>
 
@@ -224,28 +227,16 @@ export default function DetalhesEvento() {
                   </div>
 
                   <div className="space-y-8">
-                    <div className="flex justify-between items-end px-2">
-                      <span className="text-slate-400 text-xs font-bold uppercase tracking-[0.2em] mb-1">Total</span>
-                      <span className="text-4xl font-bold text-slate-900 tracking-tighter">
-                        {total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                      </span>
-                    </div>
-
                     <Link 
                       href={`/venda?eventoId=${id}&qtd=${quantidade}`}
                       className="group flex items-center justify-center w-full bg-gradient-to-r from-[#ff4d4d] to-[#ff8c42] py-7 rounded-[2.5rem] font-bold text-white transition-all hover:scale-[1.02] shadow-xl text-base gap-3"
                     >
                       <Ticket size={24} />
-                      COMPRAR AGORA
+                      {language === 'PT' ? 'COMPRAR AGORA' : 'BUY NOW'}
                     </Link>
 
                     <div className="space-y-4 pt-4 text-center">
                       <p className="text-[11px] text-slate-400 font-medium">Checkout AWS • Stripe & Pix</p>
-                      <div className="flex justify-center items-center gap-3 opacity-40 grayscale">
-                         <div className="w-8 h-5 bg-slate-200 rounded-sm" /> 
-                         <div className="w-8 h-5 bg-slate-200 rounded-sm" />
-                         <div className="w-8 h-5 bg-slate-200 rounded-sm" />
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -256,7 +247,8 @@ export default function DetalhesEvento() {
                   <ShieldCheck size={20} />
                 </div>
                 <p className="text-[11px] text-slate-400 font-bold leading-tight uppercase tracking-wider">
-                  Compra Protegida <br/> <span className="text-slate-900">Garantia Linkah</span>
+                  {language === 'PT' ? 'Compra Protegida' : 'Secure Checkout'} <br/> 
+                  <span className="text-slate-900">{language === 'PT' ? 'Garantia Linkah' : 'Linkah Guarantee'}</span>
                 </p>
               </div>
             </div>

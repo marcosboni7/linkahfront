@@ -6,18 +6,27 @@ import Link from 'next/link';
 import { Lock, LogIn, ArrowRight, MessageCircle, Users, Loader2 } from 'lucide-react';
 import { Navbar } from '../site/Navbar';
 import { Footer } from '../site/Footer';
+import { useLanguage } from '@/app/context/LanguageContext';
 
-// --- CONFIGURAÇÃO DA API DA AWS ATUALIZADA ---
 const API_URL = 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
 
+// Interface simples para evitar erros de tipagem
+interface Evento {
+  id: string;
+  nome: string;
+  imagem_capa?: string;
+  descricao?: string;
+}
+
 export default function ListaComunidades() {
-  const [eventos, setEventos] = useState([]);
+  // Extraímos 'language' e 't' do contexto
+  const { t, language } = useLanguage();
+  const [eventos, setEventos] = useState<Evento[]>([]);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [estaLogado, setEstaLogado] = useState(false);
 
   useEffect(() => {
-    // 1. VERIFICAÇÃO DE LOGIN (Usando o padrão das outras páginas)
     const token = localStorage.getItem('@Linkah:Token');
     const userEmail = localStorage.getItem('userEmail');
 
@@ -29,7 +38,6 @@ export default function ListaComunidades() {
 
     setEstaLogado(true);
 
-    // 2. BUSCA DE COMUNIDADES NA VITRINE AWS
     const fetchComunidades = async () => {
       try {
         const res = await fetch(`${API_URL}/api/eventos/vitrine`, {
@@ -38,30 +46,27 @@ export default function ListaComunidades() {
           }
         });
 
-        if (!res.ok) throw new Error('Erro ao carregar comunidades');
+        if (!res.ok) throw new Error();
         
         const data = await res.json();
         setEventos(data);
       } catch (err) {
-        console.error("Erro na AWS:", err);
-        setErro("Não foi possível carregar as comunidades agora. Verifique sua conexão.");
+        setErro(t.errorLoadingCommunities);
       } finally {
         setLoading(false);
       }
     };
 
     fetchComunidades();
-  }, []);
+  }, [t.errorLoadingCommunities]);
 
-  // TELA DE CARREGAMENTO
   if (loading) return (
     <div className="flex flex-col justify-center items-center h-screen bg-[#FCFBFA] gap-4">
       <Loader2 className="animate-spin text-[#C22973]" size={32} />
-      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Sincronizando com AWS...</p>
+      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t.sync}</p>
     </div>
   );
 
-  // TELA DE BLOQUEIO (Membros apenas)
   if (!estaLogado) return (
     <div className="min-h-screen flex flex-col bg-[#FCFBFA]">
       <Navbar />
@@ -72,11 +77,11 @@ export default function ListaComunidades() {
           </div>
           
           <h1 className="text-3xl font-black text-slate-900 leading-tight mb-4 tracking-tight italic uppercase">
-            Acesso Restrito
+            {t.restrictedAccess}
           </h1>
           
           <p className="text-slate-500 font-light mb-10 leading-relaxed text-lg">
-            Esta área é exclusiva para membros da nossa rede. Entre para acessar as salas de chat.
+            {t.restrictedSub}
           </p>
 
           <div className="space-y-4">
@@ -85,14 +90,14 @@ export default function ListaComunidades() {
               className="flex items-center justify-center gap-2 w-full bg-[#C22973] text-white py-5 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-[#a62262] transition-all shadow-lg shadow-pink-100 active:scale-95"
             >
               <LogIn size={18} />
-              Fazer Login
+              {t.login}
             </Link>
             
             <Link 
               href="/auth/registro" 
               className="flex items-center justify-center gap-2 w-full bg-white text-slate-400 py-5 rounded-2xl font-black uppercase text-xs tracking-widest border border-slate-100 hover:bg-slate-50 transition-all active:scale-95"
             >
-              Criar conta gratuita
+              {t.createFreeAccount}
             </Link>
           </div>
         </div>
@@ -106,17 +111,16 @@ export default function ListaComunidades() {
       <Navbar />
 
       <main className="flex-1 max-w-6xl mx-auto px-6 pt-16 pb-24 w-full">
-        {/* HEADER */}
         <div className="mb-16 text-center md:text-left space-y-4">
           <div className="flex items-center justify-center md:justify-start gap-2">
              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-             <span className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Cloud Sync: Ativo</span>
+             <span className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">{t.cloudSyncActive}</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-black tracking-tight uppercase italic">
-            Explore as <span className="text-[#C22973]">Salas</span>
+            {t.exploreRooms.split(' ')[0]} <span className="text-[#C22973]">{t.exploreRooms.split(' ').slice(1).join(' ')}</span>
           </h1>
           <p className="text-slate-500 max-w-lg leading-relaxed text-lg font-light">
-            Conecte-se em tempo real com pessoas que frequentam os mesmos eventos que você.
+            {t.exploreSub}
           </p>
         </div>
 
@@ -126,10 +130,9 @@ export default function ListaComunidades() {
           </div>
         )}
 
-        {/* GRID DE CARDS */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
           {eventos.length > 0 ? (
-            eventos.map((evento: any) => (
+            eventos.map((evento) => (
               <div key={evento.id} className="group bg-white rounded-[2.5rem] overflow-hidden border border-slate-100 hover:shadow-2xl hover:shadow-pink-200/20 transition-all duration-500 flex flex-col">
                 <div className="relative aspect-[4/3] overflow-hidden">
                   <img 
@@ -139,7 +142,7 @@ export default function ListaComunidades() {
                   />
                   <div className="absolute top-4 left-4">
                     <span className="bg-white/95 backdrop-blur-md px-4 py-1.5 rounded-full text-[9px] font-black text-slate-900 uppercase tracking-[0.15em] shadow-sm flex items-center gap-1.5">
-                      <Users size={12} className="text-[#C22973]" /> Chat Ativo
+                      <Users size={12} className="text-[#C22973]" /> {t.activeChat}
                     </span>
                   </div>
                 </div>
@@ -149,7 +152,7 @@ export default function ListaComunidades() {
                     {evento.nome}
                   </h2>
                   <p className="text-slate-500 text-sm mb-8 line-clamp-2 font-medium leading-relaxed">
-                    {evento.descricao || "Participe do chat oficial e conecte-se com os participantes deste evento."}
+                    {evento.descricao || (language === 'PT' ? "Participe do chat oficial..." : "Join the official chat...")}
                   </p>
                   
                   <div className="mt-auto">
@@ -159,7 +162,7 @@ export default function ListaComunidades() {
                     >
                       <div className="flex items-center gap-2">
                         <MessageCircle size={18} className="text-[#C22973]" />
-                        Entrar no grupo
+                        {t.joinGroup}
                       </div>
                       <ArrowRight size={18} className="group-hover/btn:translate-x-1 transition-transform opacity-50" />
                     </Link>
@@ -169,7 +172,7 @@ export default function ListaComunidades() {
             ))
           ) : !erro && (
             <div className="col-span-full py-20 text-center">
-               <p className="text-slate-400 font-bold uppercase text-xs tracking-widest">Nenhuma comunidade disponível no momento.</p>
+               <p className="text-slate-400 font-bold uppercase text-xs tracking-widest">{t.noCommunities}</p>
             </div>
           )}
         </div>

@@ -3,14 +3,14 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { 
   Search, Paperclip, Send, Video, Phone, 
-  MoreVertical, Smile, ChevronLeft, X, 
-  Check, Loader2 
+  MoreVertical, Smile, X, Loader2 
 } from 'lucide-react';
+import { useLanguage } from '@/app/context/LanguageContext';
 
-// --- CONFIGURAÇÃO DA API DA AWS ---
 const API_URL = 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
 
 export default function SalaLinkahSkype() {
+  const { t } = useLanguage();
   const { id } = useParams();
   const router = useRouter();
   
@@ -30,23 +30,22 @@ export default function SalaLinkahSkype() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // 1. Autenticação e Perfil
+  // 1. Autenticação
   useEffect(() => {
     const savedUser = localStorage.getItem('@Linkah:User');
     if (savedUser) {
       setDadosUsuario(JSON.parse(savedUser));
     } else {
-      router.push('/site/login');
+      router.push('/auth/login');
     }
   }, [router]);
 
-  // 2. Loop de Sincronização (Polling)
+  // 2. Sync Loop
   useEffect(() => {
     if (!id || !dadosUsuario?.nome) return;
 
     const atualizar = async () => {
       try {
-        // Buscamos Evento, Mensagens e a Presença Real simultaneamente
         const [resEv, resMsg, resOn] = await Promise.all([
           fetch(`${API_URL}/api/eventos/${id}`),
           fetch(`${API_URL}/api/comunidades/${id}?t=${Date.now()}`),
@@ -55,14 +54,11 @@ export default function SalaLinkahSkype() {
 
         if (resEv.ok) setDadosEvento(await resEv.json());
 
-        // Atualiza Lista de Usuários Online
         if (resOn.ok) {
           const on = await resOn.json();
-          // Filtra para não mostrar você mesmo na lista lateral
           setUsuariosOnline(on.filter((u: any) => u.usuario_nome !== dadosUsuario.nome));
         }
 
-        // Atualiza Mensagens e Detecta Convites de Call
         if (resMsg.ok) {
           const msgs = await resMsg.json();
           setMensagens(msgs);
@@ -70,7 +66,6 @@ export default function SalaLinkahSkype() {
           const AGORA = Date.now();
           const MEU_NOME_LIMPO = dadosUsuario.nome.trim().toLowerCase();
 
-          // Analisa as últimas mensagens em busca de um CALL_INVITE para mim
           msgs.slice(-5).forEach((msg: any) => {
             if (msg.texto?.includes("CALL_INVITE|")) {
               const partes = msg.texto.split("|");
@@ -93,7 +88,7 @@ export default function SalaLinkahSkype() {
         }
         setCarregando(false);
       } catch (e) { 
-        console.error("Erro na sincronização:", e); 
+        console.error("Erro sync:", e); 
       }
     };
 
@@ -102,12 +97,10 @@ export default function SalaLinkahSkype() {
     return () => clearInterval(int);
   }, [id, dadosUsuario, chamadaAtiva, conviteRecebido]);
 
-  // Scroll automático para a última mensagem
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [mensagens]);
 
-  // 3. Funções de Ação
   const enviarMensagem = async (e: any) => {
     e.preventDefault();
     if (!novoTexto.trim() && !imagemAnexada) return;
@@ -129,16 +122,13 @@ export default function SalaLinkahSkype() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-    } catch (err) { 
-      console.error(err); 
-    }
+    } catch (err) { console.error(err); }
   };
 
   const iniciarCall = async (destino: string) => {
     if (!dadosUsuario) return;
     const sala = `Call_${id}_${Date.now()}`;
     
-    // Envia o convite via sistema (tipo status para não poluir o chat)
     await fetch(`${API_URL}/api/comunidades/enviar`, {
       method: 'POST', 
       headers: { 'Content-Type': 'application/json' },
@@ -157,7 +147,7 @@ export default function SalaLinkahSkype() {
   if (carregando) return (
     <div className="h-screen flex flex-col items-center justify-center bg-white">
       <Loader2 className="animate-spin text-[#C22973] mb-4" size={40} />
-      <p className="font-black italic text-slate-900 uppercase tracking-widest text-xs">Conectando...</p>
+      <p className="font-black italic text-slate-900 uppercase tracking-widest text-xs">{t.sync || "Conectando..."}</p>
     </div>
   );
 
@@ -171,21 +161,21 @@ export default function SalaLinkahSkype() {
             <div className="w-20 h-20 bg-pink-50 rounded-full flex items-center justify-center mx-auto mb-4 text-[#C22973]">
               <Phone size={40} className="animate-bounce" />
             </div>
-            <p className="font-black uppercase text-xs mb-6 text-slate-400 tracking-widest">
-              {conviteRecebido.de} está chamando...
+            <p className="font-black uppercase text-[10px] mb-6 text-slate-400 tracking-widest">
+              {conviteRecebido.de} {t.chatIsCalling || "está chamando..."}
             </p>
             <div className="flex flex-col gap-2">
               <button 
                 onClick={() => { setNomeSalaCall(conviteRecebido.sala); setChamadaAtiva(true); setConviteRecebido(null); }} 
-                className="w-full bg-emerald-500 text-white py-4 rounded-2xl font-black text-xs tracking-widest shadow-lg"
+                className="w-full bg-emerald-500 text-white py-4 rounded-2xl font-black text-[10px] tracking-widest shadow-lg"
               >
-                ACEITAR
+                {t.btnAccept || "ACEITAR"}
               </button>
               <button 
                 onClick={() => setConviteRecebido(null)} 
-                className="w-full bg-slate-100 text-slate-400 py-4 rounded-2xl font-black text-xs tracking-widest"
+                className="w-full bg-slate-100 text-slate-400 py-4 rounded-2xl font-black text-[10px] tracking-widest"
               >
-                RECUSAR
+                {t.btnDecline || "RECUSAR"}
               </button>
             </div>
           </div>
@@ -198,14 +188,14 @@ export default function SalaLinkahSkype() {
           <h2 className="font-black italic text-[#C22973] uppercase tracking-tighter text-2xl mb-6">Linkah</h2>
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
-            <input type="text" placeholder="Buscar membros..." className="w-full bg-slate-50 border-none rounded-xl py-3 pl-12 pr-4 text-xs font-bold outline-none" />
+            <input type="text" placeholder={t.searchMembersPlaceholder || "Buscar..."} className="w-full bg-slate-50 border-none rounded-xl py-3 pl-12 pr-4 text-xs font-bold outline-none" />
           </div>
         </div>
         
         <div className="flex-1 overflow-y-auto p-4 space-y-2">
-          <p className="text-[10px] font-black text-slate-300 uppercase p-2 tracking-[0.2em]">Membros Online</p>
+          <p className="text-[10px] font-black text-slate-300 uppercase p-2 tracking-[0.2em]">{t.membersOnline || "Membros Online"}</p>
           {usuariosOnline.length === 0 ? (
-            <p className="text-center text-[10px] font-bold text-slate-300 uppercase py-10">Ninguém online agora</p>
+            <p className="text-center text-[10px] font-bold text-slate-300 uppercase py-10">{t.noOneOnline || "Ninguém online agora"}</p>
           ) : usuariosOnline.map((u, i) => (
             <div 
               key={i} 
@@ -220,7 +210,7 @@ export default function SalaLinkahSkype() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-black truncate uppercase italic tracking-tighter">{u.usuario_nome}</p>
-                <p className="text-[9px] font-bold text-emerald-500 uppercase">Disponível</p>
+                <p className="text-[9px] font-bold text-emerald-500 uppercase">{t.statusAvailable || "Disponível"}</p>
               </div>
               <Video size={18} className="text-slate-200 group-hover:text-[#C22973]" />
             </div>
@@ -243,7 +233,7 @@ export default function SalaLinkahSkype() {
                 onClick={() => setChamadaAtiva(false)} 
                 className="bg-red-500 text-white px-8 py-2 rounded-xl text-[10px] font-black tracking-widest hover:bg-red-600 transition-colors"
               >
-                ENCERRAR
+                {t.btnEndCall || "ENCERRAR"}
               </button>
             </div>
             <iframe 
@@ -263,7 +253,7 @@ export default function SalaLinkahSkype() {
             <div>
               <h1 className="font-black uppercase italic text-base tracking-tighter text-slate-900">{dadosEvento?.nome}</h1>
               <p className="text-[10px] text-emerald-500 font-black uppercase tracking-widest flex items-center gap-1">
-                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span> Comunidade Ativa
+                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span> {t.activeChat || "Comunidade Ativa"}
               </p>
             </div>
           </div>
@@ -274,12 +264,10 @@ export default function SalaLinkahSkype() {
           </div>
         </header>
 
-        {/* ÁREA DE MENSAGENS */}
+        {/* MENSAGENS */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/30">
           {mensagens.map((m, i) => {
-            // Esconde pings de sistema e convites do fluxo principal de texto
             if(m.tipo === 'status' || m.texto?.includes("CALL_INVITE|")) return null;
-            
             const souEu = m.usuario_nome === dadosUsuario.nome;
             return (
               <div key={i} className={`flex ${souEu ? 'justify-end' : 'justify-start'} items-end gap-2`}>
@@ -307,7 +295,7 @@ export default function SalaLinkahSkype() {
           <div ref={scrollRef} />
         </div>
 
-        {/* FOOTER - ENTRADA DE TEXTO */}
+        {/* INPUT */}
         <footer className="p-6 border-t bg-white">
           <form onSubmit={enviarMensagem} className="max-w-5xl mx-auto flex gap-4 items-end">
             <div className="flex-1 bg-slate-50 rounded-[2rem] p-2 flex flex-col focus-within:bg-white border-2 border-transparent focus-within:border-pink-50 transition-all">
@@ -324,18 +312,10 @@ export default function SalaLinkahSkype() {
                 </div>
               )}
               <div className="flex items-center gap-2">
-                <button 
-                  type="button" 
-                  onClick={() => fileInputRef.current?.click()} 
-                  className="p-3 text-slate-400 hover:text-[#C22973] transition-colors"
-                >
+                <button type="button" onClick={() => fileInputRef.current?.click()} className="p-3 text-slate-400 hover:text-[#C22973] transition-colors">
                   <Paperclip size={22} />
                 </button>
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  hidden 
-                  accept="image/*"
+                <input type="file" ref={fileInputRef} hidden accept="image/*"
                   onChange={(e) => {
                     const f = e.target.files?.[0];
                     if(f){ 
@@ -349,17 +329,14 @@ export default function SalaLinkahSkype() {
                   value={novoTexto} 
                   onChange={e => setNovoTexto(e.target.value)} 
                   className="flex-1 bg-transparent py-4 text-sm font-bold outline-none text-slate-800" 
-                  placeholder="Escreva sua mensagem..." 
+                  placeholder={t.chatPlaceholder?.replace('{name}', '') || "Escreva sua mensagem..."} 
                 />
                 <button type="button" className="p-3 text-slate-300">
                   <Smile size={22} />
                 </button>
               </div>
             </div>
-            <button 
-              type="submit" 
-              className="bg-[#C22973] text-white p-5 rounded-[1.5rem] shadow-xl shadow-pink-100 hover:scale-105 active:scale-95 transition-all"
-            >
+            <button type="submit" className="bg-[#C22973] text-white p-5 rounded-[1.5rem] shadow-xl shadow-pink-100 hover:scale-105 active:scale-95 transition-all">
               <Send size={24} />
             </button>
           </form>

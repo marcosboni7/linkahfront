@@ -1,18 +1,17 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-// CORREÇÃO: Importado de 'lucide-react'
 import { 
-  Search, Trash2, RefreshCcw, Calendar, MapPin, 
-  Save, X, Edit3, Loader2, Link, DollarSign, Clock,
-  AlertCircle, Image as ImageIcon
+  Search, Trash2, RefreshCcw, MapPin, 
+  Save, X, Edit3, Loader2, AlertCircle, Image as ImageIcon
 } from 'lucide-react';
 import Swal from 'sweetalert2';
+import { useLanguage } from '@/app/context/LanguageContext';
 
-// --- CONFIGURAÇÃO DA API DA AWS ATUALIZADA ---
 const API_URL = 'https://zmn9xuwd4y.us-east-1.awsapprunner.com/api/eventos';
 
 export default function AdminEventos() {
+  const { t } = useLanguage();
   const [eventos, setEventos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState<string | number | null>(null);
@@ -26,11 +25,9 @@ export default function AdminEventos() {
   const carregarDados = async () => {
     setLoading(true);
     try {
-      // Usando o endpoint de vitrine para listar eventos ativos no novo servidor AWS
       const res = await fetch(`${API_URL}/vitrine`);
       if (res.ok) {
         const data = await res.json();
-        // Garante que os dados sejam formatados corretamente para o input type="date"
         const formatados = Array.isArray(data) ? data.filter((ev: any) => ev.status !== 'Excluído').map((ev: any) => ({
             ...ev,
             data: ev.data_inicio ? ev.data_inicio.split('T')[0] : (ev.data ? ev.data.split('T')[0] : '') 
@@ -38,7 +35,7 @@ export default function AdminEventos() {
         setEventos(formatados);
       }
     } catch (err) {
-      console.error("❌ Erro ao carregar dados da AWS:", err);
+      console.error("❌ Erro ao carregar dados:", err);
     } finally {
       setLoading(false);
     }
@@ -65,7 +62,6 @@ export default function AdminEventos() {
     e.preventDefault();
     setIsProcessing('salvando');
 
-    // Payload ajustado: garantimos que o banco receba 'data_inicio'
     const payload = { 
       ...eventoParaEditar, 
       data_inicio: eventoParaEditar.data,
@@ -83,18 +79,15 @@ export default function AdminEventos() {
         setIsModalOpen(false);
         Swal.fire({
             icon: 'success',
-            title: 'Evento Atualizado',
-            text: 'As alterações foram sincronizadas na AWS.',
+            title: t.done,
             showConfirmButton: false,
             timer: 1500,
             customClass: { popup: 'rounded-[2rem]' }
         });
         await carregarDados();
-      } else {
-        Swal.fire('Erro', 'Não foi possível salvar as alterações no servidor.', 'error');
       }
     } catch (err) {
-      Swal.fire('Erro de Conexão', 'Não foi possível contatar o App Runner.', 'error');
+      Swal.fire('Error', 'Connection failed', 'error');
     } finally {
       setIsProcessing(null);
     }
@@ -102,14 +95,11 @@ export default function AdminEventos() {
 
   const handleExcluir = async (evento: any) => {
     const result = await Swal.fire({
-        title: 'Tem certeza?',
-        text: `O evento "${evento.nome}" será removido da vitrine pública.`,
+        title: 'Confirm?',
+        text: evento.nome,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#ff4d4d',
-        cancelButtonColor: '#cbd5e1',
-        confirmButtonText: 'Sim, excluir!',
-        cancelButtonText: 'Cancelar',
         customClass: { popup: 'rounded-[2rem]' }
     });
 
@@ -117,7 +107,6 @@ export default function AdminEventos() {
 
     setIsProcessing(evento.id);
     try {
-      // Exclusão lógica alterando o status para 'Excluído'
       const res = await fetch(`${API_URL}/${evento.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -125,27 +114,19 @@ export default function AdminEventos() {
       });
       if (res.ok) {
         setEventos(prev => prev.filter(ev => ev.id !== evento.id));
-        Swal.fire({
-          title: 'Removido!',
-          icon: 'success',
-          timer: 1000,
-          showConfirmButton: false,
-          customClass: { popup: 'rounded-[2rem]' }
-        });
       }
     } catch (err) {
-      console.error("❌ Erro ao excluir:", err);
+      console.error("❌ Erro:", err);
     } finally { setIsProcessing(null); }
   };
 
   return (
     <div className="p-6 lg:p-12 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-700">
       
-      {/* HEADER */}
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-5xl font-black tracking-tighter text-slate-900 uppercase italic">Eventos</h1>
-          <p className="text-slate-400 font-bold text-xs uppercase tracking-[0.2em] mt-2">Gerenciamento da vitrine Linkah</p>
+          <h1 className="text-5xl font-black tracking-tighter text-slate-900 uppercase italic">{t.eventsTitle}</h1>
+          <p className="text-slate-400 font-bold text-xs uppercase tracking-[0.2em] mt-2">{t.eventsSub}</p>
         </div>
         
         <div className="flex items-center gap-4">
@@ -153,7 +134,7 @@ export default function AdminEventos() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
             <input 
               type="text" 
-              placeholder="Localizar evento..." 
+              placeholder={t.searchPlaceholder}
               value={filtroBusca}
               onChange={(e) => setFiltroBusca(e.target.value)}
               className="pl-12 pr-6 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:ring-4 ring-rose-500/5 font-bold shadow-sm w-full md:w-80 transition-all text-sm"
@@ -168,16 +149,15 @@ export default function AdminEventos() {
         </div>
       </header>
 
-      {/* TABELA */}
       <div className="bg-white rounded-[3.5rem] border border-slate-100 shadow-2xl shadow-slate-200/40 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/50 text-slate-400 text-[10px] uppercase font-black tracking-[0.2em] border-b border-slate-100">
-                <th className="px-10 py-8">Thumbnail & Título</th>
-                <th className="px-10 py-8 text-center">Data & Hora</th>
-                <th className="px-10 py-8 text-center">Status</th>
-                <th className="px-10 py-8 text-right">Ações</th>
+                <th className="px-10 py-8">{t.thThumbnail}</th>
+                <th className="px-10 py-8 text-center">{t.thDateTime}</th>
+                <th className="px-10 py-8 text-center">{t.thStatus}</th>
+                <th className="px-10 py-8 text-right">{t.thActions}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
@@ -185,14 +165,14 @@ export default function AdminEventos() {
                 <tr>
                   <td colSpan={4} className="px-10 py-20 text-center">
                     <Loader2 className="animate-spin mx-auto text-slate-200" size={40} />
-                    <p className="text-slate-300 font-black uppercase text-[10px] mt-4 tracking-widest">Sincronizando Vitrine...</p>
+                    <p className="text-slate-300 font-black uppercase text-[10px] mt-4 tracking-widest">{t.syncingShowcase}</p>
                   </td>
                 </tr>
               ) : eventos.length === 0 ? (
                 <tr>
                     <td colSpan={4} className="px-10 py-20 text-center">
                       <AlertCircle className="mx-auto text-slate-100" size={48} />
-                      <p className="text-slate-300 font-black uppercase text-[10px] mt-4 tracking-widest">Nenhum evento na vitrine</p>
+                      <p className="text-slate-300 font-black uppercase text-[10px] mt-4 tracking-widest">{t.noEvents}</p>
                     </td>
                 </tr>
               ) : (
@@ -242,37 +222,36 @@ export default function AdminEventos() {
         </div>
       </div>
 
-      {/* MODAL DE EDIÇÃO */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[100] flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-2xl rounded-[4rem] p-10 lg:p-14 shadow-2xl overflow-y-auto max-h-[90vh] relative border border-white/20">
             <button onClick={() => setIsModalOpen(false)} className="absolute top-8 right-8 text-slate-300 hover:text-slate-900"><X size={28} /></button>
-            <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic mb-10">Editar <span className="text-rose-500">Evento</span></h2>
+            <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic mb-10">{t.editEventTitle}</h2>
             
             <form onSubmit={salvarEdicao} className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="col-span-2 space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Título do Evento</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t.labelEventTitle}</label>
                 <input className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl font-black italic uppercase text-slate-900 outline-none focus:bg-white transition-all" value={eventoParaEditar.nome} onChange={(e) => setEventoParaEditar({...eventoParaEditar, nome: e.target.value})} />
               </div>
               
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Data</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t.labelDate}</label>
                 <input type="date" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none focus:bg-white text-slate-800" value={eventoParaEditar.data} onChange={(e) => setEventoParaEditar({...eventoParaEditar, data: e.target.value})} />
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Horário</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t.labelTime}</label>
                 <input type="time" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none focus:bg-white text-slate-800" value={eventoParaEditar.horario} onChange={(e) => setEventoParaEditar({...eventoParaEditar, horario: e.target.value})} />
               </div>
 
               <div className="col-span-2 space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Local</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t.labelLocation}</label>
                 <input className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none focus:bg-white text-slate-800" value={eventoParaEditar.local} onChange={(e) => setEventoParaEditar({...eventoParaEditar, local: e.target.value})} />
               </div>
 
               <button type="submit" disabled={isProcessing === 'salvando'} className="col-span-2 bg-slate-900 text-white py-6 rounded-3xl font-black uppercase tracking-[0.3em] hover:bg-rose-500 transition-all flex items-center justify-center gap-3 text-xs shadow-xl active:scale-95">
                 {isProcessing === 'salvando' ? <Loader2 className="animate-spin" /> : <Save size={20} />}
-                Sincronizar Alterações
+                {t.btnSyncChanges}
               </button>
             </form>
           </div>

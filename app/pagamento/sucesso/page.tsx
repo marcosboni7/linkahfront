@@ -2,11 +2,10 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-// CORREÇÃO: O pacote correto é lucide-react
 import { Ticket, Download, ArrowRight, Loader2, Calendar, User, Hash, MapPin, AlertCircle, CheckCircle2, Verified } from 'lucide-react';
 import Link from 'next/link';
+import { useLanguage } from '@/app/context/LanguageContext'; // Importando o contexto
 
-// --- CONFIGURAÇÃO DA API DA AWS ATUALIZADA ---
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
 
 function TicketVisual() {
@@ -15,10 +14,13 @@ function TicketVisual() {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState(false);
   const [compra, setCompra] = useState<any>(null);
+  
+  // Pegando as traduções e o idioma atual
+  const { t, language } = useLanguage();
 
   useEffect(() => {
     let tentativas = 0;
-    const maxTentativas = 5; // Aumentei um pouco para dar tempo do Pix processar
+    const maxTentativas = 5;
 
     async function buscar() {
       if (!sessionId) { 
@@ -28,7 +30,6 @@ function TicketVisual() {
       }
 
       try {
-        // Chamada para a nova URL da AWS App Runner
         const res = await fetch(`${API_URL}/api/pagamentos/detalhes/${sessionId}`);
         
         if (res.ok) {
@@ -36,7 +37,6 @@ function TicketVisual() {
           setCompra(data);
           setLoading(false);
         } else {
-          // Lógica de Retry: Útil para aguardar o Webhook do Stripe/Pix
           if (tentativas < maxTentativas) {
             tentativas++;
             setTimeout(buscar, 3000); 
@@ -58,7 +58,8 @@ function TicketVisual() {
     <div className="flex flex-col items-center justify-center min-h-screen bg-white gap-4">
       <Loader2 className="animate-spin text-rose-500" size={40} />
       <p className="font-black text-slate-400 uppercase tracking-widest italic animate-pulse text-xs text-center px-6">
-        Sincronizando com a rede AWS... <br/>Gerando seu ticket oficial
+        {language === 'PT' ? 'Sincronizando com a rede AWS...' : 'Syncing with AWS network...'} <br/>
+        {language === 'PT' ? 'Gerando seu ticket oficial' : 'Generating your official ticket'}
       </p>
     </div>
   );
@@ -68,15 +69,19 @@ function TicketVisual() {
       <div className="w-20 h-20 bg-rose-50 rounded-full flex items-center justify-center mb-2">
         <AlertCircle className="text-rose-500" size={40} />
       </div>
-      <h3 className="font-black text-slate-800 uppercase italic text-xl">Processando Dados</h3>
+      <h3 className="font-black text-slate-800 uppercase italic text-xl">
+        {language === 'PT' ? 'Processando Dados' : 'Processing Data'}
+      </h3>
       <p className="text-slate-500 text-sm max-w-xs leading-relaxed">
-        Seu pagamento foi confirmado, mas o servidor está finalizando a emissão do QR Code. 
+        {language === 'PT' 
+          ? 'Seu pagamento foi confirmado, mas o servidor está finalizando a emissão do QR Code.' 
+          : 'Your payment was confirmed, but the server is finalizing the QR Code issuance.'}
       </p>
       <button 
         onClick={() => window.location.reload()} 
         className="mt-4 bg-rose-500 hover:bg-rose-600 text-white px-10 py-4 rounded-full font-bold uppercase text-xs transition-all shadow-lg active:scale-95"
       >
-        Atualizar Ticket
+        {language === 'PT' ? 'Atualizar Ticket' : 'Refresh Ticket'}
       </button>
     </div>
   );
@@ -104,10 +109,12 @@ function TicketVisual() {
       <div className="text-center mb-10 no-print">
         <div className="inline-flex items-center gap-2 bg-emerald-50 text-emerald-600 px-5 py-2.5 rounded-full mb-6 border border-emerald-100 shadow-sm">
           <CheckCircle2 size={16} />
-          <span className="font-bold text-[10px] uppercase tracking-widest">Pagamento Verificado via Stripe</span>
+          <span className="font-bold text-[10px] uppercase tracking-widest">
+            {language === 'PT' ? 'Pagamento Verificado via Stripe & Pix' : 'Payment Verified via Stripe & Pix'}
+          </span>
         </div>
         <h1 className="text-slate-900 font-black text-3xl italic tracking-tighter uppercase leading-none">
-          Sua entrada está liberada!
+          {language === 'PT' ? 'Sua entrada está liberada!' : 'Your entry is granted!'}
         </h1>
       </div>
 
@@ -131,7 +138,7 @@ function TicketVisual() {
             </h2>
             <div className="flex items-center justify-center gap-2 text-rose-500 font-bold text-[11px] uppercase tracking-widest">
                <Verified size={14} className="fill-rose-500 text-white" /> 
-               Ingresso Autêntico
+               {language === 'PT' ? 'Ingresso Autêntico' : 'Authentic Ticket'}
             </div>
           </div>
 
@@ -141,7 +148,9 @@ function TicketVisual() {
                 <User size={22} />
               </div>
               <div className="min-w-0">
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Titular</p>
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                   {language === 'PT' ? 'Titular' : 'Holder'}
+                </p>
                 <p className="font-bold text-slate-700 text-sm uppercase truncate">
                    {compra.usuario_email || 'Usuário Linkah'}
                 </p>
@@ -153,9 +162,11 @@ function TicketVisual() {
                 <Hash size={22} />
               </div>
               <div>
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Quantidade</p>
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                   {language === 'PT' ? 'Quantidade' : 'Quantity'}
+                </p>
                 <p className="font-bold text-slate-700 text-sm uppercase">
-                  {compra.quantidade || 1} Un.
+                  {compra.quantidade || 1} {language === 'PT' ? 'Un.' : 'Qty.'}
                 </p>
               </div>
             </div>
@@ -165,9 +176,11 @@ function TicketVisual() {
                 <Calendar size={22} />
               </div>
               <div>
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Data</p>
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                   {language === 'PT' ? 'Data' : 'Date'}
+                </p>
                 <p className="font-bold text-slate-700 text-sm uppercase">
-                  {compra.data_evento_formatada || 'Ver no app'}
+                  {compra.data_evento_formatada || (language === 'PT' ? 'Ver no app' : 'See in app')}
                 </p>
               </div>
             </div>
@@ -177,7 +190,9 @@ function TicketVisual() {
                 <MapPin size={22} />
               </div>
               <div className="min-w-0">
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Local</p>
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                   {t.thLocation}
+                </p>
                 <p className="font-bold text-slate-700 text-sm uppercase truncate">
                   {compra.local_evento || 'Check-in Digital'}
                 </p>
@@ -197,7 +212,9 @@ function TicketVisual() {
                />
             </div>
             <div className="text-center space-y-2">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">Apresente no Local</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">
+                   {language === 'PT' ? 'Apresente no Local' : 'Present at Venue'}
+                </p>
                 <code className="inline-block text-[11px] bg-slate-900 px-4 py-1.5 rounded-full text-white font-mono font-bold tracking-widest">
                   {sessionId?.slice(-12).toUpperCase()}
                 </code>
@@ -211,13 +228,13 @@ function TicketVisual() {
           onClick={() => window.print()} 
           className="w-full bg-slate-900 text-white py-5 rounded-3xl font-black uppercase text-[11px] tracking-widest flex items-center justify-center gap-3 shadow-2xl hover:bg-black transition-all active:scale-95"
         >
-          <Download size={18}/> Baixar Ingresso
+          <Download size={18}/> {language === 'PT' ? 'Baixar Ingresso' : 'Download Ticket'}
         </button>
         <Link 
           href="/" 
           className="w-full bg-slate-50 text-slate-500 py-5 rounded-3xl font-black uppercase text-[11px] tracking-widest flex items-center justify-center gap-3 hover:bg-slate-100 transition-all border border-slate-100"
         >
-          Explorar mais eventos <ArrowRight size={18}/>
+          {language === 'PT' ? 'Explorar mais eventos' : 'Explore more events'} <ArrowRight size={18}/>
         </Link>
       </div>
     </main>

@@ -2,15 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import { 
-  Users, Ticket, MessageCircle, TrendingUp, 
+  Users, Ticket, MessageCircle, 
   ArrowUpRight, Clock, CheckCircle2, Loader2,
   Activity, ShieldCheck
 } from 'lucide-react';
+import { useLanguage } from '@/app/context/LanguageContext'; // Importando o hook
 
-// --- CONFIGURAÇÃO DA API REAL (ATUALIZADA) ---
 const API_URL_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
 
 export default function AdminDashboard() {
+  const { t } = useLanguage(); // Ativando as traduções
   const [stats, setStats] = useState({
     usuarios: 0,
     eventos: 0,
@@ -21,15 +22,12 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        console.log("📡 [DEBUG] Sincronizando dados com AWS Linkah...");
-        
-        // Chamada para as rotas que configuramos no server.js
         const [resUsers, resEvents] = await Promise.all([
           fetch(`${API_URL_BASE}/api/usuarios`),
           fetch(`${API_URL_BASE}/api/eventos`)
         ]);
 
-        if (!resUsers.ok || !resEvents.ok) throw new Error("Falha na resposta do servidor");
+        if (!resUsers.ok || !resEvents.ok) throw new Error("Falha na resposta");
 
         const usersData = await resUsers.json();
         const eventsData = await resEvents.json();
@@ -37,15 +35,14 @@ export default function AdminDashboard() {
         setStats({
           usuarios: Array.isArray(usersData) ? usersData.length : 0,
           eventos: Array.isArray(eventsData) ? eventsData.length : 0,
-          comunidades: 12 // Valor exemplo
+          comunidades: 12 
         });
       } catch (error) {
-        console.error("🚨 [DEBUG] Erro ao sincronizar dashboard:", error);
+        console.error("Erro ao sincronizar:", error);
       } finally {
         setLoading(false);
       }
     };
-
     fetchStats();
   }, []);
 
@@ -60,16 +57,16 @@ export default function AdminDashboard() {
             <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#C22973]">Administrator Access</span>
           </div>
           <h1 className="text-5xl font-black tracking-tighter text-slate-900 italic uppercase">
-            Console <span className="text-slate-400">Geral</span>
+            {t.consoleTitle} <span className="text-slate-400">{t.consoleGeneral}</span>
           </h1>
-          <p className="text-slate-500 font-bold text-xs uppercase tracking-widest mt-2">Métricas em tempo real da infraestrutura Linkah.</p>
+          <p className="text-slate-500 font-bold text-xs uppercase tracking-widest mt-2">{t.infraSub}</p>
         </div>
 
         <div className="flex items-center gap-4">
           <div className="bg-white px-6 py-3 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3">
             <div className={`w-2.5 h-2.5 rounded-full ${loading ? 'bg-amber-400 animate-pulse' : 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]'}`} />
             <span className="text-[11px] font-black text-slate-700 uppercase tracking-widest">
-              {loading ? 'Sincronizando...' : 'Sistema Estável'}
+              {loading ? t.syncing : t.systemStable}
             </span>
           </div>
         </div>
@@ -84,7 +81,7 @@ export default function AdminDashboard() {
           <div className="w-16 h-16 bg-pink-50 text-[#C22973] rounded-3xl flex items-center justify-center mb-8 shadow-inner">
             <Ticket size={32} />
           </div>
-          <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mb-1">Eventos Ativos</p>
+          <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mb-1">{t.activeEvents}</p>
           <div className="flex items-baseline gap-3">
             {loading ? (
               <Loader2 className="animate-spin text-slate-200" />
@@ -101,7 +98,7 @@ export default function AdminDashboard() {
           <div className="w-16 h-16 bg-blue-50 text-blue-500 rounded-3xl flex items-center justify-center mb-8 shadow-inner">
             <Users size={32} />
           </div>
-          <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mb-1">Total de Membros</p>
+          <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mb-1">{t.totalMembers}</p>
           <div className="flex items-baseline gap-3">
             {loading ? (
               <Loader2 className="animate-spin text-slate-200" />
@@ -120,7 +117,7 @@ export default function AdminDashboard() {
           <div className="w-16 h-16 bg-indigo-50 text-indigo-500 rounded-3xl flex items-center justify-center mb-8 shadow-inner">
             <MessageCircle size={32} />
           </div>
-          <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mb-1">Comunidades</p>
+          <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mb-1">{t.communities}</p>
           <div className="flex items-baseline gap-3">
             <p className="text-6xl font-black text-slate-900 tracking-tighter">{stats.comunidades}</p>
             <span className="text-slate-300 text-xs font-black uppercase tracking-widest italic">Hubs</span>
@@ -128,12 +125,11 @@ export default function AdminDashboard() {
         </div>
       </div>
       
-      {/* RESTANTE DOS LOGS E PROJEÇÃO (MANTIDOS) */}
+      {/* LOGS DE SISTEMA */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-         {/* ... (Seu código de Logs e Gráficos de Projeção aqui) ... */}
          <div className="bg-white p-10 rounded-[4rem] border border-slate-100 shadow-xl shadow-slate-200/30">
             <h3 className="text-2xl font-black text-slate-900 uppercase italic flex items-center gap-3 mb-10">
-              <Activity className="text-slate-300" size={24} /> Logs de Sistema
+              <Activity className="text-slate-300" size={24} /> {t.systemLogs}
             </h3>
             <div className="space-y-8">
                <div className="flex items-center gap-5 group">
@@ -141,7 +137,7 @@ export default function AdminDashboard() {
                     <CheckCircle2 size={20} />
                   </div>
                   <div className="flex-1 border-b border-slate-50 pb-4">
-                    <p className="text-sm font-black text-slate-800 uppercase tracking-tight">Sincronização com AWS concluída</p>
+                    <p className="text-sm font-black text-slate-800 uppercase tracking-tight">{t.syncSuccess}</p>
                     <div className="flex items-center gap-3 mt-1">
                         <span className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1"><Clock size={12}/> {new Date().toLocaleTimeString()}</span>
                         <span className="text-[10px] font-bold text-emerald-500 uppercase">Success</span>

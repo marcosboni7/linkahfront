@@ -7,11 +7,12 @@ import {
   Loader2
 } from 'lucide-react';
 import Swal from 'sweetalert2';
+import { useLanguage } from '@/app/context/LanguageContext';
 
-// --- CONFIGURAÇÃO DA API DA AWS ATUALIZADA ---
 const API_URL = 'https://zmn9xuwd4y.us-east-1.awsapprunner.com/api/usuarios';
 
 export default function AdminUsuarios() {
+  const { t } = useLanguage();
   const [usuarios, setUsuarios] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtroBusca, setFiltroBusca] = useState('');
@@ -28,7 +29,7 @@ export default function AdminUsuarios() {
       const data = await res.json();
       setUsuarios(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error("🚨 [DEBUG] Erro ao carregar membros:", err);
+      console.error("🚨 Erro ao carregar membros:", err);
     } finally {
       setLoading(false);
     }
@@ -43,13 +44,13 @@ export default function AdminUsuarios() {
     const novoStatus = isBanido ? 'Ativo' : 'Banido';
     
     const result = await Swal.fire({
-      title: isBanido ? 'Reativar Membro?' : 'Suspender Membro?',
-      text: `Deseja alterar o acesso de ${user.nome} para ${novoStatus}?`,
+      title: isBanido ? t.promptReactivateTitle : t.promptSuspendTitle,
+      text: `${user.nome} -> ${isBanido ? t.statusActive : t.statusBanned}?`,
       icon: isBanido ? 'question' : 'warning',
       showCancelButton: true,
       confirmButtonColor: isBanido ? '#10b981' : '#ef4444',
       cancelButtonColor: '#cbd5e1',
-      confirmButtonText: isBanido ? 'Sim, Reativar' : 'Sim, Suspender',
+      confirmButtonText: isBanido ? t.promptConfirmReactivate : t.promptConfirmSuspend,
       customClass: { popup: 'rounded-[2.5rem]' }
     });
 
@@ -57,7 +58,6 @@ export default function AdminUsuarios() {
 
     setIsProcessing(user.id);
     try {
-      // Atualizando status via PUT no novo servidor
       const res = await fetch(`${API_URL}/${user.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -67,7 +67,7 @@ export default function AdminUsuarios() {
       if (res.ok) {
         Swal.fire({
             icon: 'success',
-            title: `Status atualizado!`,
+            title: t.done,
             toast: true,
             position: 'top-end',
             showConfirmButton: false,
@@ -76,7 +76,7 @@ export default function AdminUsuarios() {
         carregarUsuarios();
       }
     } catch (err) {
-      Swal.fire('Erro', 'Falha ao conectar com o servidor.', 'error');
+      Swal.fire('Error', 'Server connection failed', 'error');
     } finally {
       setIsProcessing(null);
     }
@@ -85,12 +85,11 @@ export default function AdminUsuarios() {
   const handleAlterarSenha = async (e: React.FormEvent) => {
     e.preventDefault();
     if (novaSenha.length < 6) {
-        return Swal.fire('Atenção', 'A senha deve ter no mínimo 6 caracteres', 'info');
+        return Swal.fire('!', t.labelMinChars, 'info');
     }
 
     setIsProcessing('senha');
     try {
-      // Endpoint PATCH para reset de senha
       const res = await fetch(`${API_URL}/${usuarioSelecionado.id}/senha`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -99,17 +98,15 @@ export default function AdminUsuarios() {
 
       if (res.ok) {
         Swal.fire({
-            title: 'Senha Alterada!',
+            title: t.done,
             icon: 'success',
             customClass: { popup: 'rounded-[2.5rem]' }
         });
         setIsModalSenhaOpen(false);
         setNovaSenha('');
-      } else {
-        throw new Error();
       }
     } catch (err) {
-      Swal.fire('Erro', 'O servidor não processou a troca de senha.', 'error');
+      Swal.fire('Error', 'Update failed', 'error');
     } finally {
       setIsProcessing(null);
     }
@@ -118,11 +115,10 @@ export default function AdminUsuarios() {
   return (
     <div className="p-6 lg:p-12 max-w-7xl mx-auto space-y-10 animate-in fade-in duration-700">
       
-      {/* HEADER STAFF */}
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-5xl font-black tracking-tighter text-slate-900 uppercase italic">Membros</h1>
-          <p className="text-slate-400 font-bold text-xs uppercase tracking-[0.2em] mt-2">Moderação de contas da infraestrutura Linkah</p>
+          <h1 className="text-5xl font-black tracking-tighter text-slate-900 uppercase italic">{t.membersTitle}</h1>
+          <p className="text-slate-400 font-bold text-xs uppercase tracking-[0.2em] mt-2">{t.membersSub}</p>
         </div>
         
         <div className="flex items-center gap-4">
@@ -130,7 +126,7 @@ export default function AdminUsuarios() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
             <input 
               type="text" 
-              placeholder="Localizar por nome ou e-mail..." 
+              placeholder={t.searchMembersPlaceholder}
               value={filtroBusca}
               onChange={(e) => setFiltroBusca(e.target.value)}
               className="pl-12 pr-6 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:ring-4 ring-pink-50 font-bold shadow-sm w-full md:w-80 transition-all text-sm"
@@ -145,15 +141,14 @@ export default function AdminUsuarios() {
         </div>
       </header>
 
-      {/* TABELA DE USUÁRIOS */}
       <div className="bg-white rounded-[3.5rem] border border-slate-100 shadow-2xl shadow-slate-200/40 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/50 text-slate-400 text-[10px] uppercase font-black tracking-[0.2em] border-b border-slate-100">
-                <th className="px-10 py-8">Membro</th>
-                <th className="px-10 py-8 text-center">Status</th>
-                <th className="px-10 py-8 text-right">Ações</th>
+                <th className="px-10 py-8">{t.thMember}</th>
+                <th className="px-10 py-8 text-center">{t.thStatus}</th>
+                <th className="px-10 py-8 text-right">{t.thActions}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
@@ -161,7 +156,7 @@ export default function AdminUsuarios() {
                 <tr>
                   <td colSpan={3} className="px-10 py-20 text-center">
                     <Loader2 className="animate-spin mx-auto text-slate-200" size={40} />
-                    <p className="text-slate-300 font-black uppercase text-[10px] mt-4 tracking-widest">Acessando Database...</p>
+                    <p className="text-slate-300 font-black uppercase text-[10px] mt-4 tracking-widest">{t.accessingDatabase}</p>
                   </td>
                 </tr>
               ) : (
@@ -178,7 +173,7 @@ export default function AdminUsuarios() {
                             {user.nome?.charAt(0).toUpperCase()}
                           </div>
                           <div>
-                            <p className="font-black text-slate-900 uppercase italic tracking-tight">{user.nome || 'Membro'}</p>
+                            <p className="font-black text-slate-900 uppercase italic tracking-tight">{user.nome || 'Member'}</p>
                             <p className="text-[11px] text-slate-400 font-bold flex items-center gap-1 uppercase">
                                 <Mail size={10} className="text-[#C22973]" /> {user.email}
                             </p>
@@ -189,7 +184,7 @@ export default function AdminUsuarios() {
                           <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${
                               user.status === 'Banido' ? 'bg-red-50 text-red-500 border-red-100' : 'bg-emerald-50 text-emerald-500 border-emerald-100'
                           }`}>
-                              {user.status === 'Banido' ? 'Suspenso' : 'Ativo'}
+                              {user.status === 'Banido' ? t.statusBanned : t.statusActive}
                           </span>
                       </td>
                       <td className="px-10 py-6 text-right">
@@ -212,21 +207,20 @@ export default function AdminUsuarios() {
         </div>
       </div>
 
-      {/* MODAL RESET SENHA */}
       {isModalSenhaOpen && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[100] flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-md rounded-[3.5rem] p-10 shadow-2xl animate-in zoom-in-95 duration-300 relative">
             <button onClick={() => setIsModalSenhaOpen(false)} className="absolute top-8 right-8 text-slate-300 hover:text-slate-900"><X size={24} /></button>
             <div className="text-center mb-10">
               <div className="w-16 h-16 bg-pink-50 text-[#C22973] rounded-3xl flex items-center justify-center mx-auto mb-4"><Lock size={28} /></div>
-              <h2 className="text-2xl font-black text-slate-900 uppercase italic">Nova Senha</h2>
-              <p className="text-slate-400 text-[10px] font-bold uppercase mt-2">Membro: {usuarioSelecionado?.nome}</p>
+              <h2 className="text-2xl font-black text-slate-900 uppercase italic">{t.newPasswordTitle}</h2>
+              <p className="text-slate-400 text-[10px] font-bold uppercase mt-2">Member: {usuarioSelecionado?.nome}</p>
             </div>
             <form onSubmit={handleAlterarSenha} className="space-y-6">
-              <input type="password" required placeholder="Mínimo 6 caracteres" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:bg-white font-black italic text-slate-900 text-lg" value={novaSenha} onChange={(e) => setNovaSenha(e.target.value)} />
+              <input type="password" required placeholder={t.labelMinChars} className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:bg-white font-black italic text-slate-900 text-lg" value={novaSenha} onChange={(e) => setNovaSenha(e.target.value)} />
               <button type="submit" disabled={isProcessing === 'senha'} className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black uppercase tracking-[0.2em] hover:bg-[#C22973] transition-all flex items-center justify-center gap-2">
                 {isProcessing === 'senha' ? <Loader2 className="animate-spin" /> : <Save size={18} />}
-                Salvar Nova Senha
+                {t.btnSavePassword}
               </button>
             </form>
           </div>
