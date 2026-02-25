@@ -3,9 +3,10 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { 
   Search, Paperclip, Send, Video, Phone, 
-  MoreVertical, Smile, X, Loader2 
+  MoreVertical, Smile, X, Loader2, Users, Sparkles, ChevronLeft
 } from 'lucide-react';
 import { useLanguage } from '@/app/context/LanguageContext';
+import Link from 'next/link';
 
 const API_URL = 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
 
@@ -30,17 +31,17 @@ export default function SalaLinkahSkype() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // 1. Autenticação
+  // 1. Autenticação (Mantida lógica original)
   useEffect(() => {
     const savedUser = localStorage.getItem('@Linkah:User');
     if (savedUser) {
       setDadosUsuario(JSON.parse(savedUser));
     } else {
-      router.push('/auth/login');
+      router.push('/site/login');
     }
   }, [router]);
 
-  // 2. Sync Loop
+  // 2. Sync Loop (Mantida lógica original)
   useEffect(() => {
     if (!id || !dadosUsuario?.nome) return;
 
@@ -145,149 +146,195 @@ export default function SalaLinkahSkype() {
   };
 
   if (carregando) return (
-    <div className="h-screen flex flex-col items-center justify-center bg-white">
-      <Loader2 className="animate-spin text-[#C22973] mb-4" size={40} />
-      <p className="font-black italic text-slate-900 uppercase tracking-widest text-xs">{t.sync || "Conectando..."}</p>
+    <div className="h-screen flex flex-col items-center justify-center bg-[#FCFBFA]">
+      <div className="relative">
+        <Loader2 className="animate-spin text-[#ff4d4d]" size={48} />
+        <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-2 h-2 bg-[#ff4d4d] rounded-full"></div>
+        </div>
+      </div>
+      <p className="mt-6 font-bold text-slate-400 text-xs uppercase tracking-[0.3em]">{t.sync || "Sincronizando Linkah..."}</p>
     </div>
   );
 
   return (
-    <div className="flex h-screen bg-white overflow-hidden text-slate-700 font-sans">
+    <div className="flex h-screen bg-[#FCFBFA] overflow-hidden text-slate-900 font-sans">
       
-      {/* MODAL CONVITE RECEBIDO */}
+      {/* MODAL CONVITE RECEBIDO (UI REFORMULADA) */}
       {conviteRecebido && (
-        <div className="fixed inset-0 z-[999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white p-8 rounded-[2rem] text-center max-w-xs w-full shadow-2xl">
-            <div className="w-20 h-20 bg-pink-50 rounded-full flex items-center justify-center mx-auto mb-4 text-[#C22973]">
-              <Phone size={40} className="animate-bounce" />
+        <div className="fixed inset-0 z-[999] bg-slate-950/40 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-white p-8 rounded-[2.5rem] text-center max-w-sm w-full shadow-2xl border border-slate-100 animate-in zoom-in-95">
+            <div className="w-24 h-24 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-6 text-[#ff4d4d] relative">
+              <Phone size={40} className="animate-pulse" />
+              <div className="absolute inset-0 border-4 border-[#ff4d4d]/10 rounded-full animate-ping"></div>
             </div>
-            <p className="font-black uppercase text-[10px] mb-6 text-slate-400 tracking-widest">
-              {conviteRecebido.de} {t.chatIsCalling || "está chamando..."}
+            <h3 className="font-bold text-xl text-slate-900 mb-2">{conviteRecebido.de}</h3>
+            <p className="font-medium text-slate-400 text-sm mb-8">
+              {t.chatIsCalling || "está te convidando para uma conversa por vídeo."}
             </p>
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-3">
               <button 
                 onClick={() => { setNomeSalaCall(conviteRecebido.sala); setChamadaAtiva(true); setConviteRecebido(null); }} 
-                className="w-full bg-emerald-500 text-white py-4 rounded-2xl font-black text-[10px] tracking-widest shadow-lg"
+                className="w-full bg-slate-950 text-white py-4 rounded-2xl font-bold text-sm tracking-tight shadow-xl hover:bg-black transition-all"
               >
-                {t.btnAccept || "ACEITAR"}
+                Atender Chamada
               </button>
               <button 
                 onClick={() => setConviteRecebido(null)} 
-                className="w-full bg-slate-100 text-slate-400 py-4 rounded-2xl font-black text-[10px] tracking-widest"
+                className="w-full bg-white text-slate-400 py-4 rounded-2xl font-bold text-sm hover:text-rose-500 transition-colors"
               >
-                {t.btnDecline || "RECUSAR"}
+                Agora não
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* SIDEBAR ONLINE */}
-      <aside className="w-80 border-r hidden lg:flex flex-col bg-[#fbfbfc]">
-        <div className="p-6 border-b bg-white">
-          <h2 className="font-black italic text-[#C22973] uppercase tracking-tighter text-2xl mb-6">Linkah</h2>
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
-            <input type="text" placeholder={t.searchMembersPlaceholder || "Buscar..."} className="w-full bg-slate-50 border-none rounded-xl py-3 pl-12 pr-4 text-xs font-bold outline-none" />
+      {/* SIDEBAR ONLINE (MODERNA) */}
+      <aside className="w-80 border-r border-slate-100 hidden lg:flex flex-col bg-white">
+        <div className="p-6">
+          <Link href="/" className="inline-flex items-center gap-2 text-slate-400 hover:text-slate-950 mb-8 transition-colors">
+             <ChevronLeft size={18} />
+             <span className="font-bold text-xs tracking-tight">Voltar ao início</span>
+          </Link>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="font-bold text-2xl tracking-tight text-slate-950">Membros</h2>
+            <div className="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest">
+                {usuariosOnline.length} Online
+            </div>
+          </div>
+          <div className="relative group">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#ff4d4d] transition-colors" size={16} />
+            <input type="text" placeholder="Filtrar membros..." className="w-full bg-slate-50 border border-slate-100 rounded-xl py-3 pl-11 pr-4 text-xs font-medium outline-none focus:bg-white focus:border-[#ff4d4d] transition-all" />
           </div>
         </div>
         
-        <div className="flex-1 overflow-y-auto p-4 space-y-2">
-          <p className="text-[10px] font-black text-slate-300 uppercase p-2 tracking-[0.2em]">{t.membersOnline || "Membros Online"}</p>
+        <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-1">
           {usuariosOnline.length === 0 ? (
-            <p className="text-center text-[10px] font-bold text-slate-300 uppercase py-10">{t.noOneOnline || "Ninguém online agora"}</p>
+            <div className="text-center py-20 px-6">
+                <Users className="mx-auto text-slate-100 mb-4" size={40} />
+                <p className="text-xs font-bold text-slate-300 uppercase tracking-[0.2em]">{t.noOneOnline || "Ninguém online"}</p>
+            </div>
           ) : usuariosOnline.map((u, i) => (
             <div 
               key={i} 
               onClick={() => iniciarCall(u.usuario_nome)} 
-              className="flex items-center gap-3 p-3 hover:bg-white rounded-2xl cursor-pointer transition-all border border-transparent hover:border-slate-100 group shadow-sm hover:shadow-md"
+              className="flex items-center gap-3 p-3 hover:bg-[#FCFBFA] rounded-2xl cursor-pointer transition-all border border-transparent hover:border-slate-100 group"
             >
               <div className="relative">
-                <div className="w-10 h-10 rounded-xl bg-pink-50 text-[#C22973] flex items-center justify-center font-black uppercase tracking-tighter">
+                <div className="w-10 h-10 rounded-xl bg-slate-950 text-white flex items-center justify-center font-bold text-sm">
                   {u.usuario_nome.charAt(0)}
                 </div>
-                <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></div>
+                <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-[3px] border-white rounded-full"></div>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-black truncate uppercase italic tracking-tighter">{u.usuario_nome}</p>
-                <p className="text-[9px] font-bold text-emerald-500 uppercase">{t.statusAvailable || "Disponível"}</p>
+                <p className="text-sm font-bold text-slate-900 truncate tracking-tight">{u.usuario_nome}</p>
+                <p className="text-[10px] font-medium text-emerald-500 uppercase tracking-widest">Disponível</p>
               </div>
-              <Video size={18} className="text-slate-200 group-hover:text-[#C22973]" />
+              <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white p-2 rounded-lg shadow-sm">
+                <Video size={16} className="text-[#ff4d4d]" />
+              </div>
             </div>
           ))}
         </div>
       </aside>
 
       {/* CHAT PRINCIPAL */}
-      <main className="flex-1 flex flex-col relative bg-white">
+      <main className="flex-1 flex flex-col relative bg-white lg:rounded-l-[3rem] shadow-2xl border-l border-slate-100">
         
-        {/* TELA DE CHAMADA (JITSI) */}
+        {/* TELA DE CHAMADA JITSI (REFRESH) */}
         {chamadaAtiva && (
-          <div className="absolute inset-0 z-50 bg-slate-900 flex flex-col">
-            <div className="p-4 flex justify-between items-center bg-slate-900 border-b border-white/10">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                <span className="text-white text-[10px] font-black tracking-[0.3em] uppercase">Linkah Live Secured</span>
+          <div className="absolute inset-0 z-50 bg-slate-950 flex flex-col lg:rounded-l-[3rem] overflow-hidden">
+            <div className="p-4 flex justify-between items-center bg-slate-950/80 backdrop-blur-md border-b border-white/5">
+              <div className="flex items-center gap-3 px-4">
+                <div className="w-2 h-2 bg-[#ff4d4d] rounded-full animate-pulse shadow-[0_0_10px_#ff4d4d]"></div>
+                <span className="text-white text-[10px] font-bold tracking-[0.3em] uppercase opacity-70">Linkah Live Secured</span>
               </div>
               <button 
                 onClick={() => setChamadaAtiva(false)} 
-                className="bg-red-500 text-white px-8 py-2 rounded-xl text-[10px] font-black tracking-widest hover:bg-red-600 transition-colors"
+                className="bg-[#ff4d4d] text-white px-8 py-2.5 rounded-full text-[10px] font-black tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-rose-500/20"
               >
-                {t.btnEndCall || "ENCERRAR"}
+                DESCONECTAR
               </button>
             </div>
             <iframe 
               src={`https://meet.jit.si/${nomeSalaCall}#userInfo.displayName="${dadosUsuario?.nome}"&config.prejoinPageEnabled=false`} 
-              className="flex-1 border-none" 
+              className="flex-1 border-none bg-black" 
               allow="camera; microphone; display-capture; autoplay; clipboard-write" 
             />
           </div>
         )}
 
         {/* HEADER DO CHAT */}
-        <header className="p-6 border-b flex justify-between items-center bg-white/80 backdrop-blur-md z-10">
+        <header className="p-6 border-b border-slate-50 flex justify-between items-center bg-white/80 backdrop-blur-xl z-10 sticky top-0">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center font-black text-xl italic border-4 border-slate-100 shadow-lg">
-              {dadosEvento?.nome?.charAt(0)}
+            <div className="w-14 h-14 rounded-2xl bg-slate-50 border border-slate-100 text-slate-950 flex items-center justify-center font-black text-2xl shadow-sm overflow-hidden">
+               {dadosEvento?.capa ? (
+                   <img src={dadosEvento.capa} className="w-full h-full object-cover" />
+               ) : dadosEvento?.nome?.charAt(0)}
             </div>
             <div>
-              <h1 className="font-black uppercase italic text-base tracking-tighter text-slate-900">{dadosEvento?.nome}</h1>
-              <p className="text-[10px] text-emerald-500 font-black uppercase tracking-widest flex items-center gap-1">
-                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span> {t.activeChat || "Comunidade Ativa"}
-              </p>
+              <div className="flex items-center gap-2">
+                <h1 className="font-bold text-lg tracking-tight text-slate-950">{dadosEvento?.nome}</h1>
+                <Sparkles size={14} className="text-[#ff4d4d]" />
+              </div>
+              <div className="flex items-center gap-2">
+                 <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
+                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                    Canal Geral • 24h ativo
+                 </p>
+              </div>
             </div>
           </div>
-          <div className="flex items-center gap-4 lg:gap-6">
-            <Video size={22} className="text-slate-300 hover:text-[#C22973] cursor-pointer" onClick={() => iniciarCall('Todos')} />
-            <Phone size={20} className="text-slate-300 hover:text-[#C22973] cursor-pointer" onClick={() => iniciarCall('Todos')} />
-            <MoreVertical size={22} className="text-slate-200" />
+          <div className="flex items-center gap-3 lg:gap-4">
+            <button onClick={() => iniciarCall('Todos')} className="p-3 rounded-2xl bg-slate-50 text-slate-400 hover:bg-[#ff4d4d]/5 hover:text-[#ff4d4d] transition-all group">
+                <Video size={20} />
+            </button>
+            <button onClick={() => iniciarCall('Todos')} className="p-3 rounded-2xl bg-slate-50 text-slate-400 hover:bg-emerald-50 hover:text-emerald-500 transition-all">
+                <Phone size={18} />
+            </button>
+            <button className="p-3 text-slate-200">
+                <MoreVertical size={22} />
+            </button>
           </div>
         </header>
 
-        {/* MENSAGENS */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/30">
+        {/* MENSAGENS (ESTILO SLACK PREMIUM) */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-8 bg-[#FCFBFA]/50">
           {mensagens.map((m, i) => {
             if(m.tipo === 'status' || m.texto?.includes("CALL_INVITE|")) return null;
             const souEu = m.usuario_nome === dadosUsuario.nome;
+            
             return (
-              <div key={i} className={`flex ${souEu ? 'justify-end' : 'justify-start'} items-end gap-2`}>
-                {!souEu && (
-                  <div className="w-8 h-8 rounded-lg bg-slate-200 flex items-center justify-center text-[10px] font-black text-slate-400 uppercase mb-1">
-                    {m.usuario_nome.charAt(0)}
-                  </div>
-                )}
-                <div className={`max-w-[75%] p-4 rounded-[2rem] shadow-sm ${
-                  souEu 
-                  ? 'bg-[#C22973] text-white rounded-br-none shadow-pink-100' 
-                  : 'bg-white border border-slate-100 text-slate-700 rounded-bl-none'
-                }`}>
+              <div key={i} className={`flex ${souEu ? 'justify-end' : 'justify-start'} group animate-in slide-in-from-bottom-2 duration-300`}>
+                <div className={`flex gap-3 max-w-[80%] ${souEu ? 'flex-row-reverse' : 'flex-row'}`}>
                   {!souEu && (
-                    <p className="text-[9px] font-black uppercase mb-1 opacity-50 tracking-widest">{m.usuario_nome}</p>
+                    <div className="w-10 h-10 rounded-xl bg-white border border-slate-100 flex-shrink-0 flex items-center justify-center text-xs font-bold text-slate-400 shadow-sm">
+                      {m.usuario_nome.charAt(0)}
+                    </div>
                   )}
-                  {m.imagem && (
-                    <img src={m.imagem} className="rounded-2xl mb-2 max-h-80 w-full object-cover border border-black/5" alt="Anexo" />
-                  )}
-                  {m.texto && <p className="text-[15px] font-medium leading-relaxed">{m.texto}</p>}
+                  
+                  <div className={`space-y-1 ${souEu ? 'items-end' : 'items-start'}`}>
+                    <div className={`flex items-center gap-2 mb-1 px-1 ${souEu ? 'flex-row-reverse' : 'flex-row'}`}>
+                        <span className="text-[11px] font-bold text-slate-900">{souEu ? 'Você' : m.usuario_nome}</span>
+                        <span className="text-[9px] font-medium text-slate-300 uppercase tracking-tighter">
+                            {new Date(m.criado_em).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        </span>
+                    </div>
+                    
+                    <div className={`p-4 rounded-[1.5rem] shadow-sm relative ${
+                      souEu 
+                      ? 'bg-slate-950 text-white rounded-tr-none' 
+                      : 'bg-white border border-slate-100 text-slate-700 rounded-tl-none'
+                    }`}>
+                      {m.imagem && (
+                        <div className="mb-3 rounded-xl overflow-hidden border border-black/5">
+                           <img src={m.imagem} className="max-h-80 w-full object-cover hover:scale-105 transition-transform duration-500 cursor-zoom-in" alt="Anexo" />
+                        </div>
+                      )}
+                      {m.texto && <p className="text-sm font-medium leading-relaxed leading-snug tracking-tight">{m.texto}</p>}
+                    </div>
+                  </div>
                 </div>
               </div>
             )
@@ -295,25 +342,29 @@ export default function SalaLinkahSkype() {
           <div ref={scrollRef} />
         </div>
 
-        {/* INPUT */}
-        <footer className="p-6 border-t bg-white">
-          <form onSubmit={enviarMensagem} className="max-w-5xl mx-auto flex gap-4 items-end">
-            <div className="flex-1 bg-slate-50 rounded-[2rem] p-2 flex flex-col focus-within:bg-white border-2 border-transparent focus-within:border-pink-50 transition-all">
+        {/* INPUT (UI REDONDA & CLEAN) */}
+        <footer className="p-6 bg-white border-t border-slate-50">
+          <form onSubmit={enviarMensagem} className="max-w-4xl mx-auto">
+            <div className="bg-slate-50 rounded-[1.5rem] p-2 flex flex-col focus-within:bg-white border border-transparent focus-within:border-slate-100 focus-within:ring-4 focus-within:ring-[#ff4d4d]/5 transition-all">
+              
               {imagemAnexada && (
                 <div className="p-3 relative inline-block">
-                  <img src={imagemAnexada} className="h-24 w-24 object-cover rounded-2xl border-2 border-white shadow-md" alt="Preview" />
-                  <button 
-                    type="button" 
-                    onClick={() => setImagemAnexada(null)} 
-                    className="absolute top-1 right-1 bg-slate-900 text-white rounded-full p-1 shadow-lg hover:scale-110 transition-transform"
-                  >
-                    <X size={12} />
-                  </button>
+                  <div className="relative h-24 w-24">
+                    <img src={imagemAnexada} className="h-full w-full object-cover rounded-xl border border-slate-100 shadow-xl" alt="Preview" />
+                    <button 
+                        type="button" 
+                        onClick={() => setImagemAnexada(null)} 
+                        className="absolute -top-2 -right-2 bg-slate-950 text-white rounded-full p-1.5 shadow-lg hover:scale-110 transition-transform"
+                    >
+                        <X size={12} />
+                    </button>
+                  </div>
                 </div>
               )}
-              <div className="flex items-center gap-2">
-                <button type="button" onClick={() => fileInputRef.current?.click()} className="p-3 text-slate-400 hover:text-[#C22973] transition-colors">
-                  <Paperclip size={22} />
+
+              <div className="flex items-center gap-1">
+                <button type="button" onClick={() => fileInputRef.current?.click()} className="p-3 text-slate-400 hover:text-[#ff4d4d] transition-colors rounded-xl">
+                  <Paperclip size={20} />
                 </button>
                 <input type="file" ref={fileInputRef} hidden accept="image/*"
                   onChange={(e) => {
@@ -328,17 +379,19 @@ export default function SalaLinkahSkype() {
                 <input 
                   value={novoTexto} 
                   onChange={e => setNovoTexto(e.target.value)} 
-                  className="flex-1 bg-transparent py-4 text-sm font-bold outline-none text-slate-800" 
-                  placeholder={t.chatPlaceholder?.replace('{name}', '') || "Escreva sua mensagem..."} 
+                  className="flex-1 bg-transparent py-4 px-2 text-sm font-medium outline-none text-slate-900 placeholder:text-slate-300" 
+                  placeholder={`Enviar mensagem para ${dadosEvento?.nome || 'comunidade'}...`} 
                 />
-                <button type="button" className="p-3 text-slate-300">
-                  <Smile size={22} />
-                </button>
+                <div className="flex items-center gap-1 px-2">
+                    <button type="button" className="p-3 text-slate-300 hover:text-slate-900 transition-colors">
+                        <Smile size={20} />
+                    </button>
+                    <button type="submit" className="bg-slate-950 text-white p-3.5 rounded-xl shadow-lg hover:bg-black hover:scale-105 active:scale-95 transition-all">
+                        <Send size={18} className="text-[#ff4d4d]" />
+                    </button>
+                </div>
               </div>
             </div>
-            <button type="submit" className="bg-[#C22973] text-white p-5 rounded-[1.5rem] shadow-xl shadow-pink-100 hover:scale-105 active:scale-95 transition-all">
-              <Send size={24} />
-            </button>
           </form>
         </footer>
       </main>
