@@ -1,206 +1,212 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { ChevronLeft, Send, Loader2, ShieldCheck, Clock } from 'lucide-react';
+import { useState } from 'react';
+import { ChevronLeft, ImageIcon, Calendar, Globe, X, Loader2, Users, Info, Ticket, Link as LinkIcon } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/app/context/LanguageContext';
 
 const API_URL = 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
 
-const gerarCorTag = (nome: string) => {
-  const cores = ['bg-pink-500', 'bg-indigo-500', 'bg-violet-600', 'bg-fuchsia-500', 'bg-blue-500'];
-  let hash = 0;
-  const n = nome || "Visitante";
-  for (let i = 0; i < n.length; i++) hash = n.charCodeAt(i) + ((hash << 5) - hash);
-  return cores[Math.abs(hash) % cores.length];
-};
-
-export default function SalaComunidade() {
-  const { t } = useLanguage();
-  const { id } = useParams();
+export default function NovoEventoOnline() {
+  const { t }: any = useLanguage();
   const router = useRouter();
-  const [mensagens, setMensagens] = useState<any[]>([]);
-  const [novoTexto, setNovoTexto] = useState('');
-  const [dadosUsuario, setDadosUsuario] = useState<any>(null);
-  const [carregando, setCarregando] = useState(true);
-  const [naoAutorizado, setNaoAutorizado] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    const token = localStorage.getItem('@Linkah:Token');
-    const nomeSalvo = localStorage.getItem('userName');
-    const emailSalvo = localStorage.getItem('userEmail');
-    
-    if (token && emailSalvo) {
-      setDadosUsuario({
-        nome: nomeSalvo || "Membro",
-        email: emailSalvo
-      });
-      setCarregando(false);
-    } else {
-      setNaoAutorizado(true);
-      setTimeout(() => {
-        router.push('/auth/login');
-      }, 2500);
-    }
-  }, [router]);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [formData, setFormData] = useState({
+    nome: '', 
+    categoria: '', 
+    status: 'Ativo', 
+    descricao: '',
+    data_inicio: '', 
+    hora_inicio: '', 
+    data_termino: '', 
+    hora_termino: '',
+    local_nome: 'Plataforma Online', // Nome genérico para o banco
+    url_transmissao: '', // Campo específico para Online
+    capacidade: '',
+    tipo: 'Online',
+    regras: '',
+    visibilidade: 'Publico'
+  });
 
-  const carregarMensagens = async () => {
-    if (!id || naoAutorizado) return;
-    try {
-      const res = await fetch(`${API_URL}/api/comunidade/${id}?t=${Date.now()}`, { 
-        cache: 'no-store',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('@Linkah:Token')}`
-        }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setMensagens(data);
-      }
-    } catch (err) { 
-        console.error("AWS Error:", err); 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => setPreviewImage(reader.result as string);
+      reader.readAsDataURL(file);
     }
   };
 
-  useEffect(() => {
-    carregarMensagens();
-    const interval = setInterval(carregarMensagens, 3000);
-    return () => clearInterval(interval);
-  }, [id, naoAutorizado]);
-
-  useEffect(() => {
-    scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [mensagens]);
-
-  const enviarMensagem = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!novoTexto.trim() || !dadosUsuario) return;
+  const handleSalvar = async () => {
+    const token = localStorage.getItem('@Linkah:Token') || localStorage.getItem('token');
+    const userStorage = localStorage.getItem('@Linkah:User') || localStorage.getItem('user');
     
-    const textoParaEnviar = novoTexto; 
-    setNovoTexto('');
+    if (!token || !userStorage) {
+      alert("Sessão expirada. Faça login novamente.");
+      router.push('/auth/login');
+      return;
+    }
+
+    const user = JSON.parse(userStorage);
+    const emailProdutor = user.email;
+
+    if (!formData.nome || !formData.data_inicio || !formData.categoria) {
+      alert("Por favor, preencha Nome, Categoria e Data de Início.");
+      return;
+    }
+
+    setIsLoading(true);
+
+    const payload = { 
+      ...formData, 
+      produtor_email: emailProdutor,
+      imagem_capa: previewImage,
+      capacidade: Number(formData.capacidade) || 0,
+      // Para o back-end não quebrar se esperar campos de endereço:
+      cidade: 'Online',
+      estado: 'ON'
+    };
 
     try {
-      await fetch(`${API_URL}/api/comunidade/enviar`, {
+      const response = await fetch(`${API_URL}/api/eventos/novo-online`, {
         method: 'POST',
         headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('@Linkah:Token')}`
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ 
-            evento_id: Number(id), 
-            usuario_nome: dadosUsuario.nome, 
-            texto: textoParaEnviar 
-        })
+        body: JSON.stringify(payload),
       });
-      carregarMensagens();
-    } catch (err) { 
-        setNovoTexto(textoParaEnviar);
+
+      const data = await response.json();
+
+      if (response.ok) {
+        router.push(`/dashboard/eventos/novo/ingressos/${data.id}`);
+      } else {
+        alert(`Erro: ${data.message || "Erro ao salvar"}`);
+      }
+    } catch (error) {
+      alert("Falha de conexão com o servidor.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  if (naoAutorizado) return (
-    <div className="h-screen bg-white flex flex-col items-center justify-center p-6 text-center">
-      <div className="w-20 h-20 bg-pink-50 rounded-full flex items-center justify-center mb-6 animate-bounce">
-        <ShieldCheck className="text-[#C22973]" size={40} />
-      </div>
-      <h2 className="text-2xl font-black text-slate-800 uppercase italic">{t.chatRestrictedTitle}</h2>
-      <p className="text-slate-400 mt-2 font-medium">{t.chatRestrictedSub}</p>
-      <div className="mt-6 flex items-center gap-2 text-[#C22973] font-bold text-xs uppercase tracking-[0.2em]">
-        <Loader2 className="animate-spin" size={16} /> {t.chatRedirecting}
-      </div>
-    </div>
-  );
-
-  if (carregando) return (
-    <div className="h-screen bg-white flex flex-col items-center justify-center">
-      <Loader2 className="animate-spin text-[#C22973] mb-4" size={32} />
-      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t.chatEncrypting}</span>
-    </div>
-  );
-
   return (
-    <div className="flex flex-col h-screen bg-[#F8FAFC] text-slate-900 font-sans overflow-hidden">
+    <div className="min-h-screen bg-[#FAFBFF] font-sans antialiased pb-20">
       
-      <header className="p-4 flex items-center justify-between border-b border-slate-100 bg-white shadow-sm z-10 shrink-0">
-        <button onClick={() => router.back()} className="p-2 hover:bg-slate-50 rounded-xl text-slate-400 transition-all active:scale-90">
-          <ChevronLeft size={24} strokeWidth={3} />
-        </button>
-        
-        <div className="text-center">
-          <h1 className="text-[11px] font-black uppercase tracking-[0.25em] text-[#C22973] italic">Linkah Community</h1>
-          <div className="flex items-center gap-1.5 justify-center">
-             <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
-             <span className="text-[9px] text-slate-400 font-black uppercase tracking-widest">{t.chatCloudActive}</span>
+      {/* HEADER */}
+      <header className="border-b border-slate-100 px-6 md:px-10 py-5 flex justify-between items-center bg-white/90 backdrop-blur-md sticky top-0 z-50">
+        <div className="flex items-center gap-6">
+          <button onClick={() => router.back()} className="p-2 hover:bg-pink-50 rounded-full transition-all text-slate-400">
+            <ChevronLeft size={22} />
+          </button>
+          <div>
+            <h1 className="text-slate-800 font-black text-lg tracking-tight uppercase italic flex items-center gap-2">
+              <Globe className="text-[#C22973]" size={20} /> Criar Evento Online
+            </h1>
+            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em]">Live, Webinar ou Workshop Digital</p>
           </div>
         </div>
-
-        <div className="w-10 h-10 rounded-2xl bg-[#C22973] flex items-center justify-center text-[12px] font-black text-white shadow-lg shadow-pink-100">
-          {dadosUsuario?.nome?.substring(0,2).toUpperCase()}
-        </div>
+        <button 
+          onClick={handleSalvar} 
+          disabled={isLoading}
+          className="bg-[#C22973] text-white px-10 py-3 rounded-2xl font-black uppercase text-[11px] tracking-widest hover:bg-[#a62262] transition-all shadow-xl shadow-pink-100 disabled:opacity-50 flex items-center gap-2"
+        >
+          {isLoading ? <Loader2 className="animate-spin" size={16} /> : "Próximo Passo"}
+        </button>
       </header>
 
-      <main className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
-        {mensagens.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center opacity-30 grayscale">
-            <Clock size={40} className="mb-4" />
-            <p className="text-[10px] font-black uppercase tracking-widest text-center">{t.chatNoMessages}<br/>{t.chatFirstSpeak}</p>
-          </div>
-        ) : (
-          mensagens.map((msg, idx) => {
-            const meuNome = (dadosUsuario?.nome || "").trim().toLowerCase();
-            const nomeDestaMsg = (msg.usuario_nome || "").trim().toLowerCase();
-            const souEu = meuNome === nomeDestaMsg && meuNome !== "";
-
-            return (
-              <div key={idx} className={`flex flex-col ${souEu ? 'items-end' : 'items-start'} animate-in fade-in slide-in-from-bottom-2`}>
-                <div className={`px-2 py-0.5 rounded-md text-[9px] font-black text-white mb-1 shadow-sm ${
-                  souEu ? 'bg-[#C22973]' : `${gerarCorTag(msg.usuario_nome)}`
-                }`}>
-                  {msg.usuario_nome}
+      <main className="max-w-[1100px] mx-auto p-6 md:p-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+          
+          <div className="lg:col-span-8 space-y-8">
+            {/* SEÇÃO 1: DETALHES */}
+            <section className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-sm border border-slate-50">
+              <h3 className="text-[#C22973] text-[10px] font-black uppercase tracking-[0.3em] mb-8 flex items-center gap-2"><Info size={14}/> Informações Gerais</h3>
+              <div className="space-y-6">
+                <input name="nome" value={formData.nome} onChange={handleChange} placeholder="Título da sua Live ou Evento" className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none font-bold text-slate-700 focus:border-[#C22973]" />
+                
+                <div className="grid grid-cols-2 gap-6">
+                   <select name="categoria" value={formData.categoria} onChange={handleChange} className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none font-bold text-slate-600 focus:border-[#C22973]">
+                      <option value="">Categoria</option>
+                      <option value="Educação">Cursos & Educação</option>
+                      <option value="Webinar">Webinar & Palestras</option>
+                      <option value="Entretenimento">Show Online / Live</option>
+                      <option value="Gamer">Games & E-sports</option>
+                   </select>
+                   <div className="relative">
+                      <Users size={16} className="absolute left-4 top-4 text-slate-400" />
+                      <input name="capacidade" value={formData.capacidade} onChange={handleChange} type="number" placeholder="Limite de Acessos" className="w-full bg-slate-50 border border-slate-100 p-4 pl-12 rounded-2xl outline-none font-bold text-slate-700" />
+                   </div>
                 </div>
 
-                <div className={`px-4 py-3 rounded-2xl max-w-[85%] shadow-sm border ${
-                  souEu 
-                    ? 'bg-[#C22973] border-pink-400 text-white rounded-tr-none' 
-                    : 'bg-white border-slate-200 text-slate-700 rounded-tl-none'
-                }`}>
-                  <p className="text-[14px] leading-relaxed font-bold">{msg.texto}</p>
-                  <div className={`text-[8px] mt-1.5 font-black uppercase ${souEu ? 'text-pink-200 text-right' : 'text-slate-300 text-left'}`}>
-                    {msg.criado_em ? new Date(msg.criado_em).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : t.chatTimeNow}
-                  </div>
-                </div>
+                <textarea name="descricao" value={formData.descricao} onChange={handleChange} rows={4} placeholder="O que os participantes vão aprender ou ver?" className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none focus:border-[#C22973] resize-none font-medium text-slate-600" />
               </div>
-            );
-          })
-        )}
-        <div ref={scrollRef} className="h-4" />
+            </section>
+
+            {/* SEÇÃO 2: TRANSMISSÃO */}
+            <section className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-sm border border-slate-50">
+              <h3 className="text-[#C22973] text-[10px] font-black uppercase tracking-[0.3em] mb-8 flex items-center gap-2"><LinkIcon size={14}/> Acesso ao Evento</h3>
+              <div className="space-y-4">
+                <div className="p-4 bg-pink-50 rounded-2xl border border-pink-100 mb-4">
+                  <p className="text-[10px] font-bold text-[#C22973] uppercase tracking-wider">Dica Linkah</p>
+                  <p className="text-xs text-slate-500 mt-1">Este link será enviado automaticamente para os compradores após a aprovação do Pix ou Stripe.</p>
+                </div>
+                <input name="url_transmissao" value={formData.url_transmissao} onChange={handleChange} placeholder="Link da Transmissão (YouTube, Zoom, Google Meet...)" className="w-full bg-slate-50 border border-slate-100 p-4 rounded-xl outline-none font-bold text-slate-700 focus:border-[#C22973]" />
+                <textarea name="regras" value={formData.regras} onChange={handleChange} rows={2} placeholder="Instruções de acesso (Ex: O link será liberado 15 min antes)" className="w-full bg-slate-50 border border-slate-100 p-4 rounded-xl outline-none focus:border-[#C22973] resize-none text-sm" />
+              </div>
+            </section>
+
+            {/* SEÇÃO 3: QUANDO? */}
+            <section className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-sm border border-slate-50">
+              <h3 className="text-[#C22973] text-[10px] font-black uppercase tracking-[0.3em] mb-8 flex items-center gap-2"><Calendar size={14}/> Data e Hora</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <input name="data_inicio" value={formData.data_inicio} onChange={handleChange} type="date" className="bg-slate-50 border border-slate-100 p-4 rounded-xl text-xs font-bold outline-none text-slate-600" />
+                <input name="hora_inicio" value={formData.hora_inicio} onChange={handleChange} type="time" className="bg-slate-50 border border-slate-100 p-4 rounded-xl text-xs font-bold outline-none text-slate-600" />
+                <input name="data_termino" value={formData.data_termino} onChange={handleChange} type="date" className="bg-slate-50 border border-slate-100 p-4 rounded-xl text-xs font-bold outline-none text-slate-600" />
+                <input name="hora_termino" value={formData.hora_termino} onChange={handleChange} type="time" className="bg-slate-50 border border-slate-100 p-4 rounded-xl text-xs font-bold outline-none text-slate-600" />
+              </div>
+            </section>
+          </div>
+
+          {/* COLUNA DIREITA */}
+          <div className="lg:col-span-4 space-y-8">
+            <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-50 text-center">
+              <label className="text-[10px] text-slate-400 font-black uppercase mb-4 block tracking-widest italic">Capa Digital</label>
+              <div className="relative">
+                {previewImage ? (
+                  <div className="relative w-full h-64 rounded-[2.5rem] overflow-hidden group shadow-lg">
+                    <img src={previewImage} alt="Preview" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                    <button onClick={() => setPreviewImage(null)} className="absolute top-4 right-4 bg-white p-2 rounded-full text-[#C22973] shadow-lg"><X size={18} /></button>
+                  </div>
+                ) : (
+                  <label className="border-2 border-dashed border-slate-100 rounded-[2.5rem] p-12 bg-slate-50/50 cursor-pointer flex flex-col items-center hover:bg-pink-50/50 transition-all group">
+                    <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+                    <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mb-4 shadow-sm group-hover:scale-110 transition-transform">
+                        <ImageIcon size={28} className="text-[#C22973]" />
+                    </div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Tamanho ideal:<br/>1920x1080px</p>
+                  </label>
+                )}
+              </div>
+            </div>
+
+            <div className="bg-[#C22973] rounded-[3rem] p-8 text-white shadow-2xl shadow-pink-200">
+               <Ticket className="mb-4 opacity-50" size={32} />
+               <h4 className="font-black italic text-xl uppercase leading-tight mb-2">Próxima etapa:<br/>Tickets Online</h4>
+               <p className="text-[11px] font-bold opacity-80 uppercase tracking-wider leading-relaxed">Defina se o evento será gratuito ou pago via Stripe/Pix.</p>
+            </div>
+          </div>
+
+        </div>
       </main>
-
-      <footer className="p-4 bg-white border-t border-slate-100 shrink-0">
-        <form onSubmit={enviarMensagem} className="flex items-center gap-2 max-w-4xl mx-auto bg-slate-50 p-2 rounded-[1.5rem] border border-slate-200 focus-within:bg-white focus-within:border-[#C22973] transition-all">
-          <input 
-            type="text" 
-            value={novoTexto} 
-            onChange={(e) => setNovoTexto(e.target.value)}
-            className="flex-1 bg-transparent border-none outline-none text-sm px-4 py-2 text-slate-800 font-bold" 
-            placeholder={t.chatPlaceholder.replace('{name}', dadosUsuario?.nome.split(' ')[0] || '')}
-          />
-          <button 
-            type="submit" 
-            disabled={!novoTexto.trim()}
-            className="bg-[#C22973] hover:bg-[#a62262] disabled:opacity-20 text-white w-12 h-12 rounded-2xl flex items-center justify-center shadow-xl active:scale-90 transition-all"
-          >
-            <Send size={20} fill="currentColor" />
-          </button>
-        </form>
-      </footer>
-
-      <style jsx>{`
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-      `}</style>
     </div>
   );
 }

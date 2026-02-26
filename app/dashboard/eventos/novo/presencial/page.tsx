@@ -1,16 +1,25 @@
 'use client';
 
-import { useState } from 'react';
-import { ChevronLeft, ImageIcon, Calendar, Globe, X, Loader2, Users, Info, Ticket, Link as LinkIcon } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { ChevronLeft, ImageIcon, Search, Calendar, MapPin, X, Loader2, Users, Info, Ticket } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/app/context/LanguageContext';
+import Script from 'next/script';
 
 const API_URL = 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
+const GOOGLE_MAPS_KEY = 'AIzaSyDlGFav-T-Dig9xkdqpqfr98pJP8zmWbE8'; 
 
-export default function NovoEventoOnline() {
+export default function NovoEventoPresencial() {
   const { t }: any = useLanguage();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState<{ [key: string]: boolean }>({});
+  
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const googleMap = useRef<any>(null);
+  const marker = useRef<any>(null);
+  const autocompleteRef = useRef<any>(null);
 
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -22,14 +31,69 @@ export default function NovoEventoOnline() {
     hora_inicio: '', 
     data_termino: '', 
     hora_termino: '',
-    local_nome: 'Plataforma Online', // Nome genérico para o banco
-    url_transmissao: '', // Campo específico para Online
+    local_nome: '', 
+    cep: '', 
+    endereco: '', 
+    numero: '', 
+    complemento: '', 
+    cidade: '', 
+    estado: '',
     capacidade: '',
-    tipo: 'Online',
+    tipo: 'Presencial',
     regras: '',
     visibilidade: 'Publico'
   });
 
+  // --- LÓGICA DO GOOGLE MAPS ---
+  const initGoogleMaps = () => {
+    if (typeof window === 'undefined' || !window.google || !mapContainerRef.current || googleMap.current) return;
+
+    googleMap.current = new window.google.maps.Map(mapContainerRef.current, {
+      center: { lat: -23.5505, lng: -46.6333 },
+      zoom: 12,
+      disableDefaultUI: true,
+      styles: [{ featureType: "poi", elementType: "labels", stylers: [{ visibility: "off" }] }]
+    });
+    
+    marker.current = new window.google.maps.Marker({
+      map: googleMap.current,
+      animation: window.google.maps.Animation.DROP,
+    });
+
+    if (searchInputRef.current && !autocompleteRef.current) {
+      autocompleteRef.current = new window.google.maps.places.Autocomplete(searchInputRef.current, {
+        types: ['geocode', 'establishment'],
+        fields: ['address_components', 'formatted_address', 'name', 'geometry']
+      });
+
+      autocompleteRef.current.addListener('place_changed', () => {
+        const place = autocompleteRef.current.getPlace();
+        if (!place.geometry || !place.address_components) return;
+
+        googleMap.current.setCenter(place.geometry.location);
+        googleMap.current.setZoom(17);
+        marker.current.setPosition(place.geometry.location);
+
+        const getComponent = (type: string) => 
+          place.address_components!.find((c: any) => c.types.includes(type))?.long_name || '';
+        
+        const getUF = () => 
+          place.address_components!.find((c: any) => c.types.includes('administrative_area_level_1'))?.short_name || '';
+
+        setFormData(prev => ({
+          ...prev,
+          local_nome: place.name || prev.local_nome,
+          endereco: getComponent('route'),
+          numero: getComponent('street_number'),
+          cep: getComponent('postal_code').replace(/\D/g, ''),
+          cidade: getComponent('administrative_area_level_2') || getComponent('locality'),
+          estado: getUF(),
+        }));
+      });
+    }
+  };
+
+  // --- HANDLERS ---
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -45,20 +109,17 @@ export default function NovoEventoOnline() {
   };
 
   const handleSalvar = async () => {
-    const token = localStorage.getItem('@Linkah:Token') || localStorage.getItem('token');
-    const userStorage = localStorage.getItem('@Linkah:User') || localStorage.getItem('user');
-    
-    if (!token || !userStorage) {
+    const token = localStorage.getItem('@Linkah:Token');
+    const emailProdutor = localStorage.getItem('userEmail');
+
+    if (!token || !emailProdutor) {
       alert("Sessão expirada. Faça login novamente.");
       router.push('/auth/login');
       return;
     }
 
-    const user = JSON.parse(userStorage);
-    const emailProdutor = user.email;
-
-    if (!formData.nome || !formData.data_inicio || !formData.categoria) {
-      alert("Por favor, preencha Nome, Categoria e Data de Início.");
+    if (!formData.nome || !formData.data_inicio || !formData.local_nome || !formData.categoria) {
+      alert("Por favor, preencha Nome, Categoria, Data de Início e o Local.");
       return;
     }
 
@@ -68,14 +129,11 @@ export default function NovoEventoOnline() {
       ...formData, 
       produtor_email: emailProdutor,
       imagem_capa: previewImage,
-      capacidade: Number(formData.capacidade) || 0,
-      // Para o back-end não quebrar se esperar campos de endereço:
-      cidade: 'Online',
-      estado: 'ON'
+      capacidade: Number(formData.capacidade) || 0
     };
 
     try {
-      const response = await fetch(`${API_URL}/api/eventos/novo-online`, {
+      const response = await fetch(`${API_URL}/api/eventos/novo-presencial`, {
         method: 'POST',
         headers: { 
             'Content-Type': 'application/json',
@@ -100,7 +158,12 @@ export default function NovoEventoOnline() {
 
   return (
     <div className="min-h-screen bg-[#FAFBFF] font-sans antialiased pb-20">
-      
+      <Script 
+        src={`https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_KEY}&libraries=places`} 
+        strategy="afterInteractive" 
+        onLoad={initGoogleMaps} 
+      />
+
       {/* HEADER */}
       <header className="border-b border-slate-100 px-6 md:px-10 py-5 flex justify-between items-center bg-white/90 backdrop-blur-md sticky top-0 z-50">
         <div className="flex items-center gap-6">
@@ -108,10 +171,8 @@ export default function NovoEventoOnline() {
             <ChevronLeft size={22} />
           </button>
           <div>
-            <h1 className="text-slate-800 font-black text-lg tracking-tight uppercase italic flex items-center gap-2">
-              <Globe className="text-[#C22973]" size={20} /> Criar Evento Online
-            </h1>
-            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em]">Live, Webinar ou Workshop Digital</p>
+            <h1 className="text-slate-800 font-black text-lg tracking-tight uppercase italic">Criar Evento Presencial</h1>
+            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em]">Configuração Geral e Localização</p>
           </div>
         </div>
         <button 
@@ -123,50 +184,45 @@ export default function NovoEventoOnline() {
         </button>
       </header>
 
-      <main className="max-w-[1100px] mx-auto p-6 md:p-10">
+      <main className="max-w-[1300px] mx-auto p-6 md:p-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
           
           <div className="lg:col-span-8 space-y-8">
-            {/* SEÇÃO 1: DETALHES */}
+            {/* SEÇÃO 1: O QUE? */}
             <section className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-sm border border-slate-50">
-              <h3 className="text-[#C22973] text-[10px] font-black uppercase tracking-[0.3em] mb-8 flex items-center gap-2"><Info size={14}/> Informações Gerais</h3>
+              <h3 className="text-[#C22973] text-[10px] font-black uppercase tracking-[0.3em] mb-8 flex items-center gap-2"><Info size={14}/> O que vai rolar?</h3>
               <div className="space-y-6">
-                <input name="nome" value={formData.nome} onChange={handleChange} placeholder="Título da sua Live ou Evento" className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none font-bold text-slate-700 focus:border-[#C22973]" />
+                <input name="nome" value={formData.nome} onChange={handleChange} placeholder="Nome do Evento" className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none font-bold text-slate-700 focus:border-[#C22973]" />
                 
                 <div className="grid grid-cols-2 gap-6">
-                   <select name="categoria" value={formData.categoria} onChange={handleChange} className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none font-bold text-slate-600 focus:border-[#C22973]">
-                      <option value="">Categoria</option>
-                      <option value="Educação">Cursos & Educação</option>
-                      <option value="Webinar">Webinar & Palestras</option>
-                      <option value="Entretenimento">Show Online / Live</option>
-                      <option value="Gamer">Games & E-sports</option>
+                   <select 
+                     name="categoria" 
+                     value={formData.categoria} 
+                     onChange={handleChange} 
+                     className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none font-bold text-slate-600 focus:border-[#C22973]"
+                   >
+                      <option value="">{t.selectDefault}</option>
+                      <option value="Arte & Cultura">{t.catArt}</option>
+                      <option value="Entretenimento">{t.catEnt}</option>
+                      <option value="Negócios">{t.catBiz}</option>
+                      <option value="Educação & Desenvolvimento">{t.catEdu}</option>
+                      <option value="Esportes & Bem-estar">{t.catHealth}</option>
+                      <option value="Experiências & Lifestyle">{t.catLife}</option>
+                      <option value="Família & Comunidade">{t.catFamily}</option>
                    </select>
                    <div className="relative">
                       <Users size={16} className="absolute left-4 top-4 text-slate-400" />
-                      <input name="capacidade" value={formData.capacidade} onChange={handleChange} type="number" placeholder="Limite de Acessos" className="w-full bg-slate-50 border border-slate-100 p-4 pl-12 rounded-2xl outline-none font-bold text-slate-700" />
+                      <input name="capacidade" value={formData.capacidade} onChange={handleChange} type="number" placeholder="Capacidade" className="w-full bg-slate-50 border border-slate-100 p-4 pl-12 rounded-2xl outline-none font-bold text-slate-700" />
                    </div>
                 </div>
 
-                <textarea name="descricao" value={formData.descricao} onChange={handleChange} rows={4} placeholder="O que os participantes vão aprender ou ver?" className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none focus:border-[#C22973] resize-none font-medium text-slate-600" />
+                <textarea name="descricao" value={formData.descricao} onChange={handleChange} rows={4} placeholder="Conte mais sobre o evento..." className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none focus:border-[#C22973] resize-none font-medium text-slate-600" />
               </div>
             </section>
 
-            {/* SEÇÃO 2: TRANSMISSÃO */}
+            {/* SEÇÃO 2: QUANDO? */}
             <section className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-sm border border-slate-50">
-              <h3 className="text-[#C22973] text-[10px] font-black uppercase tracking-[0.3em] mb-8 flex items-center gap-2"><LinkIcon size={14}/> Acesso ao Evento</h3>
-              <div className="space-y-4">
-                <div className="p-4 bg-pink-50 rounded-2xl border border-pink-100 mb-4">
-                  <p className="text-[10px] font-bold text-[#C22973] uppercase tracking-wider">Dica Linkah</p>
-                  <p className="text-xs text-slate-500 mt-1">Este link será enviado automaticamente para os compradores após a aprovação do Pix ou Stripe.</p>
-                </div>
-                <input name="url_transmissao" value={formData.url_transmissao} onChange={handleChange} placeholder="Link da Transmissão (YouTube, Zoom, Google Meet...)" className="w-full bg-slate-50 border border-slate-100 p-4 rounded-xl outline-none font-bold text-slate-700 focus:border-[#C22973]" />
-                <textarea name="regras" value={formData.regras} onChange={handleChange} rows={2} placeholder="Instruções de acesso (Ex: O link será liberado 15 min antes)" className="w-full bg-slate-50 border border-slate-100 p-4 rounded-xl outline-none focus:border-[#C22973] resize-none text-sm" />
-              </div>
-            </section>
-
-            {/* SEÇÃO 3: QUANDO? */}
-            <section className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-sm border border-slate-50">
-              <h3 className="text-[#C22973] text-[10px] font-black uppercase tracking-[0.3em] mb-8 flex items-center gap-2"><Calendar size={14}/> Data e Hora</h3>
+              <h3 className="text-[#C22973] text-[10px] font-black uppercase tracking-[0.3em] mb-8 flex items-center gap-2"><Calendar size={14}/> Quando?</h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <input name="data_inicio" value={formData.data_inicio} onChange={handleChange} type="date" className="bg-slate-50 border border-slate-100 p-4 rounded-xl text-xs font-bold outline-none text-slate-600" />
                 <input name="hora_inicio" value={formData.hora_inicio} onChange={handleChange} type="time" className="bg-slate-50 border border-slate-100 p-4 rounded-xl text-xs font-bold outline-none text-slate-600" />
@@ -174,12 +230,47 @@ export default function NovoEventoOnline() {
                 <input name="hora_termino" value={formData.hora_termino} onChange={handleChange} type="time" className="bg-slate-50 border border-slate-100 p-4 rounded-xl text-xs font-bold outline-none text-slate-600" />
               </div>
             </section>
+
+            {/* SEÇÃO 3: ONDE? (GOOGLE MAPS) */}
+            <section className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-sm border border-slate-50">
+              <h3 className="text-[#C22973] text-[10px] font-black uppercase tracking-[0.3em] mb-8 flex items-center gap-2"><MapPin size={14}/> Onde?</h3>
+              <div className="space-y-4">
+                <div className="relative group">
+                  <Search size={16} className="absolute left-4 top-4 text-[#C22973]" />
+                  <input ref={searchInputRef} placeholder="Buscar endereço no Google Maps..." className="w-full bg-pink-50/40 border border-pink-100 p-4 pl-12 rounded-2xl outline-none italic text-sm font-bold focus:border-[#C22973] text-slate-700" />
+                </div>
+                
+                <input name="local_nome" value={formData.local_nome} onChange={handleChange} placeholder="Nome do Local (Ex: Teatro Municipal)" className="w-full bg-slate-50 border border-slate-100 p-4 rounded-xl outline-none font-bold text-slate-700" />
+                
+                <div className="grid grid-cols-4 gap-4">
+                   <input name="cep" value={formData.cep} onChange={handleChange} placeholder="CEP" className="bg-slate-50 border border-slate-100 p-4 rounded-xl outline-none font-bold text-slate-700" />
+                   <input name="endereco" value={formData.endereco} onChange={handleChange} placeholder="Rua / Avenida" className="col-span-3 bg-slate-50 border border-slate-100 p-4 rounded-xl outline-none font-bold text-slate-700" />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                   <input name="numero" value={formData.numero} onChange={handleChange} placeholder="Número" className="bg-slate-50 border border-slate-100 p-4 rounded-xl outline-none font-bold text-slate-700" />
+                   <input name="complemento" value={formData.complemento} onChange={handleChange} placeholder="Complemento" className="bg-slate-50 border border-slate-100 p-4 rounded-xl outline-none font-bold text-slate-700" />
+                </div>
+                
+                <div className="grid grid-cols-4 gap-4">
+                   <input name="cidade" value={formData.cidade} onChange={handleChange} placeholder="Cidade" className="col-span-3 bg-slate-50 border border-slate-100 p-4 rounded-xl outline-none font-bold text-slate-700" />
+                   <input name="estado" value={formData.estado} onChange={handleChange} placeholder="UF" maxLength={2} className="bg-slate-50 border border-slate-100 p-4 rounded-xl outline-none font-bold text-slate-700 text-center uppercase" />
+                </div>
+              </div>
+            </section>
+
+            {/* SEÇÃO 4: REGRAS */}
+            <section className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-sm border border-slate-50">
+               <h3 className="text-[#C22973] text-[10px] font-black uppercase tracking-[0.3em] mb-4 flex items-center gap-2">Regras e Observações</h3>
+               <textarea name="regras" value={formData.regras} onChange={handleChange} rows={3} placeholder="Ex: Proibido entrada de menores..." className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none focus:border-[#C22973] resize-none font-medium text-slate-600" />
+            </section>
           </div>
 
           {/* COLUNA DIREITA */}
           <div className="lg:col-span-4 space-y-8">
+            {/* UPLOAD CAPA */}
             <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-50 text-center">
-              <label className="text-[10px] text-slate-400 font-black uppercase mb-4 block tracking-widest italic">Capa Digital</label>
+              <label className="text-[10px] text-slate-400 font-black uppercase mb-4 block tracking-widest italic">Capa do Evento</label>
               <div className="relative">
                 {previewImage ? (
                   <div className="relative w-full h-64 rounded-[2.5rem] overflow-hidden group shadow-lg">
@@ -192,16 +283,22 @@ export default function NovoEventoOnline() {
                     <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mb-4 shadow-sm group-hover:scale-110 transition-transform">
                         <ImageIcon size={28} className="text-[#C22973]" />
                     </div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Tamanho ideal:<br/>1920x1080px</p>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Upload da Imagem</p>
                   </label>
                 )}
               </div>
             </div>
 
+            {/* MAPA VISUAL */}
+            <div className="bg-white rounded-[2.5rem] p-2 shadow-sm border border-slate-50 h-[350px] relative overflow-hidden">
+                <div ref={mapContainerRef} className="w-full h-full rounded-[2.2rem]" />
+            </div>
+
+            {/* INFO INGRESSOS */}
             <div className="bg-[#C22973] rounded-[3rem] p-8 text-white shadow-2xl shadow-pink-200">
                <Ticket className="mb-4 opacity-50" size={32} />
-               <h4 className="font-black italic text-xl uppercase leading-tight mb-2">Próxima etapa:<br/>Tickets Online</h4>
-               <p className="text-[11px] font-bold opacity-80 uppercase tracking-wider leading-relaxed">Defina se o evento será gratuito ou pago via Stripe/Pix.</p>
+               <h4 className="font-black italic text-xl uppercase leading-tight mb-2">Próxima etapa:<br/>Ingressos</h4>
+               <p className="text-[11px] font-bold opacity-80 uppercase tracking-wider leading-relaxed">Configuraremos valores e Stripe no próximo passo.</p>
             </div>
           </div>
 
