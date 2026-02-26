@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { MapPin, Calendar } from 'lucide-react';
+import { MapPin, Calendar, ArrowUpRight } from 'lucide-react';
 import { useLanguage } from '@/app/context/LanguageContext';
 
 export function EventCard({ evento }: { evento: any }) {
@@ -10,23 +10,32 @@ export function EventCard({ evento }: { evento: any }) {
   const locale = language === 'PT' ? 'pt-BR' : 'en-US';
   const currencySymbol = language === 'PT' ? 'R$' : '$';
 
-  // --- CORREÇÃO DE TIMEZONE ---
-  // Adicionamos um replace para garantir que o JS não mude a hora por causa do fuso local
-  const dataString = evento.data_inicio || "";
-  const data = new Date(dataString);
-  
-  // Se a hora vier zerada do banco, o JS aplica o fuso. 
-  // Forçamos a leitura "fiel" aos caracteres da string para evitar o "Efeito 21:00"
-  const horaFormatada = data.toLocaleTimeString(locale, { 
-    hour: '2-digit', 
-    minute: '2-digit',
-    hour12: false,
-    timeZone: 'UTC' // Força a exibição do que está gravado sem descontar fuso local
-  });
+  // --- LÓGICA DE DATA IGUAL À DOS DETALHES (RESOLVE O 00:00) ---
+  const formatarDataVitrine = () => {
+    if (!evento.data_inicio) return { diaSemana: '', dia: '', mes: '', hora: '--:--' };
 
-  const dia = data.getUTCDate().toString().padStart(2, '0');
-  const mes = data.toLocaleDateString(locale, { month: 'short', timeZone: 'UTC' }).toUpperCase().replace('.', '');
-  const diaSemana = data.toLocaleDateString(locale, { weekday: 'short', timeZone: 'UTC' }).toUpperCase().replace('.', '');
+    // Criamos o objeto de data
+    const d = new Date(evento.data_inicio);
+
+    // Se a data for inválida, retorna vazio
+    if (isNaN(d.getTime())) return { diaSemana: '', dia: '', mes: '', hora: '--:--' };
+
+    // Pegamos as partes da data de forma isolada para evitar que o JS invente fusos
+    const diaSemana = d.toLocaleDateString(locale, { weekday: 'short' }).toUpperCase().replace('.', '');
+    const dia = d.toLocaleDateString(locale, { day: '2-digit' });
+    const mes = d.toLocaleDateString(locale, { month: 'short' }).toUpperCase().replace('.', '');
+    
+    // Pegamos a hora exatamente como o navegador interpreta (sem forçar UTC para não zerar)
+    const hora = d.toLocaleTimeString(locale, { 
+      hour: '2-digit', 
+      minute: '2-digit', 
+      hour12: false 
+    });
+
+    return { diaSemana, dia, mes, hora };
+  };
+
+  const { diaSemana, dia, mes, hora } = formatarDataVitrine();
 
   const traduzirCategoria = (cat: string) => {
     const categorias: Record<string, string> = {
@@ -42,35 +51,34 @@ export function EventCard({ evento }: { evento: any }) {
   return (
     <Link 
       href={`/evento/${evento.id}`} 
-      className="group block w-full bg-white rounded-2xl overflow-hidden hover:shadow-[0_20px_50px_rgba(0,0,0,0.1)] transition-all duration-500 border border-gray-100 flex flex-col h-full"
+      className="group block w-full bg-white rounded-2xl overflow-hidden hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] transition-all duration-500 border border-gray-100 flex flex-col h-full"
     >
       
-      {/* IMAGEM COM OVERLAY GRADIENT */}
-      <div className="relative aspect-[16/10] overflow-hidden">
+      {/* IMAGEM */}
+      <div className="relative aspect-[16/10] overflow-hidden bg-gray-100">
         <img 
           src={evento.imagem_capa || "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4"} 
           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
           alt={evento.nome}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
         
-        <div className="absolute top-3 left-3">
-          <span className="bg-white/90 backdrop-blur-md text-slate-900 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg shadow-sm">
+        <div className="absolute top-4 left-4">
+          <span className="bg-white/95 backdrop-blur-sm text-slate-900 text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-lg shadow-sm">
             {traduzirCategoria(evento.categoria || 'Evento')}
           </span>
         </div>
       </div>
 
-      {/* CONTEÚDO CLEAN */}
-      <div className="p-5 flex flex-col flex-grow">
+      {/* CONTEÚDO */}
+      <div className="p-6 flex flex-col flex-grow">
         
-        {/* DATA E HORA - AGORA CORRIGIDO */}
-        <div className="flex items-center gap-2 text-blue-600 text-[11px] font-bold uppercase tracking-tight mb-3">
-          <Calendar size={12} strokeWidth={3} />
-          <span>{diaSemana}, {dia} {mes} • {horaFormatada}</span>
+        {/* DATA E HORA - AGORA IGUAL AOS DETALHES */}
+        <div className="flex items-center gap-2 text-blue-600 text-[11px] font-bold uppercase tracking-wider mb-4">
+          <Calendar size={14} strokeWidth={2.5} />
+          <span>{diaSemana}, {dia} {mes} • {hora}</span>
         </div>
 
-        {/* TÍTULO - SEM ITÁLICO, MAIS PESADO */}
+        {/* TÍTULO */}
         <h3 className="text-slate-900 font-bold text-lg leading-tight mb-3 group-hover:text-blue-600 transition-colors line-clamp-2 min-h-[56px]">
           {evento.nome}
         </h3>
@@ -83,10 +91,10 @@ export function EventCard({ evento }: { evento: any }) {
           </span>
         </div>
 
-        {/* PREÇO E BOTÃO DISCRETO */}
-        <div className="mt-auto pt-4 border-t border-gray-50 flex items-center justify-between">
+        {/* FOOTER */}
+        <div className="mt-auto pt-5 border-t border-gray-50 flex items-center justify-between">
           <div>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
               {t.from || 'Tickets'}
             </p>
             <p className="text-xl font-black text-slate-900 tracking-tight">
@@ -97,8 +105,8 @@ export function EventCard({ evento }: { evento: any }) {
             </p>
           </div>
           
-          <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition-all duration-300">
-             <Calendar size={18} />
+          <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-blue-600 group-hover:text-white group-hover:rotate-45 transition-all duration-500">
+             <ArrowUpRight size={20} />
           </div>
         </div>
       </div>
