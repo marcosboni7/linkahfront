@@ -19,7 +19,7 @@ const translations = {
     places: "lugar",
     placesPlural: "lugares",
 
-    // --- HOME / VITRINE (Novas chaves adicionadas) ---
+    // --- HOME / VITRINE ---
     slide1Title: "Descubra o seu",
     slide1Highlight: "próximo momento",
     slide2Title: "Sinta a vibe dos",
@@ -40,14 +40,16 @@ const translations = {
     resultsFor: "Resultados para",
     noEventsFound: "Nenhum evento encontrado para esta seleção.",
 
-    // Filtros e Categorias
+    // Filtros e Categorias (ATUALIZADO)
     filterVibe: "Filtrar por Vibe",
     allCategories: "Todos",
-    catMusic: "Música & Show",
-    catWorkshop: "Workshop & Palestra",
-    catTheater: "Teatro & Cultura",
-    catSports: "Esportes",
-    catFood: "Gastronomia",
+    catArt: "Arte & Cultura",
+    catEnt: "Entretenimento",
+    catBiz: "Negócios",
+    catEdu: "Educação & Desenvolvimento",
+    catHealth: "Esportes & Bem-estar",
+    catLife: "Experiências & Lifestyle",
+    catFamily: "Família & Comunidade",
 
     // Ticket Visual (Página de Sucesso / AWS)
     ticketTitle: "Sua entrada está liberada!",
@@ -269,7 +271,7 @@ const translations = {
     places: "seat",
     placesPlural: "seats",
 
-    // --- HOME / SHOWCASE (Added keys) ---
+    // --- HOME / SHOWCASE ---
     slide1Title: "Discover your",
     slide1Highlight: "next moment",
     slide2Title: "Feel the vibe of",
@@ -290,14 +292,16 @@ const translations = {
     resultsFor: "Results for",
     noEventsFound: "No events found for this selection.",
 
-    // Filters and Categories
+    // Filters and Categories (UPDATED)
     filterVibe: "Filter by Vibe",
     allCategories: "All",
-    catMusic: "Music & Shows",
-    catWorkshop: "Workshop & Lectures",
-    catTheater: "Theater & Culture",
-    catSports: "Sports",
-    catFood: "Gastronomy",
+    catArt: "Art & Culture",
+    catEnt: "Entertainment",
+    catBiz: "Business",
+    catEdu: "Education & Development",
+    catHealth: "Sports & Wellbeing",
+    catLife: "Experiences & Lifestyle",
+    catFamily: "Family & Community",
 
     // Ticket Visual (Success Page / AWS)
     ticketTitle: "Your entry is granted!",

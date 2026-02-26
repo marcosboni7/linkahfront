@@ -1,33 +1,30 @@
 'use client';
 
-import { Sparkles, Ticket } from 'lucide-react';
+import { Sparkles, Ticket, Palette, Theater, Briefcase, GraduationCap, Trophy, Star, Users } from 'lucide-react';
 import { useLanguage } from '@/app/context/LanguageContext';
 
 interface CategoryFilterProps {
   categories: string[];
   activeCategory: string;
   onSelect: (category: string) => void;
+  // O iconMap agora deve conter as novas chaves
   iconMap: Record<string, any>;
 }
 
 export function CategoryFilter({ categories, activeCategory, onSelect, iconMap }: CategoryFilterProps) {
-  // CORREÇÃO: Desestruturando 'language' (estado) e 't' (traduções)
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
 
   const translateCategory = (cat: string) => {
     const map: Record<string, string> = {
-      'Música & Show': t.catMusic,
-      'Music & Shows': t.catMusic,
-      'Workshop & Palestra': t.catWorkshop,
-      'Workshop & Lectures': t.catWorkshop,
-      'Teatro & Cultura': t.catTheater,
-      'Theater & Culture': t.catTheater,
-      'Esportes': t.catSports,
-      'Sports': t.catSports,
-      'Gastronomia': t.catFood,
-      'Gastronomy': t.catFood,
-      'Todos': t.allCategories, // Usando a chave que já existe no seu Context
-      'All': t.allCategories,
+      'Arte & Cultura': t.catArt || 'Arte & Cultura',
+      'Entretenimento': t.catEnt || 'Entretenimento',
+      'Negócios': t.catBiz || 'Negócios',
+      'Educação & Desenvolvimento': t.catEdu || 'Educação & Desenv.',
+      'Esportes & Bem-estar': t.catHealth || 'Esportes & Bem-estar',
+      'Experiências & Lifestyle': t.catLife || 'Experiências & Lifestyle',
+      'Família & Comunidade': t.catFamily || 'Família & Comunidade',
+      'Todos': t.allCategories || 'Todos',
+      'All': t.allCategories || 'All',
     };
 
     return map[cat] || cat;
@@ -39,13 +36,13 @@ export function CategoryFilter({ categories, activeCategory, onSelect, iconMap }
         <div className="flex items-center justify-center gap-2 mb-4">
           <Sparkles size={14} className="text-[#ff0082]" />
           <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
-            {/* CORREÇÃO: Usando a chave t.filterVibe que já criamos no arquivo anterior */}
-            {t.filterVibe}
+            {t.filterVibe || "Escolha sua vibe"}
           </h3>
         </div>
         
         <div className="flex flex-wrap items-center justify-center gap-2">
           {categories.map((cat) => {
+            // Se o ícone não estiver no mapa, usamos o Ticket como padrão
             const Icon = iconMap[cat] || Ticket;
             const isAtiva = activeCategory === cat;
             
