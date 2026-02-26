@@ -34,25 +34,29 @@ export default function TabelaEventos() {
 
   const carregarEventos = async () => {
     setLoading(true);
-    // Tenta pegar o token de ambas as formas comuns para não ter erro
-    const token = localStorage.getItem('@Linkah:Token') || localStorage.getItem('token');
-    const userStorage = localStorage.getItem('@Linkah:User') || localStorage.getItem('user');
-    const user = JSON.parse(userStorage || '{}');
-    
-    // Prioridade para o ID, se não tiver, usa o email
-    const identificador = user.id || user.email;
-
-    if (!token) { 
-      console.error("Sem token de acesso");
-      setLoading(false); 
-      return; 
-    }
-
     try {
-      // Ajuste na rota para ser mais genérica ou específica conforme sua API
-      // Adicionando um timestamp para evitar cache do navegador
+      // 1. Captura os dados do Storage
+      const token = localStorage.getItem('@Linkah:Token') || localStorage.getItem('token');
+      const userStorage = localStorage.getItem('@Linkah:User') || localStorage.getItem('user');
+      
+      if (!token || !userStorage) {
+        console.error("Auth missing");
+        setLoading(false);
+        return;
+      }
+
+      const user = JSON.parse(userStorage);
+      const email = user.email;
+
+      if (!email) {
+        console.error("Email não encontrado no objeto de usuário");
+        setLoading(false);
+        return;
+      }
+
+      // 2. Chamada para a API (Voltamos para o parâmetro ?email= para evitar o erro 400)
       const timestamp = new Date().getTime();
-      const res = await fetch(`${API_URL}/api/eventos/listar?usuarioId=${identificador}&t=${timestamp}`, {
+      const res = await fetch(`${API_URL}/api/eventos/listar?email=${email}&t=${timestamp}`, {
         method: 'GET',
         headers: { 
           'Authorization': `Bearer ${token}`,
@@ -64,10 +68,11 @@ export default function TabelaEventos() {
         const data = await res.json();
         setEventos(Array.isArray(data) ? data : []);
       } else {
-        console.error("Erro na resposta da API:", res.status);
+        const errorMsg = await res.text();
+        console.error(`Erro ${res.status}: ${errorMsg}`);
       }
     } catch (err) {
-      console.error("Falha ao conectar com AWS:", err);
+      console.error("AWS Connection fail:", err);
     } finally {
       setLoading(false);
     }
@@ -77,15 +82,13 @@ export default function TabelaEventos() {
     carregarEventos(); 
   }, []);
 
-  // ... (restante das funções handleExcluir e abrirModal seguem iguais)
-  
   const handleExcluir = async (id: number) => {
     const result = await Swal.fire({
       title: t.confirmDeleteTitle || "Excluir Evento?",
       text: t.confirmDeleteText || "Esta ação não pode ser desfeita.",
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: '#C22973', // Corrigido para o Pink Linkah
+      confirmButtonColor: '#C22973',
       cancelButtonColor: '#0f172a',
       confirmButtonText: t.btnConfirmDelete || "Sim, excluir",
       cancelButtonText: t.btnCancel || "Cancelar",
@@ -146,7 +149,7 @@ export default function TabelaEventos() {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="w-1.5 h-1.5 rounded-full bg-[#C22973]" />
-            <h2 className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Painel do Produtor</h2>
+            <h2 className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Painel Administrativo</h2>
           </div>
           <p className="text-slate-950 font-bold text-2xl tracking-tighter">{t.manageEvents || "Meus Eventos"}</p>
         </div>
@@ -163,7 +166,7 @@ export default function TabelaEventos() {
           {isOpen && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)}></div>
-              <div className="absolute right-0 mt-4 w-64 bg-white rounded-[2rem] shadow-2xl border border-slate-100 z-20 overflow-hidden py-3">
+              <div className="absolute right-0 mt-4 w-64 bg-white rounded-[2rem] shadow-2xl border border-slate-100 z-20 overflow-hidden py-3 animate-in fade-in zoom-in duration-200">
                 <button
                   onClick={() => { setIsOpen(false); router.push('/dashboard/eventos/novo/presencial'); }}
                   className="w-full flex items-center gap-4 px-6 py-4 text-slate-600 hover:bg-slate-50 font-bold text-xs"
@@ -201,7 +204,7 @@ export default function TabelaEventos() {
                 <td colSpan={6} className="py-32 text-center">
                    <div className="flex flex-col items-center gap-3">
                       <Loader2 className="animate-spin text-[#C22973]" size={40} />
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-300">Acessando AWS Cloud...</span>
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-300">Sincronizando AWS Cloud...</span>
                    </div>
                 </td>
               </tr>
@@ -210,7 +213,7 @@ export default function TabelaEventos() {
                 <tr key={evento.id} className="hover:bg-slate-50/30 transition-colors group">
                   <td className="px-10 py-6">
                     <div className="flex items-center gap-5">
-                      <div className="w-14 h-14 rounded-2xl bg-slate-50 overflow-hidden border border-slate-100 shrink-0">
+                      <div className="w-14 h-14 rounded-2xl bg-slate-50 overflow-hidden border border-slate-100 shrink-0 shadow-sm">
                         {evento.imagem_capa ? (
                           <img src={evento.imagem_capa} className="w-full h-full object-cover" alt="" />
                         ) : (
@@ -223,20 +226,32 @@ export default function TabelaEventos() {
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-6 text-xs font-bold text-slate-700">{evento.cidade || '---'}, {evento.estado}</td>
-                  <td className="px-6 py-6 text-xs font-bold text-slate-700">{formatarDataLocal(evento.data_inicio)}</td>
-                  <td className="px-6 py-6 text-xs font-bold text-slate-700">{evento.total_vendidos || 0} vendidos</td>
                   <td className="px-6 py-6">
-                    <span className="px-3 py-1 rounded-full text-[9px] font-bold uppercase bg-emerald-50 text-emerald-600 border border-emerald-100">
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold text-slate-700">{evento.local_nome || '---'}</span>
+                      <span className="text-[10px] text-slate-400 uppercase">{evento.cidade}, {evento.estado}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-6">
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold text-slate-700">{formatarDataLocal(evento.data_inicio)}</span>
+                      <span className="text-[10px] text-slate-400 font-bold">{evento.hora_inicio?.slice(0, 5)}h</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-6 text-xs font-bold text-slate-700">
+                    {evento.total_vendidos || 0} vendidos
+                  </td>
+                  <td className="px-6 py-6">
+                    <span className="px-3 py-1.5 rounded-full text-[9px] font-bold uppercase bg-emerald-50 text-emerald-600 border border-emerald-100">
                       {evento.status || 'Ativo'}
                     </span>
                   </td>
                   <td className="px-10 py-6 text-right">
                     <div className="flex items-center justify-end gap-2">
-                      <button onClick={() => abrirModalEdicao(evento)} className="p-3 text-slate-400 hover:text-slate-950 hover:bg-slate-50 rounded-xl transition-all">
+                      <button onClick={() => abrirModalEdicao(evento)} className="p-3 text-slate-400 hover:text-slate-950 hover:bg-slate-50 rounded-xl transition-all border border-transparent hover:border-slate-100">
                         <Edit3 size={18} />
                       </button>
-                      <button onClick={() => handleExcluir(evento.id)} className="p-3 text-slate-400 hover:text-[#C22973] hover:bg-rose-50 rounded-xl transition-all">
+                      <button onClick={() => handleExcluir(evento.id)} className="p-3 text-slate-400 hover:text-[#C22973] hover:bg-rose-50 rounded-xl transition-all border border-transparent hover:border-rose-100">
                         <Trash2 size={18} />
                       </button>
                     </div>
@@ -245,14 +260,46 @@ export default function TabelaEventos() {
               ))
             ) : (
               <tr>
-                <td colSpan={6} className="py-40 text-center text-slate-400 font-bold uppercase text-xs tracking-widest opacity-30">
-                  {t.emptyList || "Nenhum evento encontrado"}
+                <td colSpan={6} className="py-40 text-center opacity-30">
+                   <Calendar size={48} className="mx-auto text-slate-300 mb-4" />
+                   <p className="font-bold uppercase text-xs tracking-widest text-slate-400">{t.emptyList || "Nenhum evento encontrado"}</p>
                 </td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
+
+      <div className="p-8 bg-slate-50/50 border-t border-slate-50 flex justify-between items-center text-slate-400 text-[10px] font-bold uppercase tracking-widest">
+        <span>Total: {eventos.length} eventos</span>
+        <div className="flex gap-2">
+          <button className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center hover:text-slate-950 transition-all"><ChevronLeft size={18} /></button>
+          <button className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center hover:text-slate-950 transition-all"><ChevronRight size={18} /></button>
+        </div>
+      </div>
+
+      {/* MODAL DE EDIÇÃO */}
+      {isEditModalOpen && eventoParaEditar && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm" onClick={() => setIsEditModalOpen(false)}></div>
+          <div className="relative bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-100">
+            <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
+              <h2 className="text-xl font-bold text-slate-950">{t.editTitle || "Editar Evento"}</h2>
+              <button onClick={() => setIsEditModalOpen(false)} className="w-10 h-10 flex items-center justify-center bg-white rounded-xl text-slate-400 border border-slate-100"><X size={18} /></button>
+            </div>
+            
+            <form onSubmit={handleSalvarEdicao} className="p-8 space-y-6">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest ml-1">Nome do Evento</label>
+                <input required className="w-full bg-slate-50 border border-slate-100 p-4 rounded-xl outline-none focus:bg-white focus:border-slate-950 font-bold text-slate-900 transition-all" value={eventoParaEditar.nome} onChange={(e) => setEventoParaEditar({ ...eventoParaEditar, nome: e.target.value })} />
+              </div>
+              <button type="submit" disabled={saving} className="w-full bg-slate-950 text-white py-5 rounded-2xl font-bold uppercase text-xs tracking-widest shadow-xl hover:bg-black transition-all flex items-center justify-center gap-3">
+                {saving ? <Loader2 className="animate-spin" size={18} /> : <><Save size={18} className="text-[#C22973]" /> Salvar Alterações</>}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
