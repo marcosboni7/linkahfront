@@ -4,11 +4,14 @@ import { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ImageIcon, Search, Calendar, MapPin, X, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/app/context/LanguageContext';
+import Script from 'next/script';
 
 const API_URL = 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
+// Certifique-se de que esta chave está no seu .env.local como NEXT_PUBLIC_...
+const GOOGLE_MAPS_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY || '';
 
 export default function NovoEventoPresencial() {
-  const { t } = useLanguage();
+  const { t }: any = useLanguage();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: boolean }>({});
@@ -28,21 +31,25 @@ export default function NovoEventoPresencial() {
     preco: 0 
   });
 
-  useEffect(() => {
-    if (typeof window !== 'undefined' && window.google) {
-      if (mapContainerRef.current && !googleMap.current) {
+  // Função disparada assim que o Script do Google carregar
+  const initGoogleMaps = () => {
+    if (typeof window !== 'undefined' && window.google && mapContainerRef.current) {
+      // 1. Inicializa o Mapa
+      if (!googleMap.current) {
         googleMap.current = new window.google.maps.Map(mapContainerRef.current, {
           center: { lat: -23.5505, lng: -46.6333 },
           zoom: 12,
           disableDefaultUI: true,
           styles: [{ featureType: "poi", elementType: "labels", stylers: [{ visibility: "off" }] }]
         });
+        
         marker.current = new window.google.maps.Marker({
           map: googleMap.current,
           animation: window.google.maps.Animation.DROP,
         });
       }
 
+      // 2. Inicializa o Autocomplete no input de busca
       if (searchInputRef.current && !autocompleteRef.current) {
         autocompleteRef.current = new window.google.maps.places.Autocomplete(searchInputRef.current, {
           types: ['geocode', 'establishment'],
@@ -53,16 +60,19 @@ export default function NovoEventoPresencial() {
           const place = autocompleteRef.current.getPlace();
           if (!place.geometry || !place.address_components) return;
 
+          // Atualiza Mapa e Marcador
           googleMap.current.setCenter(place.geometry.location);
           googleMap.current.setZoom(17);
           marker.current.setPosition(place.geometry.location);
 
+          // Extrai componentes do endereço
           const getComponent = (type: string) => 
             place.address_components!.find((c: any) => c.types.includes(type))?.long_name || '';
           
           const getUF = () => 
             place.address_components!.find((c: any) => c.types.includes('administrative_area_level_1'))?.short_name || '';
 
+          // Preenche o formulário automaticamente
           setFormData(prev => ({
             ...prev,
             local_nome: place.name || prev.local_nome,
@@ -76,7 +86,7 @@ export default function NovoEventoPresencial() {
         });
       }
     }
-  }, []);
+  };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -111,7 +121,7 @@ export default function NovoEventoPresencial() {
     const emailProdutor = localStorage.getItem('userEmail');
 
     if (!token || !emailProdutor) {
-      alert(t.errorSession);
+      alert(t.errorSession || "Sessão expirada");
       router.push('/auth/login');
       return;
     }
@@ -148,7 +158,7 @@ export default function NovoEventoPresencial() {
         alert(`Error ${response.status}: ${data.message || "AWS Server Error"}`);
       }
     } catch (error) {
-      alert("Critical connection failure.");
+      alert("Falha crítica de conexão com a API.");
     } finally {
       setIsLoading(false);
     }
@@ -156,6 +166,12 @@ export default function NovoEventoPresencial() {
 
   return (
     <div className="min-h-screen bg-[#FAFBFF] font-sans antialiased">
+      {/* SCRIPT ESSENCIAL QUE CARREGA O GOOGLE MAPS */}
+      <Script
+        src={`https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_KEY}&libraries=places`}
+        onLoad={initGoogleMaps}
+      />
+
       <header className="border-b border-slate-100 px-6 md:px-10 py-5 flex justify-between items-center bg-white/90 backdrop-blur-md sticky top-0 z-50">
         <div className="flex items-center gap-6">
           <button onClick={() => router.back()} className="p-2 hover:bg-pink-50 rounded-full transition-all text-slate-400">
@@ -177,7 +193,7 @@ export default function NovoEventoPresencial() {
       </header>
 
       <main className="max-w-[1300px] mx-auto p-6 md:p-10">
-        {/* STEPPER CORRIGIDO PARA USAR AS CHAVES DO CONTEXTO */}
+        {/* STEPPER */}
         <div className="flex justify-center items-center mb-16 px-4">
           <div className="flex items-center gap-4">
             <div className="w-10 h-10 rounded-2xl bg-[#C22973] text-white flex items-center justify-center shadow-lg font-black text-sm italic">1</div>
@@ -192,6 +208,7 @@ export default function NovoEventoPresencial() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
           <div className="lg:col-span-8 space-y-8">
+            {/* O QUÊ? */}
             <section className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-sm border border-slate-50">
               <h3 className="text-[#C22973] text-[10px] font-black uppercase tracking-[0.3em] mb-8">{t.sectionWhat}</h3>
               <div className="space-y-6">
@@ -228,6 +245,7 @@ export default function NovoEventoPresencial() {
               </div>
             </section>
 
+            {/* QUANDO? */}
             <section className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-sm border border-slate-50">
               <h3 className="text-[#C22973] text-[10px] font-black uppercase tracking-[0.3em] mb-8 flex items-center gap-2"><Calendar size={14}/> {t.sectionWhen}</h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -238,6 +256,7 @@ export default function NovoEventoPresencial() {
               </div>
             </section>
 
+            {/* ONDE? */}
             <section className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-sm border border-slate-50">
               <h3 className="text-[#C22973] text-[10px] font-black uppercase tracking-[0.3em] mb-8 flex items-center gap-2"><MapPin size={14}/> {t.sectionWhere}</h3>
               <div className="space-y-4">
@@ -248,13 +267,14 @@ export default function NovoEventoPresencial() {
                 <input name="local_nome" value={formData.local_nome} placeholder={t.placeholderVenue} onChange={handleChange} className={`w-full bg-slate-50 border ${errors.local_nome ? 'border-red-400' : 'border-slate-100'} p-4 rounded-xl outline-none font-bold text-slate-700`} />
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                    <input name="cep" value={formData.cep} placeholder="CEP / Zip" onChange={handleChange} className="bg-slate-50 border border-slate-100 p-4 rounded-xl outline-none font-bold text-slate-700" />
-                   <input name="endereco" value={formData.endereco} placeholder="Address" onChange={handleChange} className="md:col-span-2 bg-slate-50 border border-slate-100 p-4 rounded-xl outline-none font-bold text-slate-700" />
+                   <input name="endereco" value={formData.endereco} placeholder="Endereço" onChange={handleChange} className="md:col-span-2 bg-slate-50 border border-slate-100 p-4 rounded-xl outline-none font-bold text-slate-700" />
                 </div>
               </div>
             </section>
           </div>
 
           <div className="lg:col-span-4 space-y-8">
+            {/* CAPA DO EVENTO */}
             <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-50 text-center">
               <label className="text-[10px] text-slate-400 font-black uppercase mb-4 block tracking-widest italic">{t.labelCover}</label>
               <div className="relative">
@@ -276,6 +296,7 @@ export default function NovoEventoPresencial() {
               <p className="mt-4 text-[9px] text-slate-400 font-bold uppercase">{t.uploadRules}</p>
             </div>
 
+            {/* MAPA VISUAL */}
             <div className="bg-white rounded-[2.5rem] p-2 shadow-sm border border-slate-50 h-[350px] relative overflow-hidden">
                 <div ref={mapContainerRef} className="w-full h-full rounded-[2.2rem]" />
             </div>
