@@ -12,27 +12,29 @@ export function EventCard({ evento }: { evento: any }) {
 
   const formatarDataVitrine = () => {
     const dataRaw = evento.data_inicio || evento.data;
-    if (!dataRaw) return { diaSemana: '', dia: '', mes: '', hora: '--:--' };
+    if (!dataRaw) return { diaSemana: '', dia: '', mes: '', hora: '' };
 
-    // 1. Removemos o fuso (Z) para que 00:00 permaneça 00:00 localmente
+    // 1. DATA (Dia/Mês): Limpamos o fuso para o dia não mudar
     const dataLimpa = String(dataRaw).replace(/Z$|[+-]\d{2}:\d{2}$/, '');
     const d = new Date(dataLimpa);
 
-    if (isNaN(d.getTime())) return { diaSemana: '', dia: '', mes: '', hora: '--:--' };
+    if (isNaN(d.getTime())) return { diaSemana: '', dia: '', mes: '', hora: '' };
 
-    // 2. Formatação das partes da data
     const diaSemana = d.toLocaleDateString(locale, { weekday: 'short' }).toUpperCase().replace('.', '');
     const dia = d.toLocaleDateString(locale, { day: '2-digit' });
     const mes = d.toLocaleDateString(locale, { month: 'short' }).toUpperCase().replace('.', '');
     
-    // 3. Formatação da hora (vai mostrar 00:00 se estiver zerado na API)
-    const hora = d.toLocaleTimeString(locale, { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: false 
-    });
+    // 2. HORA: Exatamente a lógica da página de Detalhes
+    // Prioriza 'horario', depois 'hora_inicio', e se for "00:00" a gente oculta para ficar limpo
+    const horaRaw = evento.horario || evento.hora_inicio || "";
+    let horaFormatada = horaRaw.slice(0, 5);
 
-    return { diaSemana, dia, mes, hora };
+    // Se a hora for meia-noite cravada ou vazia, não mostramos na vitrine
+    if (horaFormatada === "00:00" || !horaFormatada) {
+      horaFormatada = "";
+    }
+
+    return { diaSemana, dia, mes, hora: horaFormatada };
   };
 
   const { diaSemana, dia, mes, hora } = formatarDataVitrine();
@@ -57,7 +59,7 @@ export function EventCard({ evento }: { evento: any }) {
       {/* IMAGEM */}
       <div className="relative aspect-[16/10] overflow-hidden bg-gray-100">
         <img 
-          src={String(evento.imagem_capa || "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4")} 
+          src={String(evento.imagem_capa || evento.imagem || "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4")} 
           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
           alt={String(evento.nome || "Evento")}
         />
@@ -75,7 +77,11 @@ export function EventCard({ evento }: { evento: any }) {
         {/* DATA E HORA AJUSTADA */}
         <div className="flex items-center gap-2 text-blue-600 text-[11px] font-bold uppercase tracking-wider mb-4">
           <Calendar size={14} strokeWidth={2.5} />
-          <span>{diaSemana}, {dia} {mes} • {hora}</span>
+          <span>
+            {diaSemana}, {dia} {mes}
+            {/* O ponto só aparece se houver hora válida */}
+            {hora && ` • ${hora}`}
+          </span>
         </div>
 
         {/* TÍTULO */}

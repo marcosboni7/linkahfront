@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Navbar } from './site/Navbar';
 import { EventCard } from './site/EventCard';
 import { Footer } from './site/Footer';
@@ -19,8 +19,6 @@ import {
   Heart,
   Sparkles,
   Zap,
-  ArrowRight,
-  Loader2,
   X,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -113,14 +111,22 @@ export default function BuyTicketHome() {
     carregarDados();
   }, []);
 
+  // LÓGICA DE FILTRO "HOJE" CORRIGIDA PARA EVITAR BUG DE FUSO HORÁRIO
   const oQueFazerHoje = useMemo(() => {
-    const hojeLocal = new Date().toLocaleDateString('en-CA'); 
+    const agora = new Date();
+    // Gera "2026-02-26" baseado no dia local do usuário
+    const hojeLocal = agora.getFullYear() + '-' + 
+                      String(agora.getMonth() + 1).padStart(2, '0') + '-' + 
+                      String(agora.getDate()).padStart(2, '0');
 
     return eventos.filter((ev) => {
       const dataRaw = ev.data_inicio || ev.data || '';
       if (!dataRaw) return false;
+
+      // Remove o "Z" ou fuso para comparar apenas a data pura
       const dataLimpa = String(dataRaw).replace(/Z$|[+-]\d{2}:\d{2}$/, '');
       const dataEvento = dataLimpa.split('T')[0];
+
       return dataEvento === hojeLocal;
     });
   }, [eventos]);
@@ -209,7 +215,7 @@ export default function BuyTicketHome() {
           </div>
         ) : (
           <>
-            {/* SEÇÃO ACONTECENDO HOJE - Removi as travas de busca/categoria para teste */}
+            {/* SEÇÃO ACONTECENDO HOJE */}
             {oQueFazerHoje.length > 0 && (
               <section className="bg-slate-50 rounded-[3rem] p-8 md:p-12 border border-slate-100">
                 <div className="flex items-end justify-between mb-10">
@@ -228,7 +234,7 @@ export default function BuyTicketHome() {
               </section>
             )}
 
-            {/* SEÇÃO COMUNIDADES - Removi as travas de busca/categoria para teste */}
+            {/* SEÇÃO COMUNIDADES */}
             {comunidades.length > 0 && (
                 <section>
                     <h2 className="text-2xl font-bold mb-8 text-slate-950">Comunidades em destaque</h2>
