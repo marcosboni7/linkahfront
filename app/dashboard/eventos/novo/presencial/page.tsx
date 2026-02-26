@@ -23,15 +23,28 @@ export default function NovoEventoPresencial() {
 
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [formData, setFormData] = useState({
-    nome: '', categoria: '', status: 'Ativo', descricao: '',
-    data_inicio: '', hora_inicio: '', data_termino: '', hora_termino: '',
-    local_nome: '', cep: '', endereco: '', numero: '', complemento: '', cidade: '', estado: '',
+    nome: '', 
+    categoria: '', 
+    status: 'Ativo', 
+    descricao: '',
+    data_inicio: '', 
+    hora_inicio: '', 
+    data_termino: '', 
+    hora_termino: '',
+    local_nome: '', 
+    cep: '', 
+    endereco: '', 
+    numero: '', 
+    complemento: '', 
+    cidade: '', 
+    estado: '',
     capacidade: '',
     tipo: 'Presencial',
     regras: '',
     visibilidade: 'Publico'
   });
 
+  // --- LÓGICA DO GOOGLE MAPS ---
   const initGoogleMaps = () => {
     if (typeof window === 'undefined' || !window.google || !mapContainerRef.current || googleMap.current) return;
 
@@ -63,6 +76,7 @@ export default function NovoEventoPresencial() {
 
         const getComponent = (type: string) => 
           place.address_components!.find((c: any) => c.types.includes(type))?.long_name || '';
+        
         const getUF = () => 
           place.address_components!.find((c: any) => c.types.includes('administrative_area_level_1'))?.short_name || '';
 
@@ -79,6 +93,7 @@ export default function NovoEventoPresencial() {
     }
   };
 
+  // --- HANDLERS ---
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -94,15 +109,62 @@ export default function NovoEventoPresencial() {
   };
 
   const handleSalvar = async () => {
+    const token = localStorage.getItem('@Linkah:Token');
+    const emailProdutor = localStorage.getItem('userEmail');
+
+    if (!token || !emailProdutor) {
+      alert("Sessão expirada. Faça login novamente.");
+      router.push('/auth/login');
+      return;
+    }
+
+    if (!formData.nome || !formData.data_inicio || !formData.local_nome) {
+      alert("Por favor, preencha Nome, Data de Início e o Local.");
+      return;
+    }
+
     setIsLoading(true);
-    // ... lógica de envio
-    setIsLoading(false);
+
+    const payload = { 
+      ...formData, 
+      produtor_email: emailProdutor,
+      imagem_capa: previewImage,
+      capacidade: Number(formData.capacidade) || 0
+    };
+
+    try {
+      const response = await fetch(`${API_URL}/api/eventos/novo-presencial`, {
+        method: 'POST',
+        headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        router.push(`/dashboard/eventos/novo/ingressos/${data.id}`);
+      } else {
+        alert(`Erro: ${data.message || "Erro ao salvar"}`);
+      }
+    } catch (error) {
+      alert("Falha de conexão com o servidor.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-[#FAFBFF] font-sans antialiased pb-20">
-      <Script src={`https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_KEY}&libraries=places`} strategy="afterInteractive" onLoad={initGoogleMaps} />
+      <Script 
+        src={`https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_KEY}&libraries=places`} 
+        strategy="afterInteractive" 
+        onLoad={initGoogleMaps} 
+      />
 
+      {/* HEADER */}
       <header className="border-b border-slate-100 px-6 md:px-10 py-5 flex justify-between items-center bg-white/90 backdrop-blur-md sticky top-0 z-50">
         <div className="flex items-center gap-6">
           <button onClick={() => router.back()} className="p-2 hover:bg-pink-50 rounded-full transition-all text-slate-400">
@@ -113,35 +175,44 @@ export default function NovoEventoPresencial() {
             <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em]">Configuração Geral e Localização</p>
           </div>
         </div>
-        <button onClick={handleSalvar} className="bg-[#C22973] text-white px-10 py-3 rounded-2xl font-black uppercase text-[11px] tracking-widest hover:bg-[#a62262] transition-all shadow-xl shadow-pink-100 disabled:opacity-50">
+        <button 
+          onClick={handleSalvar} 
+          disabled={isLoading}
+          className="bg-[#C22973] text-white px-10 py-3 rounded-2xl font-black uppercase text-[11px] tracking-widest hover:bg-[#a62262] transition-all shadow-xl shadow-pink-100 disabled:opacity-50 flex items-center gap-2"
+        >
           {isLoading ? <Loader2 className="animate-spin" size={16} /> : "Próximo Passo"}
         </button>
       </header>
 
       <main className="max-w-[1300px] mx-auto p-6 md:p-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+          
           <div className="lg:col-span-8 space-y-8">
-            {/* O QUE? */}
+            {/* SEÇÃO 1: O QUE? */}
             <section className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-sm border border-slate-50">
               <h3 className="text-[#C22973] text-[10px] font-black uppercase tracking-[0.3em] mb-8 flex items-center gap-2"><Info size={14}/> O que vai rolar?</h3>
               <div className="space-y-6">
                 <input name="nome" value={formData.nome} onChange={handleChange} placeholder="Nome do Evento" className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none font-bold text-slate-700 focus:border-[#C22973]" />
+                
                 <div className="grid grid-cols-2 gap-6">
                    <select name="categoria" value={formData.categoria} onChange={handleChange} className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none font-bold text-slate-600">
                       <option value="">Selecione a Categoria</option>
                       <option value="Show">Show / Festa</option>
                       <option value="Workshop">Workshop</option>
+                      <option value="Workshop">Gastronomia</option>
+                      <option value="Workshop">Esportes</option>
                    </select>
                    <div className="relative">
                       <Users size={16} className="absolute left-4 top-4 text-slate-400" />
                       <input name="capacidade" value={formData.capacidade} onChange={handleChange} type="number" placeholder="Capacidade" className="w-full bg-slate-50 border border-slate-100 p-4 pl-12 rounded-2xl outline-none font-bold text-slate-700" />
                    </div>
                 </div>
+
                 <textarea name="descricao" value={formData.descricao} onChange={handleChange} rows={4} placeholder="Conte mais sobre o evento..." className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none focus:border-[#C22973] resize-none font-medium text-slate-600" />
               </div>
             </section>
 
-            {/* QUANDO? */}
+            {/* SEÇÃO 2: QUANDO? */}
             <section className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-sm border border-slate-50">
               <h3 className="text-[#C22973] text-[10px] font-black uppercase tracking-[0.3em] mb-8 flex items-center gap-2"><Calendar size={14}/> Quando?</h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -152,7 +223,7 @@ export default function NovoEventoPresencial() {
               </div>
             </section>
 
-            {/* ONDE? - CORRIGIDO PARA PREENCHER SOZINHO */}
+            {/* SEÇÃO 3: ONDE? (GOOGLE MAPS) */}
             <section className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-sm border border-slate-50">
               <h3 className="text-[#C22973] text-[10px] font-black uppercase tracking-[0.3em] mb-8 flex items-center gap-2"><MapPin size={14}/> Onde?</h3>
               <div className="space-y-4">
@@ -160,24 +231,36 @@ export default function NovoEventoPresencial() {
                   <Search size={16} className="absolute left-4 top-4 text-[#C22973]" />
                   <input ref={searchInputRef} placeholder="Buscar endereço no Google Maps..." className="w-full bg-pink-50/40 border border-pink-100 p-4 pl-12 rounded-2xl outline-none italic text-sm font-bold focus:border-[#C22973] text-slate-700" />
                 </div>
+                
                 <input name="local_nome" value={formData.local_nome} onChange={handleChange} placeholder="Nome do Local (Ex: Teatro Municipal)" className="w-full bg-slate-50 border border-slate-100 p-4 rounded-xl outline-none font-bold text-slate-700" />
+                
                 <div className="grid grid-cols-4 gap-4">
                    <input name="cep" value={formData.cep} onChange={handleChange} placeholder="CEP" className="bg-slate-50 border border-slate-100 p-4 rounded-xl outline-none font-bold text-slate-700" />
                    <input name="endereco" value={formData.endereco} onChange={handleChange} placeholder="Rua / Avenida" className="col-span-3 bg-slate-50 border border-slate-100 p-4 rounded-xl outline-none font-bold text-slate-700" />
                 </div>
+                
                 <div className="grid grid-cols-2 gap-4">
                    <input name="numero" value={formData.numero} onChange={handleChange} placeholder="Número" className="bg-slate-50 border border-slate-100 p-4 rounded-xl outline-none font-bold text-slate-700" />
                    <input name="complemento" value={formData.complemento} onChange={handleChange} placeholder="Complemento" className="bg-slate-50 border border-slate-100 p-4 rounded-xl outline-none font-bold text-slate-700" />
                 </div>
+                
                 <div className="grid grid-cols-4 gap-4">
                    <input name="cidade" value={formData.cidade} onChange={handleChange} placeholder="Cidade" className="col-span-3 bg-slate-50 border border-slate-100 p-4 rounded-xl outline-none font-bold text-slate-700" />
                    <input name="estado" value={formData.estado} onChange={handleChange} placeholder="UF" maxLength={2} className="bg-slate-50 border border-slate-100 p-4 rounded-xl outline-none font-bold text-slate-700 text-center uppercase" />
                 </div>
               </div>
             </section>
+
+            {/* SEÇÃO 4: REGRAS */}
+            <section className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-sm border border-slate-50">
+               <h3 className="text-[#C22973] text-[10px] font-black uppercase tracking-[0.3em] mb-4 flex items-center gap-2">Regras e Observações</h3>
+               <textarea name="regras" value={formData.regras} onChange={handleChange} rows={3} placeholder="Ex: Proibido entrada de menores..." className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none focus:border-[#C22973] resize-none font-medium text-slate-600" />
+            </section>
           </div>
 
+          {/* COLUNA DIREITA */}
           <div className="lg:col-span-4 space-y-8">
+            {/* UPLOAD CAPA */}
             <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-50 text-center">
               <label className="text-[10px] text-slate-400 font-black uppercase mb-4 block tracking-widest italic">Capa do Evento</label>
               <div className="relative">
@@ -198,16 +281,19 @@ export default function NovoEventoPresencial() {
               </div>
             </div>
 
+            {/* MAPA VISUAL */}
             <div className="bg-white rounded-[2.5rem] p-2 shadow-sm border border-slate-50 h-[350px] relative overflow-hidden">
                 <div ref={mapContainerRef} className="w-full h-full rounded-[2.2rem]" />
             </div>
 
+            {/* INFO INGRESSOS */}
             <div className="bg-[#C22973] rounded-[3rem] p-8 text-white shadow-2xl shadow-pink-200">
                <Ticket className="mb-4 opacity-50" size={32} />
                <h4 className="font-black italic text-xl uppercase leading-tight mb-2">Próxima etapa:<br/>Ingressos</h4>
-               <p className="text-[11px] font-bold opacity-80 uppercase tracking-wider leading-relaxed">Na próxima tela você configurará os valores, lotes e a integração com o Stripe (Pix/Cartão).</p>
+               <p className="text-[11px] font-bold opacity-80 uppercase tracking-wider leading-relaxed">Configuraremos valores e Stripe no próximo passo.</p>
             </div>
           </div>
+
         </div>
       </main>
     </div>
