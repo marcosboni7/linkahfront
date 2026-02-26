@@ -10,26 +10,33 @@ export function EventCard({ evento }: { evento: any }) {
   const locale = language === 'PT' ? 'pt-BR' : 'en-US';
   const currencySymbol = language === 'PT' ? 'R$' : '$';
 
-  // --- LÓGICA DE DATA IGUAL À DOS DETALHES (RESOLVE O 00:00) ---
+  // --- LÓGICA DE DATA AJUSTADA PARA FUSO HORÁRIO ---
   const formatarDataVitrine = () => {
-    if (!evento.data_inicio) return { diaSemana: '', dia: '', mes: '', hora: '--:--' };
+    const dataRaw = evento.data_inicio || evento.data;
+    if (!dataRaw) return { diaSemana: '', dia: '', mes: '', hora: '--:--' };
 
-    // Criamos o objeto de data
-    const d = new Date(evento.data_inicio);
+    // Criamos o objeto de data. 
+    // DICA: Se a string vier sem o "Z", o JS pode interpretar como local. 
+    // Se vier com "Z", ele vira UTC. O toLocaleString resolve a conversão.
+    const d = new Date(dataRaw);
 
-    // Se a data for inválida, retorna vazio
     if (isNaN(d.getTime())) return { diaSemana: '', dia: '', mes: '', hora: '--:--' };
 
-    // Pegamos as partes da data de forma isolada para evitar que o JS invente fusos
-    const diaSemana = d.toLocaleDateString(locale, { weekday: 'short' }).toUpperCase().replace('.', '');
-    const dia = d.toLocaleDateString(locale, { day: '2-digit' });
-    const mes = d.toLocaleDateString(locale, { month: 'short' }).toUpperCase().replace('.', '');
+    // Opções comuns para garantir o horário de Brasília (UTC-3)
+    const options: Intl.DateTimeFormatOptions = {
+      timeZone: 'America/Sao_Paulo',
+      hour12: false
+    };
+
+    const diaSemana = d.toLocaleDateString(locale, { ...options, weekday: 'short' }).toUpperCase().replace('.', '');
+    const dia = d.toLocaleDateString(locale, { ...options, day: '2-digit' });
+    const mes = d.toLocaleDateString(locale, { ...options, month: 'short' }).toUpperCase().replace('.', '');
     
-    // Pegamos a hora exatamente como o navegador interpreta (sem forçar UTC para não zerar)
+    // Formatação da hora garantindo os dois dígitos
     const hora = d.toLocaleTimeString(locale, { 
+      ...options,
       hour: '2-digit', 
-      minute: '2-digit', 
-      hour12: false 
+      minute: '2-digit'
     });
 
     return { diaSemana, dia, mes, hora };
@@ -57,14 +64,14 @@ export function EventCard({ evento }: { evento: any }) {
       {/* IMAGEM */}
       <div className="relative aspect-[16/10] overflow-hidden bg-gray-100">
         <img 
-          src={evento.imagem_capa || "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4"} 
+          src={String(evento.imagem_capa || "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4")} 
           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-          alt={evento.nome}
+          alt={String(evento.nome || "Evento")}
         />
         
         <div className="absolute top-4 left-4">
           <span className="bg-white/95 backdrop-blur-sm text-slate-900 text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-lg shadow-sm">
-            {traduzirCategoria(evento.categoria || 'Evento')}
+            {traduzirCategoria(String(evento.categoria || 'Evento'))}
           </span>
         </div>
       </div>
@@ -72,7 +79,7 @@ export function EventCard({ evento }: { evento: any }) {
       {/* CONTEÚDO */}
       <div className="p-6 flex flex-col flex-grow">
         
-        {/* DATA E HORA - AGORA IGUAL AOS DETALHES */}
+        {/* DATA E HORA */}
         <div className="flex items-center gap-2 text-blue-600 text-[11px] font-bold uppercase tracking-wider mb-4">
           <Calendar size={14} strokeWidth={2.5} />
           <span>{diaSemana}, {dia} {mes} • {hora}</span>
@@ -80,14 +87,14 @@ export function EventCard({ evento }: { evento: any }) {
 
         {/* TÍTULO */}
         <h3 className="text-slate-900 font-bold text-lg leading-tight mb-3 group-hover:text-blue-600 transition-colors line-clamp-2 min-h-[56px]">
-          {evento.nome}
+          {String(evento.nome || "")}
         </h3>
 
         {/* LOCALIZAÇÃO */}
         <div className="flex items-center gap-1.5 text-gray-400 mb-6">
           <MapPin size={14} className="flex-shrink-0 text-gray-300" />
           <span className="text-xs font-medium truncate">
-            {evento.local_nome || 'Local'}, {evento.cidade}
+            {String(evento.local_nome || 'Local')}, {String(evento.cidade || '')}
           </span>
         </div>
 
@@ -95,7 +102,7 @@ export function EventCard({ evento }: { evento: any }) {
         <div className="mt-auto pt-5 border-t border-gray-50 flex items-center justify-between">
           <div>
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
-              {t.from || 'Tickets'}
+              {String(t?.from || 'Tickets')}
             </p>
             <p className="text-xl font-black text-slate-900 tracking-tight">
               <span className="text-sm font-bold mr-0.5">{currencySymbol}</span>
