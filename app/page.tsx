@@ -113,34 +113,16 @@ export default function BuyTicketHome() {
     carregarDados();
   }, []);
 
-  /**
-   * DEBUG DE FILTRO "HOJE"
-   */
   const oQueFazerHoje = useMemo(() => {
     const hojeLocal = new Date().toLocaleDateString('en-CA'); 
-    console.log("--- DEBUG HOJE ---");
-    console.log("Data do Sistema (en-CA):", hojeLocal);
 
-    const filtrados = eventos.filter((ev) => {
+    return eventos.filter((ev) => {
       const dataRaw = ev.data_inicio || ev.data || '';
       if (!dataRaw) return false;
-      
-      // Limpeza de fuso para comparação de dia
       const dataLimpa = String(dataRaw).replace(/Z$|[+-]\d{2}:\d{2}$/, '');
       const dataEvento = dataLimpa.split('T')[0];
-      
-      const ehHoje = dataEvento === hojeLocal;
-      
-      if (ehHoje) {
-        console.log(`✅ Evento HOJE: ${ev.nome} | Data API: ${dataRaw} | Comparação: ${dataEvento} === ${hojeLocal}`);
-      }
-
-      return ehHoje;
+      return dataEvento === hojeLocal;
     });
-
-    console.log("Total eventos hoje:", filtrados.length);
-    console.log("------------------");
-    return filtrados;
   }, [eventos]);
 
   const vitrineFiltrada = useMemo(() => {
@@ -227,8 +209,8 @@ export default function BuyTicketHome() {
           </div>
         ) : (
           <>
-            {/* SEÇÃO ACONTECENDO HOJE */}
-            {!buscaNome && categoriaAtiva === 'Todos' && oQueFazerHoje.length > 0 && (
+            {/* SEÇÃO ACONTECENDO HOJE - Removi as travas de busca/categoria para teste */}
+            {oQueFazerHoje.length > 0 && (
               <section className="bg-slate-50 rounded-[3rem] p-8 md:p-12 border border-slate-100">
                 <div className="flex items-end justify-between mb-10">
                   <div>
@@ -240,13 +222,14 @@ export default function BuyTicketHome() {
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                   {oQueFazerHoje.map((ev) => (
-                    <EventCard key={ev.id} evento={ev} />
+                    <EventCard key={`hoje-${ev.id}`} evento={ev} />
                   ))}
                 </div>
               </section>
             )}
 
-            {!buscaNome && categoriaAtiva === 'Todos' && comunidades.length > 0 && (
+            {/* SEÇÃO COMUNIDADES - Removi as travas de busca/categoria para teste */}
+            {comunidades.length > 0 && (
                 <section>
                     <h2 className="text-2xl font-bold mb-8 text-slate-950">Comunidades em destaque</h2>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -290,7 +273,7 @@ export default function BuyTicketHome() {
               {vitrineFiltrada.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-16">
                   {vitrineFiltrada.map((ev) => (
-                    <EventCard key={ev.id} evento={ev} />
+                    <EventCard key={`vitrine-${ev.id}`} evento={ev} />
                   ))}
                 </div>
               ) : (
