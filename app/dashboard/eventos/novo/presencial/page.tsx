@@ -118,8 +118,8 @@ export default function NovoEventoPresencial() {
       return;
     }
 
-    if (!formData.nome || !formData.data_inicio || !formData.local_nome) {
-      alert("Por favor, preencha Nome, Data de Início e o Local.");
+    if (!formData.nome || !formData.data_inicio || !formData.local_nome || !formData.categoria) {
+      alert("Por favor, preencha Nome, Categoria, Data de Início e o Local.");
       return;
     }
 
@@ -195,7 +195,12 @@ export default function NovoEventoPresencial() {
                 <input name="nome" value={formData.nome} onChange={handleChange} placeholder="Nome do Evento" className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none font-bold text-slate-700 focus:border-[#C22973]" />
                 
                 <div className="grid grid-cols-2 gap-6">
-                   <select name="categoria" value={formData.categoria} onChange={handleChange} className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none font-bold text-slate-600">
+                   <select 
+                     name="categoria" 
+                     value={formData.categoria} 
+                     onChange={handleChange} 
+                     className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none font-bold text-slate-600 focus:border-[#C22973]"
+                   >
                       <option value="">{t.selectDefault}</option>
                       <option value="Arte & Cultura">{t.catArt}</option>
                       <option value="Entretenimento">{t.catEnt}</option>

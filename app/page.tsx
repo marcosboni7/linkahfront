@@ -24,7 +24,6 @@ import Image from 'next/image';
 
 const API_URL_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
 
-// Ícones mapeados exatamente para os nomes das categorias
 const iconMap: { [key: string]: any } = {
   Todos: Ticket,
   'Arte & Cultura': Palette,
@@ -36,7 +35,6 @@ const iconMap: { [key: string]: any } = {
   'Família & Comunidade': Users,
 };
 
-// LISTA FIXA DAS CATEGORIAS (Para garantir que apareçam sempre)
 const CATEGORIAS_FIXAS = [
   'Todos',
   'Arte & Cultura',
@@ -131,12 +129,12 @@ export default function BuyTicketHome() {
     const query = buscaNome.trim().toLowerCase();
     return eventos.filter((ev) => {
       const nomeMatch = String(ev.nome || '').toLowerCase().includes(query);
+      // Aqui a comparação agora vai bater com o valor que salvamos no NovoEventoPresencial
       const catMatch = categoriaAtiva === 'Todos' || ev.categoria === categoriaAtiva;
       return nomeMatch && catMatch;
     });
   }, [eventos, buscaNome, categoriaAtiva]);
 
-  // Filtro de Hoje
   const oQueFazerHoje = useMemo(() => {
     const agora = new Date();
     const hojeLocal = agora.getFullYear() + '-' + 
@@ -158,7 +156,7 @@ export default function BuyTicketHome() {
       <Navbar />
 
       {/* Hero Section */}
-      <section className="relative h-[80vh] min-h-[550px] overflow-hidden bg-slate-950">
+      <section className="relative h-[75vh] min-h-[500px] overflow-hidden bg-slate-950">
         <div className="absolute inset-0">
           {SLIDES.map((s, i) => (
             <div
@@ -169,7 +167,8 @@ export default function BuyTicketHome() {
               )}
             >
               <Image src={s.url} alt="Destaque" fill priority={i === 0} className="object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/50 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent opacity-40 md:opacity-100" />
+              <div className="absolute inset-0 bg-black/40" />
             </div>
           ))}
         </div>
@@ -209,15 +208,17 @@ export default function BuyTicketHome() {
         </div>
       </section>
 
-      {/* FILTRO DE CATEGORIAS FIXO */}
-      <div className="sticky top-[64px] z-40 border-b border-slate-200 bg-white/80 backdrop-blur-xl">
-        <div className="mx-auto max-w-7xl px-6 py-4">
-          <CategoryFilter
-            categories={CATEGORIAS_FIXAS}
-            activeCategory={categoriaAtiva}
-            onSelect={setCategoriaAtiva}
-            iconMap={iconMap}
-          />
+      {/* FILTRO DE CATEGORIAS - Com margem negativa para subir no banner */}
+      <div className="relative z-40 -mt-12">
+        <div className="mx-auto max-w-7xl px-6">
+          <div className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 p-4 border border-slate-100">
+            <CategoryFilter
+              categories={CATEGORIAS_FIXAS}
+              activeCategory={categoriaAtiva}
+              onSelect={setCategoriaAtiva}
+              iconMap={iconMap}
+            />
+          </div>
         </div>
       </div>
 
