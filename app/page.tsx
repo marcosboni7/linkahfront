@@ -9,15 +9,13 @@ import { useLanguage } from '@/app/context/LanguageContext';
 import {
   Search,
   Ticket,
-  Music,
-  Mic2,
+  Palette,
   Theater,
-  Gamepad2,
-  Utensils,
+  Briefcase,
   GraduationCap,
-  PartyPopper,
   Heart,
   Sparkles,
+  Users,
   Zap,
   X,
 } from 'lucide-react';
@@ -26,17 +24,29 @@ import Image from 'next/image';
 
 const API_URL_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
 
+// Ícones mapeados exatamente para os nomes das categorias
 const iconMap: { [key: string]: any } = {
   Todos: Ticket,
-  Show: Music,
-  Mentoria: Mic2,
-  Teatro: Theater,
-  Games: Gamepad2,
-  Gastronomia: Utensils,
-  Workshop: GraduationCap,
-  Festa: PartyPopper,
-  Infantil: Heart,
+  'Arte & Cultura': Palette,
+  'Entretenimento': Theater,
+  'Negócios': Briefcase,
+  'Educação & Desenvolvimento': GraduationCap,
+  'Esportes & Bem-estar': Heart,
+  'Experiências & Lifestyle': Sparkles,
+  'Família & Comunidade': Users,
 };
+
+// LISTA FIXA DAS CATEGORIAS (Para garantir que apareçam sempre)
+const CATEGORIAS_FIXAS = [
+  'Todos',
+  'Arte & Cultura',
+  'Entretenimento',
+  'Negócios',
+  'Educação & Desenvolvimento',
+  'Esportes & Bem-estar',
+  'Experiências & Lifestyle',
+  'Família & Comunidade'
+];
 
 const SLIDES = [
   { id: 1, url: 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?q=80&w=2070', titleKey: 'slide1Title', highlightKey: 'slide1Highlight' },
@@ -66,9 +76,22 @@ export default function BuyTicketHome() {
   const [comunidades, setComunidades] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [categoriaAtiva, setCategoriaAtiva] = useState('Todos');
-  const [categoriasExistentes, setCategoriasExistentes] = useState<string[]>(['Todos']);
   const [buscaNome, setBuscaNome] = useState('');
   const [currentSlide, setCurrentSlide] = useState(0);
+
+  const getCategoriaTraduzida = (cat: string) => {
+    if (cat === 'Todos') return t.allCategories || 'Todos';
+    const map: Record<string, string> = {
+      'Arte & Cultura': t.catArt,
+      'Entretenimento': t.catEnt,
+      'Negócios': t.catBiz,
+      'Educação & Desenvolvimento': t.catEdu,
+      'Esportes & Bem-estar': t.catHealth,
+      'Experiências & Lifestyle': t.catLife,
+      'Família & Comunidade': t.catFamily,
+    };
+    return map[cat] || cat;
+  };
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -89,13 +112,6 @@ export default function BuyTicketHome() {
         if (resEventos.ok) {
           const dados = await resEventos.json();
           setEventos(dados);
-          
-          const extrair: string[] = dados
-            .map((ev: any) => ev.categoria)
-            .filter(Boolean)
-            .map((x: any) => String(x).trim());
-
-          setCategoriasExistentes(['Todos', ...Array.from(new Set<string>(extrair))]);
         }
 
         if (resComunidades.ok) {
@@ -111,26 +127,6 @@ export default function BuyTicketHome() {
     carregarDados();
   }, []);
 
-  // LÓGICA DE FILTRO "HOJE" CORRIGIDA PARA EVITAR BUG DE FUSO HORÁRIO
-  const oQueFazerHoje = useMemo(() => {
-    const agora = new Date();
-    // Gera "2026-02-26" baseado no dia local do usuário
-    const hojeLocal = agora.getFullYear() + '-' + 
-                      String(agora.getMonth() + 1).padStart(2, '0') + '-' + 
-                      String(agora.getDate()).padStart(2, '0');
-
-    return eventos.filter((ev) => {
-      const dataRaw = ev.data_inicio || ev.data || '';
-      if (!dataRaw) return false;
-
-      // Remove o "Z" ou fuso para comparar apenas a data pura
-      const dataLimpa = String(dataRaw).replace(/Z$|[+-]\d{2}:\d{2}$/, '');
-      const dataEvento = dataLimpa.split('T')[0];
-
-      return dataEvento === hojeLocal;
-    });
-  }, [eventos]);
-
   const vitrineFiltrada = useMemo(() => {
     const query = buscaNome.trim().toLowerCase();
     return eventos.filter((ev) => {
@@ -140,12 +136,28 @@ export default function BuyTicketHome() {
     });
   }, [eventos, buscaNome, categoriaAtiva]);
 
+  // Filtro de Hoje
+  const oQueFazerHoje = useMemo(() => {
+    const agora = new Date();
+    const hojeLocal = agora.getFullYear() + '-' + 
+                      String(agora.getMonth() + 1).padStart(2, '0') + '-' + 
+                      String(agora.getDate()).padStart(2, '0');
+
+    return eventos.filter((ev) => {
+      const dataRaw = ev.data_inicio || ev.data || '';
+      if (!dataRaw) return false;
+      const dataEvento = String(dataRaw).split('T')[0];
+      return dataEvento === hojeLocal;
+    });
+  }, [eventos]);
+
   const slide = SLIDES[currentSlide];
 
   return (
     <div className="min-h-screen bg-white text-slate-900 selection:bg-indigo-100">
       <Navbar />
 
+      {/* Hero Section */}
       <section className="relative h-[80vh] min-h-[550px] overflow-hidden bg-slate-950">
         <div className="absolute inset-0">
           {SLIDES.map((s, i) => (
@@ -165,7 +177,7 @@ export default function BuyTicketHome() {
         <div className="relative mx-auto max-w-7xl px-6 h-full flex flex-col justify-center">
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 backdrop-blur-md px-3 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-white">
-              <Sparkles size={12} className="text-indigo-300" />
+              <span className="animate-pulse w-2 h-2 bg-indigo-400 rounded-full" />
               Curadoria Linkah
             </div>
 
@@ -197,10 +209,11 @@ export default function BuyTicketHome() {
         </div>
       </section>
 
+      {/* FILTRO DE CATEGORIAS FIXO */}
       <div className="sticky top-[64px] z-40 border-b border-slate-200 bg-white/80 backdrop-blur-xl">
         <div className="mx-auto max-w-7xl px-6 py-4">
           <CategoryFilter
-            categories={categoriasExistentes}
+            categories={CATEGORIAS_FIXAS}
             activeCategory={categoriaAtiva}
             onSelect={setCategoriaAtiva}
             iconMap={iconMap}
@@ -215,15 +228,15 @@ export default function BuyTicketHome() {
           </div>
         ) : (
           <>
-            {/* SEÇÃO ACONTECENDO HOJE */}
+            {/* Seção Hoje */}
             {oQueFazerHoje.length > 0 && (
               <section className="bg-slate-50 rounded-[3rem] p-8 md:p-12 border border-slate-100">
                 <div className="flex items-end justify-between mb-10">
                   <div>
                     <div className="flex items-center gap-2 text-indigo-600 font-bold text-[10px] uppercase tracking-widest mb-2">
-                      <Zap size={14} fill="currentColor" /> Live Now
+                      <Zap size={14} fill="currentColor" /> {t.happening || 'Acontecendo'} {t.today || 'hoje'}
                     </div>
-                    <h2 className="text-3xl font-bold text-slate-950">Acontecendo hoje</h2>
+                    <h2 className="text-3xl font-bold text-slate-950">{t.happeningToday || 'Destaques do Dia'}</h2>
                   </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -234,44 +247,25 @@ export default function BuyTicketHome() {
               </section>
             )}
 
-            {/* SEÇÃO COMUNIDADES */}
-            {comunidades.length > 0 && (
-                <section>
-                    <h2 className="text-2xl font-bold mb-8 text-slate-950">Comunidades em destaque</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        {comunidades.map((com) => (
-                            <Link href={`/evento/${com.id}/comunidade`} key={com.id} className="group relative h-64 rounded-3xl overflow-hidden shadow-lg">
-                                <Image 
-                                  src={String(com.imagem_url || 'https://images.unsplash.com/photo-1514525253361-bee8718a74a7?q=80&w=1200')} 
-                                  alt={String(com.nome || "Comunidade")} 
-                                  fill 
-                                  className="object-cover transition duration-500 group-hover:scale-110" 
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
-                                <div className="absolute bottom-6 left-6">
-                                    <p className="text-white font-bold text-xl">{String(com.nome || "")}</p>
-                                    <p className="text-white/70 text-sm">{Number(com.total_membros || 0)} membros</p>
-                                </div>
-                            </Link>
-                        ))}
-                    </div>
-                </section>
-            )}
-
+            {/* Vitrine Principal */}
             <section id="vitrine-principal" className="scroll-mt-32">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-12">
                 <div>
                     <h2 className="text-4xl font-bold text-slate-950 tracking-tight">
-                        {buscaNome ? `Resultados para "${buscaNome}"` : categoriaAtiva === 'Todos' ? 'Descubra Experiências' : categoriaAtiva}
+                        {buscaNome 
+                          ? `${t.resultsFor || 'Resultados para'} "${buscaNome}"` 
+                          : categoriaAtiva === 'Todos' 
+                            ? (t.discoverTitle || 'Descubra Experiências') 
+                            : getCategoriaTraduzida(categoriaAtiva)}
                     </h2>
-                    <p className="text-slate-500 mt-2">{vitrineFiltrada.length} opções disponíveis</p>
+                    <p className="text-slate-500 mt-2">{vitrineFiltrada.length} {t.optionsAvailable || 'opções disponíveis'}</p>
                 </div>
                 {(buscaNome || categoriaAtiva !== 'Todos') && (
                     <button 
                         onClick={() => {setBuscaNome(''); setCategoriaAtiva('Todos');}}
                         className="text-indigo-600 font-bold text-xs uppercase tracking-widest flex items-center gap-2 hover:text-indigo-800 transition"
                     >
-                        <X size={14} /> Limpar Filtros
+                        <X size={14} /> {t.clearFilters || 'Limpar Filtros'}
                     </button>
                 )}
               </div>
@@ -284,8 +278,10 @@ export default function BuyTicketHome() {
                 </div>
               ) : (
                 <div className="py-24 text-center border-2 border-dashed border-slate-200 rounded-[3rem] bg-slate-50/50">
-                  <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Nenhum evento encontrado</p>
-                  <button onClick={() => {setBuscaNome(''); setCategoriaAtiva('Todos');}} className="mt-4 text-indigo-600 font-bold hover:underline">Ver vitrine completa</button>
+                  <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">{t.noEventsFound || 'Nenhum evento encontrado'}</p>
+                  <button onClick={() => {setBuscaNome(''); setCategoriaAtiva('Todos');}} className="mt-4 text-indigo-600 font-bold hover:underline">
+                    {t.viewFullShowcase || 'Ver vitrine completa'}
+                  </button>
                 </div>
               )}
             </section>

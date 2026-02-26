@@ -196,11 +196,14 @@ export default function NovoEventoPresencial() {
                 
                 <div className="grid grid-cols-2 gap-6">
                    <select name="categoria" value={formData.categoria} onChange={handleChange} className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none font-bold text-slate-600">
-                      <option value="">Selecione a Categoria</option>
-                      <option value="Show">Show / Festa</option>
-                      <option value="Workshop">Workshop</option>
-                      <option value="Workshop">Gastronomia</option>
-                      <option value="Workshop">Esportes</option>
+                      <option value="">{t.selectDefault}</option>
+                      <option value="Arte & Cultura">{t.catArt}</option>
+                      <option value="Entretenimento">{t.catEnt}</option>
+                      <option value="Negócios">{t.catBiz}</option>
+                      <option value="Educação & Desenvolvimento">{t.catEdu}</option>
+                      <option value="Esportes & Bem-estar">{t.catHealth}</option>
+                      <option value="Experiências & Lifestyle">{t.catLife}</option>
+                      <option value="Família & Comunidade">{t.catFamily}</option>
                    </select>
                    <div className="relative">
                       <Users size={16} className="absolute left-4 top-4 text-slate-400" />

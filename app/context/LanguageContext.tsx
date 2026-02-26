@@ -40,7 +40,7 @@ const translations = {
     resultsFor: "Resultados para",
     noEventsFound: "Nenhum evento encontrado para esta seleção.",
 
-    // Filtros e Categorias (ATUALIZADO)
+    // Filtros e Categorias (SINCRONIZADO COM DB)
     filterVibe: "Filtrar por Vibe",
     allCategories: "Todos",
     catArt: "Arte & Cultura",
@@ -292,16 +292,16 @@ const translations = {
     resultsFor: "Results for",
     noEventsFound: "No events found for this selection.",
 
-    // Filters and Categories (UPDATED)
+    // Filters and Categories (SINCRONIZADO COM DB)
     filterVibe: "Filter by Vibe",
     allCategories: "All",
-    catArt: "Art & Culture",
-    catEnt: "Entertainment",
-    catBiz: "Business",
-    catEdu: "Education & Development",
-    catHealth: "Sports & Wellbeing",
-    catLife: "Experiences & Lifestyle",
-    catFamily: "Family & Community",
+    catArt: "Arte & Cultura",
+    catEnt: "Entretenimento",
+    catBiz: "Negócios",
+    catEdu: "Educação & Desenvolvimento",
+    catHealth: "Esportes & Bem-estar",
+    catLife: "Experiências & Lifestyle",
+    catFamily: "Família & Comunidade",
 
     // Ticket Visual (Success Page / AWS)
     ticketTitle: "Your entry is granted!",

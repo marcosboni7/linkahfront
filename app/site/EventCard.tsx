@@ -24,12 +24,10 @@ export function EventCard({ evento }: { evento: any }) {
     const dia = d.toLocaleDateString(locale, { day: '2-digit' });
     const mes = d.toLocaleDateString(locale, { month: 'short' }).toUpperCase().replace('.', '');
     
-    // 2. HORA: Exatamente a lógica da página de Detalhes
-    // Prioriza 'horario', depois 'hora_inicio', e se for "00:00" a gente oculta para ficar limpo
+    // 2. HORA
     const horaRaw = evento.horario || evento.hora_inicio || "";
     let horaFormatada = horaRaw.slice(0, 5);
 
-    // Se a hora for meia-noite cravada ou vazia, não mostramos na vitrine
     if (horaFormatada === "00:00" || !horaFormatada) {
       horaFormatada = "";
     }
@@ -39,14 +37,19 @@ export function EventCard({ evento }: { evento: any }) {
 
   const { diaSemana, dia, mes, hora } = formatarDataVitrine();
 
+  // ATUALIZADO: Mapeamento para as novas 7 categorias
   const traduzirCategoria = (cat: string) => {
     const categorias: Record<string, string> = {
-      'Música & Show': t.catMusic || 'Música',
-      'Workshop & Palestra': t.catWorkshop || 'Workshop',
-      'Teatro & Cultura': t.catTheater || 'Cultura',
-      'Esportes': t.catSports || 'Esportes',
-      'Gastronomia': t.catFood || 'Gastronomia',
+      'Arte & Cultura': t.catArt,
+      'Entretenimento': t.catEnt,
+      'Negócios': t.catBiz,
+      'Educação & Desenvolvimento': t.catEdu,
+      'Esportes & Bem-estar': t.catHealth,
+      'Experiências & Lifestyle': t.catLife,
+      'Família & Comunidade': t.catFamily,
     };
+    
+    // Retorna a tradução ou o nome original do banco se não encontrar no mapa
     return categorias[cat] || cat;
   };
 
@@ -74,12 +77,11 @@ export function EventCard({ evento }: { evento: any }) {
       {/* CONTEÚDO */}
       <div className="p-6 flex flex-col flex-grow">
         
-        {/* DATA E HORA AJUSTADA */}
+        {/* DATA E HORA */}
         <div className="flex items-center gap-2 text-blue-600 text-[11px] font-bold uppercase tracking-wider mb-4">
           <Calendar size={14} strokeWidth={2.5} />
           <span>
             {diaSemana}, {dia} {mes}
-            {/* O ponto só aparece se houver hora válida */}
             {hora && ` • ${hora}`}
           </span>
         </div>
