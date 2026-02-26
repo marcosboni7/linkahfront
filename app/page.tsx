@@ -92,7 +92,6 @@ export default function BuyTicketHome() {
           const dados = await resEventos.json();
           setEventos(dados);
           
-          // CORREÇÃO DO SET: Tipamos explicitamente como string
           const extrair: string[] = dados
             .map((ev: any) => ev.categoria)
             .filter(Boolean)
@@ -114,14 +113,22 @@ export default function BuyTicketHome() {
     carregarDados();
   }, []);
 
-  // AJUSTE DE HORÁRIO LOCAL (BRASIL/USER)
+  /**
+   * AJUSTE PARA HORÁRIO REAL:
+   * Removemos o fuso da comparação para que o sistema entenda o dia local.
+   */
   const oQueFazerHoje = useMemo(() => {
+    // Hoje no fuso do navegador (ex: "2026-02-26")
     const hojeLocal = new Date().toLocaleDateString('en-CA'); 
 
     return eventos.filter((ev) => {
-      const dataRaw = ev.data || ev.data_inicio || '';
+      const dataRaw = ev.data_inicio || ev.data || '';
       if (!dataRaw) return false;
-      const dataEvento = String(dataRaw).split('T')[0];
+      
+      // Removemos o "Z" ou fuso da string para não retroceder 3 horas
+      const dataLimpa = String(dataRaw).replace(/Z$|[+-]\d{2}:\d{2}$/, '');
+      const dataEvento = dataLimpa.split('T')[0];
+      
       return dataEvento === hojeLocal;
     });
   }, [eventos]);
@@ -165,7 +172,6 @@ export default function BuyTicketHome() {
             </div>
 
             <h1 className="mt-6 text-5xl md:text-7xl font-bold tracking-tight text-white leading-[1.1]">
-              {/* CORREÇÃO UNKNOWN -> STRING */}
               {String(t?.[slide.titleKey] || "")}{' '}
               <span className="block font-light text-indigo-300/90 italic">
                 {String(t?.[slide.highlightKey] || "")}

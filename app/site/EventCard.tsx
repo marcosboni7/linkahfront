@@ -10,19 +10,18 @@ export function EventCard({ evento }: { evento: any }) {
   const locale = language === 'PT' ? 'pt-BR' : 'en-US';
   const currencySymbol = language === 'PT' ? 'R$' : '$';
 
-  // --- LÓGICA DE DATA AJUSTADA PARA FUSO HORÁRIO ---
+  // --- LÓGICA DE DATA PARA MOSTRAR HORÁRIO REAL ---
   const formatarDataVitrine = () => {
     const dataRaw = evento.data_inicio || evento.data;
     if (!dataRaw) return { diaSemana: '', dia: '', mes: '', hora: '--:--' };
 
-    // Criamos o objeto de data. 
-    // DICA: Se a string vier sem o "Z", o JS pode interpretar como local. 
-    // Se vier com "Z", ele vira UTC. O toLocaleString resolve a conversão.
+    // Criamos o objeto de data
     const d = new Date(dataRaw);
 
     if (isNaN(d.getTime())) return { diaSemana: '', dia: '', mes: '', hora: '--:--' };
 
-    // Opções comuns para garantir o horário de Brasília (UTC-3)
+    // FORÇAMOS O TIMEZONE PARA BRASÍLIA
+    // Isso garante que se no banco for 20:00, ele mostre 20:00 em qualquer lugar
     const options: Intl.DateTimeFormatOptions = {
       timeZone: 'America/Sao_Paulo',
       hour12: false
@@ -32,7 +31,7 @@ export function EventCard({ evento }: { evento: any }) {
     const dia = d.toLocaleDateString(locale, { ...options, day: '2-digit' });
     const mes = d.toLocaleDateString(locale, { ...options, month: 'short' }).toUpperCase().replace('.', '');
     
-    // Formatação da hora garantindo os dois dígitos
+    // Aqui pegamos a hora real ajustada ao fuso de Brasília
     const hora = d.toLocaleTimeString(locale, { 
       ...options,
       hour: '2-digit', 
@@ -79,7 +78,7 @@ export function EventCard({ evento }: { evento: any }) {
       {/* CONTEÚDO */}
       <div className="p-6 flex flex-col flex-grow">
         
-        {/* DATA E HORA */}
+        {/* DATA E HORA COM AJUSTE REAL */}
         <div className="flex items-center gap-2 text-blue-600 text-[11px] font-bold uppercase tracking-wider mb-4">
           <Calendar size={14} strokeWidth={2.5} />
           <span>{diaSemana}, {dia} {mes} • {hora}</span>
