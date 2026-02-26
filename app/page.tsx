@@ -114,23 +114,33 @@ export default function BuyTicketHome() {
   }, []);
 
   /**
-   * AJUSTE PARA HORÁRIO REAL:
-   * Removemos o fuso da comparação para que o sistema entenda o dia local.
+   * DEBUG DE FILTRO "HOJE"
    */
   const oQueFazerHoje = useMemo(() => {
-    // Hoje no fuso do navegador (ex: "2026-02-26")
     const hojeLocal = new Date().toLocaleDateString('en-CA'); 
+    console.log("--- DEBUG HOJE ---");
+    console.log("Data do Sistema (en-CA):", hojeLocal);
 
-    return eventos.filter((ev) => {
+    const filtrados = eventos.filter((ev) => {
       const dataRaw = ev.data_inicio || ev.data || '';
       if (!dataRaw) return false;
       
-      // Removemos o "Z" ou fuso da string para não retroceder 3 horas
+      // Limpeza de fuso para comparação de dia
       const dataLimpa = String(dataRaw).replace(/Z$|[+-]\d{2}:\d{2}$/, '');
       const dataEvento = dataLimpa.split('T')[0];
       
-      return dataEvento === hojeLocal;
+      const ehHoje = dataEvento === hojeLocal;
+      
+      if (ehHoje) {
+        console.log(`✅ Evento HOJE: ${ev.nome} | Data API: ${dataRaw} | Comparação: ${dataEvento} === ${hojeLocal}`);
+      }
+
+      return ehHoje;
     });
+
+    console.log("Total eventos hoje:", filtrados.length);
+    console.log("------------------");
+    return filtrados;
   }, [eventos]);
 
   const vitrineFiltrada = useMemo(() => {
@@ -217,6 +227,7 @@ export default function BuyTicketHome() {
           </div>
         ) : (
           <>
+            {/* SEÇÃO ACONTECENDO HOJE */}
             {!buscaNome && categoriaAtiva === 'Todos' && oQueFazerHoje.length > 0 && (
               <section className="bg-slate-50 rounded-[3rem] p-8 md:p-12 border border-slate-100">
                 <div className="flex items-end justify-between mb-10">

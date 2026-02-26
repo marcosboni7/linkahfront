@@ -10,20 +10,29 @@ export function EventCard({ evento }: { evento: any }) {
   const locale = language === 'PT' ? 'pt-BR' : 'en-US';
   const currencySymbol = language === 'PT' ? 'R$' : '$';
 
-  // --- LÓGICA DE DATA PARA MOSTRAR HORÁRIO REAL ---
+  // --- LÓGICA DE DATA COM DEBUG ---
   const formatarDataVitrine = () => {
     const dataRaw = evento.data_inicio || evento.data;
+    
     if (!dataRaw) return { diaSemana: '', dia: '', mes: '', hora: '--:--' };
 
-    // Criamos o objeto de data
-    const d = new Date(dataRaw);
+    // 1. VEJA O QUE VEM DA API (Abra o F12 no navegador)
+    console.log(`Evento: ${evento.nome} | Raw:`, dataRaw);
+
+    // 2. Lógica para "limpar" a string e evitar o retrocesso de 3 horas (o erro das 21h)
+    // Se a string tiver 'Z' no final ou '+00:00', o JS vai subtrair 3h. Nós removemos isso.
+    const dataLimpa = String(dataRaw).replace(/Z$|[+-]\d{2}:\d{2}$/, '');
+    
+    // 3. Criamos a data tratando-a como "Tempo Local"
+    const d = new Date(dataLimpa);
+
+    console.log(`Evento: ${evento.nome} | Data Limpa:`, dataLimpa, "| Objeto Date:", d.toString());
 
     if (isNaN(d.getTime())) return { diaSemana: '', dia: '', mes: '', hora: '--:--' };
 
-    // FORÇAMOS O TIMEZONE PARA BRASÍLIA
-    // Isso garante que se no banco for 20:00, ele mostre 20:00 em qualquer lugar
+    // Opções sem forçar timeZone (pois já limpamos a string acima)
+    // Se você forçar 'America/Sao_Paulo' aqui e a string estiver com 'Z', ele vai continuar subtraindo.
     const options: Intl.DateTimeFormatOptions = {
-      timeZone: 'America/Sao_Paulo',
       hour12: false
     };
 
@@ -31,7 +40,6 @@ export function EventCard({ evento }: { evento: any }) {
     const dia = d.toLocaleDateString(locale, { ...options, day: '2-digit' });
     const mes = d.toLocaleDateString(locale, { ...options, month: 'short' }).toUpperCase().replace('.', '');
     
-    // Aqui pegamos a hora real ajustada ao fuso de Brasília
     const hora = d.toLocaleTimeString(locale, { 
       ...options,
       hour: '2-digit', 
@@ -78,7 +86,7 @@ export function EventCard({ evento }: { evento: any }) {
       {/* CONTEÚDO */}
       <div className="p-6 flex flex-col flex-grow">
         
-        {/* DATA E HORA COM AJUSTE REAL */}
+        {/* DATA E HORA */}
         <div className="flex items-center gap-2 text-blue-600 text-[11px] font-bold uppercase tracking-wider mb-4">
           <Calendar size={14} strokeWidth={2.5} />
           <span>{diaSemana}, {dia} {mes} • {hora}</span>
