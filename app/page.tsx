@@ -10,12 +10,13 @@ import { useLanguage } from '@/app/context/LanguageContext';
 import { 
   Search, Ticket, Music, Mic2, Theater, Gamepad2, 
   Utensils, GraduationCap, PartyPopper, Heart,
-  Sparkles, Zap, Calendar, Loader2, ArrowRight
+  Sparkles, Zap, Calendar, Loader2, ArrowRight, TrendingUp
 } from 'lucide-react';
 import Link from 'next/link';
 
 const API_URL_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
 
+// Mapeamento de ícones minimalistas (sem cores vibrantes no código)
 const iconMap: { [key: string]: any } = {
   'Todos': Ticket, 'Show': Music, 'Mentoria': Mic2, 'Teatro': Theater,
   'Games': Gamepad2, 'Gastronomia': Utensils, 'Workshop': GraduationCap,
@@ -73,16 +74,7 @@ export default function BuyTicketHome() {
   }, []);
 
   const hojeStr = new Date().toLocaleDateString('en-CA');
-  const seteDiasDepois = new Date();
-  seteDiasDepois.setDate(seteDiasDepois.getDate() + 7);
-  const seteDiasStr = seteDiasDepois.toLocaleDateString('en-CA');
-  const formatarDataBanco = (ev: any) => (ev.data || ev.data_inicio || "").split('T')[0];
-
-  const oQueFazerHoje = eventos.filter(ev => formatarDataBanco(ev) === hojeStr);
-  const eventosChegando = eventos.filter(ev => {
-    const dataEv = formatarDataBanco(ev);
-    return dataEv > hojeStr && dataEv <= seteDiasStr;
-  });
+  const oQueFazerHoje = eventos.filter(ev => (ev.data || ev.data_inicio || "").split('T')[0] === hojeStr);
   
   const vitrineFiltrada = eventos.filter(ev => {
     const nomeMatch = ev.nome.toLowerCase().includes(buscaNome.toLowerCase());
@@ -91,26 +83,26 @@ export default function BuyTicketHome() {
   });
 
   return (
-    <div className="flex flex-col min-h-screen bg-white text-slate-900 font-sans antialiased">
+    <div className="flex flex-col min-h-screen bg-white text-slate-900 font-sans selection:bg-indigo-100 selection:text-indigo-900">
       <Navbar />
 
-      {/* HERO SECTION - MAIS CLEAN E POLIDA */}
-      <section className="relative h-[600px] flex items-center overflow-hidden bg-slate-900">
+      {/* HERO SECTION - FOCO EM TIPOGRAFIA E IMAGEM */}
+      <section className="relative h-[550px] flex items-center overflow-hidden bg-slate-950">
         {SLIDES.map((slide, index) => (
           <div key={slide.id} className={`absolute inset-0 transition-opacity duration-1000 ${index === currentSlide ? 'opacity-100' : 'opacity-0'}`}>
-            <div className="absolute inset-0 bg-cover bg-center transition-transform duration-[10000ms]" 
-                 style={{ backgroundImage: `url('${slide.url}')`, transform: index === currentSlide ? 'scale(1)' : 'scale(1.1)' }}>
-              <div className="absolute inset-0 bg-black/40 backdrop-brightness-75" />
+            <div className="absolute inset-0 bg-cover bg-center" 
+                 style={{ backgroundImage: `url('${slide.url}')` }}>
+              <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/60 to-transparent" />
             </div>
             
-            <div className="relative z-10 max-w-7xl mx-auto px-6 w-full">
-              <div className="max-w-3xl animate-in fade-in slide-in-from-left-8 duration-1000">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white text-[10px] font-bold uppercase tracking-widest mb-6">
-                  <Sparkles size={12} className="text-blue-400" /> Linkah Premier
+            <div className="relative z-10 max-w-7xl mx-auto px-8 w-full">
+              <div className="max-w-2xl">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-bold uppercase tracking-[0.2em] mb-8">
+                  <Sparkles size={12} /> Curadoria Linkah
                 </div>
-                <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 tracking-tight leading-[1.1]">
+                <h1 className="text-6xl md:text-7xl font-bold text-white mb-8 tracking-tighter leading-[1] transition-all">
                   {(t as any)[slide.titleKey]} <br /> 
-                  <span className="text-blue-400">
+                  <span className="text-indigo-500 font-light">
                     {(t as any)[slide.highlightKey]}
                   </span>
                 </h1>
@@ -119,103 +111,88 @@ export default function BuyTicketHome() {
           </div>
         ))}
         
-        {/* BARRA DE BUSCA - DESIGN "FLOATING CLEAN" */}
-        <div className="absolute bottom-12 z-30 w-full px-6">
-          <div className="bg-white/95 backdrop-blur-md p-2 rounded-2xl shadow-2xl flex flex-col md:flex-row items-center max-w-5xl mx-auto border border-gray-100">
-            <div className="flex-1 flex items-center px-6 py-4 w-full">
-              <Search size={20} className="text-gray-400 mr-4" />
+        {/* BARRA DE BUSCA INTEGRADA AO HERO */}
+        <div className="absolute bottom-10 z-30 w-full px-8">
+          <div className="bg-white p-1.5 rounded-2xl shadow-2xl flex flex-col md:flex-row items-center max-w-4xl border border-slate-200">
+            <div className="flex-1 flex items-center px-6 py-3 w-full">
+              <Search size={18} className="text-slate-400 mr-4" />
               <input 
                 type="text" 
                 value={buscaNome} 
                 onChange={(e) => setBuscaNome(e.target.value)} 
-                placeholder={t.searchPlaceholder || "O que você está procurando?"} 
-                className="w-full bg-transparent outline-none text-base font-medium text-slate-800 placeholder:text-gray-400" 
+                placeholder={t.searchPlaceholder || "Buscar eventos, shows ou mentorias..."} 
+                className="w-full bg-transparent outline-none text-sm font-medium text-slate-800 placeholder:text-slate-400" 
               />
             </div>
-            <button className="bg-blue-600 hover:bg-blue-700 text-white px-10 py-4 rounded-xl font-bold text-sm transition-all w-full md:w-auto active:scale-95 shadow-lg shadow-blue-500/20">
-              {t.explore || 'Explorar'}
+            <button className="bg-slate-950 hover:bg-black text-white px-10 py-4 rounded-xl font-bold text-xs uppercase tracking-widest transition-all w-full md:w-auto active:scale-95">
+              {t.explore || 'Pesquisar'}
             </button>
           </div>
         </div>
       </section>
 
-      {/* FILTRO DE CATEGORIAS - STICKY MINIMALISTA */}
-      <div className="sticky top-[64px] z-40 bg-white/90 backdrop-blur-md py-4 border-b border-gray-100">
+      {/* FILTRO DE CATEGORIAS - FLAT DESIGN */}
+      <div className="sticky top-[64px] z-40 bg-white/80 backdrop-blur-xl py-4 border-b border-slate-100">
         <CategoryFilter categories={categoriasExistentes} activeCategory={categoriaAtiva} onSelect={setCategoriaAtiva} iconMap={iconMap} />
       </div>
 
-      <main className="flex-1 max-w-7xl mx-auto px-6 py-16 space-y-24 w-full">
+      <main className="flex-1 max-w-7xl mx-auto px-8 py-20 space-y-24 w-full">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-4">
-            <Loader2 className="animate-spin text-blue-600" size={32} />
-            <p className="font-bold text-gray-400 uppercase tracking-widest text-[10px]">{t.sync || 'Carregando...'}</p>
+          <div className="flex flex-col items-center justify-center py-32 gap-4">
+            <Loader2 className="animate-spin text-slate-950" size={32} />
+            <p className="font-bold text-slate-300 uppercase tracking-widest text-[9px]">Sincronizando vitrine</p>
           </div>
         ) : (
           <>
             {!buscaNome && categoriaAtiva === 'Todos' && (
               <>
-                {/* SEÇÃO HOJE - CARDS MENORES E MAIS ELEGANTES */}
+                {/* SEÇÃO HOJE - MINIMALISTA */}
                 {oQueFazerHoje.length > 0 && (
-                  <section className="animate-in fade-in duration-700">
-                    <div className="flex justify-between items-end mb-8">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-orange-50 rounded-xl flex items-center justify-center text-orange-500">
-                          <Zap size={20} fill="currentColor"/>
+                  <section className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+                    <div className="flex justify-between items-center mb-10">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 text-indigo-600 font-bold text-[10px] uppercase tracking-widest">
+                          <Zap size={14} fill="currentColor" /> Live Now
                         </div>
-                        <SectionHeader title={t.happening || 'Acontecendo'} highlight={t.today || 'hoje'} />
+                        <h2 className="text-3xl font-bold text-slate-950 tracking-tight">Acontecendo hoje</h2>
                       </div>
-                      <Link href="#vitrine-principal" className="text-sm font-bold text-blue-600 hover:underline flex items-center gap-1">
-                        Ver tudo <ArrowRight size={14} />
+                      <Link href="#vitrine-principal" className="group text-xs font-bold text-slate-400 hover:text-slate-950 transition-all flex items-center gap-2 uppercase tracking-widest">
+                        Ver grade completa <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                       </Link>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                       {oQueFazerHoje.map(ev => <EventCard key={ev.id} evento={ev} />)}
                     </div>
                   </section>
                 )}
 
-                {/* SEÇÃO EM BREVE */}
-                {eventosChegando.length > 0 && (
-                  <section className="animate-in fade-in duration-1000">
-                    <div className="flex items-center gap-3 mb-8">
-                      <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
-                        <Calendar size={20} />
-                      </div>
-                      <SectionHeader title={t.coming || 'Chegando'} highlight={t.soon || 'em breve'} />
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                      {eventosChegando.map(ev => <EventCard key={ev.id} evento={ev} />)}
-                    </div>
-                  </section>
-                )}
-
-                {/* SEÇÃO COMUNIDADES - LAYOUT DE REVISTA */}
+                {/* SEÇÃO COMUNIDADES - ESTILO CARD DE LUXO */}
                 {comunidades.length > 0 && (
-                  <section className="py-16 px-8 bg-gray-50 rounded-[2rem] border border-gray-100">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-4">
-                      <div>
-                        <h2 className="text-3xl font-bold text-slate-900 tracking-tight">
-                          {t.communities || 'Comunidades'} <span className="text-blue-600">{t.trending || 'em alta'}</span>
-                        </h2>
-                        <p className="text-gray-500 mt-1 text-base">{t.communitySub || 'Conecte-se com pessoas que amam o que você ama.'}</p>
-                      </div>
-                      <button className="px-6 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors">
-                        Explorar todas
-                      </button>
+                  <section className="py-20 px-10 bg-slate-50 rounded-[2.5rem] border border-slate-100">
+                    <div className="max-w-3xl mb-12">
+                      <h2 className="text-4xl font-bold text-slate-950 tracking-tighter mb-4">
+                        Comunidades <span className="text-indigo-600">Exclusivas</span>
+                      </h2>
+                      <p className="text-slate-500 text-lg font-light leading-relaxed">
+                        Não apenas eventos, mas conexões reais. Entre em grupos segmentados e faça networking antes mesmo do evento começar.
+                      </p>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                       {comunidades.map((com) => (
-                        <Link href={`/evento/${com.id}/comunidade`} key={com.id} className="group relative h-80 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500">
-                          <img src={com.imagem_url || 'https://images.unsplash.com/photo-1514525253361-bee8718a74a7?q=80&w=500'} 
-                               className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt={com.nome} />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                          <div className="absolute bottom-6 left-6 right-6">
-                            <h4 className="text-white font-bold text-xl mb-2">{com.nome}</h4>
-                            <div className="flex items-center gap-3">
-                                <div className="flex -space-x-2">
-                                    {[1,2,3].map(i => <div key={i} className="w-7 h-7 rounded-full border-2 border-slate-900 bg-gray-400" />)}
-                                </div>
-                                <span className="text-white/90 text-xs font-medium">+{com.total_membros || 0} {t.membersCount || 'membros'}</span>
+                        <Link href={`/evento/${com.id}/comunidade`} key={com.id} className="group bg-white p-2 rounded-3xl border border-slate-100 hover:border-indigo-200 transition-all duration-500 shadow-sm hover:shadow-xl">
+                          <div className="relative h-64 rounded-[1.5rem] overflow-hidden mb-6">
+                            <img src={com.imagem_url || 'https://images.unsplash.com/photo-1514525253361-bee8718a74a7?q=80&w=500'} 
+                                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt={com.nome} />
+                          </div>
+                          <div className="px-4 pb-4">
+                            <h4 className="text-slate-950 font-bold text-xl mb-3 tracking-tight">{com.nome}</h4>
+                            <div className="flex items-center justify-between">
+                              <div className="flex -space-x-2">
+                                {[1,2,3].map(i => <div key={i} className="w-8 h-8 rounded-full border-2 border-white bg-slate-200" />)}
+                              </div>
+                              <span className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">
+                                {com.total_membros || 0} Membros
+                              </span>
                             </div>
                           </div>
                         </Link>
@@ -226,22 +203,25 @@ export default function BuyTicketHome() {
               </>
             )}
 
-            {/* VITRINE PRINCIPAL */}
+            {/* VITRINE PRINCIPAL - GRID MODERNO */}
             <section id="vitrine-principal" className="pt-10">
-              <div className="mb-10">
-                <SectionHeader 
-                  title={buscaNome ? `${t.resultsFor || 'Resultados para'} "${buscaNome}"` : (categoriaAtiva === 'Todos' ? (t.discoverNew || 'Descubra novas') : categoriaAtiva)} 
-                  highlight={buscaNome ? "" : (categoriaAtiva === 'Todos' ? (t.experiences || 'experiências') : "")} 
-                  count={vitrineFiltrada.length} 
-                />
+              <div className="flex items-center gap-3 mb-12">
+                 <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                 <h2 className="text-slate-950 font-bold text-2xl tracking-tighter uppercase">
+                   {buscaNome ? `Resultados para "${buscaNome}"` : (categoriaAtiva === 'Todos' ? 'Descubra Experiências' : categoriaAtiva)}
+                 </h2>
+                 {vitrineFiltrada.length > 0 && (
+                   <span className="text-slate-400 text-sm ml-2 font-medium">({vitrineFiltrada.length})</span>
+                 )}
               </div>
+              
               {vitrineFiltrada.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-10">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-16">
                   {vitrineFiltrada.map(ev => <EventCard key={ev.id} evento={ev} />)}
                 </div>
               ) : (
-                <div className="py-32 text-center bg-gray-50 rounded-3xl border border-dashed border-gray-200">
-                    <p className="text-gray-400 font-medium">{t.noEventsFound || 'Nenhum evento encontrado para esta busca.'}</p>
+                <div className="py-40 text-center bg-slate-50 rounded-[3rem] border border-dashed border-slate-200">
+                    <p className="text-slate-400 font-bold text-xs uppercase tracking-[0.2em]">Nenhum evento encontrado</p>
                 </div>
               )}
             </section>
