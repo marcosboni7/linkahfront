@@ -35,26 +35,27 @@ export default function TabelaEventos() {
   const carregarEventos = async () => {
     setLoading(true);
     try {
-      // 1. Captura os dados do Storage
-      const token = localStorage.getItem('@Linkah:Token') || localStorage.getItem('token');
-      const userStorage = localStorage.getItem('@Linkah:User') || localStorage.getItem('user');
+      // 1. Busca Token e User (Tenta múltiplos nomes de chave por segurança)
+      const token = localStorage.getItem('@Linkah:Token') || localStorage.getItem('token') || localStorage.getItem('userToken');
+      const userStorage = localStorage.getItem('@Linkah:User') || localStorage.getItem('user') || localStorage.getItem('userData');
       
       if (!token || !userStorage) {
-        console.error("Auth missing");
+        console.warn("⚠️ Autenticação não encontrada no LocalStorage.");
         setLoading(false);
         return;
       }
 
       const user = JSON.parse(userStorage);
-      const email = user.email;
+      // Tenta pegar o email de diferentes estruturas possíveis
+      const email = user.email || user.user?.email || user.userData?.email;
 
       if (!email) {
-        console.error("Email não encontrado no objeto de usuário");
+        console.error("❌ Email do usuário não identificado.");
         setLoading(false);
         return;
       }
 
-      // 2. Chamada para a API (Voltamos para o parâmetro ?email= para evitar o erro 400)
+      // 2. Chamada para a AWS
       const timestamp = new Date().getTime();
       const res = await fetch(`${API_URL}/api/eventos/listar?email=${email}&t=${timestamp}`, {
         method: 'GET',
@@ -66,13 +67,14 @@ export default function TabelaEventos() {
 
       if (res.ok) {
         const data = await res.json();
+        console.log("✅ Eventos carregados da AWS:", data);
         setEventos(Array.isArray(data) ? data : []);
       } else {
         const errorMsg = await res.text();
-        console.error(`Erro ${res.status}: ${errorMsg}`);
+        console.error(`❌ Erro ${res.status} na API:`, errorMsg);
       }
     } catch (err) {
-      console.error("AWS Connection fail:", err);
+      console.error("💥 Falha crítica na conexão AWS:", err);
     } finally {
       setLoading(false);
     }
@@ -84,14 +86,14 @@ export default function TabelaEventos() {
 
   const handleExcluir = async (id: number) => {
     const result = await Swal.fire({
-      title: t.confirmDeleteTitle || "Excluir Evento?",
-      text: t.confirmDeleteText || "Esta ação não pode ser desfeita.",
+      title: "Excluir Evento?",
+      text: "Esta ação removerá o evento permanentemente da AWS.",
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#C22973',
       cancelButtonColor: '#0f172a',
-      confirmButtonText: t.btnConfirmDelete || "Sim, excluir",
-      cancelButtonText: t.btnCancel || "Cancelar",
+      confirmButtonText: "Sim, excluir",
+      cancelButtonText: "Cancelar",
       customClass: { popup: 'rounded-[2.5rem] font-sans' }
     });
 
@@ -104,10 +106,10 @@ export default function TabelaEventos() {
         });
         if (res.ok) {
           setEventos((prev) => prev.filter((ev) => ev.id !== id));
-          Swal.fire({ title: t.done || "Sucesso", icon: 'success', confirmButtonColor: '#0f172a' });
+          Swal.fire({ title: "Excluído!", icon: 'success', confirmButtonColor: '#0f172a' });
         }
       } catch (err) {
-        Swal.fire('Error', 'AWS Connection fail', 'error');
+        Swal.fire('Erro', 'Falha ao deletar na AWS', 'error');
       }
     }
   };
@@ -132,12 +134,12 @@ export default function TabelaEventos() {
       });
 
       if (res.ok) {
-        Swal.fire({ title: t.done || "Evento Atualizado", icon: 'success', confirmButtonColor: '#0f172a' });
+        Swal.fire({ title: "Sincronizado!", icon: 'success', confirmButtonColor: '#0f172a' });
         setIsEditModalOpen(false);
         carregarEventos();
       }
     } catch (err) {
-      Swal.fire('Error', 'AWS Save fail', 'error');
+      Swal.fire('Erro', 'Falha ao atualizar na AWS', 'error');
     } finally {
       setSaving(false);
     }
@@ -145,13 +147,14 @@ export default function TabelaEventos() {
 
   return (
     <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden font-sans">
+      {/* HEADER */}
       <div className="p-10 border-b border-slate-50 flex flex-col md:flex-row justify-between items-center gap-6 bg-white">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="w-1.5 h-1.5 rounded-full bg-[#C22973]" />
-            <h2 className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Painel Administrativo</h2>
+            <h2 className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Painel Produtor</h2>
           </div>
-          <p className="text-slate-950 font-bold text-2xl tracking-tighter">{t.manageEvents || "Meus Eventos"}</p>
+          <p className="text-slate-950 font-bold text-2xl tracking-tighter">Meus Eventos</p>
         </div>
 
         <div className="relative">
@@ -167,18 +170,12 @@ export default function TabelaEventos() {
             <>
               <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)}></div>
               <div className="absolute right-0 mt-4 w-64 bg-white rounded-[2rem] shadow-2xl border border-slate-100 z-20 overflow-hidden py-3 animate-in fade-in zoom-in duration-200">
-                <button
-                  onClick={() => { setIsOpen(false); router.push('/dashboard/eventos/novo/presencial'); }}
-                  className="w-full flex items-center gap-4 px-6 py-4 text-slate-600 hover:bg-slate-50 font-bold text-xs"
-                >
-                  <MapPin size={18} className="text-[#C22973]" /> {t.btnPresencial || "Presencial"}
+                <button onClick={() => { setIsOpen(false); router.push('/dashboard/eventos/novo/presencial'); }} className="w-full flex items-center gap-4 px-6 py-4 text-slate-600 hover:bg-slate-50 font-bold text-xs">
+                  <MapPin size={18} className="text-[#C22973]" /> Presencial
                 </button>
                 <div className="h-px bg-slate-50 mx-4" />
-                <button
-                  onClick={() => { setIsOpen(false); router.push('/dashboard/eventos/novo/online'); }}
-                  className="w-full flex items-center gap-4 px-6 py-4 text-slate-600 hover:bg-slate-50 font-bold text-xs"
-                >
-                  <Globe size={18} className="text-blue-500" /> {t.btnOnline || "Online / Live"}
+                <button onClick={() => { setIsOpen(false); router.push('/dashboard/eventos/novo/online'); }} className="w-full flex items-center gap-4 px-6 py-4 text-slate-600 hover:bg-slate-50 font-bold text-xs">
+                  <Globe size={18} className="text-blue-500" /> Online / Live
                 </button>
               </div>
             </>
@@ -186,15 +183,16 @@ export default function TabelaEventos() {
         </div>
       </div>
 
+      {/* TABELA */}
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead className="bg-slate-50/50 text-slate-400 text-[10px] font-bold uppercase tracking-widest">
             <tr>
-              <th className="px-10 py-6">{t.thEventInfo || "Evento"}</th>
-              <th className="px-6 py-6">{t.thLocation || "Localização"}</th>
-              <th className="px-6 py-6">{t.thDateTimeShort || "Data & Hora"}</th>
-              <th className="px-6 py-6">{t.thSales || "Vendas"}</th>
-              <th className="px-6 py-6">{t.thStatus || "Status"}</th>
+              <th className="px-10 py-6">Evento</th>
+              <th className="px-6 py-6">Local</th>
+              <th className="px-6 py-6">Data</th>
+              <th className="px-6 py-6">Vendas</th>
+              <th className="px-6 py-6">Status</th>
               <th className="px-10 py-6 text-right">Ações</th>
             </tr>
           </thead>
@@ -204,7 +202,7 @@ export default function TabelaEventos() {
                 <td colSpan={6} className="py-32 text-center">
                    <div className="flex flex-col items-center gap-3">
                       <Loader2 className="animate-spin text-[#C22973]" size={40} />
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-300">Sincronizando AWS Cloud...</span>
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-300">Conectando AWS...</span>
                    </div>
                 </td>
               </tr>
@@ -213,11 +211,11 @@ export default function TabelaEventos() {
                 <tr key={evento.id} className="hover:bg-slate-50/30 transition-colors group">
                   <td className="px-10 py-6">
                     <div className="flex items-center gap-5">
-                      <div className="w-14 h-14 rounded-2xl bg-slate-50 overflow-hidden border border-slate-100 shrink-0 shadow-sm">
+                      <div className="w-14 h-14 rounded-2xl bg-slate-100 overflow-hidden border border-slate-100 shrink-0">
                         {evento.imagem_capa ? (
                           <img src={evento.imagem_capa} className="w-full h-full object-cover" alt="" />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-slate-200"><ImageIcon size={20} /></div>
+                          <div className="w-full h-full flex items-center justify-center text-slate-300"><ImageIcon size={20} /></div>
                         )}
                       </div>
                       <div>
@@ -226,34 +224,16 @@ export default function TabelaEventos() {
                       </div>
                     </div>
                   </td>
+                  <td className="px-6 py-6 text-xs font-bold text-slate-700">{evento.cidade || '---'}, {evento.estado}</td>
+                  <td className="px-6 py-6 text-xs font-bold text-slate-700">{formatarDataLocal(evento.data_inicio)}</td>
+                  <td className="px-6 py-6 text-xs font-bold text-slate-700">{evento.total_vendidos || 0} / {evento.total_vagas || 0}</td>
                   <td className="px-6 py-6">
-                    <div className="flex flex-col">
-                      <span className="text-xs font-bold text-slate-700">{evento.local_nome || '---'}</span>
-                      <span className="text-[10px] text-slate-400 uppercase">{evento.cidade}, {evento.estado}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-6">
-                    <div className="flex flex-col">
-                      <span className="text-xs font-bold text-slate-700">{formatarDataLocal(evento.data_inicio)}</span>
-                      <span className="text-[10px] text-slate-400 font-bold">{evento.hora_inicio?.slice(0, 5)}h</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-6 text-xs font-bold text-slate-700">
-                    {evento.total_vendidos || 0} vendidos
-                  </td>
-                  <td className="px-6 py-6">
-                    <span className="px-3 py-1.5 rounded-full text-[9px] font-bold uppercase bg-emerald-50 text-emerald-600 border border-emerald-100">
-                      {evento.status || 'Ativo'}
-                    </span>
+                    <span className="px-3 py-1.5 rounded-full text-[9px] font-bold uppercase bg-emerald-50 text-emerald-600 border border-emerald-100">Ativo</span>
                   </td>
                   <td className="px-10 py-6 text-right">
                     <div className="flex items-center justify-end gap-2">
-                      <button onClick={() => abrirModalEdicao(evento)} className="p-3 text-slate-400 hover:text-slate-950 hover:bg-slate-50 rounded-xl transition-all border border-transparent hover:border-slate-100">
-                        <Edit3 size={18} />
-                      </button>
-                      <button onClick={() => handleExcluir(evento.id)} className="p-3 text-slate-400 hover:text-[#C22973] hover:bg-rose-50 rounded-xl transition-all border border-transparent hover:border-rose-100">
-                        <Trash2 size={18} />
-                      </button>
+                      <button onClick={() => abrirModalEdicao(evento)} className="p-3 text-slate-400 hover:text-slate-950 hover:bg-slate-100 rounded-xl transition-all"><Edit3 size={18} /></button>
+                      <button onClick={() => handleExcluir(evento.id)} className="p-3 text-slate-400 hover:text-[#C22973] hover:bg-rose-50 rounded-xl transition-all"><Trash2 size={18} /></button>
                     </div>
                   </td>
                 </tr>
@@ -262,7 +242,7 @@ export default function TabelaEventos() {
               <tr>
                 <td colSpan={6} className="py-40 text-center opacity-30">
                    <Calendar size={48} className="mx-auto text-slate-300 mb-4" />
-                   <p className="font-bold uppercase text-xs tracking-widest text-slate-400">{t.emptyList || "Nenhum evento encontrado"}</p>
+                   <p className="font-bold uppercase text-xs tracking-widest text-slate-400">Nenhum evento encontrado na sua conta</p>
                 </td>
               </tr>
             )}
@@ -271,7 +251,7 @@ export default function TabelaEventos() {
       </div>
 
       <div className="p-8 bg-slate-50/50 border-t border-slate-50 flex justify-between items-center text-slate-400 text-[10px] font-bold uppercase tracking-widest">
-        <span>Total: {eventos.length} eventos</span>
+        <span>Total: {eventos.length}</span>
         <div className="flex gap-2">
           <button className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center hover:text-slate-950 transition-all"><ChevronLeft size={18} /></button>
           <button className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center hover:text-slate-950 transition-all"><ChevronRight size={18} /></button>
@@ -282,19 +262,18 @@ export default function TabelaEventos() {
       {isEditModalOpen && eventoParaEditar && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm" onClick={() => setIsEditModalOpen(false)}></div>
-          <div className="relative bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-100">
+          <div className="relative bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-100 animate-in fade-in slide-in-from-bottom-4">
             <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
-              <h2 className="text-xl font-bold text-slate-950">{t.editTitle || "Editar Evento"}</h2>
+              <h2 className="text-xl font-bold text-slate-950">Editar Evento</h2>
               <button onClick={() => setIsEditModalOpen(false)} className="w-10 h-10 flex items-center justify-center bg-white rounded-xl text-slate-400 border border-slate-100"><X size={18} /></button>
             </div>
-            
             <form onSubmit={handleSalvarEdicao} className="p-8 space-y-6">
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest ml-1">Nome do Evento</label>
                 <input required className="w-full bg-slate-50 border border-slate-100 p-4 rounded-xl outline-none focus:bg-white focus:border-slate-950 font-bold text-slate-900 transition-all" value={eventoParaEditar.nome} onChange={(e) => setEventoParaEditar({ ...eventoParaEditar, nome: e.target.value })} />
               </div>
               <button type="submit" disabled={saving} className="w-full bg-slate-950 text-white py-5 rounded-2xl font-bold uppercase text-xs tracking-widest shadow-xl hover:bg-black transition-all flex items-center justify-center gap-3">
-                {saving ? <Loader2 className="animate-spin" size={18} /> : <><Save size={18} className="text-[#C22973]" /> Salvar Alterações</>}
+                {saving ? <Loader2 className="animate-spin" size={18} /> : <><Save size={18} className="text-[#C22973]" /> Salvar na Cloud</>}
               </button>
             </form>
           </div>
