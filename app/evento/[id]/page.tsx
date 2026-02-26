@@ -18,8 +18,8 @@ export default function DetalhesEvento() {
   const { id } = useParams();
   const router = useRouter();
   
-  // CORREÇÃO AQUI: Desestruturando language e t separadamente
-  const { t, language } = useLanguage(); 
+  // Desestruturando t e language do contexto
+  const { t, language }: any = useLanguage(); 
   
   const [evento, setEvento] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -49,8 +49,8 @@ export default function DetalhesEvento() {
   if (loading) return (
     <div className="h-screen w-full flex items-center justify-center bg-white">
       <div className="flex flex-col items-center gap-4">
-        <Loader2 className="animate-spin text-[#ff4d4d]" size={40} />
-        <p className="text-slate-400 font-medium animate-pulse">{t.sync}</p>
+        <Loader2 className="animate-spin text-[#C22973]" size={40} />
+        <p className="text-slate-400 font-medium animate-pulse">{t.sync || 'Sincronizando...'}</p>
       </div>
     </div>
   );
@@ -71,11 +71,10 @@ export default function DetalhesEvento() {
         
         {/* NAVEGAÇÃO SUPERIOR */}
         <div className="flex justify-between items-center mb-8">
-          <button onClick={() => router.back()} className="group inline-flex items-center gap-2 text-slate-400 hover:text-[#ff4d4d] transition-all text-sm font-bold">
-            <div className="p-2 rounded-full group-hover:bg-orange-50 transition-colors">
+          <button onClick={() => router.back()} className="group inline-flex items-center gap-2 text-slate-400 hover:text-[#C22973] transition-all text-sm font-bold">
+            <div className="p-2 rounded-full group-hover:bg-pink-50 transition-colors">
               <ChevronLeft size={20} />
             </div>
-            {/* Ajuste dinâmico baseado no idioma */}
             {language === 'PT' ? 'Voltar' : 'Back'}
           </button>
           <div className="flex gap-3">
@@ -99,8 +98,9 @@ export default function DetalhesEvento() {
           
           <div className="absolute bottom-10 left-10 right-10 text-white">
               <div className="flex items-center gap-3 mb-4">
-                <span className="bg-gradient-to-r from-[#ff4d4d] to-[#ff8c42] px-5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-widest shadow-lg">
-                  {evento.categoria || t.catMusic}
+                <span className="bg-gradient-to-r from-[#C22973] to-[#ff8c42] px-5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-widest shadow-lg">
+                  {/* CORREÇÃO DO ERRO DE BUILD: catMusic -> catEnt ou fallback string */}
+                  {evento.categoria || t.catEnt || "Evento"}
                 </span>
                 <span className="flex items-center gap-1.5 text-[11px] font-semibold text-white/80 backdrop-blur-md bg-white/10 px-3 py-1.5 rounded-full border border-white/20">
                   <Verified size={14} className="text-blue-400" /> {language === 'PT' ? 'Verificado na AWS' : 'AWS Verified'}
@@ -118,7 +118,7 @@ export default function DetalhesEvento() {
           <div className="lg:col-span-8 space-y-16">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div className="flex items-center gap-5">
-                <div className="w-16 h-16 rounded-[1.5rem] bg-orange-50 flex items-center justify-center text-[#ff4d4d] shrink-0">
+                <div className="w-16 h-16 rounded-[1.5rem] bg-pink-50 flex items-center justify-center text-[#C22973] shrink-0">
                   <Calendar size={28} />
                 </div>
                 <div>
@@ -131,11 +131,11 @@ export default function DetalhesEvento() {
               </div>
 
               <div className="flex items-center gap-5">
-                <div className="w-16 h-16 rounded-[1.5rem] bg-pink-50 flex items-center justify-center text-pink-500 shrink-0">
+                <div className="w-16 h-16 rounded-[1.5rem] bg-orange-50 flex items-center justify-center text-orange-500 shrink-0">
                   <MapPin size={28} />
                 </div>
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">{t.thLocation}</p>
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">{t.thLocation || 'Local'}</p>
                   <p className="font-bold text-slate-800 text-lg line-clamp-1">
                     {evento.tipo === 'online' ? (language === 'PT' ? 'Plataforma Linkah' : 'Linkah Platform') : (evento.local_nome || evento.local)}
                   </p>
@@ -149,8 +149,8 @@ export default function DetalhesEvento() {
                 </div>
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">{language === 'PT' ? 'ORGANIZADOR' : 'ORGANIZER'}</p>
-                  <p className="font-bold text-slate-800 text-lg line-clamp-1 capitalize">{evento.produtor_nome || t.producerDefaultName}</p>
-                  <button className="text-sm text-[#ff4d4d] font-bold hover:underline">{language === 'PT' ? 'Ver Perfil' : 'View Profile'}</button>
+                  <p className="font-bold text-slate-800 text-lg line-clamp-1 capitalize">{evento.produtor_nome || t.producerDefaultName || 'Organizador'}</p>
+                  <button className="text-sm text-[#C22973] font-bold hover:underline">{language === 'PT' ? 'Ver Perfil' : 'View Profile'}</button>
                 </div>
               </div>
             </div>
@@ -166,7 +166,7 @@ export default function DetalhesEvento() {
             </div>
 
             {evento.tipo === 'online' && (
-              <div className="bg-gradient-to-br from-[#702082] to-[#ff4d4d] rounded-[3rem] p-12 text-white flex flex-col md:flex-row items-center justify-between gap-10 shadow-2xl">
+              <div className="bg-gradient-to-br from-[#702082] to-[#C22973] rounded-[3rem] p-12 text-white flex flex-col md:flex-row items-center justify-between gap-10 shadow-2xl">
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 bg-white/20 w-fit px-4 py-1.5 rounded-full backdrop-blur-md">
                     <Zap size={16} className="text-yellow-300 fill-yellow-300" />
@@ -190,7 +190,7 @@ export default function DetalhesEvento() {
               <div className="bg-white rounded-[3.5rem] border border-slate-100 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.12)] overflow-hidden">
                 <div className="p-10 space-y-10">
                   <div className="flex justify-between items-center">
-                    <h4 className="font-bold text-slate-900 text-xl tracking-tight">{t.tickets}</h4>
+                    <h4 className="font-bold text-slate-900 text-xl tracking-tight">{t.tickets || 'Ingressos'}</h4>
                     <span className="flex items-center gap-1.5 bg-emerald-50 text-emerald-600 text-[11px] font-bold px-3 py-1.5 rounded-full border border-emerald-100">
                       <CheckCircle2 size={12} /> {language === 'PT' ? 'DISPONÍVEL' : 'AVAILABLE'}
                     </span>
@@ -211,14 +211,14 @@ export default function DetalhesEvento() {
                       <div className="flex items-center justify-between bg-white p-2 rounded-2xl shadow-sm border border-slate-100">
                         <button 
                           onClick={() => setQuantidade(Math.max(1, quantidade - 1))} 
-                          className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 hover:text-[#ff4d4d] transition-colors"
+                          className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 hover:text-[#C22973] transition-colors"
                         >
                           <Minus size={20} />
                         </button>
                         <span className="font-bold text-xl text-slate-900">{quantidade}</span>
                         <button 
                           onClick={() => setQuantidade(Math.min(10, quantidade + 1))} 
-                          className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 hover:text-[#ff4d4d] transition-colors"
+                          className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 hover:text-[#C22973] transition-colors"
                         >
                           <Plus size={20} />
                         </button>
@@ -229,7 +229,7 @@ export default function DetalhesEvento() {
                   <div className="space-y-8">
                     <Link 
                       href={`/venda?eventoId=${id}&qtd=${quantidade}`}
-                      className="group flex items-center justify-center w-full bg-gradient-to-r from-[#ff4d4d] to-[#ff8c42] py-7 rounded-[2.5rem] font-bold text-white transition-all hover:scale-[1.02] shadow-xl text-base gap-3"
+                      className="group flex items-center justify-center w-full bg-gradient-to-r from-[#C22973] to-[#ff8c42] py-7 rounded-[2.5rem] font-bold text-white transition-all hover:scale-[1.02] shadow-xl text-base gap-3"
                     >
                       <Ticket size={24} />
                       {language === 'PT' ? 'COMPRAR AGORA' : 'BUY NOW'}
