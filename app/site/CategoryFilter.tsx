@@ -1,64 +1,65 @@
 'use client';
 
-import { Sparkles, Ticket, Palette, Theater, Briefcase, GraduationCap, Trophy, Star, Users } from 'lucide-react';
+import { Sparkles, Ticket, Palette, Theater, Briefcase, GraduationCap, Heart, Sparkles as Lifestyle, Users } from 'lucide-react';
 import { useLanguage } from '@/app/context/LanguageContext';
 
 interface CategoryFilterProps {
   categories: string[];
   activeCategory: string;
   onSelect: (category: string) => void;
-  // O iconMap agora deve conter as novas chaves
   iconMap: Record<string, any>;
 }
 
 export function CategoryFilter({ categories, activeCategory, onSelect, iconMap }: CategoryFilterProps) {
   const { t } = useLanguage();
 
+  // Esta função garante que o usuário veja "Business" em inglês, 
+  // mas o sistema continue usando "Negócios" para filtrar o banco.
   const translateCategory = (cat: string) => {
     const map: Record<string, string> = {
-      'Arte & Cultura': t.catArt || 'Arte & Cultura',
-      'Entretenimento': t.catEnt || 'Entretenimento',
-      'Negócios': t.catBiz || 'Negócios',
-      'Educação & Desenvolvimento': t.catEdu || 'Educação & Desenv.',
-      'Esportes & Bem-estar': t.catHealth || 'Esportes & Bem-estar',
-      'Experiências & Lifestyle': t.catLife || 'Experiências & Lifestyle',
-      'Família & Comunidade': t.catFamily || 'Família & Comunidade',
+      'Arte & Cultura': t.catArt,
+      'Entretenimento': t.catEnt,
+      'Negócios': t.catBiz,
+      'Educação & Desenvolvimento': t.catEdu,
+      'Esportes & Bem-estar': t.catHealth,
+      'Experiências & Lifestyle': t.catLife,
+      'Família & Comunidade': t.catFamily,
       'Todos': t.allCategories || 'Todos',
-      'All': t.allCategories || 'All',
     };
 
     return map[cat] || cat;
   };
 
   return (
-    <section className="max-w-5xl mx-auto px-6 -mt-8 relative z-40">
-      <div className="bg-white rounded-2xl shadow-xl shadow-slate-300/10 p-5 border border-slate-50 text-center">
-        <div className="flex items-center justify-center gap-2 mb-4">
-          <Sparkles size={14} className="text-[#ff0082]" />
+    <section className="max-w-7xl mx-auto px-6 -mt-8 relative z-40">
+      <div className="bg-white rounded-3xl shadow-xl shadow-slate-300/10 p-6 border border-slate-100 text-center">
+        <div className="flex items-center justify-center gap-2 mb-5">
+          <Sparkles size={14} className="text-[#ff0082] animate-pulse" />
           <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
             {t.filterVibe || "Escolha sua vibe"}
           </h3>
         </div>
         
-        <div className="flex flex-wrap items-center justify-center gap-2">
+        <div className="flex flex-wrap items-center justify-center gap-3">
           {categories.map((cat) => {
-            // Se o ícone não estiver no mapa, usamos o Ticket como padrão
-            const Icon = iconMap[cat] || Ticket;
-            const isAtiva = activeCategory === cat;
+            // Garantimos que o nome da categoria seja limpo para buscar o ícone
+            const categoryKey = String(cat).trim();
+            const Icon = iconMap[categoryKey] || Ticket;
+            const isAtiva = activeCategory === categoryKey;
             
             return (
               <button
-                key={cat}
-                onClick={() => onSelect(cat)}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-full border transition-all duration-300 ${
+                key={categoryKey}
+                onClick={() => onSelect(categoryKey)} // Envia o nome em PT para o filtro
+                className={`flex items-center gap-2 px-6 py-3 rounded-2xl border transition-all duration-300 ${
                   isAtiva 
-                  ? 'bg-[#ff0082] border-[#ff0082] text-white shadow-md shadow-pink-200 scale-105' 
-                  : 'bg-slate-50 border-slate-100 text-slate-500 hover:bg-white hover:border-pink-200 hover:text-[#ff0082]'
+                  ? 'bg-[#ff0082] border-[#ff0082] text-white shadow-lg shadow-pink-200 -translate-y-1' 
+                  : 'bg-slate-50 border-slate-100 text-slate-500 hover:bg-white hover:border-pink-200 hover:text-[#ff0082] hover:shadow-md'
                 }`}
               >
-                <Icon size={14} strokeWidth={isAtiva ? 3 : 2} />
-                <span className="text-[11px] font-bold uppercase tracking-wider">
-                  {translateCategory(cat)}
+                <Icon size={16} strokeWidth={isAtiva ? 3 : 2} />
+                <span className="text-[12px] font-bold uppercase tracking-wider">
+                  {translateCategory(categoryKey)}
                 </span>
               </button>
             );
