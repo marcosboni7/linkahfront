@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Poppins } from "next/font/google"; // Trocado Geist por Poppins
 import "./globals.css";
 import Script from "next/script";
-import { LanguageProvider } from "./context/LanguageContext"; // Importe o Provider
+import { LanguageProvider } from "./context/LanguageContext";
 
 declare global {
   interface Window {
@@ -10,8 +10,12 @@ declare global {
   }
 }
 
-const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
-const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
+// Configuração da Poppins
+const poppins = Poppins({ 
+  variable: "--font-poppins", 
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800", "900"], // Pesos que você costuma usar nos cards
+});
 
 export const metadata: Metadata = {
   title: "Linkah - Produtor de Eventos",
@@ -21,8 +25,8 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        {/* Envolvemos o app inteiro com o Provider de Idioma */}
+      <body className={`${poppins.variable} font-sans antialiased`}>
+        {/* Adicionei 'font-sans' para que a Poppins seja a fonte padrão de tudo */}
         <LanguageProvider>
           {children}
         </LanguageProvider>
