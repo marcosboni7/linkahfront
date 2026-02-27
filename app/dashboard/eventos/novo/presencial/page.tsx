@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, ImageIcon, Search, Calendar, MapPin, X, Loader2, Users, Info, Ticket } from 'lucide-react';
+import { ChevronLeft, ImageIcon, Search, Calendar, MapPin, X, Loader2, Users, Info, Ticket, Sparkles, Navigation } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/app/context/LanguageContext';
 import Script from 'next/script';
@@ -43,23 +43,31 @@ export default function NovoEventoPresencial() {
     visibilidade: 'Publico'
   });
 
-  // --- LÓGICA DO GOOGLE MAPS ---
   const initGoogleMaps = () => {
     if (typeof window === 'undefined' || !window.google || !mapContainerRef.current || googleMap.current) return;
 
     googleMap.current = new window.google.maps.Map(mapContainerRef.current, {
       center: { lat: -23.5505, lng: -46.6333 },
-      zoom: 12,
+      zoom: 15,
       disableDefaultUI: true,
       styles: [
-        { featureType: "poi", elementType: "labels", stylers: [{ visibility: "off" }] },
-        { featureType: "transit", stylers: [{ visibility: "off" }] }
+        { featureType: "all", elementType: "geometry", stylers: [{ color: "#f5f5f5" }] },
+        { featureType: "water", elementType: "geometry", stylers: [{ color: "#e9e9e9" }] },
+        { featureType: "poi", elementType: "labels", stylers: [{ visibility: "off" }] }
       ]
     });
     
     marker.current = new window.google.maps.Marker({
       map: googleMap.current,
       animation: window.google.maps.Animation.DROP,
+      icon: {
+        path: window.google.maps.SymbolPath.BACKWARD_CLOSED_ARROW,
+        scale: 6,
+        fillColor: "#C22973",
+        fillOpacity: 1,
+        strokeWeight: 2,
+        strokeColor: "#ffffff",
+      }
     });
 
     if (searchInputRef.current && !autocompleteRef.current) {
@@ -95,7 +103,6 @@ export default function NovoEventoPresencial() {
     }
   };
 
-  // --- HANDLERS ---
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -120,20 +127,12 @@ export default function NovoEventoPresencial() {
       return;
     }
 
-    if (!formData.nome || !formData.data_inicio || !formData.local_nome || !formData.categoria) {
-      alert("Por favor, preencha Nome, Categoria, Data de Início e o Local.");
+    if (!formData.nome || !formData.data_inicio || !formData.local_nome) {
+      alert("Campos obrigatórios: Nome, Data e Local.");
       return;
     }
 
     setIsLoading(true);
-
-    const payload = { 
-      ...formData, 
-      produtor_email: emailProdutor,
-      imagem_capa: previewImage,
-      capacidade: Number(formData.capacidade) || 0
-    };
-
     try {
       const response = await fetch(`${API_URL}/api/eventos/novo-presencial`, {
         method: 'POST',
@@ -141,197 +140,180 @@ export default function NovoEventoPresencial() {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ ...formData, produtor_email: emailProdutor, imagem_capa: previewImage }),
       });
 
       const data = await response.json();
-
-      if (response.ok) {
-        // Redireciona para a etapa de ingressos passando o ID do evento criado
-        router.push(`/dashboard/eventos/novo/ingressos/${data.id}`);
-      } else {
-        alert(`Erro: ${data.message || "Erro ao salvar"}`);
-      }
+      if (response.ok) router.push(`/dashboard/eventos/novo/ingressos/${data.id}`);
+      else alert(data.message || "Erro ao salvar");
     } catch (error) {
-      alert("Falha de conexão com o servidor.");
+      alert("Erro de conexão");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#FAFBFF] font-sans antialiased pb-20">
-      <Script 
-        src={`https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_KEY}&libraries=places`} 
-        strategy="afterInteractive" 
-        onLoad={initGoogleMaps} 
-      />
+    <div className="min-h-screen bg-[#FDFDFF] font-sans antialiased pb-24 text-slate-900">
+      <Script src={`https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_KEY}&libraries=places`} strategy="afterInteractive" onLoad={initGoogleMaps} />
 
-      {/* HEADER FIXO */}
-      <header className="border-b border-slate-100 px-6 md:px-10 py-5 flex justify-between items-center bg-white/90 backdrop-blur-md sticky top-0 z-50">
-        <div className="flex items-center gap-6">
-          <button onClick={() => router.back()} className="p-2.5 hover:bg-slate-50 rounded-2xl transition-all text-slate-400 border border-transparent hover:border-slate-100">
-            <ChevronLeft size={22} />
+      {/* HEADER GLASS */}
+      <header className="border-b border-slate-200/60 px-6 md:px-12 py-6 flex justify-between items-center bg-white/70 backdrop-blur-xl sticky top-0 z-50">
+        <div className="flex items-center gap-8">
+          <button onClick={() => router.back()} className="group flex items-center justify-center w-12 h-12 bg-white rounded-2xl transition-all shadow-sm border border-slate-100 hover:border-pink-200 hover:shadow-md active:scale-95">
+            <ChevronLeft size={20} className="text-slate-500 group-hover:text-[#C22973] transition-colors" />
           </button>
           <div>
-            <h1 className="text-slate-800 font-black text-lg tracking-tight uppercase italic">Novo Evento Presencial</h1>
-            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em]">Passo 1: Detalhes e Local</p>
+            <h1 className="text-slate-900 font-black text-xl tracking-tight uppercase italic flex items-center gap-2">
+              <MapPin className="text-[#C22973]" size={20} /> Evento Presencial
+            </h1>
+            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.25em]">Localização & Logística</p>
           </div>
         </div>
+
         <button 
           onClick={handleSalvar} 
           disabled={isLoading}
-          className="bg-[#C22973] text-white px-10 py-3.5 rounded-2xl font-black uppercase text-[11px] tracking-widest hover:bg-[#a62262] transition-all shadow-xl shadow-pink-100 disabled:opacity-50 flex items-center gap-3"
+          className="relative overflow-hidden bg-slate-900 text-white px-8 md:px-12 py-4 rounded-2xl font-black uppercase text-[11px] tracking-[0.2em] hover:bg-black transition-all shadow-2xl shadow-slate-200 disabled:opacity-50 flex items-center gap-3 group"
         >
-          {isLoading ? <Loader2 className="animate-spin" size={16} /> : "Próximo Passo"}
+          <span className="relative z-10 flex items-center gap-2">
+            {isLoading ? <Loader2 className="animate-spin" size={16} /> : <>Próximo Passo <Sparkles size={14} className="text-pink-400" /></>}
+          </span>
+          <div className="absolute inset-0 bg-gradient-to-r from-[#C22973] to-[#E53E3E] opacity-0 group-hover:opacity-100 transition-opacity" />
         </button>
       </header>
 
-      <main className="max-w-[1300px] mx-auto p-6 md:p-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+      <main className="max-w-[1400px] mx-auto p-6 md:p-12">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
           
-          <div className="lg:col-span-8 space-y-8">
-            {/* SEÇÃO 1: INFORMAÇÕES BÁSICAS */}
-            <section className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-sm border border-slate-50">
-              <h3 className="text-[#C22973] text-[10px] font-black uppercase tracking-[0.3em] mb-8 flex items-center gap-2">
-                <Info size={14}/> Informações Gerais
+          <div className="lg:col-span-8 space-y-12">
+            {/* SEÇÃO 1: INFOS GERAIS */}
+            <section className="bg-white rounded-[2.5rem] p-10 shadow-[0_20px_50px_rgba(0,0,0,0.02)] border border-slate-100 space-y-8 transition-all hover:shadow-lg">
+              <h3 className="text-slate-800 text-sm font-black uppercase tracking-widest italic flex items-center gap-3">
+                <div className="w-8 h-8 bg-pink-50 rounded-lg flex items-center justify-center"><Info size={16} className="text-[#C22973]"/></div>
+                Identidade do Evento
               </h3>
+              
               <div className="space-y-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Nome do Evento</label>
-                  <input name="nome" value={formData.nome} onChange={handleChange} placeholder="Ex: Festival de Verão 2026" className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none font-bold text-slate-700 focus:border-[#C22973] focus:bg-white transition-all" />
+                <div className="space-y-3">
+                  <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider ml-1">Nome Oficial</label>
+                  <input name="nome" value={formData.nome} onChange={handleChange} placeholder="Ex: Conferência Internacional de Design" className="w-full bg-slate-50 border-2 border-transparent p-5 rounded-3xl outline-none font-bold text-lg text-slate-800 focus:border-pink-100 focus:bg-white transition-all shadow-inner" />
                 </div>
                 
-                <div className="grid grid-cols-2 gap-6">
-                   <div className="space-y-2">
-                     <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Categoria</label>
-                     <select 
-                       name="categoria" 
-                       value={formData.categoria} 
-                       onChange={handleChange} 
-                       className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none font-bold text-slate-600 focus:border-[#C22973] focus:bg-white transition-all appearance-none"
-                     >
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-3">
+                    <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider ml-1">Categoria</label>
+                    <select name="categoria" value={formData.categoria} onChange={handleChange} className="w-full bg-slate-50 border-2 border-transparent p-5 rounded-3xl outline-none font-bold text-slate-600 focus:border-pink-100 focus:bg-white transition-all shadow-inner appearance-none">
                         <option value="">{t.selectDefault}</option>
-                        <option value="Arte & Cultura">{t.catArt}</option>
-                        <option value="Entretenimento">{t.catEnt}</option>
-                        <option value="Negócios">{t.catBiz}</option>
-                        <option value="Educação & Desenvolvimento">{t.catEdu}</option>
-                        <option value="Esportes & Bem-estar">{t.catHealth}</option>
-                        <option value="Experiências & Lifestyle">{t.catLife}</option>
-                        <option value="Família & Comunidade">{t.catFamily}</option>
-                     </select>
-                   </div>
-                   <div className="space-y-2">
-                     <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Capacidade Total</label>
-                     <div className="relative">
-                        <Users size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                        <input name="capacidade" value={formData.capacidade} onChange={handleChange} type="number" placeholder="0" className="w-full bg-slate-50 border border-slate-100 p-4 pl-12 rounded-2xl outline-none font-bold text-slate-700 focus:border-[#C22973] focus:bg-white transition-all" />
-                     </div>
-                   </div>
+                        <option value="Arte & Cultura">🎨 Arte & Cultura</option>
+                        <option value="Negócios">💼 Negócios</option>
+                        <option value="Entretenimento">🍿 Entretenimento</option>
+                    </select>
+                  </div>
+                  <div className="space-y-3">
+                    <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider ml-1">Capacidade Total</label>
+                    <div className="relative">
+                      <Users size={20} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" />
+                      <input name="capacidade" value={formData.capacidade} onChange={handleChange} type="number" placeholder="Limite de pessoas" className="w-full bg-slate-50 border-2 border-transparent p-5 pl-14 rounded-3xl outline-none font-bold text-slate-800 focus:border-pink-100 focus:bg-white transition-all shadow-inner" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider ml-1">Sobre o Evento</label>
+                  <textarea name="descricao" value={formData.descricao} onChange={handleChange} rows={4} placeholder="Descreva os detalhes importantes..." className="w-full bg-slate-50 border-2 border-transparent p-6 rounded-[2rem] outline-none focus:border-pink-100 focus:bg-white transition-all shadow-inner resize-none font-medium text-slate-600 leading-relaxed" />
+                </div>
+              </div>
+            </section>
+
+            {/* SEÇÃO 2: LOCALIZAÇÃO AVANÇADA */}
+            <section className="bg-white rounded-[2.5rem] p-10 shadow-[0_20px_50px_rgba(0,0,0,0.02)] border border-slate-100 space-y-8">
+              <h3 className="text-slate-800 text-sm font-black uppercase tracking-widest italic flex items-center gap-3">
+                <div className="w-8 h-8 bg-pink-50 rounded-lg flex items-center justify-center"><Navigation size={16} className="text-[#C22973]"/></div>
+                Onde vai acontecer?
+              </h3>
+
+              <div className="space-y-6">
+                <div className="relative group">
+                  <div className="absolute left-6 top-1/2 -translate-y-1/2 flex items-center gap-2 border-r border-slate-200 pr-4">
+                    <Search size={18} className="text-[#C22973]" />
+                  </div>
+                  <input ref={searchInputRef} placeholder="Comece a digitar o endereço ou nome do local..." className="w-full bg-slate-900 text-white p-6 pl-24 rounded-3xl outline-none font-bold text-sm focus:ring-4 focus:ring-pink-100/50 transition-all shadow-2xl" />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nome do Estabelecimento</label>
+                    <input name="local_nome" value={formData.local_nome} onChange={handleChange} placeholder="Ex: Centro de Convenções" className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none font-bold text-slate-700" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">CEP</label>
+                    <input name="cep" value={formData.cep} onChange={handleChange} placeholder="00000-000" className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none font-bold text-slate-700" />
+                  </div>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Descrição</label>
-                  <textarea name="descricao" value={formData.descricao} onChange={handleChange} rows={4} placeholder="O que torna este evento único?" className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none focus:border-[#C22973] focus:bg-white transition-all resize-none font-medium text-slate-600" />
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Rua / Logradouro</label>
+                  <input name="endereco" value={formData.endereco} onChange={handleChange} placeholder="Av. Principal, s/n" className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none font-bold text-slate-700" />
                 </div>
-              </div>
-            </section>
 
-            {/* SEÇÃO 2: DATA E HORA */}
-            <section className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-sm border border-slate-50">
-              <h3 className="text-[#C22973] text-[10px] font-black uppercase tracking-[0.3em] mb-8 flex items-center gap-2">
-                <Calendar size={14}/> Cronograma
-              </h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[9px] font-bold text-slate-400 uppercase ml-1">Data Início</label>
-                  <input name="data_inicio" value={formData.data_inicio} onChange={handleChange} type="date" className="w-full bg-slate-50 border border-slate-100 p-4 rounded-xl text-xs font-bold outline-none text-slate-600 focus:border-[#C22973] transition-all" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[9px] font-bold text-slate-400 uppercase ml-1">Hora Início</label>
-                  <input name="hora_inicio" value={formData.hora_inicio} onChange={handleChange} type="time" className="w-full bg-slate-50 border border-slate-100 p-4 rounded-xl text-xs font-bold outline-none text-slate-600 focus:border-[#C22973] transition-all" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[9px] font-bold text-slate-400 uppercase ml-1">Data Término</label>
-                  <input name="data_termino" value={formData.data_termino} onChange={handleChange} type="date" className="w-full bg-slate-50 border border-slate-100 p-4 rounded-xl text-xs font-bold outline-none text-slate-600 focus:border-[#C22973] transition-all" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[9px] font-bold text-slate-400 uppercase ml-1">Hora Término</label>
-                  <input name="hora_termino" value={formData.hora_termino} onChange={handleChange} type="time" className="w-full bg-slate-50 border border-slate-100 p-4 rounded-xl text-xs font-bold outline-none text-slate-600 focus:border-[#C22973] transition-all" />
-                </div>
-              </div>
-            </section>
-
-            {/* SEÇÃO 3: LOCALIZAÇÃO */}
-            <section className="bg-white rounded-[2.5rem] p-8 md:p-10 shadow-sm border border-slate-50">
-              <h3 className="text-[#C22973] text-[10px] font-black uppercase tracking-[0.3em] mb-8 flex items-center gap-2">
-                <MapPin size={14}/> Localização
-              </h3>
-              <div className="space-y-4">
-                <div className="relative group">
-                  <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#C22973]" />
-                  <input ref={searchInputRef} placeholder="Buscar endereço no Google Maps..." className="w-full bg-pink-50/40 border border-pink-100 p-4 pl-12 rounded-2xl outline-none italic text-sm font-bold focus:border-[#C22973] focus:bg-white text-slate-700 transition-all" />
-                </div>
-                
-                <input name="local_nome" value={formData.local_nome} onChange={handleChange} placeholder="Nome do Local (Ex: Teatro Municipal)" className="w-full bg-slate-50 border border-slate-100 p-4 rounded-xl outline-none font-bold text-slate-700" />
-                
-                <div className="grid grid-cols-4 gap-4">
-                   <input name="cep" value={formData.cep} onChange={handleChange} placeholder="CEP" className="bg-slate-50 border border-slate-100 p-4 rounded-xl outline-none font-bold text-slate-700" />
-                   <input name="endereco" value={formData.endereco} onChange={handleChange} placeholder="Rua / Avenida" className="col-span-3 bg-slate-50 border border-slate-100 p-4 rounded-xl outline-none font-bold text-slate-700" />
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                   <input name="numero" value={formData.numero} onChange={handleChange} placeholder="Número" className="bg-slate-50 border border-slate-100 p-4 rounded-xl outline-none font-bold text-slate-700" />
-                   <input name="complemento" value={formData.complemento} onChange={handleChange} placeholder="Complemento" className="bg-slate-50 border border-slate-100 p-4 rounded-xl outline-none font-bold text-slate-700" />
-                </div>
-                
-                <div className="grid grid-cols-4 gap-4">
-                   <input name="cidade" value={formData.cidade} onChange={handleChange} placeholder="Cidade" className="col-span-3 bg-slate-50 border border-slate-100 p-4 rounded-xl outline-none font-bold text-slate-700" />
-                   <input name="estado" value={formData.estado} onChange={handleChange} placeholder="UF" maxLength={2} className="bg-slate-50 border border-slate-100 p-4 rounded-xl outline-none font-bold text-slate-700 text-center uppercase" />
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                   <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Número</label>
+                      <input name="numero" value={formData.numero} onChange={handleChange} className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none font-bold" />
+                   </div>
+                   <div className="space-y-2 col-span-1 md:col-span-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Complemento</label>
+                      <input name="complemento" value={formData.complemento} onChange={handleChange} className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none font-bold" />
+                   </div>
+                   <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">UF</label>
+                      <input name="estado" value={formData.estado} onChange={handleChange} maxLength={2} className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none font-bold text-center uppercase" />
+                   </div>
                 </div>
               </div>
             </section>
           </div>
 
-          {/* COLUNA DIREITA - VISUALIZAÇÃO E AUXILIARES */}
-          <div className="lg:col-span-4 space-y-8">
-            {/* UPLOAD CAPA */}
-            <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-50">
-              <label className="text-[10px] text-slate-400 font-black uppercase mb-4 block tracking-widest italic text-center">Capa do Evento</label>
+          {/* COLUNA DIREITA */}
+          <div className="lg:col-span-4 space-y-10">
+            {/* CARD DE CAPA */}
+            <div className="bg-white rounded-[3rem] p-8 shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100">
+              <h4 className="text-[10px] text-slate-400 font-black uppercase mb-6 tracking-[0.2em] text-center italic">Arte Visual</h4>
               <div className="relative">
                 {previewImage ? (
-                  <div className="relative w-full h-64 rounded-[2.5rem] overflow-hidden group shadow-lg">
-                    <img src={previewImage} alt="Preview" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
-                    <button onClick={() => setPreviewImage(null)} className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm p-2 rounded-full text-[#C22973] shadow-lg hover:bg-white transition-all">
-                      <X size={18} />
-                    </button>
+                  <div className="relative w-full aspect-[4/5] rounded-[2.5rem] overflow-hidden group shadow-2xl">
+                    <img src={previewImage} alt="Preview" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
+                    <button onClick={() => setPreviewImage(null)} className="absolute top-6 right-6 bg-white/90 backdrop-blur-sm w-12 h-12 rounded-2xl text-[#C22973] shadow-lg flex items-center justify-center hover:bg-white transition-all"><X size={20} /></button>
                   </div>
                 ) : (
-                  <label className="border-2 border-dashed border-slate-100 rounded-[2.5rem] p-12 bg-slate-50/50 cursor-pointer flex flex-col items-center hover:bg-pink-50/50 hover:border-pink-200 transition-all group">
+                  <label className="aspect-[4/5] border-2 border-dashed border-slate-100 rounded-[2.5rem] bg-slate-50/50 cursor-pointer flex flex-col items-center justify-center hover:bg-white hover:border-pink-200 transition-all group shadow-inner">
                     <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
-                    <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mb-4 shadow-sm group-hover:scale-110 transition-transform">
-                        <ImageIcon size={28} className="text-[#C22973]" />
+                    <div className="w-20 h-20 bg-white rounded-[2rem] flex items-center justify-center mb-6 shadow-sm border border-slate-50 group-hover:scale-110 transition-all duration-500">
+                        <ImageIcon size={32} className="text-[#C22973]" />
                     </div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Clique para fazer upload da capa</p>
+                    <p className="text-[11px] font-black text-slate-800 uppercase tracking-widest">Adicionar Capa</p>
                   </label>
                 )}
               </div>
             </div>
 
-            {/* MAPA VISUAL */}
-            <div className="bg-white rounded-[2.5rem] p-2 shadow-sm border border-slate-50 h-[350px] relative overflow-hidden">
-                <div ref={mapContainerRef} className="w-full h-full rounded-[2.2rem]" />
+            {/* MAPA INTEGRADO */}
+            <div className="bg-white rounded-[3rem] p-2 shadow-2xl border border-slate-100 h-[380px] relative group overflow-hidden">
+               <div ref={mapContainerRef} className="w-full h-full rounded-[2.8rem] grayscale-[0.4] group-hover:grayscale-0 transition-all duration-700" />
+               <div className="absolute bottom-6 left-6 right-6 bg-white/80 backdrop-blur-md p-4 rounded-2xl border border-white/50 shadow-xl">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 italic">Preview do Mapa</p>
+                  <p className="text-xs font-bold text-slate-800 truncate">{formData.local_nome || 'Aguardando endereço...'}</p>
+               </div>
             </div>
 
-            {/* CARD DE STATUS - PRÓXIMO PASSO */}
-            <div className="bg-[#C22973] rounded-[3rem] p-8 text-white shadow-2xl shadow-pink-200 relative overflow-hidden group">
-               <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition-transform duration-700">
-                  <Ticket size={120} />
-               </div>
-               <Ticket className="mb-4 opacity-50" size={32} />
-               <h4 className="font-black italic text-xl uppercase leading-tight mb-2">Próxima etapa:<br/>Ingressos</h4>
-               <p className="text-[11px] font-bold opacity-80 uppercase tracking-wider leading-relaxed">
-                 Após salvar, você poderá configurar os lotes, preços e o checkout via Stripe.
+            {/* PRÓXIMO PASSO */}
+            <div className="bg-gradient-to-br from-[#C22973] to-[#8a1d52] rounded-[3rem] p-10 text-white shadow-2xl shadow-pink-200 relative overflow-hidden group">
+               <div className="absolute -right-6 -bottom-6 opacity-10 rotate-12"><Ticket size={180} /></div>
+               <Ticket className="mb-6 opacity-60" size={40} />
+               <h4 className="font-black italic text-2xl uppercase leading-tight mb-3 tracking-tighter">Ingressos & Lotes</h4>
+               <p className="text-[11px] font-bold text-pink-100 uppercase tracking-wider leading-relaxed opacity-90">
+                 No próximo passo você definirá os preços, quantidade e a taxa de serviço.
                </p>
             </div>
           </div>
