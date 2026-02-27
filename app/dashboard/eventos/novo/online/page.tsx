@@ -22,8 +22,8 @@ export default function NovoEventoOnline() {
     hora_inicio: '', 
     data_termino: '', 
     hora_termino: '',
-    local_nome: 'Plataforma Online', // Nome genérico para o banco
-    url_transmissao: '', // Campo específico para Online
+    local_nome: 'Plataforma Online',
+    url_transmissao: '',
     capacidade: '',
     tipo: 'Online',
     regras: '',
@@ -69,7 +69,6 @@ export default function NovoEventoOnline() {
       produtor_email: emailProdutor,
       imagem_capa: previewImage,
       capacidade: Number(formData.capacidade) || 0,
-      // Para o back-end não quebrar se esperar campos de endereço:
       cidade: 'Online',
       estado: 'ON'
     };
@@ -134,13 +133,23 @@ export default function NovoEventoOnline() {
                 <input name="nome" value={formData.nome} onChange={handleChange} placeholder="Título da sua Live ou Evento" className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none font-bold text-slate-700 focus:border-[#C22973]" />
                 
                 <div className="grid grid-cols-2 gap-6">
-                   <select name="categoria" value={formData.categoria} onChange={handleChange} className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none font-bold text-slate-600 focus:border-[#C22973]">
-                      <option value="">Categoria</option>
-                      <option value="Educação">Cursos & Educação</option>
-                      <option value="Webinar">Webinar & Palestras</option>
-                      <option value="Entretenimento">Show Online / Live</option>
-                      <option value="Gamer">Games & E-sports</option>
+                   {/* CATEGORIAS ATUALIZADAS AQUI */}
+                   <select 
+                     name="categoria" 
+                     value={formData.categoria} 
+                     onChange={handleChange} 
+                     className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none font-bold text-slate-600 focus:border-[#C22973]"
+                   >
+                      <option value="">{t.selectDefault || "Selecionar Categoria"}</option>
+                      <option value="Arte & Cultura">{t.catArt}</option>
+                      <option value="Entretenimento">{t.catEnt}</option>
+                      <option value="Negócios">{t.catBiz}</option>
+                      <option value="Educação & Desenvolvimento">{t.catEdu}</option>
+                      <option value="Esportes & Bem-estar">{t.catHealth}</option>
+                      <option value="Experiências & Lifestyle">{t.catLife}</option>
+                      <option value="Família & Comunidade">{t.catFamily}</option>
                    </select>
+
                    <div className="relative">
                       <Users size={16} className="absolute left-4 top-4 text-slate-400" />
                       <input name="capacidade" value={formData.capacidade} onChange={handleChange} type="number" placeholder="Limite de Acessos" className="w-full bg-slate-50 border border-slate-100 p-4 pl-12 rounded-2xl outline-none font-bold text-slate-700" />
