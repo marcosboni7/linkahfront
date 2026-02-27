@@ -2,7 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { UserCircle, Save, Loader2, ArrowLeft, Info, MapPin } from 'lucide-react';
+import { 
+  UserCircle, Save, Loader2, ArrowLeft, Info, 
+  MapPin, CreditCard, ExternalLink, CheckCircle2 
+} from 'lucide-react';
 import Swal from 'sweetalert2';
 import Link from 'next/link';
 import { useLanguage } from '@/app/context/LanguageContext';
@@ -15,6 +18,7 @@ export default function PerfilPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [stripeAccountId, setStripeAccountId] = useState<string | null>(null);
   
   const [formData, setFormData] = useState({
     nome: '',
@@ -51,6 +55,9 @@ export default function PerfilPage() {
             numero: data.numero || '',
             bairro: data.bairro || ''
           });
+          
+          // Guarda o ID da conta Stripe se existir
+          setStripeAccountId(data.stripe_account_id || null);
 
           if (data.cpf_cnpj && data.cep) {
             localStorage.setItem('perfil_completo', 'true');
@@ -66,6 +73,31 @@ export default function PerfilPage() {
     carregarDados();
   }, [router]);
 
+  const handleConectarStripe = async () => {
+    setIsSaving(true);
+    try {
+      const userStorage = localStorage.getItem('@Linkah:User');
+      const emailLogado = userStorage ? JSON.parse(userStorage).email : localStorage.getItem('userEmail');
+      
+      const response = await fetch(`${API_URL}/api/pagamento/conectar-stripe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: emailLogado }),
+      });
+
+      const data = await response.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        Swal.fire('Erro', 'Não foi possível gerar o link do Stripe.', 'error');
+      }
+    } catch (error) {
+      Swal.fire('Erro', 'Falha na conexão com o servidor de pagamentos.', 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleCepBlur = async (e: React.FocusEvent<HTMLInputElement>) => {
     const cep = e.target.value.replace(/\D/g, '');
     if (cep.length === 8) {
@@ -73,14 +105,8 @@ export default function PerfilPage() {
         const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
         const data = await res.json();
         if (!data.erro) {
-          setFormData(prev => ({
-            ...prev,
-            rua: data.logradouro,
-            bairro: data.bairro
-          }));
+          setFormData(prev => ({ ...prev, rua: data.logradouro, bairro: data.bairro }));
           setErrors(prev => ({ ...prev, cep: "" }));
-        } else {
-          setErrors(prev => ({ ...prev, cep: t.errorCepNotFound || "CEP não encontrado" }));
         }
       } catch (err) {
         console.error("Erro ao buscar CEP");
@@ -96,11 +122,10 @@ export default function PerfilPage() {
 
   const handleSalvar = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     const newErrors: Record<string, string> = {};
-    if (!formData.nome) newErrors.nome = t.errorRequired || "Obrigatório";
-    if (!formData.cpf_cnpj) newErrors.cpf_cnpj = t.errorRequired || "Obrigatório";
-    if (!formData.cep) newErrors.cep = t.errorRequired || "Obrigatório";
+    if (!formData.nome) newErrors.nome = "Obrigatório";
+    if (!formData.cpf_cnpj) newErrors.cpf_cnpj = "Obrigatório";
+    if (!formData.cep) newErrors.cep = "Obrigatório";
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -119,32 +144,23 @@ export default function PerfilPage() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ 
-          email_original: emailLogado, 
-          ...formData 
-        }),
+        body: JSON.stringify({ email_original: emailLogado, ...formData }),
       });
 
       if (response.ok) {
         localStorage.setItem('perfil_completo', 'true');
         localStorage.setItem('userName', formData.nome);
-
         await Swal.fire({
-          title: t.profileUpdatedTitle || 'DADOS ATUALIZADOS!',
-          text: t.profileUpdatedText || 'Suas informações foram sincronizadas.',
+          title: 'DADOS ATUALIZADOS!',
+          text: 'Suas informações foram sincronizadas.',
           icon: 'success',
           confirmButtonColor: '#C22973',
-          confirmButtonText: t.btnGoToDashboard || 'IR PARA O PAINEL',
           customClass: { popup: 'rounded-[2rem] font-sans' }
         });
-
         router.push('/dashboard/eventos');
-      } else {
-        const err = await response.json();
-        Swal.fire('Ops!', err.message || t.errorSave, 'error');
       }
     } catch (error) {
-      Swal.fire('Erro', t.errorAWSConnection, 'error');
+      Swal.fire('Erro', 'Erro ao salvar perfil', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -152,9 +168,9 @@ export default function PerfilPage() {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen w-screen flex-col items-center justify-center bg-white gap-4">
+      <div className="flex h-screen w-screen flex-col items-center justify-center bg-white gap-4 font-sans">
         <Loader2 className="animate-spin text-[#C22973]" size={48} />
-        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">{t.awsCloudSync || "Sincronizando..."}</span>
+        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 italic">Sincronizando Poppins...</span>
       </div>
     );
   }
@@ -164,7 +180,7 @@ export default function PerfilPage() {
       <div className="max-w-[850px] mx-auto">
         
         <Link href="/dashboard/eventos" className="inline-flex items-center gap-3 text-slate-400 hover:text-[#C22973] transition-all mb-10 font-black text-[10px] tracking-[0.2em] uppercase group">
-          <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" /> {t.btnBackToDashboard || "Voltar ao Dashboard"}
+          <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" /> Voltar ao Dashboard
         </Link>
 
         <div className="bg-white rounded-[3.5rem] shadow-2xl shadow-pink-100/20 p-8 md:p-16 border border-slate-50 relative overflow-hidden">
@@ -175,55 +191,37 @@ export default function PerfilPage() {
               <UserCircle className="text-white" size={40} />
             </div>
             <div>
-              <h2 className="text-4xl font-black text-slate-900 leading-none tracking-tighter italic uppercase">{t.myProfileTitle || "Meu Perfil"}</h2>
-              <p className="text-slate-400 mt-2 font-bold uppercase text-[10px] tracking-widest italic">{t.profileSubtitle || "Configurações de Produtor"}</p>
+              <h2 className="text-4xl font-black text-slate-900 leading-none tracking-tighter italic uppercase">Meu Perfil</h2>
+              <p className="text-slate-400 mt-2 font-bold uppercase text-[10px] tracking-widest italic">Configurações de Produtor & Pagamentos</p>
             </div>
           </div>
           
           <form onSubmit={handleSalvar} className="space-y-12 relative z-10">
+            {/* CAMPOS BÁSICOS */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
               <div className="space-y-3">
-                <label className={`text-[11px] font-black uppercase tracking-[0.2em] block ml-1 ${errors.nome ? 'text-red-500' : 'text-slate-400'}`}>{t.labelResponsibleName || "Nome do Responsável"} *</label>
-                <input 
-                  name="nome" 
-                  value={formData.nome} 
-                  onChange={handleChange} 
-                  placeholder={t.placeholderName}
-                  className={`w-full border-2 p-5 rounded-[1.5rem] outline-none transition-all font-bold text-slate-700 shadow-sm ${errors.nome ? 'border-red-200 bg-red-50' : 'border-slate-50 bg-slate-50/50 focus:border-[#C22973] focus:bg-white'}`} 
-                />
+                <label className={`text-[11px] font-black uppercase tracking-[0.2em] block ml-1 ${errors.nome ? 'text-red-500' : 'text-slate-400'}`}>Nome do Responsável *</label>
+                <input name="nome" value={formData.nome} onChange={handleChange} className={`w-full border-2 p-5 rounded-[1.5rem] outline-none transition-all font-bold text-slate-700 shadow-sm ${errors.nome ? 'border-red-200 bg-red-50' : 'border-slate-50 bg-slate-50/50 focus:border-[#C22973] focus:bg-white'}`} />
               </div>
               <div className="space-y-3">
-                <label className={`text-[11px] font-black uppercase tracking-[0.2em] block ml-1 ${errors.cpf_cnpj ? 'text-red-500' : 'text-slate-400'}`}>{t.labelDocument || "Documento (CPF/CNPJ)"} *</label>
-                <input 
-                  name="cpf_cnpj" 
-                  value={formData.cpf_cnpj} 
-                  onChange={handleChange} 
-                  placeholder="000.000.000-00"
-                  className={`w-full border-2 p-5 rounded-[1.5rem] outline-none transition-all font-bold text-slate-700 shadow-sm ${errors.cpf_cnpj ? 'border-red-200 bg-red-50' : 'border-slate-50 bg-slate-50/50 focus:border-[#C22973] focus:bg-white'}`} 
-                />
+                <label className={`text-[11px] font-black uppercase tracking-[0.2em] block ml-1 ${errors.cpf_cnpj ? 'text-red-500' : 'text-slate-400'}`}>Documento (CPF/CNPJ) *</label>
+                <input name="cpf_cnpj" value={formData.cpf_cnpj} onChange={handleChange} placeholder="000.000.000-00" className={`w-full border-2 p-5 rounded-[1.5rem] outline-none transition-all font-bold text-slate-700 shadow-sm ${errors.cpf_cnpj ? 'border-red-200 bg-red-50' : 'border-slate-50 bg-slate-50/50 focus:border-[#C22973] focus:bg-white'}`} />
               </div>
             </div>
 
+            {/* ENDEREÇO */}
             <div className="pt-12 border-t border-slate-100">
               <div className="flex items-center gap-2 mb-8">
                 <MapPin size={18} className="text-[#C22973]" />
-                <h3 className="text-slate-900 font-black text-xs uppercase tracking-[0.3em] italic">{t.sectionBillingAddress || "Endereço de Faturamento"}</h3>
+                <h3 className="text-slate-900 font-black text-xs uppercase tracking-[0.3em] italic">Endereço de Faturamento</h3>
               </div>
-              
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                 <div className="col-span-1 space-y-3">
                   <label className="text-[11px] text-slate-400 font-black uppercase tracking-[0.15em] ml-1">CEP *</label>
-                  <input 
-                    name="cep" 
-                    value={formData.cep} 
-                    onChange={handleChange} 
-                    onBlur={handleCepBlur}
-                    placeholder="00000-000"
-                    className={`w-full border-2 p-5 rounded-[1.5rem] outline-none transition-all font-bold text-slate-700 ${errors.cep ? 'border-red-200 bg-red-50' : 'border-slate-50 bg-slate-50/50 focus:border-[#C22973]'}`} 
-                  />
+                  <input name="cep" value={formData.cep} onChange={handleChange} onBlur={handleCepBlur} className={`w-full border-2 p-5 rounded-[1.5rem] outline-none transition-all font-bold text-slate-700 ${errors.cep ? 'border-red-200 bg-red-50' : 'border-slate-50 bg-slate-50/50 focus:border-[#C22973]'}`} />
                 </div>
                 <div className="col-span-2 space-y-3">
-                  <label className="text-[11px] text-slate-400 font-black uppercase tracking-[0.15em] ml-1">{t.labelAddress || "Logradouro"} *</label>
+                  <label className="text-[11px] text-slate-400 font-black uppercase tracking-[0.15em] ml-1">Logradouro *</label>
                   <input name="rua" value={formData.rua} onChange={handleChange} className="w-full border-2 border-slate-50 p-5 rounded-[1.5rem] outline-none focus:border-[#C22973] bg-slate-50/50 font-bold text-slate-700" />
                 </div>
                 <div className="col-span-1 space-y-3">
@@ -233,20 +231,55 @@ export default function PerfilPage() {
               </div>
             </div>
 
+            {/* STRIPE CONNECT SECTION */}
+            <div className="pt-12 border-t border-slate-100">
+              <div className="flex items-center gap-2 mb-8">
+                <CreditCard size={18} className="text-[#C22973]" />
+                <h3 className="text-slate-900 font-black text-xs uppercase tracking-[0.3em] italic">Configuração de Recebimentos</h3>
+              </div>
+
+              {stripeAccountId ? (
+                <div className="bg-emerald-50/50 border-2 border-emerald-100 p-8 rounded-[2.5rem] flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="bg-emerald-500 p-2 rounded-xl text-white">
+                      <CheckCircle2 size={20} />
+                    </div>
+                    <div>
+                      <p className="text-emerald-900 font-black uppercase text-[10px] tracking-widest leading-none">Conta Stripe Vinculada</p>
+                      <p className="text-slate-500 font-bold text-xs mt-1 italic">Receba 95% das vendas direto na sua conta.</p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-black text-emerald-600 bg-white px-4 py-2 rounded-full shadow-sm">ATIVO</span>
+                </div>
+              ) : (
+                <div className="bg-slate-50 p-8 rounded-[2.5rem] border-2 border-dashed border-slate-200 flex flex-col md:flex-row items-center justify-between gap-6">
+                  <div className="max-w-md">
+                    <p className="text-slate-700 font-bold text-sm mb-1 italic">Vincule sua conta bancária</p>
+                    <p className="text-slate-400 font-medium text-[11px] leading-relaxed uppercase tracking-tight">
+                      Para vender e receber via <strong>Pix ou Cartão</strong>, conecte ao Stripe. Nós retemos apenas 5% de taxa.
+                    </p>
+                  </div>
+                  <button 
+                    type="button" 
+                    onClick={handleConectarStripe}
+                    className="bg-slate-900 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-3 hover:bg-black transition-all shadow-lg active:scale-95"
+                  >
+                    <ExternalLink size={16} /> Configurar Recebimentos
+                  </button>
+                </div>
+              )}
+            </div>
+
             <div className="bg-pink-50/30 p-8 rounded-[2.5rem] flex gap-5 items-center border border-pink-100/50">
               <Info className="text-[#C22973] shrink-0" size={24} />
               <p className="text-[11px] text-pink-900 font-bold uppercase tracking-tight leading-relaxed">
-                {t.profileStripeWarning || "Dados completos garantem a liberação de pagamentos sem interrupções."}
+                Dados completos e conta Stripe configurada garantem que o dinheiro dos eventos caia na sua conta sem atrasos.
               </p>
             </div>
 
-            <button 
-              type="submit" 
-              disabled={isSaving} 
-              className="w-full bg-[#C22973] text-white py-7 rounded-[2rem] font-black uppercase tracking-[0.4em] italic flex items-center justify-center gap-4 hover:bg-[#a62262] transition-all shadow-2xl shadow-pink-200 disabled:opacity-50 active:scale-95 group"
-            >
+            <button type="submit" disabled={isSaving} className="w-full bg-[#C22973] text-white py-7 rounded-[2rem] font-black uppercase tracking-[0.4em] italic flex items-center justify-center gap-4 hover:bg-[#a62262] transition-all shadow-2xl shadow-pink-200 disabled:opacity-50 active:scale-95 group">
               {isSaving ? <Loader2 className="animate-spin" /> : <Save size={22} className="group-hover:rotate-12 transition-transform" />} 
-              {t.btnSaveProfile || "Salvar Alterações"}
+              Salvar Alterações
             </button>
           </form>
         </div>
