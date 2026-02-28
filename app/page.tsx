@@ -18,6 +18,8 @@ import {
   Users,
   Zap,
   X,
+  MapPin,
+  ChevronRight,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -56,18 +58,6 @@ function cn(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(' ');
 }
 
-function SkeletonCard() {
-  return (
-    <div className="rounded-3xl border border-slate-100 bg-white overflow-hidden shadow-sm">
-      <div className="h-48 bg-slate-200 animate-pulse" />
-      <div className="p-5 space-y-3">
-        <div className="h-4 w-2/3 bg-slate-200 animate-pulse rounded-full" />
-        <div className="h-3 w-1/2 bg-slate-100 animate-pulse rounded-full" />
-      </div>
-    </div>
-  );
-}
-
 export default function BuyTicketHome() {
   const { t }: any = useLanguage();
   const [eventos, setEventos] = useState<any[]>([]);
@@ -76,6 +66,43 @@ export default function BuyTicketHome() {
   const [categoriaAtiva, setCategoriaAtiva] = useState('Todos');
   const [buscaNome, setBuscaNome] = useState('');
   const [currentSlide, setCurrentSlide] = useState(0);
+
+  // Carrossel Automático
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev === SLIDES.length - 1 ? 0 : prev + 1));
+    }, 6500);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Busca de dados REAIS da sua API
+  useEffect(() => {
+    async function carregarDados() {
+      setLoading(true);
+      try {
+        const [resEventos, resComunidades] = await Promise.all([
+          fetch(`${API_URL_BASE}/api/eventos/vitrine`, { cache: 'no-store' }),
+          fetch(`${API_URL_BASE}/api/comunidades`, { cache: 'no-store' }),
+        ]);
+
+        if (resEventos.ok) {
+          const dadosEventos = await resEventos.json();
+          setEventos(dadosEventos);
+        }
+
+        if (resComunidades.ok) {
+          const dadosCom = await resComunidades.json();
+          // Puxando os dados reais conforme o retorno da sua API
+          setComunidades(Array.isArray(dadosCom) ? dadosCom.slice(0, 3) : []);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar dados:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    carregarDados();
+  }, []);
 
   const getCategoriaTraduzida = (cat: string) => {
     if (cat === 'Todos') return t.allCategories || 'Todos';
@@ -91,45 +118,10 @@ export default function BuyTicketHome() {
     return map[cat] || cat;
   };
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev === SLIDES.length - 1 ? 0 : prev + 1));
-    }, 6500);
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    async function carregarDados() {
-      setLoading(true);
-      try {
-        const [resEventos, resComunidades] = await Promise.all([
-          fetch(`${API_URL_BASE}/api/eventos/vitrine`, { cache: 'no-store' }),
-          fetch(`${API_URL_BASE}/api/comunidades`, { cache: 'no-store' }),
-        ]);
-
-        if (resEventos.ok) {
-          const dados = await resEventos.json();
-          setEventos(dados);
-        }
-
-        if (resComunidades.ok) {
-          const dadosCom = await resComunidades.json();
-          setComunidades(dadosCom.slice(0, 3));
-        }
-      } catch (error) {
-        console.error('Erro ao carregar dados:', error);
-      } finally {
-        setLoading(false);
-      }
-    }
-    carregarDados();
-  }, []);
-
   const vitrineFiltrada = useMemo(() => {
     const query = buscaNome.trim().toLowerCase();
     return eventos.filter((ev) => {
       const nomeMatch = String(ev.nome || '').toLowerCase().includes(query);
-      // Aqui a comparação agora vai bater com o valor que salvamos no NovoEventoPresencial
       const catMatch = categoriaAtiva === 'Todos' || ev.categoria === categoriaAtiva;
       return nomeMatch && catMatch;
     });
@@ -144,150 +136,152 @@ export default function BuyTicketHome() {
     return eventos.filter((ev) => {
       const dataRaw = ev.data_inicio || ev.data || '';
       if (!dataRaw) return false;
-      const dataEvento = String(dataRaw).split('T')[0];
-      return dataEvento === hojeLocal;
+      return String(dataRaw).split('T')[0] === hojeLocal;
     });
   }, [eventos]);
 
   const slide = SLIDES[currentSlide];
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 selection:bg-indigo-100">
+    <div className="min-h-screen bg-[#FCFCFD] text-slate-900 selection:bg-indigo-100 font-sans">
       <Navbar />
 
-      {/* Hero Section */}
-      <section className="relative h-[75vh] min-h-[500px] overflow-hidden bg-slate-950">
-        <div className="absolute inset-0">
+      {/* Hero Section Centralizada */}
+      <section className="relative h-[80vh] min-h-[600px] flex items-center justify-center overflow-hidden">
+        <div className="absolute inset-0 z-0">
           {SLIDES.map((s, i) => (
-            <div
-              key={s.id}
-              className={cn(
-                'absolute inset-0 transition-all duration-1000',
-                i === currentSlide ? 'opacity-100 scale-100' : 'opacity-0 scale-105'
-              )}
-            >
+            <div key={s.id} className={cn('absolute inset-0 transition-all duration-[2000ms]', i === currentSlide ? 'opacity-100 scale-100' : 'opacity-0 scale-110')}>
               <Image src={s.url} alt="Destaque" fill priority={i === 0} className="object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent opacity-40 md:opacity-100" />
-              <div className="absolute inset-0 bg-black/40" />
+              <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]" />
+              <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#FCFCFD]" />
             </div>
           ))}
         </div>
 
-        <div className="relative mx-auto max-w-7xl px-6 h-full flex flex-col justify-center">
-          <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 backdrop-blur-md px-3 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-white">
-              <span className="animate-pulse w-2 h-2 bg-indigo-400 rounded-full" />
-              Curadoria Linkah
-            </div>
+        <div className="relative z-10 w-full max-w-7xl px-6 text-center">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 backdrop-blur-md px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-white mb-10">
+            <Sparkles size={14} className="text-indigo-300" /> Curadoria Linkah
+          </div>
 
-            <h1 className="mt-6 text-5xl md:text-7xl font-bold tracking-tight text-white leading-[1.1]">
-              {String(t?.[slide.titleKey] || "")}{' '}
-              <span className="block font-light text-indigo-300/90 italic">
-                {String(t?.[slide.highlightKey] || "")}
-              </span>
-            </h1>
+          <h1 className="text-5xl md:text-8xl font-medium tracking-tight text-white leading-[1.05] mb-12">
+            {String(t?.[slide.titleKey] || "")} <br />
+            <span className="font-serif italic text-white/70">{String(t?.[slide.highlightKey] || "")}</span>
+          </h1>
 
-            <div className="mt-10 flex flex-col sm:flex-row gap-4 bg-white/10 p-2 rounded-3xl border border-white/10 backdrop-blur-xl max-w-2xl">
-              <div className="flex flex-1 items-center gap-3 px-4 py-2">
-                <Search size={20} className="text-white/60" />
-                <input
-                  value={buscaNome}
-                  onChange={(e) => setBuscaNome(e.target.value)}
-                  placeholder={String(t?.searchPlaceholder || "Buscar eventos...")}
-                  className="w-full bg-transparent text-white outline-none placeholder:text-white/40"
-                />
-              </div>
-              <button 
-                onClick={() => document.getElementById('vitrine-principal')?.scrollIntoView({ behavior: 'smooth' })}
-                className="bg-white text-slate-950 px-8 py-3 rounded-2xl font-bold uppercase text-xs tracking-widest hover:bg-indigo-50 transition"
-              >
-                {String(t?.explore || "Explorar")}
-              </button>
+          {/* Busca Moderna Centralizada */}
+          <div className="mx-auto max-w-4xl bg-white rounded-[2.5rem] shadow-2xl p-2 md:p-3 flex flex-col md:flex-row items-center gap-2 group">
+            <div className="flex-[1.5] w-full flex items-center gap-4 px-6 py-4 border-b md:border-b-0 md:border-r border-slate-100">
+              <Search size={22} className="text-slate-400 group-hover:text-indigo-500 transition-colors" />
+              <input
+                value={buscaNome}
+                onChange={(e) => setBuscaNome(e.target.value)}
+                placeholder={String(t?.searchPlaceholder || "O que você está procurando?")}
+                className="w-full bg-transparent outline-none text-slate-800 placeholder:text-slate-300 font-medium text-lg"
+              />
             </div>
+            <div className="flex-1 w-full flex items-center gap-4 px-6 py-4 hidden md:flex">
+              <MapPin size={22} className="text-slate-400" />
+              <span className="text-slate-400 font-medium text-lg">Brasil</span>
+            </div>
+            <button 
+              onClick={() => document.getElementById('vitrine-principal')?.scrollIntoView({ behavior: 'smooth' })}
+              className="w-full md:w-auto bg-slate-950 text-white px-10 py-5 rounded-[2rem] font-bold text-sm uppercase tracking-widest hover:bg-indigo-600 transition-all flex items-center justify-center gap-2"
+            >
+              Explorar <ChevronRight size={20} />
+            </button>
           </div>
         </div>
       </section>
 
-      {/* FILTRO DE CATEGORIAS - Com margem negativa para subir no banner */}
-      <div className="relative z-40 -mt-12">
+      {/* Filtros Sticky */}
+      <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-100 py-4">
         <div className="mx-auto max-w-7xl px-6">
-          <div className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 p-4 border border-slate-100">
-            <CategoryFilter
-              categories={CATEGORIAS_FIXAS}
-              activeCategory={categoriaAtiva}
-              onSelect={setCategoriaAtiva}
-              iconMap={iconMap}
-            />
-          </div>
+          <CategoryFilter categories={CATEGORIAS_FIXAS} activeCategory={categoriaAtiva} onSelect={setCategoriaAtiva} iconMap={iconMap} />
         </div>
       </div>
 
-      <main className="mx-auto max-w-7xl px-6 py-16 space-y-24">
-        {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)}
-          </div>
-        ) : (
-          <>
-            {/* Seção Hoje */}
-            {oQueFazerHoje.length > 0 && (
-              <section className="bg-slate-50 rounded-[3rem] p-8 md:p-12 border border-slate-100">
-                <div className="flex items-end justify-between mb-10">
-                  <div>
-                    <div className="flex items-center gap-2 text-indigo-600 font-bold text-[10px] uppercase tracking-widest mb-2">
-                      <Zap size={14} fill="currentColor" /> {t.happening || 'Acontecendo'} {t.today || 'hoje'}
-                    </div>
-                    <h2 className="text-3xl font-bold text-slate-950">{t.happeningToday || 'Destaques do Dia'}</h2>
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                  {oQueFazerHoje.map((ev) => (
-                    <EventCard key={`hoje-${ev.id}`} evento={ev} />
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* Vitrine Principal */}
-            <section id="vitrine-principal" className="scroll-mt-32">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-12">
-                <div>
-                    <h2 className="text-4xl font-bold text-slate-950 tracking-tight">
-                        {buscaNome 
-                          ? `${t.resultsFor || 'Resultados para'} "${buscaNome}"` 
-                          : categoriaAtiva === 'Todos' 
-                            ? (t.discoverTitle || 'Descubra Experiências') 
-                            : getCategoriaTraduzida(categoriaAtiva)}
-                    </h2>
-                    <p className="text-slate-500 mt-2">{vitrineFiltrada.length} {t.optionsAvailable || 'opções disponíveis'}</p>
-                </div>
-                {(buscaNome || categoriaAtiva !== 'Todos') && (
-                    <button 
-                        onClick={() => {setBuscaNome(''); setCategoriaAtiva('Todos');}}
-                        className="text-indigo-600 font-bold text-xs uppercase tracking-widest flex items-center gap-2 hover:text-indigo-800 transition"
-                    >
-                        <X size={14} /> {t.clearFilters || 'Limpar Filtros'}
-                    </button>
-                )}
-              </div>
-
-              {vitrineFiltrada.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-16">
-                  {vitrineFiltrada.map((ev) => (
-                    <EventCard key={`vitrine-${ev.id}`} evento={ev} />
-                  ))}
-                </div>
-              ) : (
-                <div className="py-24 text-center border-2 border-dashed border-slate-200 rounded-[3rem] bg-slate-50/50">
-                  <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">{t.noEventsFound || 'Nenhum evento encontrado'}</p>
-                  <button onClick={() => {setBuscaNome(''); setCategoriaAtiva('Todos');}} className="mt-4 text-indigo-600 font-bold hover:underline">
-                    {t.viewFullShowcase || 'Ver vitrine completa'}
-                  </button>
-                </div>
-              )}
-            </section>
-          </>
+      <main className="mx-auto max-w-7xl px-6 py-20 space-y-32">
+        
+        {/* VITRINE HOJE */}
+        {!loading && oQueFazerHoje.length > 0 && (
+          <section className="bg-slate-50 rounded-[3rem] p-8 md:p-12 border border-slate-100">
+            <div className="flex items-center gap-3 mb-10">
+              <div className="bg-indigo-600 p-2 rounded-xl text-white"><Zap size={20} fill="currentColor" /></div>
+              <h2 className="text-3xl font-bold text-slate-950 tracking-tight">{t.happeningToday || 'Destaques do Dia'}</h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+              {oQueFazerHoje.map((ev) => <EventCard key={`hoje-${ev.id}`} evento={ev} />)}
+            </div>
+          </section>
         )}
+
+        {/* VITRINE PRINCIPAL */}
+        <section id="vitrine-principal" className="scroll-mt-32">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6 mb-16">
+            <div>
+              <h2 className="text-4xl font-medium text-slate-950 tracking-tight">
+                {buscaNome ? `${t.resultsFor || 'Resultados para'} "${buscaNome}"` : categoriaAtiva === 'Todos' ? (t.discoverTitle || 'Próximas Experiências') : getCategoriaTraduzida(categoriaAtiva)}
+              </h2>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-20">
+            {vitrineFiltrada.map((ev) => <EventCard key={`vitrine-${ev.id}`} evento={ev} />)}
+          </div>
+        </section>
+
+        {/* --- SEÇÃO COMUNIDADES REAIS (CLICÁVEIS) --- */}
+        {!loading && comunidades.length > 0 && (
+          <section className="space-y-12">
+            <div className="flex justify-between items-end">
+              <div>
+                <h2 className="text-4xl font-medium text-slate-950 tracking-tight">Comunidades Linkah</h2>
+                <p className="text-slate-400 mt-2 font-medium">Conecte-se com pessoas reais em grupos exclusivos.</p>
+              </div>
+              <Link href="/comunidades" className="text-indigo-600 font-bold text-sm uppercase tracking-widest flex items-center gap-2 group">
+                Ver todas <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {comunidades.map((com) => (
+                <Link 
+                  key={com.id} 
+                  href={`/comunidades/${com.id}`} // Rota real para o chat
+                  className="group relative h-[450px] overflow-hidden rounded-[2.5rem] bg-slate-200 block shadow-lg"
+                >
+                  {/* Puxando foto_url real da sua API */}
+                  {com.foto_url ? (
+                    <Image 
+                      src={com.foto_url} 
+                      alt={com.nome}
+                      fill
+                      className="object-cover transition-transform duration-700 group-hover:scale-110"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 bg-indigo-900" />
+                  )}
+                  
+                  {/* Gradiente Escuro para leitura */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/30 to-transparent" />
+                  
+                  <div className="absolute inset-0 p-8 flex flex-col justify-end">
+                    <div className="flex items-center gap-2 text-indigo-400 font-bold text-[10px] uppercase tracking-widest mb-3">
+                      <Users size={14} /> {com.membros_count || 0} Membros
+                    </div>
+                    <h3 className="text-2xl font-bold text-white mb-2">{com.nome}</h3>
+                    <p className="text-slate-300 text-sm line-clamp-2 mb-6 opacity-90">
+                      {com.descricao}
+                    </p>
+                    <div className="flex items-center gap-3 text-white font-bold text-xs uppercase tracking-[0.2em] group-hover:text-indigo-300 transition-colors">
+                      Entrar no Chat <ChevronRight size={18} className="group-hover:translate-x-2 transition-transform" />
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
+
       </main>
 
       <Footer />
