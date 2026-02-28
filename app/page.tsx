@@ -18,12 +18,16 @@ import {
   Users,
   Zap,
   X,
+  MapPin,
+  ChevronRight,
+  MessageCircle,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 
 const API_URL_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
 
+// Mapeamento de ícones para categorias
 const iconMap: { [key: string]: any } = {
   Todos: Ticket,
   'Arte & Cultura': Palette,
@@ -56,18 +60,6 @@ function cn(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(' ');
 }
 
-function SkeletonCard() {
-  return (
-    <div className="rounded-3xl border border-slate-100 bg-white overflow-hidden shadow-sm">
-      <div className="h-48 bg-slate-200 animate-pulse" />
-      <div className="p-5 space-y-3">
-        <div className="h-4 w-2/3 bg-slate-200 animate-pulse rounded-full" />
-        <div className="h-3 w-1/2 bg-slate-100 animate-pulse rounded-full" />
-      </div>
-    </div>
-  );
-}
-
 export default function BuyTicketHome() {
   const { t }: any = useLanguage();
   const [eventos, setEventos] = useState<any[]>([]);
@@ -76,20 +68,6 @@ export default function BuyTicketHome() {
   const [categoriaAtiva, setCategoriaAtiva] = useState('Todos');
   const [buscaNome, setBuscaNome] = useState('');
   const [currentSlide, setCurrentSlide] = useState(0);
-
-  const getCategoriaTraduzida = (cat: string) => {
-    if (cat === 'Todos') return t.allCategories || 'Todos';
-    const map: Record<string, string> = {
-      'Arte & Cultura': t.catArt,
-      'Entretenimento': t.catEnt,
-      'Negócios': t.catBiz,
-      'Educação & Desenvolvimento': t.catEdu,
-      'Esportes & Bem-estar': t.catHealth,
-      'Experiências & Lifestyle': t.catLife,
-      'Família & Comunidade': t.catFamily,
-    };
-    return map[cat] || cat;
-  };
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -107,11 +85,7 @@ export default function BuyTicketHome() {
           fetch(`${API_URL_BASE}/api/comunidades`, { cache: 'no-store' }),
         ]);
 
-        if (resEventos.ok) {
-          const dados = await resEventos.json();
-          setEventos(dados);
-        }
-
+        if (resEventos.ok) setEventos(await resEventos.json());
         if (resComunidades.ok) {
           const dadosCom = await resComunidades.json();
           setComunidades(dadosCom.slice(0, 3));
@@ -129,165 +103,137 @@ export default function BuyTicketHome() {
     const query = buscaNome.trim().toLowerCase();
     return eventos.filter((ev) => {
       const nomeMatch = String(ev.nome || '').toLowerCase().includes(query);
-      // Aqui a comparação agora vai bater com o valor que salvamos no NovoEventoPresencial
       const catMatch = categoriaAtiva === 'Todos' || ev.categoria === categoriaAtiva;
       return nomeMatch && catMatch;
     });
   }, [eventos, buscaNome, categoriaAtiva]);
 
-  const oQueFazerHoje = useMemo(() => {
-    const agora = new Date();
-    const hojeLocal = agora.getFullYear() + '-' + 
-                      String(agora.getMonth() + 1).padStart(2, '0') + '-' + 
-                      String(agora.getDate()).padStart(2, '0');
-
-    return eventos.filter((ev) => {
-      const dataRaw = ev.data_inicio || ev.data || '';
-      if (!dataRaw) return false;
-      const dataEvento = String(dataRaw).split('T')[0];
-      return dataEvento === hojeLocal;
-    });
-  }, [eventos]);
-
   const slide = SLIDES[currentSlide];
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 selection:bg-indigo-100">
+    <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-[#ff4d4d]/20">
       <Navbar />
 
-      {/* Hero Section */}
-      <section className="relative h-[75vh] min-h-[500px] overflow-hidden bg-slate-950">
-        <div className="absolute inset-0">
+      {/* --- HERO SECTION COM DEGRADÊ #ff4d4d --- */}
+      <section className="relative h-[75vh] min-h-[550px] flex items-center justify-center overflow-hidden">
+        <div className="absolute inset-0 z-0">
           {SLIDES.map((s, i) => (
-            <div
-              key={s.id}
-              className={cn(
-                'absolute inset-0 transition-all duration-1000',
-                i === currentSlide ? 'opacity-100 scale-100' : 'opacity-0 scale-105'
-              )}
-            >
+            <div key={s.id} className={cn('absolute inset-0 transition-all duration-[2000ms]', i === currentSlide ? 'opacity-100 scale-100' : 'opacity-0 scale-105')}>
               <Image src={s.url} alt="Destaque" fill priority={i === 0} className="object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent opacity-40 md:opacity-100" />
-              <div className="absolute inset-0 bg-black/40" />
+              {/* Overlay Branco com Gradiente Coral */}
+              <div className="absolute inset-0 bg-gradient-to-br from-white/90 via-white/40 to-[#ff4d4d]/20 backdrop-blur-[1px]" />
+              <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white" />
             </div>
           ))}
         </div>
 
-        <div className="relative mx-auto max-w-7xl px-6 h-full flex flex-col justify-center">
-          <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 backdrop-blur-md px-3 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-white">
-              <span className="animate-pulse w-2 h-2 bg-indigo-400 rounded-full" />
-              Curadoria Linkah
-            </div>
+        <div className="relative z-10 w-full max-w-5xl px-6 text-center">
+          <h1 className="text-5xl md:text-7xl font-black tracking-tighter text-slate-900 leading-[1] mb-8">
+            {String(t?.[slide.titleKey] || "Sua próxima")} <br />
+            <span className="text-[#ff4d4d] drop-shadow-sm italic font-serif font-light">{String(t?.[slide.highlightKey] || "experiência")}</span>
+          </h1>
 
-            <h1 className="mt-6 text-5xl md:text-7xl font-bold tracking-tight text-white leading-[1.1]">
-              {String(t?.[slide.titleKey] || "")}{' '}
-              <span className="block font-light text-indigo-300/90 italic">
-                {String(t?.[slide.highlightKey] || "")}
-              </span>
-            </h1>
-
-            <div className="mt-10 flex flex-col sm:flex-row gap-4 bg-white/10 p-2 rounded-3xl border border-white/10 backdrop-blur-xl max-w-2xl">
-              <div className="flex flex-1 items-center gap-3 px-4 py-2">
-                <Search size={20} className="text-white/60" />
-                <input
-                  value={buscaNome}
-                  onChange={(e) => setBuscaNome(e.target.value)}
-                  placeholder={String(t?.searchPlaceholder || "Buscar eventos...")}
-                  className="w-full bg-transparent text-white outline-none placeholder:text-white/40"
-                />
-              </div>
-              <button 
-                onClick={() => document.getElementById('vitrine-principal')?.scrollIntoView({ behavior: 'smooth' })}
-                className="bg-white text-slate-950 px-8 py-3 rounded-2xl font-bold uppercase text-xs tracking-widest hover:bg-indigo-50 transition"
-              >
-                {String(t?.explore || "Explorar")}
-              </button>
+          {/* BARRA DE BUSCA COM DEGRADÊ NO BOTÃO */}
+          <div className="mx-auto max-w-3xl bg-white rounded-3xl shadow-2xl shadow-[#ff4d4d]/10 p-2 flex flex-col md:flex-row items-center border border-slate-100 transition-all focus-within:ring-2 focus-within:ring-[#ff4d4d]/20">
+            <div className="flex-[1.5] w-full flex items-center gap-3 px-5 py-3">
+              <Search size={20} className="text-[#ff4d4d]" />
+              <input
+                value={buscaNome}
+                onChange={(e) => setBuscaNome(e.target.value)}
+                placeholder="O que você está procurando hoje?"
+                className="w-full bg-transparent outline-none text-slate-700 placeholder:text-slate-400 font-medium"
+              />
             </div>
+            <button 
+              onClick={() => document.getElementById('vitrine-principal')?.scrollIntoView({ behavior: 'smooth' })}
+              className="w-full md:w-auto bg-gradient-to-r from-[#ff4d4d] to-[#ff7070] text-white px-10 py-4 rounded-2xl font-bold text-sm uppercase tracking-wider hover:opacity-90 transition-all shadow-lg shadow-[#ff4d4d]/30 active:scale-95"
+            >
+              Explorar
+            </button>
           </div>
         </div>
       </section>
 
-      {/* FILTRO DE CATEGORIAS - Com margem negativa para subir no banner */}
-      <div className="relative z-40 -mt-12">
+      {/* CATEGORIAS CLEAN */}
+      <div className="sticky top-0 z-50 bg-white/90 backdrop-blur-xl border-b border-slate-50 py-4">
         <div className="mx-auto max-w-7xl px-6">
-          <div className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 p-4 border border-slate-100">
-            <CategoryFilter
-              categories={CATEGORIAS_FIXAS}
-              activeCategory={categoriaAtiva}
-              onSelect={setCategoriaAtiva}
-              iconMap={iconMap}
-            />
-          </div>
+          <CategoryFilter categories={CATEGORIAS_FIXAS} activeCategory={categoriaAtiva} onSelect={setCategoriaAtiva} iconMap={iconMap} />
         </div>
       </div>
 
-      <main className="mx-auto max-w-7xl px-6 py-16 space-y-24">
-        {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)}
-          </div>
-        ) : (
-          <>
-            {/* Seção Hoje */}
-            {oQueFazerHoje.length > 0 && (
-              <section className="bg-slate-50 rounded-[3rem] p-8 md:p-12 border border-slate-100">
-                <div className="flex items-end justify-between mb-10">
-                  <div>
-                    <div className="flex items-center gap-2 text-indigo-600 font-bold text-[10px] uppercase tracking-widest mb-2">
-                      <Zap size={14} fill="currentColor" /> {t.happening || 'Acontecendo'} {t.today || 'hoje'}
-                    </div>
-                    <h2 className="text-3xl font-bold text-slate-950">{t.happeningToday || 'Destaques do Dia'}</h2>
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                  {oQueFazerHoje.map((ev) => (
-                    <EventCard key={`hoje-${ev.id}`} evento={ev} />
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* Vitrine Principal */}
-            <section id="vitrine-principal" className="scroll-mt-32">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-12">
-                <div>
-                    <h2 className="text-4xl font-bold text-slate-950 tracking-tight">
-                        {buscaNome 
-                          ? `${t.resultsFor || 'Resultados para'} "${buscaNome}"` 
-                          : categoriaAtiva === 'Todos' 
-                            ? (t.discoverTitle || 'Descubra Experiências') 
-                            : getCategoriaTraduzida(categoriaAtiva)}
-                    </h2>
-                    <p className="text-slate-500 mt-2">{vitrineFiltrada.length} {t.optionsAvailable || 'opções disponíveis'}</p>
-                </div>
-                {(buscaNome || categoriaAtiva !== 'Todos') && (
-                    <button 
-                        onClick={() => {setBuscaNome(''); setCategoriaAtiva('Todos');}}
-                        className="text-indigo-600 font-bold text-xs uppercase tracking-widest flex items-center gap-2 hover:text-indigo-800 transition"
-                    >
-                        <X size={14} /> {t.clearFilters || 'Limpar Filtros'}
-                    </button>
-                )}
+      <main className="mx-auto max-w-7xl px-6 py-20 space-y-32">
+        
+        {/* --- COMUNIDADES LAYOUT CLEAN COM FOTOS REAIS --- */}
+        {!loading && comunidades.length > 0 && (
+          <section className="space-y-12">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+              <div>
+                <h2 className="text-4xl font-black text-slate-900 tracking-tight">Comunidades</h2>
+                <div className="h-1.5 w-12 bg-[#ff4d4d] rounded-full mt-2" />
               </div>
+              <Link href="/comunidades" className="text-[#ff4d4d] font-bold text-xs uppercase tracking-widest hover:underline flex items-center gap-2">
+                Ver todas <ChevronRight size={14} />
+              </Link>
+            </div>
 
-              {vitrineFiltrada.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-16">
-                  {vitrineFiltrada.map((ev) => (
-                    <EventCard key={`vitrine-${ev.id}`} evento={ev} />
-                  ))}
-                </div>
-              ) : (
-                <div className="py-24 text-center border-2 border-dashed border-slate-200 rounded-[3rem] bg-slate-50/50">
-                  <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">{t.noEventsFound || 'Nenhum evento encontrado'}</p>
-                  <button onClick={() => {setBuscaNome(''); setCategoriaAtiva('Todos');}} className="mt-4 text-indigo-600 font-bold hover:underline">
-                    {t.viewFullShowcase || 'Ver vitrine completa'}
-                  </button>
-                </div>
-              )}
-            </section>
-          </>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {comunidades.map((com) => {
+                const fotoFinal = com.foto_url 
+                  ? (com.foto_url.startsWith('http') ? com.foto_url : `${API_URL_BASE}${com.foto_url}`)
+                  : 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?q=80&w=2070';
+
+                return (
+                  <Link 
+                    key={com.id} 
+                    href={`/comunidades/${com.id}`} 
+                    className="group bg-white rounded-[2.5rem] p-4 border border-slate-100 hover:shadow-2xl hover:shadow-[#ff4d4d]/10 transition-all duration-500 flex flex-col"
+                  >
+                    {/* Foto com proporção moderna */}
+                    <div className="relative h-60 w-full overflow-hidden rounded-[2rem] mb-6">
+                      <Image 
+                        src={fotoFinal} 
+                        alt={com.nome}
+                        fill
+                        unoptimized
+                        className="object-cover transition-transform duration-700 group-hover:scale-110"
+                      />
+                      <div className="absolute bottom-4 left-4 bg-white/95 px-3 py-1.5 rounded-full text-[10px] font-bold text-[#ff4d4d] shadow-sm flex items-center gap-1.5">
+                        <Users size={12} /> {com.membros_count || 0} Membros
+                      </div>
+                    </div>
+
+                    <div className="px-2 flex-grow">
+                      <h3 className="text-2xl font-bold text-slate-900 mb-2 group-hover:text-[#ff4d4d] transition-colors">{com.nome}</h3>
+                      <p className="text-slate-500 text-sm leading-relaxed line-clamp-2 mb-8">
+                        {com.descricao || "Participe das discussões exclusivas desta comunidade."}
+                      </p>
+                    </div>
+
+                    {/* Botão com degradê suave no hover */}
+                    <div className="w-full py-4 bg-slate-50 group-hover:bg-gradient-to-r group-hover:from-[#ff4d4d] group-hover:to-[#ff7070] rounded-2xl flex items-center justify-center gap-2 text-slate-600 group-hover:text-white font-bold text-xs uppercase tracking-widest transition-all">
+                      <MessageCircle size={16} /> Abrir Chat
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
         )}
+
+        {/* VITRINE DE EVENTOS */}
+        <section id="vitrine-principal" className="scroll-mt-32">
+          <div className="mb-16">
+            <h2 className="text-4xl font-black text-slate-900 tracking-tight">Descubra Eventos</h2>
+            <p className="text-slate-400 font-medium mt-1">Os melhores momentos selecionados para você.</p>
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-20">
+            {vitrineFiltrada.map((ev) => (
+              <EventCard key={`vitrine-${ev.id}`} evento={ev} />
+            ))}
+          </div>
+        </section>
+
       </main>
 
       <Footer />
