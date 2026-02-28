@@ -18,9 +18,9 @@ import {
   Users,
   Zap,
   X,
-  ChevronRight,
   MapPin,
-  ArrowRight
+  ChevronRight,
+  MessageCircle, // Ícone de chat para o botão
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -59,18 +59,6 @@ function cn(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(' ');
 }
 
-function SkeletonCard() {
-  return (
-    <div className="rounded-[2.5rem] border border-slate-100 bg-white overflow-hidden shadow-sm">
-      <div className="h-64 bg-slate-200 animate-pulse" />
-      <div className="p-6 space-y-3">
-        <div className="h-4 w-2/3 bg-slate-200 animate-pulse rounded-full" />
-        <div className="h-3 w-1/2 bg-slate-100 animate-pulse rounded-full" />
-      </div>
-    </div>
-  );
-}
-
 export default function BuyTicketHome() {
   const { t }: any = useLanguage();
   const [eventos, setEventos] = useState<any[]>([]);
@@ -80,7 +68,6 @@ export default function BuyTicketHome() {
   const [buscaNome, setBuscaNome] = useState('');
   const [currentSlide, setCurrentSlide] = useState(0);
 
-  // Lógica do Carrossel
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev === SLIDES.length - 1 ? 0 : prev + 1));
@@ -88,7 +75,6 @@ export default function BuyTicketHome() {
     return () => clearInterval(interval);
   }, []);
 
-  // Busca de Dados
   useEffect(() => {
     async function carregarDados() {
       setLoading(true);
@@ -98,11 +84,7 @@ export default function BuyTicketHome() {
           fetch(`${API_URL_BASE}/api/comunidades`, { cache: 'no-store' }),
         ]);
 
-        if (resEventos.ok) {
-          const dados = await resEventos.json();
-          setEventos(dados);
-        }
-
+        if (resEventos.ok) setEventos(await resEventos.json());
         if (resComunidades.ok) {
           const dadosCom = await resComunidades.json();
           setComunidades(dadosCom.slice(0, 3));
@@ -139,190 +121,134 @@ export default function BuyTicketHome() {
     });
   }, [eventos, buscaNome, categoriaAtiva]);
 
-  const oQueFazerHoje = useMemo(() => {
-    const agora = new Date();
-    const hojeLocal = agora.getFullYear() + '-' + 
-                      String(agora.getMonth() + 1).padStart(2, '0') + '-' + 
-                      String(agora.getDate()).padStart(2, '0');
-
-    return eventos.filter((ev) => {
-      const dataRaw = ev.data_inicio || ev.data || '';
-      if (!dataRaw) return false;
-      const dataEvento = String(dataRaw).split('T')[0];
-      return dataEvento === hojeLocal;
-    });
-  }, [eventos]);
-
   const slide = SLIDES[currentSlide];
 
   return (
-    <div className="min-h-screen bg-[#FCFCFD] text-slate-900 selection:bg-indigo-100 font-sans">
+    <div className="min-h-screen bg-[#F8F9FB] text-slate-900 selection:bg-indigo-100 font-sans">
       <Navbar />
 
-      {/* Hero Section */}
-      <section className="relative h-[85vh] min-h-[650px] flex items-center justify-center overflow-hidden">
+      {/* --- HERO SECTION --- */}
+      <section className="relative h-[70vh] min-h-[550px] flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">
           {SLIDES.map((s, i) => (
-            <div
-              key={s.id}
-              className={cn(
-                'absolute inset-0 transition-all duration-[2000ms] ease-in-out',
-                i === currentSlide ? 'opacity-100 scale-100' : 'opacity-0 scale-110'
-              )}
-            >
+            <div key={s.id} className={cn('absolute inset-0 transition-all duration-[2000ms]', i === currentSlide ? 'opacity-100 scale-100' : 'opacity-0 scale-105')}>
               <Image src={s.url} alt="Destaque" fill priority={i === 0} className="object-cover" />
-              <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]" />
-              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/10 to-[#FCFCFD]" />
+              <div className="absolute inset-0 bg-white/20 backdrop-blur-[2px]" />
+              <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#F8F9FB]" />
             </div>
           ))}
         </div>
 
-        <div className="relative z-10 w-full max-w-7xl px-6 text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 backdrop-blur-md px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-white mb-10">
-            <Sparkles size={14} className="text-indigo-300" /> Curadoria Linkah
-          </div>
-
-          <h1 className="text-5xl md:text-8xl font-medium tracking-tight text-white leading-[1.05] mb-12">
-            {String(t?.[slide.titleKey] || "")} <br />
-            <span className="font-serif italic text-white/70">{String(t?.[slide.highlightKey] || "")}</span>
+        <div className="relative z-10 w-full max-w-5xl px-6 text-center">
+          <h1 className="text-4xl md:text-7xl font-bold tracking-tight text-slate-900 leading-[1.1] mb-8">
+            {String(t?.[slide.titleKey] || "Explore o melhor da")} <br />
+            <span className="text-indigo-600 italic font-serif font-light">{String(t?.[slide.highlightKey] || "sua cidade")}</span>
           </h1>
 
-          {/* Busca estilo Luma */}
-          <div className="mx-auto max-w-4xl bg-white rounded-[2.5rem] shadow-2xl p-2 md:p-3 flex flex-col md:flex-row items-center gap-2">
-            <div className="flex-[1.5] w-full flex items-center gap-4 px-6 py-4 border-b md:border-b-0 md:border-r border-slate-100">
-              <Search size={22} className="text-slate-400" />
+          {/* BARRA DE BUSCA MINIMALISTA */}
+          <div className="mx-auto max-w-3xl bg-white/80 backdrop-blur-md rounded-3xl shadow-xl shadow-slate-200/50 p-1.5 flex flex-col md:flex-row items-center border border-white">
+            <div className="flex-[1.5] w-full flex items-center gap-3 px-5 py-3">
+              <Search size={20} className="text-slate-400" />
               <input
                 value={buscaNome}
                 onChange={(e) => setBuscaNome(e.target.value)}
-                placeholder={String(t?.searchPlaceholder || "O que você está procurando?")}
-                className="w-full bg-transparent outline-none text-slate-800 placeholder:text-slate-300 font-medium text-lg"
+                placeholder="O que você quer viver hoje?"
+                className="w-full bg-transparent outline-none text-slate-700 placeholder:text-slate-400 font-medium"
               />
-            </div>
-            <div className="flex-1 w-full flex items-center gap-4 px-6 py-4 hidden md:flex">
-              <MapPin size={22} className="text-slate-400" />
-              <span className="text-slate-400 font-medium text-lg">Brasil</span>
             </div>
             <button 
               onClick={() => document.getElementById('vitrine-principal')?.scrollIntoView({ behavior: 'smooth' })}
-              className="w-full md:w-auto bg-slate-950 text-white px-10 py-5 rounded-[2rem] font-bold text-sm uppercase tracking-widest hover:bg-indigo-600 transition-all flex items-center justify-center gap-2"
+              className="w-full md:w-auto bg-indigo-600 text-white px-8 py-3.5 rounded-2xl font-bold text-sm uppercase tracking-wider hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 active:scale-95"
             >
-              {String(t?.explore || "Explorar")} <ChevronRight size={20} />
+              Buscar
             </button>
           </div>
         </div>
       </section>
 
-      {/* Categorias Sticky */}
-      <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-100">
+      {/* FILTROS */}
+      <div className="sticky top-0 z-50 bg-white/60 backdrop-blur-xl border-b border-slate-100">
         <div className="mx-auto max-w-7xl px-6 py-4">
-          <CategoryFilter
-            categories={CATEGORIAS_FIXAS}
-            activeCategory={categoriaAtiva}
-            onSelect={setCategoriaAtiva}
-            iconMap={iconMap}
-          />
+          <CategoryFilter categories={CATEGORIAS_FIXAS} activeCategory={categoriaAtiva} onSelect={setCategoriaAtiva} iconMap={iconMap} />
         </div>
       </div>
 
       <main className="mx-auto max-w-7xl px-6 py-20 space-y-32">
-        {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)}
-          </div>
-        ) : (
-          <>
-            {/* Seção Hoje */}
-            {oQueFazerHoje.length > 0 && (
-              <section>
-                <div className="flex items-center gap-3 mb-10">
-                  <div className="bg-indigo-600 p-2 rounded-xl text-white">
-                    <Zap size={20} fill="currentColor" />
-                  </div>
-                  <h2 className="text-3xl font-bold text-slate-950 tracking-tight">
-                    {t.happeningToday || 'Destaques do Dia'}
-                  </h2>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                  {oQueFazerHoje.map((ev) => (
-                    <EventCard key={`hoje-${ev.id}`} evento={ev} />
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* Vitrine Principal */}
-            <section id="vitrine-principal" className="scroll-mt-32">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6 mb-16">
-                <div>
-                  <h2 className="text-4xl font-medium text-slate-950 tracking-tight">
-                    {buscaNome 
-                      ? `${t.resultsFor || 'Resultados para'} "${buscaNome}"` 
-                      : categoriaAtiva === 'Todos' 
-                        ? (t.discoverTitle || 'Próximas Experiências') 
-                        : getCategoriaTraduzida(categoriaAtiva)}
-                  </h2>
-                  <p className="text-slate-400 mt-2 font-medium">{vitrineFiltrada.length} {t.optionsAvailable || 'opções disponíveis'}</p>
-                </div>
-                {(buscaNome || categoriaAtiva !== 'Todos') && (
-                  <button 
-                    onClick={() => {setBuscaNome(''); setCategoriaAtiva('Todos');}}
-                    className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-widest hover:text-indigo-600 transition-all"
-                  >
-                    <X size={16} /> {t.clearFilters || 'Limpar Filtros'}
-                  </button>
-                )}
+        
+        {/* --- NOVO LAYOUT DE COMUNIDADES (CLEAN & APP STYLE) --- */}
+        {!loading && comunidades.length > 0 && (
+          <section className="space-y-10">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+              <div>
+                <span className="text-indigo-600 font-bold text-[10px] uppercase tracking-[0.3em] mb-2 block">Social</span>
+                <h2 className="text-4xl font-bold text-slate-900 tracking-tight">Comunidades</h2>
               </div>
+              <Link href="/comunidades" className="text-slate-400 font-bold text-xs uppercase tracking-widest hover:text-indigo-600 transition flex items-center gap-2">
+                Ver todas as salas <ChevronRight size={14} />
+              </Link>
+            </div>
 
-              {vitrineFiltrada.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-20">
-                  {vitrineFiltrada.map((ev) => (
-                    <EventCard key={`vitrine-${ev.id}`} evento={ev} />
-                  ))}
-                </div>
-              ) : (
-                <div className="py-32 text-center bg-slate-50 rounded-[3rem] border border-dashed border-slate-200">
-                  <p className="text-slate-500 font-medium text-lg">{t.noEventsFound || 'Nenhum evento encontrado'}</p>
-                  <button onClick={() => {setBuscaNome(''); setCategoriaAtiva('Todos');}} className="mt-4 text-indigo-600 font-bold hover:underline">
-                    {t.viewFullShowcase || 'Ver vitrine completa'}
-                  </button>
-                </div>
-              )}
-            </section>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {comunidades.map((com) => {
+                const fotoFinal = com.foto_url 
+                  ? (com.foto_url.startsWith('http') ? com.foto_url : `${API_URL_BASE}${com.foto_url}`)
+                  : 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?q=80&w=2070';
 
-            {/* Comunidades (Sempre por último) */}
-            {comunidades.length > 0 && (
-              <section className="bg-slate-950 rounded-[3rem] p-12 md:p-20 text-white overflow-hidden relative">
-                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-500/10 blur-[120px] rounded-full" />
-                <div className="relative z-10">
-                  <div className="flex justify-between items-end mb-16">
-                    <div>
-                      <h2 className="text-4xl md:text-5xl font-medium tracking-tight mb-4 italic font-serif text-indigo-300">Comunidades</h2>
-                      <p className="text-slate-400 font-medium max-w-md">Encontre seu grupo e viva experiências exclusivas.</p>
-                    </div>
-                    <Link href="/comunidades" className="hidden md:flex items-center gap-3 text-sm font-bold uppercase tracking-widest hover:text-indigo-300 transition-colors">
-                      Ver todas <ArrowRight size={20} />
-                    </Link>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    {comunidades.map((com) => (
-                      <div key={com.id} className="group bg-white/5 border border-white/10 p-8 rounded-[2.5rem] hover:bg-white/10 transition-all">
-                        <div className="w-16 h-16 bg-white/10 rounded-2xl mb-6 flex items-center justify-center text-indigo-400 group-hover:scale-110 transition-transform">
-                          <Users size={32} />
-                        </div>
-                        <h3 className="text-2xl font-bold mb-2">{com.nome}</h3>
-                        <p className="text-slate-400 text-sm line-clamp-2 mb-6">{com.descricao}</p>
-                        <div className="flex items-center gap-2 text-indigo-400 font-bold text-[10px] uppercase tracking-widest">
-                          {com.membros_count || 0} Membros ativos
-                        </div>
+                return (
+                  <Link 
+                    key={com.id} 
+                    href={`/comunidades/${com.id}`} 
+                    className="group bg-white rounded-[2.5rem] p-4 border border-slate-100 hover:border-indigo-100 hover:shadow-2xl hover:shadow-indigo-100/50 transition-all duration-500 flex flex-col h-full"
+                  >
+                    {/* Imagem Arredondada Estilo Card */}
+                    <div className="relative h-56 w-full overflow-hidden rounded-[2rem] mb-6">
+                      <Image 
+                        src={fotoFinal} 
+                        alt={com.nome}
+                        fill
+                        unoptimized
+                        className="object-cover transition-transform duration-700 group-hover:scale-110"
+                      />
+                      <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full text-[10px] font-bold text-indigo-600 shadow-sm flex items-center gap-1.5">
+                        <Users size={12} /> {com.membros_count || 0}
                       </div>
-                    ))}
-                  </div>
-                </div>
-              </section>
-            )}
-          </>
+                    </div>
+
+                    {/* Texto e Conteúdo */}
+                    <div className="px-2 flex-grow">
+                      <h3 className="text-xl font-bold text-slate-900 mb-2 group-hover:text-indigo-600 transition-colors">{com.nome}</h3>
+                      <p className="text-slate-500 text-sm leading-relaxed line-clamp-2 mb-6">
+                        {com.descricao || "Participe das discussões e fique por dentro das novidades desta comunidade exclusiva."}
+                      </p>
+                    </div>
+
+                    {/* Botão de Ação Clean */}
+                    <div className="mt-auto px-2 pb-2">
+                      <div className="w-full py-4 bg-slate-50 group-hover:bg-indigo-600 rounded-2xl flex items-center justify-center gap-2 text-slate-900 group-hover:text-white font-bold text-xs uppercase tracking-widest transition-all">
+                        <MessageCircle size={16} /> Entrar no Chat
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
         )}
+
+        {/* VITRINE PRINCIPAL (MANTIDA) */}
+        <section id="vitrine-principal" className="scroll-mt-32">
+          <div className="mb-16">
+            <h2 className="text-4xl font-bold text-slate-900 tracking-tight mb-2">
+              {buscaNome ? `Resultados para "${buscaNome}"` : "Eventos em Destaque"}
+            </h2>
+            <div className="h-1 w-20 bg-indigo-600 rounded-full" />
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-16">
+            {vitrineFiltrada.map((ev) => <EventCard key={`vitrine-${ev.id}`} evento={ev} />)}
+          </div>
+        </section>
+
       </main>
 
       <Footer />
