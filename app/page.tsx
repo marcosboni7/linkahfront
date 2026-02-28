@@ -67,6 +67,7 @@ export default function BuyTicketHome() {
   const [buscaNome, setBuscaNome] = useState('');
   const [currentSlide, setCurrentSlide] = useState(0);
 
+  // Carrossel Automático
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev === SLIDES.length - 1 ? 0 : prev + 1));
@@ -74,6 +75,7 @@ export default function BuyTicketHome() {
     return () => clearInterval(interval);
   }, []);
 
+  // Busca de dados REAIS da sua API
   useEffect(() => {
     async function carregarDados() {
       setLoading(true);
@@ -83,10 +85,15 @@ export default function BuyTicketHome() {
           fetch(`${API_URL_BASE}/api/comunidades`, { cache: 'no-store' }),
         ]);
 
-        if (resEventos.ok) setEventos(await resEventos.json());
+        if (resEventos.ok) {
+          const dadosEventos = await resEventos.json();
+          setEventos(dadosEventos);
+        }
+
         if (resComunidades.ok) {
           const dadosCom = await resComunidades.json();
-          setComunidades(dadosCom.slice(0, 3));
+          // Puxando os dados reais conforme o retorno da sua API
+          setComunidades(Array.isArray(dadosCom) ? dadosCom.slice(0, 3) : []);
         }
       } catch (error) {
         console.error('Erro ao carregar dados:', error);
@@ -139,14 +146,14 @@ export default function BuyTicketHome() {
     <div className="min-h-screen bg-[#FCFCFD] text-slate-900 selection:bg-indigo-100 font-sans">
       <Navbar />
 
-      {/* --- HERO SECTION --- */}
+      {/* Hero Section Centralizada */}
       <section className="relative h-[80vh] min-h-[600px] flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">
           {SLIDES.map((s, i) => (
             <div key={s.id} className={cn('absolute inset-0 transition-all duration-[2000ms]', i === currentSlide ? 'opacity-100 scale-100' : 'opacity-0 scale-110')}>
               <Image src={s.url} alt="Destaque" fill priority={i === 0} className="object-cover" />
               <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]" />
-              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/10 to-[#FCFCFD]" />
+              <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#FCFCFD]" />
             </div>
           ))}
         </div>
@@ -161,8 +168,8 @@ export default function BuyTicketHome() {
             <span className="font-serif italic text-white/70">{String(t?.[slide.highlightKey] || "")}</span>
           </h1>
 
-          {/* BARRA DE BUSCA CENTRALIZADA ESTILO LUMA */}
-          <div className="mx-auto max-w-4xl bg-white rounded-[2.5rem] shadow-2xl p-2 md:p-3 flex flex-col md:flex-row items-center gap-2 group transition-all hover:shadow-[0_20px_60px_rgba(0,0,0,0.15)]">
+          {/* Busca Moderna Centralizada */}
+          <div className="mx-auto max-w-4xl bg-white rounded-[2.5rem] shadow-2xl p-2 md:p-3 flex flex-col md:flex-row items-center gap-2 group">
             <div className="flex-[1.5] w-full flex items-center gap-4 px-6 py-4 border-b md:border-b-0 md:border-r border-slate-100">
               <Search size={22} className="text-slate-400 group-hover:text-indigo-500 transition-colors" />
               <input
@@ -178,22 +185,23 @@ export default function BuyTicketHome() {
             </div>
             <button 
               onClick={() => document.getElementById('vitrine-principal')?.scrollIntoView({ behavior: 'smooth' })}
-              className="w-full md:w-auto bg-slate-950 text-white px-10 py-5 rounded-[2rem] font-bold text-sm uppercase tracking-widest hover:bg-indigo-600 transition-all flex items-center justify-center gap-2 active:scale-95 group"
+              className="w-full md:w-auto bg-slate-950 text-white px-10 py-5 rounded-[2rem] font-bold text-sm uppercase tracking-widest hover:bg-indigo-600 transition-all flex items-center justify-center gap-2"
             >
-              Explorar <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
+              Explorar <ChevronRight size={20} />
             </button>
           </div>
         </div>
       </section>
 
-      {/* FILTROS STICKY */}
-      <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-100">
-        <div className="mx-auto max-w-7xl px-6 py-4">
+      {/* Filtros Sticky */}
+      <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-100 py-4">
+        <div className="mx-auto max-w-7xl px-6">
           <CategoryFilter categories={CATEGORIAS_FIXAS} activeCategory={categoriaAtiva} onSelect={setCategoriaAtiva} iconMap={iconMap} />
         </div>
       </div>
 
       <main className="mx-auto max-w-7xl px-6 py-20 space-y-32">
+        
         {/* VITRINE HOJE */}
         {!loading && oQueFazerHoje.length > 0 && (
           <section className="bg-slate-50 rounded-[3rem] p-8 md:p-12 border border-slate-100">
@@ -214,29 +222,23 @@ export default function BuyTicketHome() {
               <h2 className="text-4xl font-medium text-slate-950 tracking-tight">
                 {buscaNome ? `${t.resultsFor || 'Resultados para'} "${buscaNome}"` : categoriaAtiva === 'Todos' ? (t.discoverTitle || 'Próximas Experiências') : getCategoriaTraduzida(categoriaAtiva)}
               </h2>
-              <p className="text-slate-400 mt-2 font-medium">{vitrineFiltrada.length} eventos encontrados</p>
             </div>
-            {(buscaNome || categoriaAtiva !== 'Todos') && (
-              <button onClick={() => {setBuscaNome(''); setCategoriaAtiva('Todos');}} className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-widest hover:text-indigo-600 transition">
-                <X size={16} /> {t.clearFilters || 'Limpar Filtros'}
-              </button>
-            )}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-20">
             {vitrineFiltrada.map((ev) => <EventCard key={`vitrine-${ev.id}`} evento={ev} />)}
           </div>
         </section>
 
-        {/* --- COMUNIDADES (VOLTOU AO ORIGINAL COM FOTO E CLICK) --- */}
+        {/* --- SEÇÃO COMUNIDADES REAIS (CLICÁVEIS) --- */}
         {!loading && comunidades.length > 0 && (
           <section className="space-y-12">
             <div className="flex justify-between items-end">
               <div>
                 <h2 className="text-4xl font-medium text-slate-950 tracking-tight">Comunidades Linkah</h2>
-                <p className="text-slate-400 mt-2 font-medium">Participe de grupos exclusivos e conecte-se.</p>
+                <p className="text-slate-400 mt-2 font-medium">Conecte-se com pessoas reais em grupos exclusivos.</p>
               </div>
-              <Link href="/comunidades" className="text-indigo-600 font-bold text-sm uppercase tracking-widest hover:underline flex items-center gap-2">
-                Ver todas <ChevronRight size={16} />
+              <Link href="/comunidades" className="text-indigo-600 font-bold text-sm uppercase tracking-widest flex items-center gap-2 group">
+                Ver todas <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
               </Link>
             </div>
 
@@ -244,30 +246,34 @@ export default function BuyTicketHome() {
               {comunidades.map((com) => (
                 <Link 
                   key={com.id} 
-                  href={`/comunidades/${com.id}`} 
-                  className="group relative h-[400px] overflow-hidden rounded-[2.5rem] bg-slate-200"
+                  href={`/comunidades/${com.id}`} // Rota real para o chat
+                  className="group relative h-[450px] overflow-hidden rounded-[2.5rem] bg-slate-200 block shadow-lg"
                 >
-                  {/* Foto de Fundo */}
-                  <Image 
-                    src={com.foto_url || 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=2071'} 
-                    alt={com.nome}
-                    fill
-                    className="object-cover transition-transform duration-700 group-hover:scale-110"
-                  />
-                  {/* Overlay Gradiente */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+                  {/* Puxando foto_url real da sua API */}
+                  {com.foto_url ? (
+                    <Image 
+                      src={com.foto_url} 
+                      alt={com.nome}
+                      fill
+                      className="object-cover transition-transform duration-700 group-hover:scale-110"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 bg-indigo-900" />
+                  )}
                   
-                  {/* Conteúdo do Card */}
+                  {/* Gradiente Escuro para leitura */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/30 to-transparent" />
+                  
                   <div className="absolute inset-0 p-8 flex flex-col justify-end">
                     <div className="flex items-center gap-2 text-indigo-400 font-bold text-[10px] uppercase tracking-widest mb-3">
                       <Users size={14} /> {com.membros_count || 0} Membros
                     </div>
-                    <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-indigo-300 transition-colors">{com.nome}</h3>
-                    <p className="text-slate-300 text-sm line-clamp-2 opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-500">
+                    <h3 className="text-2xl font-bold text-white mb-2">{com.nome}</h3>
+                    <p className="text-slate-300 text-sm line-clamp-2 mb-6 opacity-90">
                       {com.descricao}
                     </p>
-                    <div className="mt-6 flex items-center gap-2 text-white font-bold text-xs uppercase tracking-[0.2em]">
-                      Entrar no Chat <ChevronRight size={14} className="group-hover:translate-x-2 transition-transform" />
+                    <div className="flex items-center gap-3 text-white font-bold text-xs uppercase tracking-[0.2em] group-hover:text-indigo-300 transition-colors">
+                      Entrar no Chat <ChevronRight size={18} className="group-hover:translate-x-2 transition-transform" />
                     </div>
                   </div>
                 </Link>
@@ -275,6 +281,7 @@ export default function BuyTicketHome() {
             </div>
           </section>
         )}
+
       </main>
 
       <Footer />
