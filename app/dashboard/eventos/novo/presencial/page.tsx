@@ -135,12 +135,27 @@ export default function NovoEventoPresencial() {
   };
 
   const handleSalvar = async () => {
+    // BUSCA RESILIENTE DE TOKEN E EMAIL
     const token = localStorage.getItem('@Linkah:Token');
-    const emailProdutor = localStorage.getItem('userEmail');
+    let emailProdutor = localStorage.getItem('userEmail');
 
+    // Tenta recuperar o email se estiver dentro de um objeto JSON (comum no Next Auth ou Linkah)
+    if (!emailProdutor) {
+      const userJSON = localStorage.getItem('@Linkah:User');
+      if (userJSON) {
+        try {
+          const parsed = JSON.parse(userJSON);
+          emailProdutor = parsed.email || parsed.user?.email;
+        } catch (e) {
+          console.error("Falha ao parsear objeto de usuário");
+        }
+      }
+    }
+
+    // Se ainda assim não encontrar, avisa o usuário sem expulsar da página
     if (!token || !emailProdutor) {
-      alert("Sessão expirada. Faça login novamente.");
-      router.push('/auth/login');
+      console.warn("Sessão ausente:", { token: !!token, email: !!emailProdutor });
+      alert("Atenção: Sua sessão expirou. Abra o Linkah em outra aba e faça login novamente. Depois volte aqui e clique em Salvar para não perder seus dados.");
       return;
     }
 
@@ -173,10 +188,10 @@ export default function NovoEventoPresencial() {
       if (response.ok) {
         router.push(`/dashboard/eventos/novo/ingressos/${data.id}`);
       } else {
-        alert(`Erro: ${data.message || "Erro ao salvar"}`);
+        alert(`Erro do Servidor: ${data.message || "Não foi possível salvar agora."}`);
       }
     } catch (error) {
-      alert("Falha de conexão com o servidor.");
+      alert("Falha de conexão. Verifique se seu servidor está rodando ou sua internet.");
     } finally {
       setIsLoading(false);
     }
@@ -190,7 +205,7 @@ export default function NovoEventoPresencial() {
         onLoad={initGoogleMaps} 
       />
 
-      {/* HEADER ULTRA MODERNO */}
+      {/* HEADER */}
       <header className="border-b border-slate-200/60 px-6 md:px-12 py-6 flex justify-between items-center bg-white/70 backdrop-blur-xl sticky top-0 z-50">
         <div className="flex items-center gap-8">
           <button 
@@ -226,8 +241,8 @@ export default function NovoEventoPresencial() {
           
           <div className="lg:col-span-8 space-y-12">
             
-            {/* SEÇÃO 1: INFORMAÇÕES BÁSICAS */}
-            <section className="bg-white rounded-[2.5rem] p-10 shadow-[0_20px_50px_rgba(0,0,0,0.02)] border border-slate-100 space-y-8 transition-all hover:shadow-lg">
+            {/* SEÇÃO 1: DADOS */}
+            <section className="bg-white rounded-[2.5rem] p-10 shadow-[0_20px_50px_rgba(0,0,0,0.02)] border border-slate-100 space-y-8">
               <h3 className="text-[#C22973] text-[11px] font-black uppercase tracking-[0.3em] flex items-center gap-3">
                 <div className="w-8 h-8 bg-pink-50 rounded-lg flex items-center justify-center"><Info size={16}/></div>
                 Dados do Evento
@@ -254,7 +269,7 @@ export default function NovoEventoPresencial() {
                       onChange={handleChange} 
                       className="w-full bg-slate-50 border-2 border-transparent p-5 rounded-3xl outline-none font-bold text-slate-600 focus:border-pink-100 focus:bg-white transition-all shadow-inner appearance-none"
                     >
-                        <option value="">{t.selectDefault}</option>
+                        <option value="">{t.selectDefault || "Selecione..."}</option>
                         <option value="Arte & Cultura">🎨 Arte & Cultura</option>
                         <option value="Entretenimento">🍿 Entretenimento</option>
                         <option value="Negócios">💼 Negócios</option>
@@ -286,14 +301,14 @@ export default function NovoEventoPresencial() {
                     value={formData.descricao} 
                     onChange={handleChange} 
                     rows={4} 
-                    placeholder="Conte sobre a experiência, atrações e o que está incluso..." 
+                    placeholder="Conte sobre a experiência..." 
                     className="w-full bg-slate-50 border-2 border-transparent p-6 rounded-[2rem] outline-none focus:border-pink-100 focus:bg-white transition-all shadow-inner resize-none font-medium text-slate-600 leading-relaxed" 
                   />
                 </div>
               </div>
             </section>
 
-            {/* SEÇÃO 2: DATA E HORA */}
+            {/* SEÇÃO 2: CRONOGRAMA */}
             <section className="bg-white rounded-[2.5rem] p-10 shadow-[0_20px_50px_rgba(0,0,0,0.02)] border border-slate-100">
               <h3 className="text-[#C22973] text-[11px] font-black uppercase tracking-[0.3em] mb-8 flex items-center gap-3">
                 <div className="w-8 h-8 bg-pink-50 rounded-lg flex items-center justify-center"><Calendar size={16}/></div>
@@ -302,24 +317,24 @@ export default function NovoEventoPresencial() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Data Início</label>
-                  <input name="data_inicio" value={formData.data_inicio} onChange={handleChange} type="date" className="w-full bg-slate-50 border-none p-4 rounded-2xl text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-pink-100 transition-all" />
+                  <input name="data_inicio" value={formData.data_inicio} onChange={handleChange} type="date" className="w-full bg-slate-50 border-none p-4 rounded-2xl text-xs font-bold text-slate-700 outline-none" />
                 </div>
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Hora Início</label>
-                  <input name="hora_inicio" value={formData.hora_inicio} onChange={handleChange} type="time" className="w-full bg-slate-50 border-none p-4 rounded-2xl text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-pink-100 transition-all" />
+                  <input name="hora_inicio" value={formData.hora_inicio} onChange={handleChange} type="time" className="w-full bg-slate-50 border-none p-4 rounded-2xl text-xs font-bold text-slate-700 outline-none" />
                 </div>
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Data Fim</label>
-                  <input name="data_termino" value={formData.data_termino} onChange={handleChange} type="date" className="w-full bg-slate-50 border-none p-4 rounded-2xl text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-pink-100 transition-all" />
+                  <input name="data_termino" value={formData.data_termino} onChange={handleChange} type="date" className="w-full bg-slate-50 border-none p-4 rounded-2xl text-xs font-bold text-slate-700 outline-none" />
                 </div>
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Hora Fim</label>
-                  <input name="hora_termino" value={formData.hora_termino} onChange={handleChange} type="time" className="w-full bg-slate-50 border-none p-4 rounded-2xl text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-pink-100 transition-all" />
+                  <input name="hora_termino" value={formData.hora_termino} onChange={handleChange} type="time" className="w-full bg-slate-50 border-none p-4 rounded-2xl text-xs font-bold text-slate-700 outline-none" />
                 </div>
               </div>
             </section>
 
-            {/* SEÇÃO 3: LOCALIZAÇÃO */}
+            {/* SEÇÃO 3: LOCAL */}
             <section className="bg-white rounded-[2.5rem] p-10 shadow-[0_20px_50px_rgba(0,0,0,0.02)] border border-slate-100 space-y-8">
               <h3 className="text-[#C22973] text-[11px] font-black uppercase tracking-[0.3em] flex items-center gap-3">
                 <div className="w-8 h-8 bg-pink-50 rounded-lg flex items-center justify-center"><Navigation size={16}/></div>
@@ -327,58 +342,49 @@ export default function NovoEventoPresencial() {
               </h3>
               
               <div className="space-y-6">
-                <div className="relative group">
+                <div className="relative">
                   <div className="absolute left-6 top-1/2 -translate-y-1/2 flex items-center gap-2 border-r border-slate-200 pr-4">
                     <Search size={18} className="text-[#C22973]" />
                   </div>
                   <input 
                     ref={searchInputRef} 
                     placeholder="Busque o endereço no Google Maps..." 
-                    className="w-full bg-slate-900 text-white p-6 pl-24 rounded-3xl outline-none font-bold text-sm focus:ring-4 focus:ring-pink-100/50 transition-all shadow-2xl placeholder:text-slate-500" 
+                    className="w-full bg-slate-900 text-white p-6 pl-24 rounded-3xl outline-none font-bold text-sm shadow-2xl placeholder:text-slate-500" 
                   />
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nome do Local</label>
-                    <input name="local_nome" value={formData.local_nome} onChange={handleChange} placeholder="Ex: Allianz Parque" className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none font-bold text-slate-700 focus:bg-white transition-all" />
+                    <input name="local_nome" value={formData.local_nome} onChange={handleChange} placeholder="Ex: Allianz Parque" className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none font-bold text-slate-700" />
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">CEP</label>
-                    <input name="cep" value={formData.cep} onChange={handleChange} placeholder="00000-000" className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none font-bold text-slate-700 focus:bg-white transition-all" />
+                    <input name="cep" value={formData.cep} onChange={handleChange} placeholder="00000-000" className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none font-bold text-slate-700" />
                   </div>
                 </div>
                 
                 <div className="grid grid-cols-4 gap-4">
-                   <div className="col-span-4 md:col-span-3 space-y-2">
+                   <div className="col-span-3 space-y-2">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Rua / Avenida</label>
-                      <input name="endereco" value={formData.endereco} onChange={handleChange} placeholder="Logradouro" className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none font-bold text-slate-700" />
+                      <input name="endereco" value={formData.endereco} onChange={handleChange} className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none font-bold text-slate-700" />
                    </div>
-                   <div className="col-span-4 md:col-span-1 space-y-2">
+                   <div className="col-span-1 space-y-2">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nº</label>
-                      <input name="numero" value={formData.numero} onChange={handleChange} placeholder="123" className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none font-bold text-slate-700" />
+                      <input name="numero" value={formData.numero} onChange={handleChange} className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none font-bold text-slate-700" />
                    </div>
                 </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                   <div className="md:col-span-1 space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Complemento</label>
-                      <input name="complemento" value={formData.complemento} onChange={handleChange} placeholder="Sala, Andar..." className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none font-bold text-slate-700" />
-                   </div>
-                   <div className="md:col-span-1 space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Cidade</label>
-                      <input name="cidade" value={formData.cidade} onChange={handleChange} placeholder="São Paulo" className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none font-bold text-slate-700" />
-                   </div>
-                   <div className="md:col-span-1 space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">UF</label>
-                      <input name="estado" value={formData.estado} onChange={handleChange} placeholder="SP" maxLength={2} className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none font-bold text-center uppercase text-slate-700" />
-                   </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                   <input name="complemento" value={formData.complemento} onChange={handleChange} placeholder="Complemento" className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none font-bold text-slate-700" />
+                   <input name="cidade" value={formData.cidade} onChange={handleChange} placeholder="Cidade" className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none font-bold text-slate-700" />
+                   <input name="estado" value={formData.estado} onChange={handleChange} placeholder="UF" className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl outline-none font-bold text-center uppercase text-slate-700" />
                 </div>
               </div>
             </section>
           </div>
 
-          {/* COLUNA DIREITA - SIDEBAR */}
+          {/* SIDEBAR DIREITA */}
           <div className="lg:col-span-4 space-y-10">
             {/* UPLOAD CAPA */}
             <div className="bg-white rounded-[3rem] p-8 shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100">
@@ -387,53 +393,40 @@ export default function NovoEventoPresencial() {
                 {previewImage ? (
                   <div className="relative w-full aspect-[4/5] rounded-[2.5rem] overflow-hidden group shadow-2xl">
                     <img src={previewImage} alt="Preview" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
-                    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors" />
                     <button 
                       onClick={() => setPreviewImage(null)} 
-                      className="absolute top-6 right-6 bg-white/90 backdrop-blur-sm w-12 h-12 rounded-2xl text-[#C22973] shadow-lg flex items-center justify-center hover:bg-white hover:scale-110 transition-all active:scale-95"
+                      className="absolute top-6 right-6 bg-white/90 backdrop-blur-sm w-12 h-12 rounded-2xl text-[#C22973] shadow-lg flex items-center justify-center hover:scale-110 transition-all"
                     >
                       <X size={20} />
                     </button>
                   </div>
                 ) : (
-                  <label className="aspect-[4/5] border-2 border-dashed border-slate-100 rounded-[2.5rem] bg-slate-50/50 cursor-pointer flex flex-col items-center justify-center hover:bg-white hover:border-pink-200 transition-all group shadow-inner">
+                  <label className="aspect-[4/5] border-2 border-dashed border-slate-100 rounded-[2.5rem] bg-slate-50/50 cursor-pointer flex flex-col items-center justify-center hover:bg-white hover:border-pink-200 transition-all group">
                     <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
-                    <div className="w-20 h-20 bg-white rounded-[2rem] flex items-center justify-center mb-6 shadow-sm border border-slate-50 group-hover:scale-110 transition-all duration-500">
+                    <div className="w-20 h-20 bg-white rounded-[2rem] flex items-center justify-center mb-6 shadow-sm border border-slate-50">
                         <ImageIcon size={32} className="text-[#C22973]" />
                     </div>
                     <p className="text-[11px] font-black text-slate-800 uppercase tracking-widest">Fazer Upload</p>
-                    <p className="text-[9px] font-bold text-slate-400 mt-1">Recomendado: 1080x1350px</p>
                   </label>
                 )}
               </div>
             </div>
 
-            {/* MAPA VISUAL */}
-            <div className="bg-white rounded-[3rem] p-2 shadow-2xl border border-slate-100 h-[380px] relative group overflow-hidden">
-               <div ref={mapContainerRef} className="w-full h-full rounded-[2.8rem] grayscale-[0.3] group-hover:grayscale-0 transition-all duration-700" />
+            {/* MAPA */}
+            <div className="bg-white rounded-[3rem] p-2 shadow-2xl border border-slate-100 h-[380px] relative overflow-hidden">
+               <div ref={mapContainerRef} className="w-full h-full rounded-[2.8rem]" />
                <div className="absolute bottom-6 left-6 right-6 bg-white/90 backdrop-blur-md p-5 rounded-2xl border border-white/50 shadow-xl">
-                  <div className="flex items-center gap-2 mb-1">
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Local Selecionado</p>
-                  </div>
-                  <p className="text-xs font-bold text-slate-800 truncate">{formData.local_nome || 'Busque um local no mapa...'}</p>
+                  <p className="text-xs font-bold text-slate-800 truncate">{formData.local_nome || 'Aguardando local...'}</p>
                </div>
             </div>
 
             {/* CARD PRÓXIMO PASSO */}
-            <div className="bg-gradient-to-br from-[#C22973] to-[#8a1d52] rounded-[3rem] p-10 text-white shadow-2xl shadow-pink-200 relative overflow-hidden group">
-               <div className="absolute -right-6 -bottom-6 opacity-10 group-hover:scale-125 transition-transform duration-1000 rotate-12">
-                  <Ticket size={180} />
-               </div>
+            <div className="bg-gradient-to-br from-[#C22973] to-[#8a1d52] rounded-[3rem] p-10 text-white shadow-2xl relative overflow-hidden group">
                <Ticket className="mb-6 opacity-60" size={40} />
                <h4 className="font-black italic text-2xl uppercase leading-tight mb-3 tracking-tighter">Tickets & Vendas</h4>
-               <p className="text-[11px] font-bold text-pink-100 uppercase tracking-wider leading-relaxed opacity-90">
+               <p className="text-[11px] font-bold text-pink-100 uppercase tracking-wider opacity-90">
                  No próximo passo, configure seus ingressos e comece a vender via Stripe ou Pix.
                </p>
-               <div className="mt-8 flex items-center gap-2">
-                 <div className="w-2 h-2 bg-pink-300 rounded-full" />
-                 <span className="text-[9px] font-black uppercase tracking-[0.3em]">Passo 01 de 02</span>
-               </div>
             </div>
           </div>
 
