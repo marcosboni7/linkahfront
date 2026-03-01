@@ -17,10 +17,11 @@ import {
   Sparkles,
   Users,
   Zap,
-  X,
   MapPin,
   ChevronRight,
   MessageCircle,
+  Calendar,
+  X,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -55,25 +56,15 @@ const SLIDES = [
   { id: 3, url: 'https://images.unsplash.com/photo-1514525253361-bee8718a74a7?q=80&w=2070', titleKey: 'slide3Title', highlightKey: 'slide3Highlight' },
 ];
 
-function cn(...classes: Array<string | false | null | undefined>) {
-  return classes.filter(Boolean).join(' ');
-}
-
 export default function BuyTicketHome() {
   const { t }: any = useLanguage();
   const [eventos, setEventos] = useState<any[]>([]);
   const [comunidades, setComunidades] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [categoriaAtiva, setCategoriaAtiva] = useState('Todos');
+  const [filtroData, setFiltroData] = useState('todos'); // 'todos', 'hoje', 'amanha', 'fds'
   const [buscaNome, setBuscaNome] = useState('');
   const [currentSlide, setCurrentSlide] = useState(0);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev === SLIDES.length - 1 ? 0 : prev + 1));
-    }, 6500);
-    return () => clearInterval(interval);
-  }, []);
 
   useEffect(() => {
     async function carregarDados() {
@@ -83,7 +74,6 @@ export default function BuyTicketHome() {
           fetch(`${API_URL_BASE}/api/eventos/vitrine`, { cache: 'no-store' }),
           fetch(`${API_URL_BASE}/api/comunidades`, { cache: 'no-store' }),
         ]);
-
         if (resEventos.ok) setEventos(await resEventos.json());
         if (resComunidades.ok) {
           const dadosCom = await resComunidades.json();
@@ -98,41 +88,47 @@ export default function BuyTicketHome() {
     carregarDados();
   }, []);
 
-  const getCategoriaTraduzida = (cat: string) => {
-    if (cat === 'Todos') return t.allCategories || 'Todos';
-    const map: Record<string, string> = {
-      'Arte & Cultura': t.catArt,
-      'Entretenimento': t.catEnt,
-      'Negócios': t.catBiz,
-      'Educação & Desenvolvimento': t.catEdu,
-      'Esportes & Bem-estar': t.catHealth,
-      'Experiências & Lifestyle': t.catLife,
-      'Família & Comunidade': t.catFamily,
-    };
-    return map[cat] || cat;
-  };
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev === SLIDES.length - 1 ? 0 : prev + 1));
+    }, 6500);
+    return () => clearInterval(interval);
+  }, []);
 
-  const vitrineFiltrada = useMemo(() => {
-    const query = buscaNome.trim().toLowerCase();
-    return eventos.filter((ev) => {
-      const nomeMatch = String(ev.nome || '').toLowerCase().includes(query);
-      const catMatch = categoriaAtiva === 'Todos' || ev.categoria === categoriaAtiva;
-      return nomeMatch && catMatch;
-    });
-  }, [eventos, buscaNome, categoriaAtiva]);
-
+  // --- LÓGICA DE HOJE (BANNER SUPERIOR) ---
   const oQueFazerHoje = useMemo(() => {
-    const agora = new Date();
-    const hojeLocal = agora.getFullYear() + '-' + 
-                      String(agora.getMonth() + 1).padStart(2, '0') + '-' + 
-                      String(agora.getDate()).padStart(2, '0');
-
-    return eventos.filter((ev) => {
-      const dataRaw = ev.data_inicio || ev.data || '';
-      if (!dataRaw) return false;
-      return String(dataRaw).split('T')[0] === hojeLocal;
+    const hojeLocal = new Date().toISOString().split('T')[0];
+    return eventos.filter(ev => {
+      const d = ev.data_inicio || ev.data || '';
+      return d.split('T')[0] === hojeLocal;
     });
   }, [eventos]);
+
+  // --- LÓGICA DA VITRINE (COM FILTROS DE DATA) ---
+  const vitrineFiltrada = useMemo(() => {
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    const amanha = new Date(hoje);
+    amanha.setDate(hoje.getDate() + 1);
+
+    return eventos.filter((ev) => {
+      const dataEv = new Date(ev.data_inicio || ev.data);
+      dataEv.setHours(0, 0, 0, 0);
+
+      const nomeMatch = String(ev.nome || '').toLowerCase().includes(buscaNome.toLowerCase());
+      const catMatch = categoriaAtiva === 'Todos' || ev.categoria === categoriaAtiva;
+      
+      let dataMatch = true;
+      if (filtroData === 'hoje') dataMatch = dataEv.getTime() === hoje.getTime();
+      if (filtroData === 'amanha') dataMatch = dataEv.getTime() === amanha.getTime();
+      if (filtroData === 'fds') {
+        const diaSemana = dataEv.getDay(); // 0 = Dom, 6 = Sáb
+        dataMatch = diaSemana === 0 || diaSemana === 6;
+      }
+
+      return nomeMatch && catMatch && dataMatch;
+    });
+  }, [eventos, buscaNome, categoriaAtiva, filtroData]);
 
   const slide = SLIDES[currentSlide];
 
@@ -141,131 +137,137 @@ export default function BuyTicketHome() {
       <Navbar />
 
       {/* --- HERO SECTION --- */}
-      <section className="relative h-[75vh] min-h-[600px] flex items-center justify-center overflow-hidden">
+      <section className="relative h-[70vh] flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">
           {SLIDES.map((s, i) => (
-            <div key={s.id} className={cn('absolute inset-0 transition-all duration-[2000ms]', i === currentSlide ? 'opacity-100 scale-100' : 'opacity-0 scale-110')}>
+            <div key={s.id} className={`absolute inset-0 transition-all duration-[2000ms] ${i === currentSlide ? 'opacity-100 scale-100' : 'opacity-0 scale-105'}`}>
               <Image src={s.url} alt="Destaque" fill priority={i === 0} className="object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-br from-white/95 via-white/50 to-[#ff4d4d]/10 backdrop-blur-[1px]" />
+              <div className="absolute inset-0 bg-gradient-to-br from-white/95 via-white/40 to-[#ff4d4d]/10 backdrop-blur-[1px]" />
               <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white" />
             </div>
           ))}
         </div>
 
-        <div className="relative z-10 w-full max-w-7xl px-6 text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[#ff4d4d]/20 bg-white/50 backdrop-blur-md px-4 py-1.5 text-[11px] font-black uppercase tracking-[0.2em] text-[#ff4d4d] mb-10 shadow-sm">
-            <Sparkles size={14} className="animate-pulse" /> Curadoria Linkah
-          </div>
-
-          <h1 className="text-5xl md:text-8xl font-black tracking-tighter text-slate-900 leading-[0.9] mb-12">
-            {String(t?.[slide.titleKey] || "")} <br />
-            <span className="font-serif italic font-light text-[#ff4d4d]">{String(t?.[slide.highlightKey] || "")}</span>
+        <div className="relative z-10 w-full max-w-5xl px-6 text-center">
+          <h1 className="text-5xl md:text-8xl font-black tracking-tighter text-slate-900 leading-none mb-10 uppercase">
+            {String(t?.[slide.titleKey] || "VIVA O")} <br />
+            <span className="text-[#ff4d4d] italic font-serif font-light">{String(t?.[slide.highlightKey] || "AGORA")}</span>
           </h1>
 
-          <div className="mx-auto max-w-4xl bg-white rounded-[2.5rem] shadow-2xl shadow-[#ff4d4d]/15 p-2 md:p-3 flex flex-col md:flex-row items-center gap-2 group transition-all border border-slate-100">
-            <div className="flex-[1.5] w-full flex items-center gap-4 px-6 py-4 border-b md:border-b-0 md:border-r border-slate-50">
+          <div className="mx-auto max-w-3xl bg-white rounded-full shadow-2xl shadow-[#ff4d4d]/15 p-2 flex border border-slate-100">
+            <div className="flex-[1.5] flex items-center gap-3 px-6 py-3">
               <Search size={22} className="text-[#ff4d4d]" />
               <input
                 value={buscaNome}
                 onChange={(e) => setBuscaNome(e.target.value)}
-                placeholder={String(t?.searchPlaceholder || "O que você está procurando?")}
-                className="w-full bg-transparent outline-none text-slate-800 placeholder:text-slate-300 font-bold text-lg"
+                placeholder="O que você quer fazer hoje?"
+                className="w-full bg-transparent outline-none text-slate-700 font-bold text-lg"
               />
             </div>
-            <div className="flex-1 w-full flex items-center gap-4 px-6 py-4 hidden md:flex">
-              <MapPin size={22} className="text-slate-400" />
-              <span className="text-slate-400 font-bold text-lg">Brasil</span>
-            </div>
-            <button 
-              onClick={() => document.getElementById('vitrine-principal')?.scrollIntoView({ behavior: 'smooth' })}
-              className="w-full md:w-auto bg-gradient-to-r from-[#ff4d4d] to-[#ff7070] text-white px-12 py-5 rounded-[2rem] font-black text-sm uppercase tracking-widest hover:shadow-lg hover:shadow-[#ff4d4d]/30 transition-all flex items-center justify-center gap-2 active:scale-95 group"
-            >
-              Explorar <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
+            <button className="bg-gradient-to-r from-[#ff4d4d] to-[#ff7070] text-white px-10 py-4 rounded-full font-black text-sm uppercase tracking-widest hover:scale-105 transition-all">
+              Explorar
             </button>
           </div>
         </div>
       </section>
 
       {/* FILTROS STICKY */}
-      <div className="sticky top-0 z-50 bg-white/95 backdrop-blur-xl border-b border-slate-50">
-        <div className="mx-auto max-w-7xl px-6 py-4">
+      <div className="sticky top-0 z-50 bg-white/95 backdrop-blur-xl border-b border-slate-100 py-4">
+        <div className="mx-auto max-w-7xl px-6">
           <CategoryFilter categories={CATEGORIAS_FIXAS} activeCategory={categoriaAtiva} onSelect={setCategoriaAtiva} iconMap={iconMap} />
         </div>
       </div>
 
       <main className="mx-auto max-w-7xl px-6 py-20 space-y-32">
         
-        {/* --- 1. ACONTECENDO HOJE (MAIS PERTO) --- */}
+        {/* --- 1. ACONTECENDO HOJE (BANNER CORAL) --- */}
         {!loading && oQueFazerHoje.length > 0 && (
-          <section className="bg-white rounded-[3.5rem] p-8 md:p-12 border-2 border-[#ff4d4d]/10 shadow-2xl shadow-[#ff4d4d]/5 overflow-hidden relative">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-[#ff4d4d]/5 rounded-full blur-3xl -mr-32 -mt-32" />
+          <section className="bg-gradient-to-br from-[#ff4d4d] to-[#ff7070] rounded-[3rem] p-8 md:p-12 text-white shadow-2xl shadow-[#ff4d4d]/30 relative overflow-hidden">
+            <Zap size={200} className="absolute -right-10 -bottom-10 text-white/10 rotate-12" />
             <div className="relative z-10">
-                <div className="flex items-center gap-4 mb-10">
-                <div className="bg-gradient-to-br from-[#ff4d4d] to-[#ff7070] p-4 rounded-2xl text-white shadow-lg shadow-[#ff4d4d]/30">
-                    <Zap size={24} fill="currentColor" className="animate-pulse" />
+              <div className="flex items-center gap-4 mb-10">
+                <div className="bg-white p-3 rounded-2xl text-[#ff4d4d] shadow-lg animate-pulse">
+                  <Zap size={24} fill="currentColor" />
                 </div>
-                <div>
-                    <h2 className="text-3xl font-black text-slate-950 tracking-tighter uppercase">{t.happeningToday || 'Para Hoje'}</h2>
-                    <p className="text-[#ff4d4d] font-bold text-[10px] uppercase tracking-[0.3em]">Acontecendo agora</p>
-                </div>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                <h2 className="text-3xl font-black uppercase tracking-tight">Perto de você hoje</h2>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                 {oQueFazerHoje.map((ev) => <EventCard key={`hoje-${ev.id}`} evento={ev} />)}
-                </div>
+              </div>
             </div>
           </section>
         )}
 
-        {/* --- 2. COMUNIDADES LINKAH (LAYOUT CLEAN + FOTOS) --- */}
+        {/* --- 2. VITRINE COM FILTROS DE DATA --- */}
+        <section id="vitrine-principal" className="scroll-mt-32">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 mb-16">
+            <div>
+              <h2 className="text-4xl font-black text-slate-900 tracking-tight uppercase">Explorar Tudo</h2>
+              <div className="h-1.5 w-16 bg-[#ff4d4d] rounded-full mt-4" />
+            </div>
+
+            {/* PILLS DE DATA */}
+            <div className="flex flex-wrap gap-2 p-1.5 bg-slate-50 rounded-full border border-slate-100">
+              {[
+                { id: 'todos', label: 'Todos', icon: Ticket },
+                { id: 'hoje', label: 'Hoje', icon: Zap },
+                { id: 'amanha', label: 'Amanhã', icon: Calendar },
+                { id: 'fds', label: 'FDS', icon: Sparkles },
+              ].map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => setFiltroData(item.id)}
+                  className={`flex items-center gap-2 px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
+                    filtroData === item.id 
+                    ? 'bg-[#ff4d4d] text-white shadow-lg' 
+                    : 'text-slate-400 hover:text-slate-600'
+                  }`}
+                >
+                  <item.icon size={14} /> {item.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-20">
+            {vitrineFiltrada.length > 0 ? (
+              vitrineFiltrada.map((ev) => <EventCard key={`vitrine-${ev.id}`} evento={ev} />)
+            ) : (
+              <div className="col-span-full py-20 text-center bg-slate-50 rounded-[3rem] border-2 border-dashed border-slate-200">
+                <p className="text-slate-400 font-bold uppercase tracking-widest italic">Nenhum evento encontrado para esta data.</p>
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* --- 3. COMUNIDADES (VISUAL CLEAN) --- */}
         {!loading && comunidades.length > 0 && (
           <section className="space-y-12">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-slate-50 pb-8">
-              <div>
-                <h2 className="text-4xl font-black text-slate-950 tracking-tighter uppercase">Comunidades</h2>
-                <p className="text-slate-400 mt-2 font-medium">Participe de grupos exclusivos e conecte-se via chat.</p>
-              </div>
-              <Link href="/comunidades" className="text-[#ff4d4d] font-black text-xs uppercase tracking-widest hover:underline flex items-center gap-2 group">
+            <div className="flex items-end justify-between border-b border-slate-100 pb-8">
+              <h2 className="text-4xl font-black text-slate-900 tracking-tight uppercase">Comunidades</h2>
+              <Link href="/comunidades" className="text-[#ff4d4d] font-bold text-xs uppercase tracking-widest flex items-center gap-2 group">
                 Ver todas <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
               </Link>
             </div>
-
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {comunidades.map((com) => {
-                // Tratamento de foto para garantir que apareça
-                const rawFoto = com.foto_url || com.imagem || com.capa || com.banner;
-                let fotoFinal = 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?q=80&w=2070';
-                if (rawFoto) {
-                  fotoFinal = rawFoto.startsWith('http') ? rawFoto : `${API_URL_BASE}${rawFoto.startsWith('/') ? '' : '/'}${rawFoto}`;
-                }
-
+                const rawFoto = com.foto_url || com.imagem || com.capa;
+                const fotoFinal = rawFoto ? (rawFoto.startsWith('http') ? rawFoto : `${API_URL_BASE}${rawFoto.startsWith('/') ? '' : '/'}${rawFoto}`) : 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?q=80&w=2070';
+                
                 return (
-                  <Link 
-                    key={com.id} 
-                    href={`/comunidades/${com.id}`} 
-                    className="group bg-white rounded-[2.5rem] p-4 border border-slate-100 hover:shadow-2xl hover:shadow-[#ff4d4d]/10 transition-all duration-500 flex flex-col min-h-[480px]"
-                  >
+                  <Link key={com.id} href={`/comunidades/${com.id}`} className="group bg-white rounded-[2.5rem] p-4 border border-slate-100 hover:shadow-2xl transition-all duration-500 flex flex-col min-h-[480px]">
                     <div className="relative h-64 w-full overflow-hidden rounded-[2rem] mb-6 bg-slate-50">
-                      <Image 
-                        src={fotoFinal} 
-                        alt={com.nome}
-                        fill
-                        unoptimized
-                        className="object-cover transition-transform duration-700 group-hover:scale-110"
-                      />
-                      <div className="absolute bottom-4 left-4 bg-white/95 px-4 py-2 rounded-full text-[10px] font-black text-[#ff4d4d] shadow-sm flex items-center gap-2">
+                      <Image src={fotoFinal} alt={com.nome} fill unoptimized className="object-cover group-hover:scale-110 transition-transform duration-700" />
+                      <div className="absolute bottom-4 left-4 bg-white/95 px-4 py-2 rounded-full text-[10px] font-black text-[#ff4d4d] flex items-center gap-2">
                         <Users size={14} /> {com.membros_count || 0} MEMBROS
                       </div>
                     </div>
-
                     <div className="px-2 flex-grow">
                       <h3 className="text-2xl font-black text-slate-900 mb-2 group-hover:text-[#ff4d4d] transition-colors uppercase tracking-tight">{com.nome}</h3>
-                      <p className="text-slate-400 text-sm leading-relaxed line-clamp-2 mb-8">
-                        {com.descricao || "Entre na sala e comece a interagir com os membros agora mesmo."}
-                      </p>
+                      <p className="text-slate-400 text-sm line-clamp-2">{com.descricao || "Participe das discussões exclusivas desta comunidade."}</p>
                     </div>
-
-                    <div className="w-full py-5 bg-slate-50 group-hover:bg-gradient-to-r group-hover:from-[#ff4d4d] group-hover:to-[#ff7070] rounded-2xl flex items-center justify-center gap-3 text-slate-500 group-hover:text-white font-black text-xs uppercase tracking-[0.2em] transition-all">
-                      <MessageCircle size={18} /> Abrir Chat
+                    <div className="w-full py-5 bg-slate-50 group-hover:bg-[#ff4d4d] rounded-2xl flex items-center justify-center gap-3 text-slate-500 group-hover:text-white font-black text-xs uppercase tracking-widest transition-all">
+                      <MessageCircle size={18} /> Ir para o Chat
                     </div>
                   </Link>
                 );
@@ -274,27 +276,7 @@ export default function BuyTicketHome() {
           </section>
         )}
 
-        {/* --- 3. VITRINE PRINCIPAL --- */}
-        <section id="vitrine-principal" className="scroll-mt-32">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6 mb-16">
-            <div>
-              <h2 className="text-4xl font-black text-slate-950 tracking-tighter uppercase">
-                {buscaNome ? `${t.resultsFor || 'Resultados para'} "${buscaNome}"` : categoriaAtiva === 'Todos' ? (t.discoverTitle || 'Explorar Experiências') : getCategoriaTraduzida(categoriaAtiva)}
-              </h2>
-              <div className="h-1.5 w-16 bg-[#ff4d4d] rounded-full mt-4" />
-            </div>
-            {(buscaNome || categoriaAtiva !== 'Todos') && (
-              <button onClick={() => {setBuscaNome(''); setCategoriaAtiva('Todos');}} className="flex items-center gap-2 text-slate-400 font-black text-xs uppercase tracking-widest hover:text-[#ff4d4d] transition">
-                <X size={16} /> {t.clearFilters || 'Limpar Filtros'}
-              </button>
-            )}
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-20">
-            {vitrineFiltrada.map((ev) => <EventCard key={`vitrine-${ev.id}`} evento={ev} />)}
-          </div>
-        </section>
       </main>
-
       <Footer />
     </div>
   );
