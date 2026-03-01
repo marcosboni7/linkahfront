@@ -14,9 +14,18 @@ export function EventCard({ evento }: { evento: any }) {
     const dataRaw = evento.data_inicio || evento.data;
     if (!dataRaw) return { diaSemana: '', dia: '', mes: '', hora: '' };
 
-    // 1. DATA (Dia/Mês): Limpamos o fuso para o dia não mudar
-    const dataLimpa = String(dataRaw).replace(/Z$|[+-]\d{2}:\d{2}$/, '');
-    const d = new Date(dataLimpa);
+    // CORREÇÃO: Pegamos apenas a parte da data (YYYY-MM-DD) e ignoramos o resto
+    const apenasData = String(dataRaw).split('T')[0];
+    const partes = apenasData.split('-');
+    
+    if (partes.length !== 3) return { diaSemana: '', dia: '', mes: '', hora: '' };
+
+    const ano = parseInt(partes[0]);
+    const mesNum = parseInt(partes[1]) - 1; // Mês no JS começa em 0
+    const diaNum = parseInt(partes[2]);
+
+    // Criar data local (sem interferência de fuso UTC)
+    const d = new Date(ano, mesNum, diaNum);
 
     if (isNaN(d.getTime())) return { diaSemana: '', dia: '', mes: '', hora: '' };
 
@@ -24,20 +33,16 @@ export function EventCard({ evento }: { evento: any }) {
     const dia = d.toLocaleDateString(locale, { day: '2-digit' });
     const mes = d.toLocaleDateString(locale, { month: 'short' }).toUpperCase().replace('.', '');
     
-    // 2. HORA
+    // HORA
     const horaRaw = evento.horario || evento.hora_inicio || "";
     let horaFormatada = horaRaw.slice(0, 5);
-
-    if (horaFormatada === "00:00" || !horaFormatada) {
-      horaFormatada = "";
-    }
+    if (horaFormatada === "00:00" || !horaFormatada) horaFormatada = "";
 
     return { diaSemana, dia, mes, hora: horaFormatada };
   };
 
   const { diaSemana, dia, mes, hora } = formatarDataVitrine();
 
-  // ATUALIZADO: Mapeamento para as novas 7 categorias
   const traduzirCategoria = (cat: string) => {
     const categorias: Record<string, string> = {
       'Arte & Cultura': t.catArt,
@@ -48,8 +53,6 @@ export function EventCard({ evento }: { evento: any }) {
       'Experiências & Lifestyle': t.catLife,
       'Família & Comunidade': t.catFamily,
     };
-    
-    // Retorna a tradução ou o nome original do banco se não encontrar no mapa
     return categorias[cat] || cat;
   };
 
@@ -58,15 +61,12 @@ export function EventCard({ evento }: { evento: any }) {
       href={`/evento/${evento.id}`} 
       className="group block w-full bg-white rounded-2xl overflow-hidden hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] transition-all duration-500 border border-gray-100 flex flex-col h-full"
     >
-      
-      {/* IMAGEM */}
       <div className="relative aspect-[16/10] overflow-hidden bg-gray-100">
         <img 
           src={String(evento.imagem_capa || evento.imagem || "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4")} 
           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
           alt={String(evento.nome || "Evento")}
         />
-        
         <div className="absolute top-4 left-4">
           <span className="bg-white/95 backdrop-blur-sm text-slate-900 text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-lg shadow-sm">
             {traduzirCategoria(String(evento.categoria || 'Evento'))}
@@ -74,10 +74,7 @@ export function EventCard({ evento }: { evento: any }) {
         </div>
       </div>
 
-      {/* CONTEÚDO */}
       <div className="p-6 flex flex-col flex-grow">
-        
-        {/* DATA E HORA */}
         <div className="flex items-center gap-2 text-blue-600 text-[11px] font-bold uppercase tracking-wider mb-4">
           <Calendar size={14} strokeWidth={2.5} />
           <span>
@@ -86,12 +83,10 @@ export function EventCard({ evento }: { evento: any }) {
           </span>
         </div>
 
-        {/* TÍTULO */}
         <h3 className="text-slate-900 font-bold text-lg leading-tight mb-3 group-hover:text-blue-600 transition-colors line-clamp-2 min-h-[56px]">
           {String(evento.nome || "")}
         </h3>
 
-        {/* LOCALIZAÇÃO */}
         <div className="flex items-center gap-1.5 text-gray-400 mb-6">
           <MapPin size={14} className="flex-shrink-0 text-gray-300" />
           <span className="text-xs font-medium truncate">
@@ -99,7 +94,6 @@ export function EventCard({ evento }: { evento: any }) {
           </span>
         </div>
 
-        {/* FOOTER */}
         <div className="mt-auto pt-5 border-t border-gray-50 flex items-center justify-between">
           <div>
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
@@ -112,7 +106,6 @@ export function EventCard({ evento }: { evento: any }) {
                 : '0.00'}
             </p>
           </div>
-          
           <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-blue-600 group-hover:text-white group-hover:rotate-45 transition-all duration-500">
              <ArrowUpRight size={20} />
           </div>
