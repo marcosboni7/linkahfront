@@ -1,12 +1,19 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronLeft, Plus, Trash2, CheckCircle2, Loader2, Info } from 'lucide-react';
+import { ChevronLeft, Plus, Trash2, CheckCircle2, Loader2, Info, Globe } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
 import Swal from 'sweetalert2';
 import { useLanguage } from '@/app/context/LanguageContext';
 
 const API_URL = 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
+
+// Mapeamento de símbolos para facilitar a renderização
+const currencyMap: Record<string, string> = {
+  'BRL': 'R$',
+  'EUR': '€',
+  'USD': '$'
+};
 
 export default function CadastroIngressos() {
   const { t, language } = useLanguage();
@@ -15,11 +22,12 @@ export default function CadastroIngressos() {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Adicionado o campo 'moeda' no estado inicial
   const [ingressos, setIngressos] = useState([
-    { nome: '', preco: '', quantidade: '', tipo: 'Pago' }
+    { nome: '', preco: '', quantidade: '', tipo: 'Pago', moeda: 'BRL' }
   ]);
 
-  const addIngresso = () => setIngressos([...ingressos, { nome: '', preco: '', quantidade: '', tipo: 'Pago' }]);
+  const addIngresso = () => setIngressos([...ingressos, { nome: '', preco: '', quantidade: '', tipo: 'Pago', moeda: 'BRL' }]);
   
   const removeIngresso = (index: number) => {
     if (ingressos.length > 1) setIngressos(ingressos.filter((_, i) => i !== index));
@@ -33,7 +41,7 @@ export default function CadastroIngressos() {
   };
 
   const validateField = (index: number, field: string, value: string) => {
-    if (!value) setErrors(prev => ({ ...prev, [`${index}-${field}`]: t.fieldRequired }));
+    if (!value) setErrors(prev => ({ ...prev, [`${index}-${field}`]: t.fieldRequired || 'Campo obrigatório' }));
   };
 
   const handleFinalizar = async () => {
@@ -59,7 +67,7 @@ export default function CadastroIngressos() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ ingressos }),
+        body: JSON.stringify({ ingressos }), // Agora envia a moeda junto
       });
 
       if (response.ok) {
@@ -103,6 +111,7 @@ export default function CadastroIngressos() {
       </header>
 
       <main className="max-w-[1100px] mx-auto p-6 md:p-10">
+        {/* PROGRESS BAR */}
         <div className="flex justify-center items-center mb-12 md:mb-16">
           <div className="flex items-center gap-3 opacity-40">
             <div className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center">
@@ -117,7 +126,7 @@ export default function CadastroIngressos() {
           </div>
         </div>
 
-        <div className="max-w-[850px] mx-auto space-y-6">
+        <div className="max-w-[900px] mx-auto space-y-6">
            <div className="bg-blue-50 border border-blue-100 p-6 rounded-[2rem] flex gap-4 text-blue-700 text-sm font-bold mb-8 items-start">
              <Info className="shrink-0 mt-0.5" size={20} />
              <p className="leading-relaxed uppercase text-[10px] tracking-wider">{t.ticketAlert}</p>
@@ -125,6 +134,8 @@ export default function CadastroIngressos() {
 
            {ingressos.map((ing, index) => (
              <div key={index} className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100 flex flex-col md:flex-row items-end gap-6 relative group animate-in fade-in slide-in-from-bottom-4 transition-all">
+               
+               {/* NOME DO INGRESSO */}
                <div className="flex-1 w-full space-y-2">
                  <label className="text-[10px] text-slate-400 font-black uppercase ml-2 tracking-widest italic">{t.labelTicketName}</label>
                  <input 
@@ -137,26 +148,41 @@ export default function CadastroIngressos() {
                  {errors[`${index}-nome`] && <span className="text-[9px] text-red-500 font-black uppercase italic ml-2">{errors[`${index}-nome`]}</span>}
                </div>
 
-               <div className="w-full md:w-44 space-y-2">
-                 <label className="text-[10px] text-slate-400 font-black uppercase ml-2 tracking-widest italic">{t.labelUnitPrice}</label>
-                 <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 font-bold text-xs">
-                      {language === 'PT' ? 'R$' : '$'}
-                    </span>
-                    <input 
-                      type="number" 
-                      value={ing.preco} 
-                      onBlur={(e) => validateField(index, 'preco', e.target.value)}
-                      onChange={(e) => handleChange(index, 'preco', e.target.value)}
-                      className={`w-full pl-10 pr-4 py-4 bg-slate-50 border ${errors[`${index}-preco`] ? 'border-red-400 ring-4 ring-red-50' : 'border-slate-100'} rounded-2xl outline-none focus:border-[#C22973] font-bold text-slate-700 transition-all placeholder:text-slate-200`} 
-                      placeholder="0.00"
-                      step="0.01"
-                    />
+               {/* SELETOR DE MOEDA + PREÇO */}
+               <div className="w-full md:w-56 space-y-2">
+                 <label className="text-[10px] text-slate-400 font-black uppercase ml-2 tracking-widest italic">Moeda & Preço</label>
+                 <div className="flex gap-2">
+                    {/* Select de Moeda */}
+                    <select 
+                      value={ing.moeda}
+                      onChange={(e) => handleChange(index, 'moeda', e.target.value)}
+                      className="bg-slate-100 border-none p-4 rounded-2xl font-black text-[10px] text-slate-600 outline-none focus:ring-2 focus:ring-pink-100 transition-all cursor-pointer"
+                    >
+                      <option value="BRL">BRL (R$)</option>
+                      <option value="EUR">EUR (€)</option>
+                      <option value="USD">USD ($)</option>
+                    </select>
+
+                    <div className="relative flex-1">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 font-bold text-xs">
+                        {currencyMap[ing.moeda]}
+                      </span>
+                      <input 
+                        type="number" 
+                        value={ing.preco} 
+                        onBlur={(e) => validateField(index, 'preco', e.target.value)}
+                        onChange={(e) => handleChange(index, 'preco', e.target.value)}
+                        className={`w-full pl-10 pr-4 py-4 bg-slate-50 border ${errors[`${index}-preco`] ? 'border-red-400 ring-4 ring-red-50' : 'border-slate-100'} rounded-2xl outline-none focus:border-[#C22973] font-bold text-slate-700 transition-all placeholder:text-slate-200`} 
+                        placeholder="0.00"
+                        step="0.01"
+                      />
+                    </div>
                  </div>
                  {errors[`${index}-preco`] && <span className="text-[9px] text-red-500 font-black uppercase italic ml-2">{errors[`${index}-preco`]}</span>}
                </div>
 
-               <div className="w-full md:w-36 space-y-2">
+               {/* QUANTIDADE / ESTOQUE */}
+               <div className="w-full md:w-32 space-y-2">
                  <label className="text-[10px] text-slate-400 font-black uppercase ml-2 tracking-widest italic">{t.labelStock}</label>
                  <input 
                    type="number" 
@@ -169,6 +195,7 @@ export default function CadastroIngressos() {
                  {errors[`${index}-quantidade`] && <span className="text-[9px] text-red-500 font-black uppercase italic ml-2">{errors[`${index}-quantidade`]}</span>}
                </div>
 
+               {/* BOTÃO REMOVER */}
                {ingressos.length > 1 && (
                  <button onClick={() => removeIngresso(index)} className="p-4 text-slate-200 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all mb-1 active:scale-90">
                    <Trash2 size={20} />
@@ -181,7 +208,7 @@ export default function CadastroIngressos() {
              onClick={addIngresso}
              className="w-full py-8 border-2 border-dashed border-slate-200 rounded-[2.5rem] text-slate-400 font-black uppercase text-[10px] tracking-[0.3em] hover:border-[#C22973]/40 hover:text-[#C22973] hover:bg-pink-50/30 transition-all bg-white/50 flex items-center justify-center gap-3"
            >
-             <Plus size={18} /> {t.btnAddCategory}
+             <Plus size={18} /> {t.btnAddCategory || 'Adicionar Categoria'}
            </button>
         </div>
       </main>

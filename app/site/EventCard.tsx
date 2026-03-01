@@ -8,23 +8,36 @@ export function EventCard({ evento }: { evento: any }) {
   const { language, t }: any = useLanguage();
   
   const locale = language === 'PT' ? 'pt-BR' : 'en-US';
-  const currencySymbol = language === 'PT' ? 'R$' : '$';
+
+  // --- NOVA LÓGICA DE MOEDA DINÂMICA ---
+  const getCurrencySymbol = () => {
+    // Se o evento vier com a informação de moeda do banco de dados (ex: 'EUR', 'USD', 'BRL')
+    const moedaEvento = evento.moeda || evento.currency; 
+    
+    if (moedaEvento === 'EUR') return '€';
+    if (moedaEvento === 'USD') return '$';
+    if (moedaEvento === 'BRL') return 'R$';
+
+    // Fallback: se não tiver moeda no evento, usa a do idioma
+    return language === 'PT' ? 'R$' : '$';
+  };
+
+  const currencySymbol = getCurrencySymbol();
+  // -------------------------------------
 
   const formatarDataVitrine = () => {
     const dataRaw = evento.data_inicio || evento.data;
     if (!dataRaw) return { diaSemana: '', dia: '', mes: '', hora: '' };
 
-    // CORREÇÃO: Pegamos apenas a parte da data (YYYY-MM-DD) e ignoramos o resto
     const apenasData = String(dataRaw).split('T')[0];
     const partes = apenasData.split('-');
     
     if (partes.length !== 3) return { diaSemana: '', dia: '', mes: '', hora: '' };
 
     const ano = parseInt(partes[0]);
-    const mesNum = parseInt(partes[1]) - 1; // Mês no JS começa em 0
+    const mesNum = parseInt(partes[1]) - 1; 
     const diaNum = parseInt(partes[2]);
 
-    // Criar data local (sem interferência de fuso UTC)
     const d = new Date(ano, mesNum, diaNum);
 
     if (isNaN(d.getTime())) return { diaSemana: '', dia: '', mes: '', hora: '' };
@@ -33,7 +46,6 @@ export function EventCard({ evento }: { evento: any }) {
     const dia = d.toLocaleDateString(locale, { day: '2-digit' });
     const mes = d.toLocaleDateString(locale, { month: 'short' }).toUpperCase().replace('.', '');
     
-    // HORA
     const horaRaw = evento.horario || evento.hora_inicio || "";
     let horaFormatada = horaRaw.slice(0, 5);
     if (horaFormatada === "00:00" || !horaFormatada) horaFormatada = "";
@@ -100,6 +112,7 @@ export function EventCard({ evento }: { evento: any }) {
               {String(t?.from || 'Tickets')}
             </p>
             <p className="text-xl font-black text-slate-900 tracking-tight">
+              {/* O SÍMBOLO AGORA É DINÂMICO */}
               <span className="text-sm font-bold mr-0.5">{currencySymbol}</span>
               {evento.preco_minimo 
                 ? Number(evento.preco_minimo).toLocaleString(locale, { minimumFractionDigits: 2 }) 
