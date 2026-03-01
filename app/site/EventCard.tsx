@@ -9,16 +9,23 @@ export function EventCard({ evento }: { evento: any }) {
   
   const locale = language === 'PT' ? 'pt-BR' : 'en-US';
 
-  // --- NOVA LÓGICA DE MOEDA DINÂMICA ---
+  // --- LÓGICA DE MOEDA COM LOG DE DEPURAÇÃO ---
   const getCurrencySymbol = () => {
-    // Se o evento vier com a informação de moeda do banco de dados (ex: 'EUR', 'USD', 'BRL')
-    const moedaEvento = evento.moeda || evento.currency; 
-    
-    if (moedaEvento === 'EUR') return '€';
-    if (moedaEvento === 'USD') return '$';
-    if (moedaEvento === 'BRL') return 'R$';
+    // ESTE LOG VAI MOSTRAR O QUE A AWS ESTÁ ENTREGANDO DE FATO
+    console.log(`DEBUG [${evento.nome}]:`, {
+      moeda: evento.moeda,
+      currency: evento.currency,
+      dados_completos: evento
+    });
 
-    // Fallback: se não tiver moeda no evento, usa a do idioma
+    // Tentamos pegar 'moeda' ou 'currency' e transformamos em maiúsculo
+    const m = (evento.moeda || evento.currency || '').toUpperCase();
+    
+    if (m === 'EUR') return '€';
+    if (m === 'USD') return '$';
+    if (m === 'BRL') return 'R$';
+
+    // Se a API não enviou nada (undefined), ele usa o padrão do idioma
     return language === 'PT' ? 'R$' : '$';
   };
 
@@ -112,7 +119,6 @@ export function EventCard({ evento }: { evento: any }) {
               {String(t?.from || 'Tickets')}
             </p>
             <p className="text-xl font-black text-slate-900 tracking-tight">
-              {/* O SÍMBOLO AGORA É DINÂMICO */}
               <span className="text-sm font-bold mr-0.5">{currencySymbol}</span>
               {evento.preco_minimo 
                 ? Number(evento.preco_minimo).toLocaleString(locale, { minimumFractionDigits: 2 }) 
