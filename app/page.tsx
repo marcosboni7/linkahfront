@@ -21,7 +21,6 @@ import {
   MapPin,
   ChevronRight,
   MessageCircle,
-  CalendarDays, // Ícone para a seção de hoje
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -65,13 +64,7 @@ export default function BuyTicketHome() {
   const [buscaNome, setBuscaNome] = useState('');
   const [currentSlide, setCurrentSlide] = useState(0);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev === SLIDES.length - 1 ? 0 : prev + 1));
-    }, 6500);
-    return () => clearInterval(interval);
-  }, []);
-
+  // Carregamento de dados
   useEffect(() => {
     async function carregarDados() {
       setLoading(true);
@@ -80,10 +73,11 @@ export default function BuyTicketHome() {
           fetch(`${API_URL_BASE}/api/eventos/vitrine`, { cache: 'no-store' }),
           fetch(`${API_URL_BASE}/api/comunidades`, { cache: 'no-store' }),
         ]);
+
         if (resEventos.ok) setEventos(await resEventos.json());
         if (resComunidades.ok) {
           const dadosCom = await resComunidades.json();
-          setComunidades(dadosCom.slice(0, 3));
+          setComunidades(Array.isArray(dadosCom) ? dadosCom.slice(0, 3) : []);
         }
       } catch (error) {
         console.error('Erro ao carregar dados:', error);
@@ -94,6 +88,15 @@ export default function BuyTicketHome() {
     carregarDados();
   }, []);
 
+  // Timer do Carrossel
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev === SLIDES.length - 1 ? 0 : prev + 1));
+    }, 6500);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Lógica de Filtros
   const vitrineFiltrada = useMemo(() => {
     const query = buscaNome.trim().toLowerCase();
     return eventos.filter((ev) => {
@@ -103,7 +106,7 @@ export default function BuyTicketHome() {
     });
   }, [eventos, buscaNome, categoriaAtiva]);
 
-  // --- RECUPERADA: LÓGICA DE EVENTOS DE HOJE ---
+  // Seção "Mais Perto" / Hoje
   const oQueFazerHoje = useMemo(() => {
     const agora = new Date();
     const hojeLocal = agora.getFullYear() + '-' + 
@@ -122,44 +125,45 @@ export default function BuyTicketHome() {
       <Navbar />
 
       {/* --- HERO SECTION --- */}
-      <section className="relative h-[75vh] flex items-center justify-center overflow-hidden">
+      <section className="relative h-[75vh] min-h-[550px] flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">
           {SLIDES.map((s, i) => (
             <div key={s.id} className={`absolute inset-0 transition-all duration-[2000ms] ${i === currentSlide ? 'opacity-100 scale-100' : 'opacity-0 scale-105'}`}>
-              <Image src={s.url} alt="Destaque" fill className="object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-br from-white/90 via-white/30 to-[#ff4d4d]/10 backdrop-blur-[1px]" />
+              <Image src={s.url} alt="Destaque" fill priority={i === 0} className="object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-br from-white/90 via-white/40 to-[#ff4d4d]/10 backdrop-blur-[1px]" />
               <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white" />
             </div>
           ))}
         </div>
 
         <div className="relative z-10 w-full max-w-5xl px-6 text-center">
-          <h1 className="text-5xl md:text-7xl font-black tracking-tighter text-slate-900 leading-[1] mb-8">
-            {String(t?.[slide.titleKey] || "Sua próxima")} <br />
-            <span className="text-[#ff4d4d] italic font-serif font-light">{String(t?.[slide.highlightKey] || "experiência")}</span>
+          <h1 className="text-5xl md:text-8xl font-black tracking-tighter text-slate-900 leading-[0.95] mb-10">
+            {String(t?.[slide.titleKey] || "VIVA O")} <br />
+            <span className="text-[#ff4d4d] italic font-serif font-light">{String(t?.[slide.highlightKey] || "AGORA")}</span>
           </h1>
 
-          <div className="mx-auto max-w-3xl bg-white rounded-3xl shadow-2xl shadow-[#ff4d4d]/10 p-2 flex flex-col md:flex-row items-center border border-slate-100">
-            <div className="flex-[1.5] w-full flex items-center gap-3 px-5 py-3">
-              <Search size={20} className="text-[#ff4d4d]" />
+          <div className="mx-auto max-w-3xl bg-white rounded-[2rem] shadow-2xl shadow-[#ff4d4d]/15 p-2 flex flex-col md:flex-row items-center border border-slate-100">
+            <div className="flex-[1.5] w-full flex items-center gap-3 px-6 py-4">
+              <Search size={22} className="text-[#ff4d4d]" />
               <input
                 value={buscaNome}
                 onChange={(e) => setBuscaNome(e.target.value)}
-                placeholder="O que vamos fazer hoje?"
-                className="w-full bg-transparent outline-none text-slate-700 font-medium"
+                placeholder="O que você quer fazer hoje?"
+                className="w-full bg-transparent outline-none text-slate-700 font-bold text-lg placeholder:text-slate-300"
               />
             </div>
             <button 
               onClick={() => document.getElementById('vitrine-principal')?.scrollIntoView({ behavior: 'smooth' })}
-              className="w-full md:w-auto bg-gradient-to-r from-[#ff4d4d] to-[#ff7070] text-white px-10 py-4 rounded-2xl font-bold text-sm uppercase tracking-wider hover:opacity-90 transition-all"
+              className="w-full md:w-auto bg-gradient-to-r from-[#ff4d4d] to-[#ff7070] text-white px-12 py-5 rounded-2xl font-black text-sm uppercase tracking-[0.2em] hover:opacity-90 transition-all shadow-lg shadow-[#ff4d4d]/30"
             >
-              Explorar
+              Buscar
             </button>
           </div>
         </div>
       </section>
 
-      <div className="sticky top-0 z-50 bg-white/90 backdrop-blur-xl border-b border-slate-50 py-4">
+      {/* FILTROS STICKY */}
+      <div className="sticky top-0 z-50 bg-white/95 backdrop-blur-xl border-b border-slate-50 py-4">
         <div className="mx-auto max-w-7xl px-6">
           <CategoryFilter categories={CATEGORIAS_FIXAS} activeCategory={categoriaAtiva} onSelect={setCategoriaAtiva} iconMap={iconMap} />
         </div>
@@ -167,16 +171,16 @@ export default function BuyTicketHome() {
 
       <main className="mx-auto max-w-7xl px-6 py-20 space-y-32">
         
-        {/* --- SEÇÃO: ACONTECENDO HOJE (RECUPERADA E ESTILIZADA) --- */}
+        {/* --- MAIS PERTO / ACONTECENDO HOJE --- */}
         {!loading && oQueFazerHoje.length > 0 && (
-          <section className="relative overflow-hidden bg-gradient-to-r from-[#ff4d4d]/5 to-transparent rounded-[3rem] p-8 md:p-12 border border-[#ff4d4d]/10">
+          <section className="bg-gradient-to-br from-[#ff4d4d]/5 to-white rounded-[3rem] p-8 md:p-12 border border-[#ff4d4d]/10">
             <div className="flex items-center gap-4 mb-10">
-              <div className="bg-gradient-to-br from-[#ff4d4d] to-[#ff7070] p-3 rounded-2xl text-white shadow-lg shadow-[#ff4d4d]/30">
+              <div className="bg-gradient-to-tr from-[#ff4d4d] to-[#ff7070] p-3 rounded-2xl text-white shadow-lg shadow-[#ff4d4d]/20">
                 <Zap size={24} fill="currentColor" />
               </div>
               <div>
-                <h2 className="text-3xl font-black text-slate-900 tracking-tight">Acontecendo Hoje</h2>
-                <p className="text-[#ff4d4d] font-bold text-xs uppercase tracking-widest">Não perca tempo!</p>
+                <h2 className="text-3xl font-black text-slate-900 tracking-tight uppercase">Perto de você</h2>
+                <p className="text-[#ff4d4d] font-bold text-xs uppercase tracking-[0.2em]">Acontecendo agora</p>
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -188,34 +192,56 @@ export default function BuyTicketHome() {
         {/* --- COMUNIDADES --- */}
         {!loading && comunidades.length > 0 && (
           <section className="space-y-12">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div className="flex items-end justify-between border-b border-slate-100 pb-6">
               <div>
-                <h2 className="text-4xl font-black text-slate-900 tracking-tight">Comunidades</h2>
-                <div className="h-1.5 w-12 bg-[#ff4d4d] rounded-full mt-2" />
+                <h2 className="text-4xl font-black text-slate-900 tracking-tight uppercase">Comunidades</h2>
+                <p className="text-slate-400 font-medium mt-1">Conecte-se e entre no chat direto das salas.</p>
               </div>
-              <Link href="/comunidades" className="text-[#ff4d4d] font-bold text-xs uppercase tracking-widest flex items-center gap-2">
-                Ver todas <ChevronRight size={14} />
+              <Link href="/comunidades" className="text-[#ff4d4d] font-bold text-xs uppercase tracking-widest flex items-center gap-2 group">
+                Ver todas <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
               </Link>
             </div>
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {comunidades.map((com) => {
-                const fotoFinal = com.foto_url 
-                  ? (com.foto_url.startsWith('http') ? com.foto_url : `${API_URL_BASE}${com.foto_url}`)
-                  : 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?q=80&w=2070';
+                // Lógica de Foto reforçada para banco de dados
+                const rawFoto = com.foto_url || com.imagem || com.capa || com.banner;
+                let fotoFinal = 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?q=80&w=2070';
+                
+                if (rawFoto) {
+                  fotoFinal = rawFoto.startsWith('http') ? rawFoto : `${API_URL_BASE}${rawFoto.startsWith('/') ? '' : '/'}${rawFoto}`;
+                }
+
                 return (
-                  <Link key={com.id} href={`/comunidades/${com.id}`} className="group bg-white rounded-[2.5rem] p-4 border border-slate-100 hover:shadow-2xl hover:shadow-[#ff4d4d]/10 transition-all duration-500 flex flex-col">
-                    <div className="relative h-60 w-full overflow-hidden rounded-[2rem] mb-6">
-                      <Image src={fotoFinal} alt={com.nome} fill unoptimized className="object-cover transition-transform duration-700 group-hover:scale-110" />
-                      <div className="absolute bottom-4 left-4 bg-white/95 px-3 py-1.5 rounded-full text-[10px] font-bold text-[#ff4d4d] shadow-sm flex items-center gap-1.5">
-                        <Users size={12} /> {com.membros_count || 0} Membros
+                  <Link 
+                    key={com.id} 
+                    href={`/comunidades/${com.id}`} 
+                    className="group bg-white rounded-[2.5rem] p-4 border border-slate-100 hover:shadow-2xl hover:shadow-[#ff4d4d]/10 transition-all duration-500 flex flex-col min-h-[480px]"
+                  >
+                    <div className="relative h-64 w-full overflow-hidden rounded-[2rem] mb-6 bg-slate-50">
+                      <Image 
+                        src={fotoFinal} 
+                        alt={com.nome}
+                        fill
+                        unoptimized
+                        className="object-cover transition-transform duration-700 group-hover:scale-110"
+                      />
+                      <div className="absolute bottom-4 left-4 bg-white/95 px-4 py-2 rounded-full text-[11px] font-black text-[#ff4d4d] shadow-sm flex items-center gap-2">
+                        <Users size={14} /> {com.membros_count || 0} MEMBROS
                       </div>
                     </div>
+
                     <div className="px-2 flex-grow">
-                      <h3 className="text-2xl font-bold text-slate-900 mb-2 group-hover:text-[#ff4d4d] transition-colors">{com.nome}</h3>
-                      <p className="text-slate-500 text-sm line-clamp-2 mb-8">{com.descricao}</p>
+                      <h3 className="text-2xl font-black text-slate-900 mb-2 group-hover:text-[#ff4d4d] transition-colors uppercase tracking-tight">
+                        {com.nome}
+                      </h3>
+                      <p className="text-slate-400 text-sm leading-relaxed line-clamp-2 mb-8">
+                        {com.descricao || "Participe desta comunidade exclusiva e conecte-se com novas pessoas."}
+                      </p>
                     </div>
-                    <div className="w-full py-4 bg-slate-50 group-hover:bg-gradient-to-r group-hover:from-[#ff4d4d] group-hover:to-[#ff7070] rounded-2xl flex items-center justify-center gap-2 text-slate-600 group-hover:text-white font-bold text-xs uppercase tracking-widest transition-all">
-                      <MessageCircle size={16} /> Abrir Chat
+
+                    <div className="w-full py-5 bg-slate-50 group-hover:bg-gradient-to-r group-hover:from-[#ff4d4d] group-hover:to-[#ff7070] rounded-2xl flex items-center justify-center gap-3 text-slate-500 group-hover:text-white font-black text-xs uppercase tracking-[0.2em] transition-all">
+                      <MessageCircle size={18} /> Entrar no Chat
                     </div>
                   </Link>
                 );
@@ -227,11 +253,13 @@ export default function BuyTicketHome() {
         {/* --- VITRINE PRINCIPAL --- */}
         <section id="vitrine-principal" className="scroll-mt-32">
           <div className="mb-16">
-            <h2 className="text-4xl font-black text-slate-900 tracking-tight">Descubra Experiências</h2>
-            <p className="text-slate-400 font-medium mt-1">O que há de melhor para você.</p>
+            <h2 className="text-4xl font-black text-slate-900 tracking-tight uppercase">Explorar Tudo</h2>
+            <div className="h-1.5 w-16 bg-[#ff4d4d] rounded-full mt-4" />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-20">
-            {vitrineFiltrada.map((ev) => <EventCard key={`vitrine-${ev.id}`} evento={ev} />)}
+            {vitrineFiltrada.map((ev) => (
+              <EventCard key={`vitrine-${ev.id}`} evento={ev} />
+            ))}
           </div>
         </section>
 
