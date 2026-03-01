@@ -62,7 +62,7 @@ export default function BuyTicketHome() {
   const [comunidades, setComunidades] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [categoriaAtiva, setCategoriaAtiva] = useState('Todos');
-  const [filtroData, setFiltroData] = useState('todos'); // 'todos', 'hoje', 'amanha', 'fds'
+  const [filtroData, setFiltroData] = useState('todos'); 
   const [buscaNome, setBuscaNome] = useState('');
   const [currentSlide, setCurrentSlide] = useState(0);
 
@@ -97,22 +97,31 @@ export default function BuyTicketHome() {
 
   // --- LÓGICA DE HOJE (BANNER SUPERIOR) ---
   const oQueFazerHoje = useMemo(() => {
-    const hojeLocal = new Date().toISOString().split('T')[0];
+    // Pegar data atual no formato YYYY-MM-DD local
+    const hojeObj = new Date();
+    const hojeLocal = hojeObj.toLocaleDateString('en-CA'); // "YYYY-MM-DD"
+    
     return eventos.filter(ev => {
       const d = ev.data_inicio || ev.data || '';
       return d.split('T')[0] === hojeLocal;
     });
   }, [eventos]);
 
-  // --- LÓGICA DA VITRINE (COM FILTROS DE DATA) ---
+  // --- LÓGICA DA VITRINE (COM CORREÇÃO DE TIMEZONE) ---
   const vitrineFiltrada = useMemo(() => {
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
+    
     const amanha = new Date(hoje);
     amanha.setDate(hoje.getDate() + 1);
 
     return eventos.filter((ev) => {
-      const dataEv = new Date(ev.data_inicio || ev.data);
+      // FIX TIMEZONE: Evita que o evento mude de dia devido ao fuso UTC
+      const dataString = (ev.data_inicio || ev.data || '').split('T')[0];
+      const [ano, mes, dia] = dataString.split('-').map(Number);
+      
+      // Criar data baseada na contagem local (mês no JS é 0-11)
+      const dataEv = new Date(ano, mes - 1, dia);
       dataEv.setHours(0, 0, 0, 0);
 
       const nomeMatch = String(ev.nome || '').toLowerCase().includes(buscaNome.toLowerCase());
@@ -180,7 +189,7 @@ export default function BuyTicketHome() {
 
       <main className="mx-auto max-w-7xl px-6 py-20 space-y-32">
         
-        {/* --- 1. ACONTECENDO HOJE (BANNER CORAL) --- */}
+        {/* --- 1. HOJE --- */}
         {!loading && oQueFazerHoje.length > 0 && (
           <section className="bg-gradient-to-br from-[#ff4d4d] to-[#ff7070] rounded-[3rem] p-8 md:p-12 text-white shadow-2xl shadow-[#ff4d4d]/30 relative overflow-hidden">
             <Zap size={200} className="absolute -right-10 -bottom-10 text-white/10 rotate-12" />
@@ -198,7 +207,7 @@ export default function BuyTicketHome() {
           </section>
         )}
 
-        {/* --- 2. VITRINE COM FILTROS DE DATA --- */}
+        {/* --- 2. VITRINE --- */}
         <section id="vitrine-principal" className="scroll-mt-32">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 mb-16">
             <div>
@@ -206,7 +215,6 @@ export default function BuyTicketHome() {
               <div className="h-1.5 w-16 bg-[#ff4d4d] rounded-full mt-4" />
             </div>
 
-            {/* PILLS DE DATA */}
             <div className="flex flex-wrap gap-2 p-1.5 bg-slate-50 rounded-full border border-slate-100">
               {[
                 { id: 'todos', label: 'Todos', icon: Ticket },
@@ -240,7 +248,7 @@ export default function BuyTicketHome() {
           </div>
         </section>
 
-        {/* --- 3. COMUNIDADES (VISUAL CLEAN) --- */}
+        {/* --- 3. COMUNIDADES --- */}
         {!loading && comunidades.length > 0 && (
           <section className="space-y-12">
             <div className="flex items-end justify-between border-b border-slate-100 pb-8">
