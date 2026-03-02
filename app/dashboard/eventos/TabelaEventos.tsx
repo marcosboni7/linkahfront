@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { 
-  Edit3, X, Loader2, Ticket, Upload, Search, AlertCircle
+  Edit3, X, Loader2, Ticket, Upload, Search, AlertCircle,
+  Calendar, Users, DollarSign, ArrowUpRight, BarChart3
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Swal from 'sweetalert2';
@@ -17,6 +18,7 @@ export default function TabelaEventos() {
   const [erroApi, setErroApi] = useState<string | null>(null);
   const router = useRouter();
 
+  // Estados para Edição
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [eventoParaEditar, setEventoParaEditar] = useState<any>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -42,13 +44,11 @@ export default function TabelaEventos() {
       const rawToken = localStorage.getItem('@Linkah:Token') || localStorage.getItem('token');
       const token = rawToken ? rawToken.replace(/['"]+/g, '').trim() : '';
 
-      // 2. Recuperar e limpar o E-mail (Prioridade para o que está no Storage)
+      // 2. Recuperar e limpar o E-mail
       let emailBase = localStorage.getItem('userEmail') || localStorage.getItem('email') || "marcosphara@gmail.com";
       const emailLimpo = emailBase.replace(/['"]+/g, '').trim().toLowerCase();
 
-      console.log(`📧 [Linkah] Buscando eventos para: ${emailLimpo}`);
-
-      // 3. TENTATIVA 1: Usando 'email' (Baseado no erro "Email não fornecido")
+      // 3. TENTATIVA 1: Usando parâmetro 'email'
       let url = `${API_URL}/api/eventos/listar?email=${encodeURIComponent(emailLimpo)}&t=${Date.now()}`;
       
       let res = await fetch(url, {
@@ -61,11 +61,9 @@ export default function TabelaEventos() {
 
       let data = await res.json();
 
-      // 4. TENTATIVA 2: Se a primeira falhou ou disse que não forneceu, tenta 'produtor_email'
+      // 4. TENTATIVA 2: Se falhar ou disser "não fornecido", tenta 'produtor_email'
       if (!res.ok || data.error === "Email não fornecido") {
-        console.warn("⚠️ Tentativa 1 falhou, tentando com 'produtor_email'...");
         url = `${API_URL}/api/eventos/listar?produtor_email=${encodeURIComponent(emailLimpo)}&t=${Date.now()}`;
-        
         res = await fetch(url, {
           method: 'GET',
           headers: { 
@@ -77,16 +75,13 @@ export default function TabelaEventos() {
       }
 
       if (res.ok) {
-        console.log("✅ [Linkah] Eventos encontrados:", data);
         setEventos(Array.isArray(data) ? data : []);
       } else {
         setErroApi(data.error || "Erro ao carregar eventos");
-        console.error("❌ [Linkah] Erro final da API:", data);
       }
 
     } catch (err) {
       setErroApi("Falha na conexão com o servidor");
-      console.error("💥 [Linkah] Erro de rede:", err);
     } finally {
       setLoading(false);
     }
@@ -145,103 +140,141 @@ export default function TabelaEventos() {
   };
 
   return (
-    <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden font-sans">
-      <div className="p-10 border-b border-slate-50 flex justify-between items-center bg-white">
-        <div>
-          <h2 className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Painel do Produtor</h2>
-          <p className="text-slate-950 font-bold text-2xl tracking-tighter">Meus Eventos</p>
+    <div className="space-y-8 font-sans antialiased">
+      
+      {/* HEADER DE ESTATÍSTICAS */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Card 1: Eventos */}
+        <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-md transition-all group">
+          <div className="flex justify-between items-start mb-4">
+            <div className="p-3 bg-slate-50 rounded-2xl text-slate-950 group-hover:bg-[#FF4D4D] group-hover:text-white transition-all duration-300">
+              <Calendar size={24} />
+            </div>
+            <span className="text-[10px] font-bold text-green-500 bg-green-50 px-2 py-1 rounded-lg flex items-center gap-1">
+              <ArrowUpRight size={12} /> {eventos.length > 0 ? 'ATIVOS' : '---'}
+            </span>
+          </div>
+          <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.15em]">Total de Eventos</p>
+          <h3 className="text-4xl font-black text-slate-950 mt-1 tracking-tighter">{eventos.length}</h3>
         </div>
-        <button 
-          onClick={() => router.push('/dashboard/eventos/novo/presencial')} 
-          className="bg-[#030712] text-white px-8 py-4 rounded-2xl font-bold text-xs hover:bg-black transition-all shadow-lg active:scale-95"
-        >
-          + Novo Evento
-        </button>
+
+        {/* Card 2: Ingressos */}
+        <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-md transition-all group">
+          <div className="flex justify-between items-start mb-4">
+            <div className="p-3 bg-slate-50 rounded-2xl text-slate-950 group-hover:bg-[#FF4D4D] group-hover:text-white transition-all duration-300">
+              <Users size={24} />
+            </div>
+            <BarChart3 size={18} className="text-slate-200" />
+          </div>
+          <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.15em]">Ingressos Vendidos</p>
+          <h3 className="text-4xl font-black text-slate-950 mt-1 tracking-tighter">0</h3>
+        </div>
+
+        {/* Card 3: Receita */}
+        <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-md transition-all group">
+          <div className="flex justify-between items-start mb-4">
+            <div className="p-3 bg-slate-50 rounded-2xl text-slate-950 group-hover:bg-[#FF4D4D] group-hover:text-white transition-all duration-300">
+              <DollarSign size={24} />
+            </div>
+          </div>
+          <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.15em]">Receita Bruta</p>
+          <h3 className="text-4xl font-black text-slate-950 mt-1 tracking-tighter">R$ 0,00</h3>
+        </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-left">
-          <thead className="bg-slate-50 text-slate-400 text-[10px] font-bold uppercase tracking-widest">
-            <tr>
-              <th className="px-10 py-5">Evento</th>
-              <th className="px-6 py-5 text-center">Data</th>
-              <th className="px-10 py-5 text-right">Gestão</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-50">
-            {loading ? (
+      {/* ÁREA DA TABELA */}
+      <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
+        <div className="p-10 border-b border-slate-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white">
+          <div>
+            <h2 className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Gestão de Conteúdo</h2>
+            <p className="text-slate-950 font-bold text-2xl tracking-tighter">Meus Eventos Cadastrados</p>
+          </div>
+          <button 
+            onClick={() => router.push('/dashboard/eventos/novo/presencial')} 
+            className="bg-[#030712] text-white px-8 py-4 rounded-2xl font-bold text-xs hover:bg-black transition-all shadow-xl active:scale-95 flex items-center gap-2"
+          >
+            + Novo Evento
+          </button>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead className="bg-slate-50/50 text-slate-400 text-[10px] font-bold uppercase tracking-widest">
               <tr>
-                <td colSpan={3} className="py-24 text-center">
-                  <div className="flex flex-col items-center gap-3">
-                    <Loader2 className="animate-spin text-[#FF4D4D]" size={32} />
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Carregando seus eventos...</span>
-                  </div>
-                </td>
+                <th className="px-10 py-5">Evento & Categoria</th>
+                <th className="px-6 py-5 text-center">Data de Início</th>
+                <th className="px-10 py-5 text-right">Ações de Gestão</th>
               </tr>
-            ) : erroApi ? (
-              <tr>
-                <td colSpan={3} className="py-24 text-center">
-                  <div className="flex flex-col items-center gap-2 text-[#FF4D4D]">
-                    <AlertCircle size={32} />
-                    <p className="font-bold text-sm">{erroApi}</p>
-                    <button onClick={carregarEventos} className="text-xs underline text-slate-500 mt-2">Tentar novamente</button>
-                  </div>
-                </td>
-              </tr>
-            ) : eventos.length === 0 ? (
-              <tr>
-                <td colSpan={3} className="py-24 text-center">
-                  <div className="flex flex-col items-center gap-2">
-                    <Search className="text-slate-200" size={48} />
-                    <p className="text-slate-400 font-medium">Nenhum evento encontrado para este produtor.</p>
-                  </div>
-                </td>
-              </tr>
-            ) : (
-              eventos.map((evento) => (
-                <tr key={evento.id} className="hover:bg-slate-50/50 transition-colors group">
-                  <td className="px-10 py-6">
-                    <div className="flex items-center gap-5">
-                      <div className="w-14 h-14 rounded-2xl bg-slate-100 overflow-hidden shadow-inner border border-slate-50">
-                        <img 
-                          src={evento.imagem_capa} 
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
-                          onError={(e:any)=>e.target.src='https://placehold.co/200x200?text=Linkah'} 
-                          alt={evento.nome}
-                        />
-                      </div>
-                      <div>
-                        <p className="font-bold text-slate-900 text-base tracking-tight">{evento.nome}</p>
-                        <p className="text-[10px] text-[#FF4D4D] font-black uppercase tracking-widest">{evento.categoria || 'Evento'}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-6 text-center text-xs font-bold text-slate-500 uppercase">
-                    {formatarDataLocal(evento.data_inicio)}
-                  </td>
-                  <td className="px-10 py-6 text-right">
-                    <div className="flex justify-end gap-3">
-                      <button 
-                        onClick={() => abrirModalEdicao(evento)} 
-                        className="p-3 bg-slate-50 text-slate-400 hover:text-black hover:bg-slate-100 rounded-xl transition-all"
-                        title="Editar Evento"
-                      >
-                        <Edit3 size={18} />
-                      </button>
-                      <button 
-                        onClick={() => router.push(`/dashboard/eventos/novo/ingressos/${evento.id}`)} 
-                        className="p-3 bg-slate-50 text-slate-400 hover:text-[#FF4D4D] hover:bg-red-50 rounded-xl transition-all"
-                        title="Gerenciar Ingressos"
-                      >
-                        <Ticket size={18} />
-                      </button>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {loading ? (
+                <tr>
+                  <td colSpan={3} className="py-24 text-center">
+                    <div className="flex flex-col items-center gap-3">
+                      <Loader2 className="animate-spin text-[#FF4D4D]" size={32} />
+                      <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Sincronizando com AWS...</span>
                     </div>
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : erroApi ? (
+                <tr>
+                  <td colSpan={3} className="py-24 text-center text-[#FF4D4D]">
+                    <AlertCircle className="mx-auto mb-2" size={32} />
+                    <p className="font-bold text-sm">{erroApi}</p>
+                    <button onClick={carregarEventos} className="text-xs underline text-slate-500 mt-2">Recarregar</button>
+                  </td>
+                </tr>
+              ) : eventos.length === 0 ? (
+                <tr>
+                  <td colSpan={3} className="py-24 text-center">
+                    <Search className="text-slate-200 mx-auto mb-3" size={48} />
+                    <p className="text-slate-400 font-medium italic">Nenhum evento encontrado para seu e-mail.</p>
+                  </td>
+                </tr>
+              ) : (
+                eventos.map((evento) => (
+                  <tr key={evento.id} className="hover:bg-slate-50/50 transition-colors group">
+                    <td className="px-10 py-6">
+                      <div className="flex items-center gap-5">
+                        <div className="w-14 h-14 rounded-2xl bg-slate-100 overflow-hidden shadow-inner border border-slate-50">
+                          <img 
+                            src={evento.imagem_capa} 
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                            onError={(e:any)=>e.target.src='https://placehold.co/200x200?text=Linkah'} 
+                            alt={evento.nome}
+                          />
+                        </div>
+                        <div>
+                          <p className="font-bold text-slate-900 text-base tracking-tight">{evento.nome}</p>
+                          <p className="text-[10px] text-[#FF4D4D] font-black uppercase tracking-widest">{evento.categoria || 'Presencial'}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-6 text-center text-xs font-bold text-slate-500 uppercase">
+                      {formatarDataLocal(evento.data_inicio)}
+                    </td>
+                    <td className="px-10 py-6 text-right">
+                      <div className="flex justify-end gap-3">
+                        <button 
+                          onClick={() => abrirModalEdicao(evento)} 
+                          className="p-3 bg-slate-50 text-slate-400 hover:text-black hover:bg-slate-100 rounded-xl transition-all"
+                        >
+                          <Edit3 size={18} />
+                        </button>
+                        <button 
+                          onClick={() => router.push(`/dashboard/eventos/novo/ingressos/${evento.id}`)} 
+                          className="p-3 bg-slate-50 text-slate-400 hover:text-[#FF4D4D] hover:bg-red-50 rounded-xl transition-all"
+                        >
+                          <Ticket size={18} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* MODAL DE EDIÇÃO */}
@@ -251,7 +284,7 @@ export default function TabelaEventos() {
             <div className="flex justify-between items-center mb-8">
               <div>
                 <h3 className="font-bold text-2xl tracking-tighter">Editar Evento</h3>
-                <p className="text-slate-400 text-xs font-medium">Atualize as informações principais do seu evento.</p>
+                <p className="text-slate-400 text-xs font-medium">Modifique os detalhes básicos do evento.</p>
               </div>
               <button onClick={() => setIsEditModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><X /></button>
             </div>
@@ -266,10 +299,7 @@ export default function TabelaEventos() {
                   {previewUrl ? (
                     <img src={previewUrl} className="w-full h-full object-cover group-hover:opacity-80 transition-opacity" alt="Preview" />
                   ) : (
-                    <div className="flex flex-col items-center gap-2 text-slate-300">
-                      <Upload size={32} />
-                      <span className="text-[10px] font-bold uppercase">Upload da Imagem</span>
-                    </div>
+                    <Upload className="text-slate-300" size={32} />
                   )}
                 </div>
                 <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileChange} accept="image/*" />
@@ -287,7 +317,7 @@ export default function TabelaEventos() {
               <button 
                 type="submit" 
                 disabled={saving} 
-                className="w-full bg-[#030712] text-white py-5 rounded-2xl font-bold hover:bg-black transition-all flex items-center justify-center gap-3 mt-4 shadow-xl active:scale-[0.98] disabled:opacity-50"
+                className="w-full bg-[#030712] text-white py-5 rounded-2xl font-bold hover:bg-black transition-all flex items-center justify-center gap-3 shadow-xl active:scale-[0.98] disabled:opacity-50"
               >
                 {saving ? <Loader2 className="animate-spin" size={20} /> : 'Salvar Alterações'}
               </button>
