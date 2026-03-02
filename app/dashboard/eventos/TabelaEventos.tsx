@@ -42,6 +42,7 @@ export default function TabelaEventos() {
       let emailBase = localStorage.getItem('userEmail') || localStorage.getItem('email') || "marcosphara@gmail.com";
       const emailLimpo = emailBase.replace(/['"]+/g, '').trim().toLowerCase();
 
+      // Uso de timestamp para evitar cache da AWS
       let url = `${API_URL}/api/eventos/listar?email=${encodeURIComponent(emailLimpo)}&t=${Date.now()}`;
       let res = await fetch(url, {
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
@@ -67,7 +68,6 @@ export default function TabelaEventos() {
 
   useEffect(() => { carregarEventos(); }, []);
 
-  // --- FUNÇÃO DE REMOVER ---
   const handleRemoverEvento = async (id: string, nome: string) => {
     const confirmacao = await Swal.fire({
       title: 'Tem certeza?',
@@ -85,20 +85,16 @@ export default function TabelaEventos() {
       try {
         const rawToken = localStorage.getItem('@Linkah:Token') || localStorage.getItem('token');
         const token = rawToken ? rawToken.replace(/['"]+/g, '').trim() : '';
-
         const res = await fetch(`${API_URL}/api/eventos/${id}`, {
           method: 'DELETE',
           headers: { 'Authorization': `Bearer ${token}` }
         });
-
         if (res.ok) {
-          Swal.fire({ title: 'Excluído!', text: 'Evento removido com sucesso.', icon: 'success', timer: 1500, showConfirmButton: false });
+          Swal.fire({ title: 'Excluído!', icon: 'success', timer: 1500, showConfirmButton: false });
           carregarEventos(); 
-        } else {
-          throw new Error('Erro ao deletar');
         }
       } catch (err) {
-        Swal.fire('Erro', 'Não foi possível excluir o evento.', 'error');
+        Swal.fire('Erro', 'Não foi possível excluir.', 'error');
       }
     }
   };
@@ -122,7 +118,9 @@ export default function TabelaEventos() {
 
   const handleSalvarEdicao = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!eventoParaEditar.nome) return;
+    if (!eventoParaEditar.nome) {
+      return Swal.fire('Aviso', 'O nome é obrigatório', 'info');
+    }
     
     setSaving(true);
     try {
@@ -130,7 +128,7 @@ export default function TabelaEventos() {
       const token = rawToken ? rawToken.replace(/['"]+/g, '').trim() : '';
       
       const formData = new FormData();
-      formData.append('nome', eventoParaEditar.nome);
+      formData.append('nome', eventoParaEditar.nome.trim());
       formData.append('categoria', eventoParaEditar.categoria || 'Evento');
       formData.append('data_inicio', eventoParaEditar.data_inicio);
       
@@ -146,13 +144,14 @@ export default function TabelaEventos() {
 
       if (res.ok) {
         setIsEditModalOpen(false);
-        await Swal.fire({ title: "Sucesso!", icon: 'success', timer: 1500, showConfirmButton: false });
-        carregarEventos();
+        await Swal.fire({ title: "Sucesso!", text: "Dados salvos na AWS", icon: 'success', timer: 1500, showConfirmButton: false });
+        carregarEventos(); 
       } else {
-        Swal.fire('Erro', 'Falha ao salvar alterações', 'error');
+        const errData = await res.json();
+        Swal.fire('Erro', errData.error || 'Erro ao salvar', 'error');
       }
     } catch (err) {
-      Swal.fire('Erro', 'Falha ao atualizar', 'error');
+      Swal.fire('Erro', 'Falha na conexão', 'error');
     } finally {
       setSaving(false);
     }
@@ -188,14 +187,14 @@ export default function TabelaEventos() {
                 <td colSpan={3} className="py-24 text-center">
                   <div className="flex flex-col items-center gap-3">
                     <Loader2 className="animate-spin text-[#FF4D4D]" size={32} />
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Carregando...</span>
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Carregando seus eventos...</span>
                   </div>
                 </td>
               </tr>
             ) : erroApi ? (
               <tr>
                 <td colSpan={3} className="py-24 text-center text-[#FF4D4D]">
-                   <AlertCircle className="mx-auto" size={32} />
+                   <AlertCircle className="mx-auto mb-2" size={32} />
                    <p className="font-bold">{erroApi}</p>
                 </td>
               </tr>
@@ -213,11 +212,10 @@ export default function TabelaEventos() {
                           src={evento.imagem_capa} 
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
                           onError={(e:any)=>e.target.src='https://placehold.co/200x200?text=Linkah'} 
-                          alt={evento.nome}
                         />
                       </div>
                       <div>
-                        <p className="font-bold text-slate-900 text-base tracking-tight">{evento.nome}</p>
+                        <p className="font-bold text-slate-900 text-base tracking-tight">{evento.nome || "Sem nome"}</p>
                         <p className="text-[10px] text-[#FF4D4D] font-black uppercase tracking-widest">{evento.categoria || 'Evento'}</p>
                       </div>
                     </div>
@@ -227,9 +225,9 @@ export default function TabelaEventos() {
                   </td>
                   <td className="px-10 py-6 text-right">
                     <div className="flex justify-end gap-2">
-                      <button onClick={() => abrirModalEdicao(evento)} className="p-3 bg-slate-50 text-slate-400 hover:text-black rounded-xl transition-all" title="Editar"><Edit3 size={18} /></button>
-                      <button onClick={() => router.push(`/dashboard/eventos/novo/ingressos/${evento.id}`)} className="p-3 bg-slate-50 text-slate-400 hover:text-[#FF4D4D] rounded-xl transition-all" title="Ingressos"><Ticket size={18} /></button>
-                      <button onClick={() => handleRemoverEvento(evento.id, evento.nome)} className="p-3 bg-slate-50 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all" title="Excluir"><Trash2 size={18} /></button>
+                      <button onClick={() => abrirModalEdicao(evento)} className="p-3 bg-slate-50 text-slate-400 hover:text-black rounded-xl transition-all"><Edit3 size={18} /></button>
+                      <button onClick={() => router.push(`/dashboard/eventos/novo/ingressos/${evento.id}`)} className="p-3 bg-slate-50 text-slate-400 hover:text-[#FF4D4D] rounded-xl transition-all"><Ticket size={18} /></button>
+                      <button onClick={() => handleRemoverEvento(evento.id, evento.nome)} className="p-3 bg-slate-50 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"><Trash2 size={18} /></button>
                     </div>
                   </td>
                 </tr>
@@ -247,7 +245,6 @@ export default function TabelaEventos() {
               <h3 className="font-bold text-2xl tracking-tighter">Editar Evento</h3>
               <button onClick={() => setIsEditModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><X /></button>
             </div>
-            
             <form onSubmit={handleSalvarEdicao} className="space-y-6">
               <div>
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Imagem de Capa</label>
@@ -279,7 +276,7 @@ export default function TabelaEventos() {
               <button 
                 type="submit" 
                 disabled={saving} 
-                className="w-full bg-[#030712] text-white py-5 rounded-2xl font-bold hover:bg-black transition-all flex items-center justify-center gap-3 mt-4 shadow-xl active:scale-[0.98] disabled:opacity-50"
+                className="w-full bg-[#030712] text-white py-5 rounded-2xl font-bold hover:bg-black transition-all flex items-center justify-center gap-3 shadow-xl active:scale-[0.98] disabled:opacity-50"
               >
                 {saving ? <Loader2 className="animate-spin" size={20} /> : 'Salvar Alterações'}
               </button>
