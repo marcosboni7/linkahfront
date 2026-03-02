@@ -18,7 +18,7 @@ export default function DetalhesEvento() {
   const { id } = useParams();
   const router = useRouter();
   
-  // Desestruturando t e language do contexto
+  // Desestruturando t e language do contexto de tradução
   const { t, language }: any = useLanguage(); 
   
   const [evento, setEvento] = useState<any>(null);
@@ -57,6 +57,11 @@ export default function DetalhesEvento() {
 
   if (!evento) return <div className="p-20 text-center text-slate-500 font-medium">Evento não encontrado.</div>;
 
+  // --- LÓGICA DE MOEDA DINÂMICA ---
+  // IMPORTANTE: Aqui ele verifica o campo 'moeda' que vem do seu banco.
+  const moedaFinal = (evento.moeda || 'BRL').toUpperCase();
+  const locale = language === 'PT' ? 'pt-BR' : 'en-US';
+
   const precoBase = evento.ingressos?.[0]?.preco 
     ? Number(evento.ingressos[0].preco) 
     : (evento.preco ? Number(evento.preco) : 0);
@@ -90,7 +95,7 @@ export default function DetalhesEvento() {
         {/* SEÇÃO HERO */}
         <div className="relative w-full aspect-[21/9] rounded-[3rem] md:rounded-[4rem] overflow-hidden shadow-2xl mb-16 bg-slate-100 group">
           <img 
-            src={evento.imagem || evento.imagem_capa || "https://images.unsplash.com/photo-1492684223066-81342ee5ff30"} 
+            src={evento.imagem_capa || evento.imagem || "https://images.unsplash.com/photo-1492684223066-81342ee5ff30"} 
             className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
             alt={evento.nome}
           />
@@ -99,14 +104,13 @@ export default function DetalhesEvento() {
           <div className="absolute bottom-10 left-10 right-10 text-white">
               <div className="flex items-center gap-3 mb-4">
                 <span className="bg-gradient-to-r from-[#C22973] to-[#ff8c42] px-5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-widest shadow-lg">
-                  {/* CORREÇÃO DO ERRO DE BUILD: catMusic -> catEnt ou fallback string */}
                   {evento.categoria || t.catEnt || "Evento"}
                 </span>
                 <span className="flex items-center gap-1.5 text-[11px] font-semibold text-white/80 backdrop-blur-md bg-white/10 px-3 py-1.5 rounded-full border border-white/20">
                   <Verified size={14} className="text-blue-400" /> {language === 'PT' ? 'Verificado na AWS' : 'AWS Verified'}
                 </span>
               </div>
-              <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-none drop-shadow-md">
+              <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-none drop-shadow-md italic uppercase">
                 {evento.nome}
               </h1>
           </div>
@@ -124,9 +128,9 @@ export default function DetalhesEvento() {
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">{language === 'PT' ? 'DATA' : 'DATE'}</p>
                   <p className="font-bold text-slate-800 text-lg">
-                    {evento.data_inicio ? new Date(evento.data_inicio).toLocaleDateString(language === 'PT' ? 'pt-BR' : 'en-US', {day: '2-digit', month: 'long'}) : '---'}
+                    {evento.data_inicio ? new Date(evento.data_inicio).toLocaleDateString(locale, {day: '2-digit', month: 'long'}) : '---'}
                   </p>
-                  <p className="text-sm text-slate-500 font-medium">{evento.horario || evento.hora_inicio?.slice(0,5) || '19:00'}</p>
+                  <p className="text-sm text-slate-500 font-medium">{evento.horario || (evento.hora_inicio ? evento.hora_inicio.slice(0,5) : '19:00')}</p>
                 </div>
               </div>
 
@@ -190,7 +194,7 @@ export default function DetalhesEvento() {
               <div className="bg-white rounded-[3.5rem] border border-slate-100 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.12)] overflow-hidden">
                 <div className="p-10 space-y-10">
                   <div className="flex justify-between items-center">
-                    <h4 className="font-bold text-slate-900 text-xl tracking-tight">{t.tickets || 'Ingressos'}</h4>
+                    <h4 className="font-bold text-slate-900 text-xl tracking-tight italic uppercase">{t.tickets || 'Ingressos'}</h4>
                     <span className="flex items-center gap-1.5 bg-emerald-50 text-emerald-600 text-[11px] font-bold px-3 py-1.5 rounded-full border border-emerald-100">
                       <CheckCircle2 size={12} /> {language === 'PT' ? 'DISPONÍVEL' : 'AVAILABLE'}
                     </span>
@@ -200,11 +204,17 @@ export default function DetalhesEvento() {
                     <div className="p-6 rounded-[2.5rem] bg-slate-50 border border-slate-100 space-y-4">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="font-bold text-slate-800">{language === 'PT' ? 'Individual' : 'Single Ticket'}</p>
+                          <p className="font-bold text-slate-800 italic uppercase">{language === 'PT' ? 'Individual' : 'Single Ticket'}</p>
                           <p className="text-xs text-slate-500 font-medium italic">{language === 'PT' ? 'Lote atual' : 'Current batch'}</p>
                         </div>
-                        <span className="text-2xl font-bold text-slate-900">
-                          {total.toLocaleString(language === 'PT' ? 'pt-BR' : 'en-US', { style: 'currency', currency: 'BRL' })}
+                        <span className="text-2xl font-black text-slate-900 italic tracking-tighter">
+                          {/* AQUI ESTÁ O SEGREDO: 
+                             O total é formatado usando a moeda que vem do banco (EUR ou BRL)
+                          */}
+                          {total.toLocaleString(locale, { 
+                            style: 'currency', 
+                            currency: moedaFinal 
+                          })}
                         </span>
                       </div>
 
@@ -215,7 +225,7 @@ export default function DetalhesEvento() {
                         >
                           <Minus size={20} />
                         </button>
-                        <span className="font-bold text-xl text-slate-900">{quantidade}</span>
+                        <span className="font-black text-xl text-slate-900 italic">{quantidade}</span>
                         <button 
                           onClick={() => setQuantidade(Math.min(10, quantidade + 1))} 
                           className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 hover:text-[#C22973] transition-colors"
@@ -227,16 +237,19 @@ export default function DetalhesEvento() {
                   </div>
 
                   <div className="space-y-8">
+                    {/* Enviando a moeda para a página de pagamento no link */}
                     <Link 
-                      href={`/venda?eventoId=${id}&qtd=${quantidade}`}
-                      className="group flex items-center justify-center w-full bg-gradient-to-r from-[#C22973] to-[#ff8c42] py-7 rounded-[2.5rem] font-bold text-white transition-all hover:scale-[1.02] shadow-xl text-base gap-3"
+                      href={`/venda?eventoId=${id}&qtd=${quantidade}&currency=${moedaFinal}`}
+                      className="group flex items-center justify-center w-full bg-gradient-to-r from-[#C22973] to-[#ff8c42] py-7 rounded-[2.5rem] font-black text-white transition-all hover:scale-[1.02] shadow-xl text-base gap-3 italic uppercase tracking-widest"
                     >
                       <Ticket size={24} />
                       {language === 'PT' ? 'COMPRAR AGORA' : 'BUY NOW'}
                     </Link>
 
                     <div className="space-y-4 pt-4 text-center">
-                      <p className="text-[11px] text-slate-400 font-medium">Checkout AWS • Stripe & Pix</p>
+                      <p className="text-[11px] text-slate-400 font-black uppercase tracking-[0.2em] italic">
+                        Checkout AWS • Stripe & Pix
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -246,7 +259,7 @@ export default function DetalhesEvento() {
                 <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-500">
                   <ShieldCheck size={20} />
                 </div>
-                <p className="text-[11px] text-slate-400 font-bold leading-tight uppercase tracking-wider">
+                <p className="text-[11px] text-slate-400 font-bold leading-tight uppercase tracking-wider italic">
                   {language === 'PT' ? 'Compra Protegida' : 'Secure Checkout'} <br/> 
                   <span className="text-slate-900">{language === 'PT' ? 'Garantia Linkah' : 'Linkah Guarantee'}</span>
                 </p>
