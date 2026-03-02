@@ -17,6 +17,7 @@ export default function TabelaEventos() {
   const [erroApi, setErroApi] = useState<string | null>(null);
   const router = useRouter();
 
+  // Estados para Edição
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [eventoParaEditar, setEventoParaEditar] = useState<any>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -92,7 +93,7 @@ export default function TabelaEventos() {
 
         if (res.ok) {
           Swal.fire({ title: 'Excluído!', text: 'Evento removido com sucesso.', icon: 'success', timer: 1500, showConfirmButton: false });
-          carregarEventos(); // Atualiza a lista
+          carregarEventos(); 
         } else {
           throw new Error('Erro ao deletar');
         }
@@ -121,15 +122,21 @@ export default function TabelaEventos() {
 
   const handleSalvarEdicao = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!eventoParaEditar.nome) return;
+    
     setSaving(true);
     try {
       const rawToken = localStorage.getItem('@Linkah:Token') || localStorage.getItem('token');
       const token = rawToken ? rawToken.replace(/['"]+/g, '').trim() : '';
+      
       const formData = new FormData();
       formData.append('nome', eventoParaEditar.nome);
-      formData.append('categoria', eventoParaEditar.categoria || '');
+      formData.append('categoria', eventoParaEditar.categoria || 'Evento');
       formData.append('data_inicio', eventoParaEditar.data_inicio);
-      if (selectedFile) formData.append('imagem', selectedFile);
+      
+      if (selectedFile) {
+        formData.append('imagem', selectedFile);
+      }
 
       const res = await fetch(`${API_URL}/api/eventos/${eventoParaEditar.id}`, {
         method: 'PUT',
@@ -139,8 +146,10 @@ export default function TabelaEventos() {
 
       if (res.ok) {
         setIsEditModalOpen(false);
-        Swal.fire({ title: "Sucesso!", icon: 'success', timer: 1500, showConfirmButton: false });
+        await Swal.fire({ title: "Sucesso!", icon: 'success', timer: 1500, showConfirmButton: false });
         carregarEventos();
+      } else {
+        Swal.fire('Erro', 'Falha ao salvar alterações', 'error');
       }
     } catch (err) {
       Swal.fire('Erro', 'Falha ao atualizar', 'error');
@@ -199,14 +208,23 @@ export default function TabelaEventos() {
                 <tr key={evento.id} className="hover:bg-slate-50/50 transition-colors group">
                   <td className="px-10 py-6">
                     <div className="flex items-center gap-5">
-                      <img src={evento.imagem_capa} className="w-14 h-14 rounded-2xl object-cover" onError={(e:any)=>e.target.src='https://placehold.co/200x200?text=Linkah'} />
+                      <div className="w-14 h-14 rounded-2xl bg-slate-100 overflow-hidden shadow-inner border border-slate-50">
+                        <img 
+                          src={evento.imagem_capa} 
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                          onError={(e:any)=>e.target.src='https://placehold.co/200x200?text=Linkah'} 
+                          alt={evento.nome}
+                        />
+                      </div>
                       <div>
                         <p className="font-bold text-slate-900 text-base tracking-tight">{evento.nome}</p>
-                        <p className="text-[10px] text-[#FF4D4D] font-black uppercase">{evento.categoria || 'Evento'}</p>
+                        <p className="text-[10px] text-[#FF4D4D] font-black uppercase tracking-widest">{evento.categoria || 'Evento'}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-6 text-center text-xs font-bold text-slate-500">{formatarDataLocal(evento.data_inicio)}</td>
+                  <td className="px-6 py-6 text-center text-xs font-bold text-slate-500 uppercase">
+                    {formatarDataLocal(evento.data_inicio)}
+                  </td>
                   <td className="px-10 py-6 text-right">
                     <div className="flex justify-end gap-2">
                       <button onClick={() => abrirModalEdicao(evento)} className="p-3 bg-slate-50 text-slate-400 hover:text-black rounded-xl transition-all" title="Editar"><Edit3 size={18} /></button>
@@ -229,14 +247,41 @@ export default function TabelaEventos() {
               <h3 className="font-bold text-2xl tracking-tighter">Editar Evento</h3>
               <button onClick={() => setIsEditModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><X /></button>
             </div>
+            
             <form onSubmit={handleSalvarEdicao} className="space-y-6">
-              <div onClick={() => fileInputRef.current?.click()} className="h-40 bg-slate-50 border-2 border-dashed border-slate-200 rounded-[2rem] flex items-center justify-center cursor-pointer overflow-hidden group">
-                {previewUrl ? <img src={previewUrl} className="w-full h-full object-cover" /> : <Upload className="text-slate-300" size={32} />}
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Imagem de Capa</label>
+                <div 
+                  onClick={() => fileInputRef.current?.click()} 
+                  className="h-40 bg-slate-50 border-2 border-dashed border-slate-200 rounded-[2rem] flex items-center justify-center cursor-pointer overflow-hidden group hover:border-[#FF4D4D] transition-all"
+                >
+                  {previewUrl ? (
+                    <img src={previewUrl} className="w-full h-full object-cover group-hover:opacity-80 transition-opacity" alt="Preview" />
+                  ) : (
+                    <div className="flex flex-col items-center gap-2 text-slate-300">
+                      <Upload size={32} />
+                      <span className="text-[10px] font-bold uppercase">Upload</span>
+                    </div>
+                  )}
+                </div>
+                <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileChange} accept="image/*" />
               </div>
-              <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileChange} accept="image/*" />
-              <input className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none border border-transparent focus:border-black" value={eventoParaEditar.nome} onChange={(e) => setEventoParaEditar({...eventoParaEditar, nome: e.target.value})} />
-              <button type="submit" disabled={saving} className="w-full bg-[#030712] text-white py-5 rounded-2xl font-bold hover:bg-black transition-all">
-                {saving ? <Loader2 className="animate-spin mx-auto" size={20} /> : 'Salvar Alterações'}
+
+              <div className="space-y-2">
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nome do Evento</label>
+                <input 
+                  className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none border border-transparent focus:border-black focus:bg-white transition-all shadow-sm" 
+                  value={eventoParaEditar.nome} 
+                  onChange={(e) => setEventoParaEditar({...eventoParaEditar, nome: e.target.value})}
+                />
+              </div>
+
+              <button 
+                type="submit" 
+                disabled={saving} 
+                className="w-full bg-[#030712] text-white py-5 rounded-2xl font-bold hover:bg-black transition-all flex items-center justify-center gap-3 mt-4 shadow-xl active:scale-[0.98] disabled:opacity-50"
+              >
+                {saving ? <Loader2 className="animate-spin" size={20} /> : 'Salvar Alterações'}
               </button>
             </form>
           </div>
