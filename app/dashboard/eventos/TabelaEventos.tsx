@@ -27,7 +27,6 @@ export default function TabelaEventos() {
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Formata data para exibição
   const formatarDataLocal = (dataString: string) => {
     if (!dataString) return '---';
     try {
@@ -38,35 +37,39 @@ export default function TabelaEventos() {
     }
   };
 
-  // Listar Eventos
+  // LISTAR EVENTOS (Com Cache Buster)
   const carregarEventos = async () => {
-    console.log("🔍 [DEBUG] Buscando lista de eventos...");
+    console.log("🔍 [DEBUG] Buscando lista de eventos atualizada...");
     try {
-      const token = localStorage.getItem('@Linkah:Token') || localStorage.getItem('token') || localStorage.getItem('userToken');
-      const userStorage = localStorage.getItem('@Linkah:User') || localStorage.getItem('user') || localStorage.getItem('userData');
+      const token = localStorage.getItem('@Linkah:Token') || localStorage.getItem('token');
+      const userStorage = localStorage.getItem('@Linkah:User') || localStorage.getItem('user');
       
       if (!token || !userStorage) {
-        console.warn("⚠️ [DEBUG] Sem token ou user no storage.");
         setLoading(false);
         return;
       }
 
       const user = JSON.parse(userStorage);
-      const email = user.email || user.user?.email || user.userData?.email;
-      const timestamp = new Date().getTime();
-
-      const res = await fetch(`${API_URL}/api/eventos/listar?email=${email}&t=${timestamp}`, {
+      const email = user.email || user.user?.email;
+      
+      // O segredo está aqui: t=${Date.now()} impede que a AWS ou o Chrome usem cache antigo
+      const res = await fetch(`${API_URL}/api/eventos/listar?email=${email}&t=${Date.now()}`, {
         method: 'GET',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
       });
 
       if (res.ok) {
         const data = await res.json();
-        console.log("✅ [DEBUG] Eventos recebidos da AWS:", data);
-        setEventos(Array.isArray(data) ? data : []);
+        console.log("✅ [DEBUG] Dados novos recebidos:", data);
+        // Forçamos uma nova referência de Array para o React disparar o render
+        setEventos([...data]);
       }
     } catch (err) {
-      console.error("💥 [DEBUG] Erro ao carregar:", err);
+      console.error("💥 Erro ao listar:", err);
     } finally {
       setLoading(false);
     }
@@ -76,20 +79,16 @@ export default function TabelaEventos() {
     carregarEventos(); 
   }, []);
 
-  // Abrir Modal
   const abrirModalEdicao = (evento: any) => {
-    console.log("📝 [DEBUG] Editando evento ID:", evento.id);
     setEventoParaEditar({ ...evento });
     setPreviewUrl(evento.imagem_capa); 
     setSelectedFile(null);
     setIsEditModalOpen(true);
   };
 
-  // Seleção de Arquivo
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      console.log("📸 [DEBUG] Novo arquivo detectado:", file.name);
       setSelectedFile(file);
       const reader = new FileReader();
       reader.onloadend = () => setPreviewUrl(reader.result as string);
@@ -97,16 +96,15 @@ export default function TabelaEventos() {
     }
   };
 
-  // SALVAR (PUT)
+  // SALVAR NA AWS
   const handleSalvarEdicao = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    console.log("🚀 [DEBUG] Enviando PUT para AWS...");
     
     try {
       const token = localStorage.getItem('@Linkah:Token') || localStorage.getItem('token');
-      
       const formData = new FormData();
+      
       formData.append('nome', eventoParaEditar.nome);
       formData.append('categoria', eventoParaEditar.categoria || '');
       formData.append('data_inicio', eventoParaEditar.data_inicio);
@@ -114,40 +112,36 @@ export default function TabelaEventos() {
       formData.append('valor_minimo', String(eventoParaEditar.valor_minimo || '0'));
       
       if (selectedFile) {
-        formData.append('imagem', selectedFile);
-        console.log("📎 [DEBUG] Arquivo anexado ao FormData.");
+        formData.append('imagem', selectedFile); 
       }
 
       const res = await fetch(`${API_URL}/api/eventos/${eventoParaEditar.id}`, {
         method: 'PUT',
-        headers: { 
-          'Authorization': `Bearer ${token}`
-          // IMPORTANTE: Content-Type NÃO deve ser definido aqui para FormData
-        },
+        headers: { 'Authorization': `Bearer ${token}` },
         body: formData,
       });
 
       if (res.ok) {
-        const dataJson = await res.json();
-        console.log("🎉 [DEBUG] Resposta Sucesso AWS:", dataJson);
-        
-        await Swal.fire({ 
-          title: "Sincronizado!", 
-          text: "Dados atualizados com sucesso.",
-          icon: 'success', 
-          confirmButtonColor: '#0f172a' 
-        });
-        
+        // 1. Fecha o modal primeiro para limpar a UI
         setIsEditModalOpen(false);
-        carregarEventos(); // Refresh na lista
-      } else {
-        const errorData = await res.text();
-        console.error("❌ [DEBUG] Erro no Servidor:", errorData);
-        Swal.fire('Erro', 'A AWS rejeitou a atualização.', 'error');
+        
+        // 2. Feedback visual
+        Swal.fire({ 
+          title: "Sincronizado!", 
+          icon: 'success', 
+          timer: 1000, 
+          showConfirmButton: false,
+          position: 'top-end',
+          toast: true
+        });
+
+        // 3. Aguarda um pequeno delay para a AWS processar o S3 e recarrega
+        setTimeout(() => {
+            carregarEventos();
+        }, 500);
       }
     } catch (err) {
-      console.error("💥 [DEBUG] Falha na requisição:", err);
-      Swal.fire('Erro', 'Falha de conexão.', 'error');
+      Swal.fire('Erro', 'Falha ao atualizar na AWS', 'error');
     } finally {
       setSaving(false);
     }
@@ -155,12 +149,11 @@ export default function TabelaEventos() {
 
   const handleExcluir = async (id: number) => {
     const result = await Swal.fire({
-      title: "Excluir?",
-      text: "Isso apagará o evento da AWS.",
+      title: "Excluir Evento?",
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#C22973',
-      confirmButtonText: "Sim, apagar"
+      confirmButtonText: "Sim, excluir"
     });
 
     if (result.isConfirmed) {
@@ -172,10 +165,10 @@ export default function TabelaEventos() {
         });
         if (res.ok) {
           setEventos((prev) => prev.filter((ev) => ev.id !== id));
-          Swal.fire("Apagado!", "", "success");
+          Swal.fire("Excluído!", "", "success");
         }
       } catch (err) {
-        console.error("Erro ao deletar:", err);
+        console.error(err);
       }
     }
   };
@@ -188,13 +181,13 @@ export default function TabelaEventos() {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="w-1.5 h-1.5 rounded-full bg-[#C22973]" />
-            <h2 className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Painel Produtor</h2>
+            <h2 className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Gerenciamento</h2>
           </div>
           <p className="text-slate-950 font-bold text-2xl tracking-tighter">Meus Eventos</p>
         </div>
 
         <button
-          onClick={() => setIsOpen(!isOpen)}
+          onClick={() => router.push('/dashboard/eventos/novo/presencial')}
           className="bg-slate-950 text-white px-8 py-4 rounded-2xl font-bold flex items-center gap-3 hover:bg-black transition-all shadow-xl text-xs"
         >
           {t.newEvent || "Criar Novo Evento"}
@@ -204,11 +197,11 @@ export default function TabelaEventos() {
 
       {/* TABELA */}
       <div className="overflow-x-auto">
-        <table className="w-full text-left">
+        <table className="w-full text-left border-collapse">
           <thead className="bg-slate-50/50 text-slate-400 text-[10px] font-bold uppercase tracking-widest">
             <tr>
               <th className="px-10 py-6">Evento</th>
-              <th className="px-6 py-6 text-center">Data</th>
+              <th className="px-6 py-6">Data</th>
               <th className="px-6 py-6 text-center">Moeda</th>
               <th className="px-10 py-6 text-right">Ações</th>
             </tr>
@@ -222,21 +215,22 @@ export default function TabelaEventos() {
                   <div className="flex items-center gap-5">
                     <div className="w-14 h-14 rounded-2xl bg-slate-100 overflow-hidden border border-slate-100 shrink-0">
                       {evento.imagem_capa ? (
-                        <img src={evento.imagem_capa} className="w-full h-full object-cover" alt="" />
+                        <img src={`${evento.imagem_capa}?t=${Date.now()}`} className="w-full h-full object-cover" alt="" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-slate-300"><ImageIcon size={20} /></div>
                       )}
                     </div>
                     <div>
-                      {/* FALLBACKS PARA CASO O NOME SUMA */}
-                      <p className="font-bold text-slate-900 text-sm">{evento.nome || 'Evento s/ Nome'}</p>
-                      <p className="text-[10px] text-[#C22973] font-bold uppercase tracking-widest mt-0.5">{evento.categoria || 'Geral'}</p>
+                      <p className="font-bold text-slate-900 text-sm">{evento.nome || "Sem Nome"}</p>
+                      <p className="text-[10px] text-[#C22973] font-bold uppercase tracking-widest mt-0.5">{evento.categoria}</p>
                     </div>
                   </div>
                 </td>
-                <td className="px-6 py-6 text-center text-xs font-bold text-slate-700">{formatarDataLocal(evento.data_inicio)}</td>
+                <td className="px-6 py-6 text-xs font-bold text-slate-700 text-center">{formatarDataLocal(evento.data_inicio)}</td>
                 <td className="px-6 py-6 text-center">
-                  <span className="px-3 py-1 rounded-lg text-[10px] font-black bg-emerald-50 text-emerald-600">{evento.moeda || 'BRL'}</span>
+                  <span className="px-3 py-1 rounded-lg text-[10px] font-black bg-emerald-50 text-emerald-600">
+                    {evento.moeda || 'BRL'}
+                  </span>
                 </td>
                 <td className="px-10 py-6 text-right">
                   <div className="flex items-center justify-end gap-2">
@@ -258,15 +252,15 @@ export default function TabelaEventos() {
           <div className="relative bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden border border-slate-100 animate-in zoom-in duration-200">
             
             <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
-              <h2 className="text-xl font-bold text-slate-950">Editar Detalhes</h2>
-              <button onClick={() => setIsEditModalOpen(false)} className="text-slate-400 hover:text-rose-500"><X size={24} /></button>
+              <h2 className="text-xl font-bold text-slate-950">Editar Evento</h2>
+              <button onClick={() => setIsEditModalOpen(false)} className="w-10 h-10 flex items-center justify-center bg-white rounded-xl text-slate-400 border border-slate-100"><X size={18} /></button>
             </div>
 
             <form onSubmit={handleSalvarEdicao} className="p-8 space-y-6 overflow-y-auto max-h-[75vh]">
               
-              {/* COMPONENTE DE IMAGEM */}
+              {/* UPLOAD */}
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest ml-1">Anexar Nova Capa</label>
+                <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest ml-1">Imagem de Capa (Anexar)</label>
                 <div 
                   onClick={() => fileInputRef.current?.click()}
                   className="relative group w-full h-52 rounded-[2.5rem] bg-slate-50 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center overflow-hidden cursor-pointer hover:border-[#C22973] transition-all"
@@ -279,9 +273,9 @@ export default function TabelaEventos() {
                       </div>
                     </>
                   ) : (
-                    <div className="text-center text-slate-400">
-                      <Upload className="mx-auto mb-2" size={32} />
-                      <p className="text-[10px] font-bold uppercase">Selecionar Arquivo</p>
+                    <div className="text-center">
+                      <Upload className="mx-auto text-slate-300 mb-2" size={32} />
+                      <p className="text-[10px] font-bold text-slate-400 uppercase">Clique para selecionar</p>
                     </div>
                   )}
                 </div>
@@ -295,35 +289,32 @@ export default function TabelaEventos() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest ml-1">Data</label>
-                  <input type="date" required className="w-full bg-slate-50 border border-slate-100 p-4 rounded-xl outline-none focus:bg-white focus:border-slate-950 font-bold text-slate-900 transition-all" value={eventoParaEditar.data_inicio ? eventoParaEditar.data_inicio.split('T')[0] : ''} onChange={(e) => setEventoParaEditar({ ...eventoParaEditar, data_inicio: e.target.value })} />
+                  <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest ml-1">Data de Início</label>
+                  <input 
+                    type="date"
+                    required 
+                    className="w-full bg-slate-50 border border-slate-100 p-4 rounded-xl outline-none focus:bg-white focus:border-slate-950 font-bold text-slate-900 transition-all" 
+                    value={eventoParaEditar.data_inicio ? eventoParaEditar.data_inicio.split('T')[0] : ''} 
+                    onChange={(e) => setEventoParaEditar({ ...eventoParaEditar, data_inicio: e.target.value })} 
+                  />
                 </div>
 
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest ml-1">Categoria</label>
-                  <select className="w-full bg-slate-50 border border-slate-100 p-4 rounded-xl font-bold text-slate-900 outline-none" value={eventoParaEditar.categoria || ''} onChange={(e) => setEventoParaEditar({ ...eventoParaEditar, categoria: e.target.value })}>
+                  <select 
+                    className="w-full bg-slate-50 border border-slate-100 p-4 rounded-xl font-bold text-slate-900 outline-none focus:border-slate-950 transition-all"
+                    value={eventoParaEditar.categoria || ''}
+                    onChange={(e) => setEventoParaEditar({ ...eventoParaEditar, categoria: e.target.value })}
+                  >
                     <option value="Show">Show</option>
                     <option value="Workshop">Workshop</option>
-                    <option value="Online">Online</option>
+                    <option value="Conferência">Conferência</option>
                     <option value="Outros">Outros</option>
-                  </select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest ml-1">Valor</label>
-                  <input type="number" step="0.01" className="w-full bg-slate-50 border border-slate-100 p-4 rounded-xl outline-none font-bold text-slate-900" value={eventoParaEditar.valor_minimo || '0'} onChange={(e) => setEventoParaEditar({ ...eventoParaEditar, valor_minimo: e.target.value })} />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest ml-1">Moeda</label>
-                  <select className="w-full bg-slate-50 border border-slate-100 p-4 rounded-xl font-bold text-slate-900 outline-none" value={eventoParaEditar.moeda || 'BRL'} onChange={(e) => setEventoParaEditar({ ...eventoParaEditar, moeda: e.target.value })}>
-                    <option value="BRL">BRL (R$)</option>
-                    <option value="EUR">EUR (€)</option>
                   </select>
                 </div>
               </div>
 
-              <button type="submit" disabled={saving} className="w-full bg-slate-950 text-white py-5 rounded-2xl font-bold uppercase text-xs tracking-widest shadow-xl hover:bg-black transition-all flex items-center justify-center gap-3">
+              <button type="submit" disabled={saving} className="w-full bg-slate-950 text-white py-5 rounded-2xl font-bold uppercase text-xs tracking-widest shadow-xl hover:bg-black transition-all flex items-center justify-center gap-3 active:scale-95">
                 {saving ? <Loader2 className="animate-spin" size={18} /> : <><Save size={18} className="text-[#C22973]" /> Salvar na Cloud AWS</>}
               </button>
             </form>
