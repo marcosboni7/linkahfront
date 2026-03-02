@@ -218,7 +218,6 @@ export default function TabelaEventos() {
                   <td className="px-6 py-6 text-xs font-bold text-slate-700">{evento.cidade || '---'}, {evento.estado}</td>
                   <td className="px-6 py-6 text-xs font-bold text-slate-700">{formatarDataLocal(evento.data_inicio)}</td>
                   
-                  {/* COLUNA DE MOEDA */}
                   <td className="px-6 py-6 text-center">
                     <span className={`px-3 py-1 rounded-lg text-[10px] font-black ${evento.moeda === 'EUR' ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600'}`}>
                       {evento.moeda || 'BRL'}
@@ -231,9 +230,9 @@ export default function TabelaEventos() {
                   
                   <td className="px-10 py-6 text-right">
                     <div className="flex items-center justify-end gap-2">
-                      {/* ATALHO PARA GESTÃO DE INGRESSOS/LOTES */}
+                      {/* AJUSTE AQUI: ROTA DINÂMICA PARA EVITAR 404 */}
                       <button 
-                        onClick={() => router.push(`/dashboard/eventos/novo/ingressos?id=${evento.id}`)} 
+                        onClick={() => router.push(`/dashboard/eventos/novo/ingressos/${evento.id}`)} 
                         title="Gerenciar Lotes e Preços"
                         className="p-3 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
                       >
@@ -281,7 +280,6 @@ export default function TabelaEventos() {
                 <input required className="w-full bg-slate-50 border border-slate-100 p-4 rounded-xl outline-none focus:bg-white focus:border-slate-950 font-bold text-slate-900 transition-all" value={eventoParaEditar.nome} onChange={(e) => setEventoParaEditar({ ...eventoParaEditar, nome: e.target.value })} />
               </div>
 
-              {/* EDIÇÃO RÁPIDA DE MOEDA NO MODAL */}
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest ml-1">Moeda Principal</label>
                 <select 
