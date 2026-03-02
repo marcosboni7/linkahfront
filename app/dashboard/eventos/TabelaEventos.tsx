@@ -1,5 +1,5 @@
 'use client';
-//teste
+
 import { useState, useEffect, useRef } from 'react';
 import { 
   ChevronLeft, ChevronRight, ChevronDown, MapPin, 
@@ -41,11 +41,10 @@ export default function TabelaEventos() {
       // 1. Tentar pegar o Token
       const token = localStorage.getItem('@Linkah:Token') || localStorage.getItem('token');
       
-      // 2. Mapeamento agressivo de e-mail (Debug ampliado)
+      // 2. Tentar recuperar o e-mail do storage
       let emailEncontrado = null;
-      console.log("Keys no Storage:", Object.keys(localStorage)); // Lista todas as chaves para debug
-      
       const possiveisChaves = ['@Linkah:User', 'user', 'userData', 'auth'];
+      
       for (const chave of possiveisChaves) {
         const data = localStorage.getItem(chave);
         if (data) {
@@ -59,16 +58,18 @@ export default function TabelaEventos() {
 
       if (!emailEncontrado) emailEncontrado = localStorage.getItem('email');
       
-      console.log("📧 [DEBUG] E-mail final para filtro:", emailEncontrado);
-
-      // 3. Montar URL sem causar Erro 400
-      // Se não tem e-mail, chamamos o endpoint limpo sem o parâmetro ?email=
-      let url = `${API_URL}/api/eventos/listar?t=${Date.now()}`;
-      if (emailEncontrado && emailEncontrado !== "null") {
-        url += `&email=${encodeURIComponent(emailEncontrado)}`;
+      // 3. FALLBACK: Se mesmo assim não achar (seu caso atual), define o e-mail manualmente
+      if (!emailEncontrado || emailEncontrado === "null") {
+        console.warn("⚠️ E-mail não encontrado no Storage. Usando fallback manual.");
+        // --- MUDANÇA AQUI: Coloque entre as aspas o e-mail que você usa no sistema ---
+        emailEncontrado = "seu-email@aqui.com"; 
       }
 
-      console.log("🔗 [DEBUG] URL de chamada:", url);
+      console.log("📧 [DEBUG] E-mail utilizado para o filtro:", emailEncontrado);
+
+      // 4. Montar URL (Garantindo que o e-mail vá para evitar Erro 400)
+      const url = `${API_URL}/api/eventos/listar?email=${encodeURIComponent(emailEncontrado)}&t=${Date.now()}`;
+      console.log("🔗 [DEBUG] URL final:", url);
 
       const res = await fetch(url, {
         method: 'GET',
@@ -80,14 +81,16 @@ export default function TabelaEventos() {
 
       if (res.ok) {
         const data = await res.json();
-        console.log("✅ [DEBUG] Dados recebidos:", data);
+        console.log("✅ [DEBUG] Eventos recebidos:", data);
         setEventos(Array.isArray(data) ? data : []);
       } else {
         const errorText = await res.text();
         console.error(`❌ [DEBUG] Erro ${res.status}:`, errorText);
+        // Se der erro 400 mesmo com e-mail, pode ser o Token expirado
+        if(res.status === 400) console.error("A API ainda rejeitou a requisição. Verifique o formato do e-mail.");
       }
     } catch (err) {
-      console.error("💥 [DEBUG] Falha catastrófica:", err);
+      console.error("💥 [DEBUG] Falha na requisição:", err);
     } finally {
       setLoading(false);
     }
