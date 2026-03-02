@@ -2,9 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { 
-  ChevronLeft, ChevronRight, ChevronDown, MapPin, 
-  Globe, Calendar, Clock, Edit3, Trash2, Image as ImageIcon, 
-  X, Save, Loader2, Ticket, Upload, Camera
+  ChevronLeft, Edit3, Trash2, Image as ImageIcon, 
+  X, Loader2, Ticket, Upload
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Swal from 'sweetalert2';
@@ -13,7 +12,7 @@ import { useLanguage } from '@/app/context/LanguageContext';
 const API_URL = 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
 
 export default function TabelaEventos() {
-  const { t, language }: any = useLanguage();
+  const { language }: any = useLanguage();
   const [eventos, setEventos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
@@ -34,43 +33,41 @@ export default function TabelaEventos() {
   };
 
   const carregarEventos = async () => {
-    console.log("🔍 [DEBUG] Iniciando busca...");
     setLoading(true);
     
     try {
-      // 1. Tentar pegar o Token
       const token = localStorage.getItem('@Linkah:Token') || localStorage.getItem('token');
       
-      // 2. Tentar recuperar o e-mail do storage (mapeamento agressivo)
-      let emailEncontrado = null;
-      const possiveisChaves = ['@Linkah:User', 'user', 'userData', 'auth'];
+      // BUSCA DINÂMICA DO E-MAIL (Sem e-mail fixo no código)
+      let emailLogado = null;
+      const chavesDeUsuario = ['@Linkah:User', 'user', 'userData', 'produtor'];
       
-      for (const chave of possiveisChaves) {
+      for (const chave of chavesDeUsuario) {
         const data = localStorage.getItem(chave);
         if (data) {
           try {
             const obj = JSON.parse(data);
-            emailEncontrado = obj.email || obj.user?.email || obj.data?.email;
-            if (emailEncontrado) break;
+            emailLogado = obj.email || obj.user?.email || obj.produtor_email || obj.data?.email;
+            if (emailLogado) break;
           } catch (e) {}
         }
       }
 
-      if (!emailEncontrado) emailEncontrado = localStorage.getItem('email');
+      if (!emailLogado) {
+          emailLogado = localStorage.getItem('email') || localStorage.getItem('userEmail') || localStorage.getItem('produtorEmail');
+      }
       
-      // 3. FALLBACK: Força o e-mail caso o Storage esteja vazio (Evita Erro 400)
-      if (!emailEncontrado || emailEncontrado === "null" || emailEncontrado === "undefined") {
-        console.warn("⚠️ E-mail não encontrado no Storage. Usando fallback manual.");
-        // MUDANÇA AQUI: Coloque seu e-mail real entre as aspas abaixo
-        emailEncontrado = "seu-email-real@dominio.com"; 
+      // Se não houver ninguém logado, não faz a chamada para não dar erro 400
+      if (!emailLogado || emailLogado === "null" || emailLogado === "undefined") {
+        console.warn("⚠️ [Linkah] Nenhum usuário logado encontrado no Storage.");
+        setEventos([]);
+        setLoading(false);
+        return;
       }
 
-      console.log("📧 [DEBUG] E-mail final para filtro:", emailEncontrado);
-
-      // 4. Montar URL com cache busting (t=timestamp)
-      const url = `${API_URL}/api/eventos/listar?email=${encodeURIComponent(emailEncontrado)}&t=${Date.now()}`;
-      console.log("🔗 [DEBUG] URL de chamada:", url);
-
+      // Chamada usando produtor_email (padrão do seu banco de dados)
+      const url = `${API_URL}/api/eventos/listar?produtor_email=${encodeURIComponent(emailLogado)}&t=${Date.now()}`;
+      
       const res = await fetch(url, {
         method: 'GET',
         headers: { 
@@ -81,14 +78,12 @@ export default function TabelaEventos() {
 
       if (res.ok) {
         const data = await res.json();
-        console.log("✅ [DEBUG] Dados recebidos:", data);
         setEventos(Array.isArray(data) ? data : []);
       } else {
-        const errorText = await res.text();
-        console.error(`❌ [DEBUG] Erro ${res.status}:`, errorText);
+        console.error("Erro ao buscar eventos:", res.status);
       }
     } catch (err) {
-      console.error("💥 [DEBUG] Falha catastrófica:", err);
+      console.error("Falha na conexão com a API:", err);
     } finally {
       setLoading(false);
     }
@@ -149,7 +144,7 @@ export default function TabelaEventos() {
     <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden font-sans">
       <div className="p-10 border-b border-slate-50 flex justify-between items-center">
         <div>
-          <h2 className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Gestão</h2>
+          <h2 className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Gestão de Produtor</h2>
           <p className="text-slate-950 font-bold text-2xl tracking-tighter">Meus Eventos</p>
         </div>
         <button onClick={() => router.push('/dashboard/eventos/novo/presencial')} className="bg-slate-950 text-white px-6 py-3 rounded-xl font-bold text-xs hover:bg-black transition-all">
@@ -170,7 +165,7 @@ export default function TabelaEventos() {
             {loading ? (
               <tr><td colSpan={3} className="py-20 text-center"><Loader2 className="animate-spin mx-auto text-[#C22973]" /></td></tr>
             ) : eventos.length === 0 ? (
-              <tr><td colSpan={3} className="py-20 text-center text-slate-400 italic">Nenhum evento para exibir.</td></tr>
+              <tr><td colSpan={3} className="py-20 text-center text-slate-400 italic">Nenhum evento encontrado para este produtor.</td></tr>
             ) : (
               eventos.map((evento) => (
                 <tr key={evento.id} className="hover:bg-slate-50/50 transition-colors">
@@ -216,22 +211,22 @@ export default function TabelaEventos() {
             </div>
             <form onSubmit={handleSalvarEdicao} className="space-y-4">
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-2">Imagem</label>
-                <div onClick={() => fileInputRef.current?.click()} className="h-32 bg-slate-50 border-2 border-dashed rounded-2xl flex items-center justify-center cursor-pointer overflow-hidden">
-                  {previewUrl ? <img src={previewUrl} className="w-full h-full object-cover" alt="Preview" /> : <Upload className="text-slate-300" />}
+                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-2">Capa do Evento</label>
+                <div onClick={() => fileInputRef.current?.click()} className="h-32 bg-slate-50 border-2 border-dashed rounded-2xl flex items-center justify-center cursor-pointer overflow-hidden group">
+                  {previewUrl ? <img src={previewUrl} className="w-full h-full object-cover group-hover:opacity-75 transition-opacity" alt="Preview" /> : <Upload className="text-slate-300" />}
                 </div>
                 <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileChange} accept="image/*" />
               </div>
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-2">Nome</label>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-2">Nome do Evento</label>
                 <input 
-                  className="w-full p-4 bg-slate-50 rounded-xl font-bold outline-none border focus:border-slate-900" 
+                  className="w-full p-4 bg-slate-50 rounded-xl font-bold outline-none border border-transparent focus:border-pink-200 focus:bg-white transition-all" 
                   value={eventoParaEditar.nome} 
                   onChange={(e) => setEventoParaEditar({...eventoParaEditar, nome: e.target.value})}
                 />
               </div>
-              <button type="submit" disabled={saving} className="w-full bg-[#C22973] text-white py-4 rounded-xl font-bold hover:bg-[#a01f5e] transition-all flex items-center justify-center gap-2">
-                {saving ? <Loader2 className="animate-spin" size={18} /> : 'Salvar Alterações'}
+              <button type="submit" disabled={saving} className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold hover:bg-black transition-all flex items-center justify-center gap-2 mt-4 shadow-xl">
+                {saving ? <Loader2 className="animate-spin" size={18} /> : 'Confirmar Alterações'}
               </button>
             </form>
           </div>
