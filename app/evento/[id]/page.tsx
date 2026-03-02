@@ -1,274 +1,339 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { Navbar } from '../../site/Navbar';
-import { Footer } from '../../site/Footer';
-import { useLanguage } from '@/app/context/LanguageContext';
+import { useState, useEffect } from 'react';
 import { 
-  Calendar, MapPin, Ticket, ShieldCheck, Share2, 
-  Loader2, Plus, Minus, Zap, ChevronLeft,
-  CheckCircle2, Clock, Heart, Users, Verified
+  ChevronLeft, ChevronRight, ChevronDown, MapPin, 
+  Globe, Calendar, Clock, Edit3, Trash2, Image as ImageIcon, X, Save, Loader2, Ticket 
 } from 'lucide-react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import Swal from 'sweetalert2';
+import { useLanguage } from '@/app/context/LanguageContext';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
+const API_URL = 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
 
-export default function DetalhesEvento() {
-  const { id } = useParams();
-  const router = useRouter();
-  
-  // Desestruturando t e language do contexto de tradução
-  const { t, language }: any = useLanguage(); 
-  
-  const [evento, setEvento] = useState<any>(null);
+export default function TabelaEventos() {
+  const { t, language }: any = useLanguage();
+  const [isOpen, setIsOpen] = useState(false);
+  const [eventos, setEventos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [quantidade, setQuantidade] = useState(1);
+  const router = useRouter();
 
-  useEffect(() => {
-    async function carregarEvento() {
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [eventoParaEditar, setEventoParaEditar] = useState<any>(null);
+  const [saving, setSaving] = useState(false);
+
+  const formatarDataLocal = (dataString: string) => {
+    if (!dataString) return '---';
+    try {
+      const data = new Date(dataString);
+      return data.toLocaleDateString(language === 'PT' ? 'pt-BR' : 'en-US');
+    } catch (e) {
+      return dataString;
+    }
+  };
+
+  const carregarEventos = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('@Linkah:Token') || localStorage.getItem('token') || localStorage.getItem('userToken');
+      const userStorage = localStorage.getItem('@Linkah:User') || localStorage.getItem('user') || localStorage.getItem('userData');
+      
+      if (!token || !userStorage) {
+        setLoading(false);
+        return;
+      }
+
+      const user = JSON.parse(userStorage);
+      const email = user.email || user.user?.email || user.userData?.email;
+
+      if (!email) {
+        setLoading(false);
+        return;
+      }
+
+      const timestamp = new Date().getTime();
+      const res = await fetch(`${API_URL}/api/eventos/listar?email=${email}&t=${timestamp}`, {
+        method: 'GET',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setEventos(Array.isArray(data) ? data : []);
+      }
+    } catch (err) {
+      console.error("💥 Falha na conexão AWS:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { 
+    carregarEventos(); 
+  }, []);
+
+  const handleExcluir = async (id: number) => {
+    const result = await Swal.fire({
+      title: "Excluir Evento?",
+      text: "Esta ação removerá o evento e todos os seus lotes permanentemente.",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#C22973',
+      cancelButtonColor: '#0f172a',
+      confirmButtonText: "Sim, excluir",
+      cancelButtonText: "Cancelar",
+      customClass: { popup: 'rounded-[2.5rem] font-sans' }
+    });
+
+    if (result.isConfirmed) {
       try {
-        const timestamp = new Date().getTime();
-        const res = await fetch(`${API_URL}/api/eventos/${id}?t=${timestamp}`, {
-          cache: 'no-store'
+        const token = localStorage.getItem('@Linkah:Token') || localStorage.getItem('token');
+        const res = await fetch(`${API_URL}/api/eventos/${id}`, { 
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
         });
-        
         if (res.ok) {
-          const data = await res.json();
-          setEvento(data);
+          setEventos((prev) => prev.filter((ev) => ev.id !== id));
+          Swal.fire({ title: "Excluído!", icon: 'success', confirmButtonColor: '#0f172a' });
         }
       } catch (err) {
-        console.error("Erro ao carregar da AWS:", err);
-      } finally {
-        setLoading(false);
+        Swal.fire('Erro', 'Falha ao deletar na AWS', 'error');
       }
     }
-    if (id) carregarEvento();
-  }, [id]);
+  };
 
-  if (loading) return (
-    <div className="h-screen w-full flex items-center justify-center bg-white">
-      <div className="flex flex-col items-center gap-4">
-        <Loader2 className="animate-spin text-[#C22973]" size={40} />
-        <p className="text-slate-400 font-medium animate-pulse">{t.sync || 'Sincronizando...'}</p>
-      </div>
-    </div>
-  );
+  const abrirModalEdicao = (evento: any) => {
+    setEventoParaEditar({ ...evento });
+    setIsEditModalOpen(true);
+  };
 
-  if (!evento) return <div className="p-20 text-center text-slate-500 font-medium">Evento não encontrado.</div>;
+  const handleSalvarEdicao = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const token = localStorage.getItem('@Linkah:Token') || localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/api/eventos/${eventoParaEditar.id}`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(eventoParaEditar),
+      });
 
-  // --- LÓGICA DE MOEDA DINÂMICA ---
-  // IMPORTANTE: Aqui ele verifica o campo 'moeda' que vem do seu banco.
-  const moedaFinal = (evento.moeda || 'BRL').toUpperCase();
-  const locale = language === 'PT' ? 'pt-BR' : 'en-US';
-
-  const precoBase = evento.ingressos?.[0]?.preco 
-    ? Number(evento.ingressos[0].preco) 
-    : (evento.preco ? Number(evento.preco) : 0);
-    
-  const total = precoBase * quantidade;
+      if (res.ok) {
+        Swal.fire({ title: "Sincronizado!", icon: 'success', confirmButtonColor: '#0f172a' });
+        setIsEditModalOpen(false);
+        carregarEventos();
+      }
+    } catch (err) {
+      Swal.fire('Erro', 'Falha ao atualizar na AWS', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
-    <div className="bg-white min-h-screen font-sans antialiased text-slate-900">
-      <Navbar />
+    <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden font-sans">
+      {/* HEADER */}
+      <div className="p-10 border-b border-slate-50 flex flex-col md:flex-row justify-between items-center gap-6 bg-white">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#C22973]" />
+            <h2 className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Painel Produtor</h2>
+          </div>
+          <p className="text-slate-950 font-bold text-2xl tracking-tighter">Meus Eventos</p>
+        </div>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-24">
-        
-        {/* NAVEGAÇÃO SUPERIOR */}
-        <div className="flex justify-between items-center mb-8">
-          <button onClick={() => router.back()} className="group inline-flex items-center gap-2 text-slate-400 hover:text-[#C22973] transition-all text-sm font-bold">
-            <div className="p-2 rounded-full group-hover:bg-pink-50 transition-colors">
-              <ChevronLeft size={20} />
-            </div>
-            {language === 'PT' ? 'Voltar' : 'Back'}
+        <div className="relative">
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            className="bg-slate-950 text-white px-8 py-4 rounded-2xl font-bold flex items-center gap-3 hover:bg-black transition-all shadow-xl active:scale-95 text-xs"
+          >
+            {t.newEvent || "Criar Novo Evento"}
+            <ChevronDown size={18} className={`transition-transform duration-300 text-[#C22973] ${isOpen ? 'rotate-180' : ''}`} />
           </button>
-          <div className="flex gap-3">
-            <button className="p-3 rounded-full border border-slate-100 hover:bg-slate-50 transition-all text-slate-400 shadow-sm active:scale-90">
-              <Share2 size={18} />
-            </button>
-            <button className="p-3 rounded-full border border-slate-100 hover:bg-slate-50 transition-all text-slate-400 shadow-sm active:scale-90">
-              <Heart size={18} />
-            </button>
-          </div>
+
+          {isOpen && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)}></div>
+              <div className="absolute right-0 mt-4 w-64 bg-white rounded-[2rem] shadow-2xl border border-slate-100 z-20 overflow-hidden py-3 animate-in fade-in zoom-in duration-200">
+                <button onClick={() => { setIsOpen(false); router.push('/dashboard/eventos/novo/presencial'); }} className="w-full flex items-center gap-4 px-6 py-4 text-slate-600 hover:bg-slate-50 font-bold text-xs">
+                  <MapPin size={18} className="text-[#C22973]" /> Presencial
+                </button>
+                <div className="h-px bg-slate-50 mx-4" />
+                <button onClick={() => { setIsOpen(false); router.push('/dashboard/eventos/novo/online'); }} className="w-full flex items-center gap-4 px-6 py-4 text-slate-600 hover:bg-slate-50 font-bold text-xs">
+                  <Globe size={18} className="text-blue-500" /> Online / Live
+                </button>
+              </div>
+            </>
+          )}
         </div>
+      </div>
 
-        {/* SEÇÃO HERO */}
-        <div className="relative w-full aspect-[21/9] rounded-[3rem] md:rounded-[4rem] overflow-hidden shadow-2xl mb-16 bg-slate-100 group">
-          <img 
-            src={evento.imagem_capa || evento.imagem || "https://images.unsplash.com/photo-1492684223066-81342ee5ff30"} 
-            className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
-            alt={evento.nome}
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-          
-          <div className="absolute bottom-10 left-10 right-10 text-white">
-              <div className="flex items-center gap-3 mb-4">
-                <span className="bg-gradient-to-r from-[#C22973] to-[#ff8c42] px-5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-widest shadow-lg">
-                  {evento.categoria || t.catEnt || "Evento"}
-                </span>
-                <span className="flex items-center gap-1.5 text-[11px] font-semibold text-white/80 backdrop-blur-md bg-white/10 px-3 py-1.5 rounded-full border border-white/20">
-                  <Verified size={14} className="text-blue-400" /> {language === 'PT' ? 'Verificado na AWS' : 'AWS Verified'}
-                </span>
-              </div>
-              <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-none drop-shadow-md italic uppercase">
-                {evento.nome}
-              </h1>
-          </div>
-        </div>
+      {/* TABELA */}
+      <div className="overflow-x-auto">
+        <table className="w-full text-left border-collapse">
+          <thead className="bg-slate-50/50 text-slate-400 text-[10px] font-bold uppercase tracking-widest">
+            <tr>
+              <th className="px-10 py-6">Evento</th>
+              <th className="px-6 py-6">Local</th>
+              <th className="px-6 py-6 text-center">Data</th>
+              <th className="px-6 py-6 text-center">Lotes / Moeda</th>
+              <th className="px-6 py-6 text-center">Vendas</th>
+              <th className="px-10 py-6 text-right">Ações</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-50">
+            {loading ? (
+              <tr>
+                <td colSpan={6} className="py-32 text-center">
+                   <div className="flex flex-col items-center gap-3">
+                      <Loader2 className="animate-spin text-[#C22973]" size={40} />
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-300">Conectando AWS...</span>
+                   </div>
+                </td>
+              </tr>
+            ) : eventos.length > 0 ? (
+              eventos.map((evento: any) => (
+                <tr key={evento.id} className="hover:bg-slate-50/30 transition-colors group">
+                  <td className="px-10 py-6">
+                    <div className="flex items-center gap-5">
+                      <div className="w-14 h-14 rounded-2xl bg-slate-100 overflow-hidden border border-slate-100 shrink-0">
+                        {evento.imagem_capa ? (
+                          <img src={evento.imagem_capa} className="w-full h-full object-cover" alt="" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-slate-300"><ImageIcon size={20} /></div>
+                        )}
+                      </div>
+                      <div>
+                        <p className="font-bold text-slate-900 text-sm">{evento.nome}</p>
+                        <p className="text-[10px] text-[#C22973] font-bold uppercase tracking-widest mt-0.5">{evento.categoria}</p>
+                      </div>
+                    </div>
+                  </td>
+                  
+                  <td className="px-6 py-6">
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold text-slate-700">{evento.cidade || 'Online'}</span>
+                      <span className="text-[10px] text-slate-400 uppercase font-medium">{evento.estado || 'Global'}</span>
+                    </div>
+                  </td>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
-          
-          {/* COLUNA ESQUERDA: INFORMAÇÕES */}
-          <div className="lg:col-span-8 space-y-16">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div className="flex items-center gap-5">
-                <div className="w-16 h-16 rounded-[1.5rem] bg-pink-50 flex items-center justify-center text-[#C22973] shrink-0">
-                  <Calendar size={28} />
-                </div>
-                <div>
-                  <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">{language === 'PT' ? 'DATA' : 'DATE'}</p>
-                  <p className="font-bold text-slate-800 text-lg">
-                    {evento.data_inicio ? new Date(evento.data_inicio).toLocaleDateString(locale, {day: '2-digit', month: 'long'}) : '---'}
-                  </p>
-                  <p className="text-sm text-slate-500 font-medium">{evento.horario || (evento.hora_inicio ? evento.hora_inicio.slice(0,5) : '19:00')}</p>
-                </div>
-              </div>
+                  <td className="px-6 py-6 text-center text-xs font-bold text-slate-700">
+                    {formatarDataLocal(evento.data_inicio)}
+                  </td>
+                  
+                  {/* INFORMAÇÕES DE PREÇO E MOEDA */}
+                  <td className="px-6 py-6 text-center">
+                    <div className="flex flex-col items-center gap-1">
+                      <span className={`px-3 py-1 rounded-lg text-[10px] font-black ${evento.moeda === 'EUR' ? 'bg-blue-50 text-blue-600 border border-blue-100' : 'bg-emerald-50 text-emerald-600 border border-emerald-100'}`}>
+                        {evento.moeda || 'BRL'} {evento.valor_minimo ? Number(evento.valor_minimo).toFixed(2) : '0.00'}
+                      </span>
+                      <span className="text-[9px] text-slate-400 font-bold uppercase tracking-tight">Valor inicial</span>
+                    </div>
+                  </td>
 
-              <div className="flex items-center gap-5">
-                <div className="w-16 h-16 rounded-[1.5rem] bg-orange-50 flex items-center justify-center text-orange-500 shrink-0">
-                  <MapPin size={28} />
-                </div>
-                <div>
-                  <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">{t.thLocation || 'Local'}</p>
-                  <p className="font-bold text-slate-800 text-lg line-clamp-1">
-                    {evento.tipo === 'online' ? (language === 'PT' ? 'Plataforma Linkah' : 'Linkah Platform') : (evento.local_nome || evento.local)}
-                  </p>
-                  <p className="text-sm text-slate-500 font-medium line-clamp-1">{evento.cidade || 'Linkah Transmissão'}{evento.estado ? `, ${evento.estado}` : ''}</p>
-                </div>
-              </div>
+                  {/* VENDAS E BARRA DE PROGRESSO */}
+                  <td className="px-6 py-6 text-center">
+                    <div className="flex flex-col items-center gap-1.5">
+                      <div className="flex items-center gap-2">
+                         <span className="text-xs font-black text-slate-900">{evento.total_vendidos || 0}</span>
+                         <span className="text-slate-300 text-[10px]">/</span>
+                         <span className="text-xs font-bold text-slate-400">{evento.total_vagas || 0}</span>
+                      </div>
+                      <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden border border-slate-50">
+                         <div 
+                           className="h-full bg-[#C22973] rounded-full transition-all duration-500" 
+                           style={{ width: `${Math.min(((evento.total_vendidos || 0) / (evento.total_vagas || 1)) * 100, 100)}%` }}
+                         />
+                      </div>
+                    </div>
+                  </td>
+                  
+                  <td className="px-10 py-6 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <button 
+                        onClick={() => router.push(`/dashboard/eventos/novo/ingressos/${evento.id}`)} 
+                        title="Gerenciar Lotes e Ingressos"
+                        className="p-3 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                      >
+                        <Ticket size={18} />
+                      </button>
 
-              <div className="flex items-center gap-5">
-                <div className="w-16 h-16 rounded-[1.5rem] bg-purple-50 flex items-center justify-center text-purple-500 shrink-0">
-                  <Users size={28} />
-                </div>
-                <div>
-                  <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">{language === 'PT' ? 'ORGANIZADOR' : 'ORGANIZER'}</p>
-                  <p className="font-bold text-slate-800 text-lg line-clamp-1 capitalize">{evento.produtor_nome || t.producerDefaultName || 'Organizador'}</p>
-                  <button className="text-sm text-[#C22973] font-bold hover:underline">{language === 'PT' ? 'Ver Perfil' : 'View Profile'}</button>
-                </div>
-              </div>
-            </div>
+                      <button onClick={() => abrirModalEdicao(evento)} className="p-3 text-slate-400 hover:text-slate-950 hover:bg-slate-100 rounded-xl transition-all">
+                        <Edit3 size={18} />
+                      </button>
 
-            <div className="space-y-8">
-              <div className="flex items-center gap-4">
-                <h3 className="text-2xl font-bold text-slate-900 tracking-tight">{language === 'PT' ? 'Sobre esta experiência' : 'About this experience'}</h3>
-                <div className="h-[1px] flex-1 bg-slate-100"></div>
-              </div>
-              <div className="text-slate-600 leading-relaxed text-xl font-light whitespace-pre-line max-w-3xl">
-                {evento.descricao}
-              </div>
-            </div>
-
-            {evento.tipo === 'online' && (
-              <div className="bg-gradient-to-br from-[#702082] to-[#C22973] rounded-[3rem] p-12 text-white flex flex-col md:flex-row items-center justify-between gap-10 shadow-2xl">
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2 bg-white/20 w-fit px-4 py-1.5 rounded-full backdrop-blur-md">
-                    <Zap size={16} className="text-yellow-300 fill-yellow-300" />
-                    <span className="text-[11px] font-bold uppercase tracking-widest">{language === 'PT' ? 'Acesso Digital' : 'Digital Access'}</span>
-                  </div>
-                  <h3 className="text-4xl font-bold tracking-tight">{language === 'PT' ? 'Assista de casa' : 'Watch from home'}</h3>
-                  <p className="text-white/80 text-lg">{language === 'PT' ? 'O link será enviado após o pagamento.' : 'The link will be sent after payment.'}</p>
-                </div>
-                <div className="bg-white/10 backdrop-blur-xl border border-white/20 p-6 rounded-[2rem] text-center">
-                   <Clock size={32} className="mx-auto mb-2 opacity-50" />
-                   <p className="text-[10px] font-black uppercase tracking-widest">Check-in</p>
-                   <p className="font-bold">15min antes</p>
-                </div>
-              </div>
+                      <button onClick={() => handleExcluir(evento.id)} className="p-3 text-slate-400 hover:text-[#C22973] hover:bg-rose-50 rounded-xl transition-all">
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={6} className="py-40 text-center opacity-30">
+                   <Calendar size={48} className="mx-auto text-slate-300 mb-4" />
+                   <p className="font-bold uppercase text-xs tracking-widest text-slate-400">Nenhum evento encontrado na sua conta</p>
+                </td>
+              </tr>
             )}
-          </div>
+          </tbody>
+        </table>
+      </div>
 
-          {/* COLUNA DIREITA: CHECKOUT */}
-          <div className="lg:col-span-4">
-            <div className="sticky top-28">
-              <div className="bg-white rounded-[3.5rem] border border-slate-100 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.12)] overflow-hidden">
-                <div className="p-10 space-y-10">
-                  <div className="flex justify-between items-center">
-                    <h4 className="font-bold text-slate-900 text-xl tracking-tight italic uppercase">{t.tickets || 'Ingressos'}</h4>
-                    <span className="flex items-center gap-1.5 bg-emerald-50 text-emerald-600 text-[11px] font-bold px-3 py-1.5 rounded-full border border-emerald-100">
-                      <CheckCircle2 size={12} /> {language === 'PT' ? 'DISPONÍVEL' : 'AVAILABLE'}
-                    </span>
-                  </div>
+      <div className="p-8 bg-slate-50/50 border-t border-slate-50 flex justify-between items-center text-slate-400 text-[10px] font-bold uppercase tracking-widest">
+        <span>Total: {eventos.length}</span>
+        <div className="flex gap-2">
+          <button className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center hover:text-slate-950 transition-all"><ChevronLeft size={18} /></button>
+          <button className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center hover:text-slate-950 transition-all"><ChevronRight size={18} /></button>
+        </div>
+      </div>
 
-                  <div className="space-y-6">
-                    <div className="p-6 rounded-[2.5rem] bg-slate-50 border border-slate-100 space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-bold text-slate-800 italic uppercase">{language === 'PT' ? 'Individual' : 'Single Ticket'}</p>
-                          <p className="text-xs text-slate-500 font-medium italic">{language === 'PT' ? 'Lote atual' : 'Current batch'}</p>
-                        </div>
-                        <span className="text-2xl font-black text-slate-900 italic tracking-tighter">
-                          {/* AQUI ESTÁ O SEGREDO: 
-                             O total é formatado usando a moeda que vem do banco (EUR ou BRL)
-                          */}
-                          {total.toLocaleString(locale, { 
-                            style: 'currency', 
-                            currency: moedaFinal 
-                          })}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center justify-between bg-white p-2 rounded-2xl shadow-sm border border-slate-100">
-                        <button 
-                          onClick={() => setQuantidade(Math.max(1, quantidade - 1))} 
-                          className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 hover:text-[#C22973] transition-colors"
-                        >
-                          <Minus size={20} />
-                        </button>
-                        <span className="font-black text-xl text-slate-900 italic">{quantidade}</span>
-                        <button 
-                          onClick={() => setQuantidade(Math.min(10, quantidade + 1))} 
-                          className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 hover:text-[#C22973] transition-colors"
-                        >
-                          <Plus size={20} />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-8">
-                    {/* Enviando a moeda para a página de pagamento no link */}
-                    <Link 
-                      href={`/venda?eventoId=${id}&qtd=${quantidade}&currency=${moedaFinal}`}
-                      className="group flex items-center justify-center w-full bg-gradient-to-r from-[#C22973] to-[#ff8c42] py-7 rounded-[2.5rem] font-black text-white transition-all hover:scale-[1.02] shadow-xl text-base gap-3 italic uppercase tracking-widest"
-                    >
-                      <Ticket size={24} />
-                      {language === 'PT' ? 'COMPRAR AGORA' : 'BUY NOW'}
-                    </Link>
-
-                    <div className="space-y-4 pt-4 text-center">
-                      <p className="text-[11px] text-slate-400 font-black uppercase tracking-[0.2em] italic">
-                        Checkout AWS • Stripe & Pix
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="mt-8 flex items-center gap-4 px-6">
-                <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-500">
-                  <ShieldCheck size={20} />
-                </div>
-                <p className="text-[11px] text-slate-400 font-bold leading-tight uppercase tracking-wider italic">
-                  {language === 'PT' ? 'Compra Protegida' : 'Secure Checkout'} <br/> 
-                  <span className="text-slate-900">{language === 'PT' ? 'Garantia Linkah' : 'Linkah Guarantee'}</span>
-                </p>
-              </div>
+      {/* MODAL DE EDIÇÃO */}
+      {isEditModalOpen && eventoParaEditar && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm" onClick={() => setIsEditModalOpen(false)}></div>
+          <div className="relative bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-100 animate-in fade-in slide-in-from-bottom-4">
+            <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
+              <h2 className="text-xl font-bold text-slate-950">Editar Evento</h2>
+              <button onClick={() => setIsEditModalOpen(false)} className="w-10 h-10 flex items-center justify-center bg-white rounded-xl text-slate-400 border border-slate-100"><X size={18} /></button>
             </div>
+            <form onSubmit={handleSalvarEdicao} className="p-8 space-y-6">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest ml-1">Nome do Evento</label>
+                <input 
+                  required 
+                  className="w-full bg-slate-50 border border-slate-100 p-4 rounded-xl outline-none focus:bg-white focus:border-slate-950 font-bold text-slate-900 transition-all" 
+                  value={eventoParaEditar.nome} 
+                  onChange={(e) => setEventoParaEditar({ ...eventoParaEditar, nome: e.target.value })} 
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest ml-1">Moeda Principal</label>
+                <select 
+                  className="w-full bg-slate-50 border border-slate-100 p-4 rounded-xl font-bold text-slate-900 outline-none focus:border-slate-950 transition-all"
+                  value={eventoParaEditar.moeda || 'BRL'}
+                  onChange={(e) => setEventoParaEditar({ ...eventoParaEditar, moeda: e.target.value })}
+                >
+                  <option value="BRL">BRL (R$)</option>
+                  <option value="EUR">EUR (€)</option>
+                </select>
+              </div>
+
+              <button type="submit" disabled={saving} className="w-full bg-slate-950 text-white py-5 rounded-2xl font-bold uppercase text-xs tracking-widest shadow-xl hover:bg-black transition-all flex items-center justify-center gap-3">
+                {saving ? <Loader2 className="animate-spin" size={18} /> : <><Save size={18} className="text-[#C22973]" /> Salvar na Cloud</>}
+              </button>
+            </form>
           </div>
         </div>
-      </main>
-      <Footer />
+      )}
     </div>
   );
 }
