@@ -17,6 +17,7 @@ export default function TabelaEventos() {
   const [erroApi, setErroApi] = useState<string | null>(null);
   const router = useRouter();
 
+  // Estados para Edição
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [eventoParaEditar, setEventoParaEditar] = useState<any>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -41,6 +42,7 @@ export default function TabelaEventos() {
       let emailBase = localStorage.getItem('userEmail') || localStorage.getItem('email') || "marcosphara@gmail.com";
       const emailLimpo = emailBase.replace(/['"]+/g, '').trim().toLowerCase();
 
+      // Timestamp evita que a AWS te mande o resultado antigo do cache
       let url = `${API_URL}/api/eventos/listar?email=${encodeURIComponent(emailLimpo)}&t=${Date.now()}`;
       let res = await fetch(url, {
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
@@ -66,6 +68,7 @@ export default function TabelaEventos() {
 
   useEffect(() => { carregarEventos(); }, []);
 
+  // --- REMOVER EVENTO (COMPLETO) ---
   const handleRemoverEvento = async (id: string, nome: string) => {
     const confirmacao = await Swal.fire({
       title: 'Tem certeza?',
@@ -92,11 +95,12 @@ export default function TabelaEventos() {
           carregarEventos(); 
         }
       } catch (err) {
-        Swal.fire('Erro', 'Não foi possível excluir o evento.', 'error');
+        Swal.fire('Erro', 'Não foi possível excluir.', 'error');
       }
     }
   };
 
+  // --- ABRIR EDIÇÃO ---
   const abrirModalEdicao = (evento: any) => {
     setEventoParaEditar({ ...evento });
     setPreviewUrl(evento.imagem_capa);
@@ -114,6 +118,7 @@ export default function TabelaEventos() {
     }
   };
 
+  // --- SALVAR EDIÇÃO (CORRIGIDO PARA AWS) ---
   const handleSalvarEdicao = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!eventoParaEditar.nome) return;
@@ -125,13 +130,12 @@ export default function TabelaEventos() {
       
       const formData = new FormData();
       formData.append('nome', String(eventoParaEditar.nome).trim());
-      
-      // Enviando a data original para evitar o "null" que causava o erro
-      const dataInicioValida = eventoParaEditar.data_inicio || new Date().toISOString();
-      formData.append('data_inicio', dataInicioValida);
-      
-      // Enviando a categoria original
       formData.append('categoria', eventoParaEditar.categoria || 'Entretenimento');
+      
+      // CORREÇÃO AQUI: Garantir que não enviamos null na data_inicio
+      // Se por algum motivo o evento não tiver data, enviamos a data atual formatada
+      const dataInicioOriginal = eventoParaEditar.data_inicio || new Date().toISOString();
+      formData.append('data_inicio', dataInicioOriginal);
       
       if (selectedFile) {
         formData.append('imagem', selectedFile);
@@ -145,7 +149,7 @@ export default function TabelaEventos() {
 
       if (res.ok) {
         setIsEditModalOpen(false);
-        await Swal.fire({ title: "Sucesso!", text: "Dados atualizados.", icon: 'success', timer: 1500, showConfirmButton: false });
+        await Swal.fire({ title: "Sucesso!", text: "Dados atualizados com sucesso.", icon: 'success', timer: 1500, showConfirmButton: false });
         carregarEventos(); 
       } else {
         const errData = await res.json();
@@ -160,6 +164,7 @@ export default function TabelaEventos() {
 
   return (
     <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden font-sans">
+      {/* HEADER DA TABELA */}
       <div className="p-10 border-b border-slate-50 flex justify-between items-center bg-white">
         <div>
           <h2 className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Painel do Produtor</h2>
@@ -190,13 +195,6 @@ export default function TabelaEventos() {
                     <Loader2 className="animate-spin text-[#FF4D4D]" size={32} />
                     <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Carregando...</span>
                   </div>
-                </td>
-              </tr>
-            ) : erroApi ? (
-              <tr>
-                <td colSpan={3} className="py-24 text-center text-[#FF4D4D]">
-                   <AlertCircle className="mx-auto" size={32} />
-                   <p className="font-bold">{erroApi}</p>
                 </td>
               </tr>
             ) : eventos.length === 0 ? (
