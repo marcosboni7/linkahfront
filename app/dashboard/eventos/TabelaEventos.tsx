@@ -36,13 +36,14 @@ export default function TabelaEventos() {
   const carregarEventos = async () => {
     setLoading(true);
     setErroApi(null);
+    console.log("🔍 [DEBUG] Buscando lista de eventos...");
     try {
       const rawToken = localStorage.getItem('@Linkah:Token') || localStorage.getItem('token');
       const token = rawToken ? rawToken.replace(/['"]+/g, '').trim() : '';
       let emailBase = localStorage.getItem('userEmail') || localStorage.getItem('email') || "marcosphara@gmail.com";
       const emailLimpo = emailBase.replace(/['"]+/g, '').trim().toLowerCase();
 
-      // Timestamp evita que a AWS te mande o resultado antigo do cache
+      // Timestamp &t= para forçar a AWS a ignorar o cache do App Runner
       let url = `${API_URL}/api/eventos/listar?email=${encodeURIComponent(emailLimpo)}&t=${Date.now()}`;
       let res = await fetch(url, {
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
@@ -57,8 +58,12 @@ export default function TabelaEventos() {
         data = await res.json();
       }
 
-      if (res.ok) setEventos(Array.isArray(data) ? data : []);
-      else setErroApi(data.error || "Erro ao carregar eventos");
+      if (res.ok) {
+        console.log("✅ [DEBUG] Lista recebida:", data);
+        setEventos(Array.isArray(data) ? data : []);
+      } else {
+        setErroApi(data.error || "Erro ao carregar eventos");
+      }
     } catch (err) {
       setErroApi("Falha na conexão com o servidor");
     } finally {
@@ -68,7 +73,6 @@ export default function TabelaEventos() {
 
   useEffect(() => { carregarEventos(); }, []);
 
-  // --- REMOVER EVENTO (COMPLETO) ---
   const handleRemoverEvento = async (id: string, nome: string) => {
     const confirmacao = await Swal.fire({
       title: 'Tem certeza?',
@@ -95,12 +99,11 @@ export default function TabelaEventos() {
           carregarEventos(); 
         }
       } catch (err) {
-        Swal.fire('Erro', 'Não foi possível excluir.', 'error');
+        Swal.fire('Erro', 'Não foi possível excluir o evento.', 'error');
       }
     }
   };
 
-  // --- ABRIR EDIÇÃO ---
   const abrirModalEdicao = (evento: any) => {
     setEventoParaEditar({ ...evento });
     setPreviewUrl(evento.imagem_capa);
@@ -118,12 +121,12 @@ export default function TabelaEventos() {
     }
   };
 
-  // --- SALVAR EDIÇÃO (CORRIGIDO PARA AWS) ---
   const handleSalvarEdicao = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!eventoParaEditar.nome) return;
     
     setSaving(true);
+    console.log("🚀 [DEBUG] Iniciando salvamento...");
     try {
       const rawToken = localStorage.getItem('@Linkah:Token') || localStorage.getItem('token');
       const token = rawToken ? rawToken.replace(/['"]+/g, '').trim() : '';
@@ -132,30 +135,37 @@ export default function TabelaEventos() {
       formData.append('nome', String(eventoParaEditar.nome).trim());
       formData.append('categoria', eventoParaEditar.categoria || 'Entretenimento');
       
-      // CORREÇÃO AQUI: Garantir que não enviamos null na data_inicio
-      // Se por algum motivo o evento não tiver data, enviamos a data atual formatada
-      const dataInicioOriginal = eventoParaEditar.data_inicio || new Date().toISOString();
-      formData.append('data_inicio', dataInicioOriginal);
+      // FIX: Garantir que a data_inicio não vá null (causador do reset na AWS)
+      const dataValida = (eventoParaEditar.data_inicio && eventoParaEditar.data_inicio !== "null") 
+        ? eventoParaEditar.data_inicio 
+        : new Date().toISOString();
+      formData.append('data_inicio', dataValida);
       
       if (selectedFile) {
         formData.append('imagem', selectedFile);
       }
 
+      console.log("📤 [DEBUG] Enviando FormData...");
       const res = await fetch(`${API_URL}/api/eventos/${eventoParaEditar.id}`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData,
       });
 
+      const dataRes = await res.json();
+      console.log("📥 [DEBUG] Resposta da AWS:", { status: res.status, data: dataRes });
+
       if (res.ok) {
         setIsEditModalOpen(false);
-        await Swal.fire({ title: "Sucesso!", text: "Dados atualizados com sucesso.", icon: 'success', timer: 1500, showConfirmButton: false });
-        carregarEventos(); 
+        await Swal.fire({ title: "Sucesso!", text: "Evento atualizado!", icon: 'success', timer: 1500, showConfirmButton: false });
+        
+        // Pequeno delay para a AWS propagar os dados no banco antes do refresh
+        setTimeout(() => carregarEventos(), 400); 
       } else {
-        const errData = await res.json();
-        Swal.fire('Erro', errData.error || 'Erro ao salvar', 'error');
+        Swal.fire('Erro', dataRes.error || 'Erro ao salvar', 'error');
       }
     } catch (err) {
+      console.error("💥 [DEBUG] Erro de rede:", err);
       Swal.fire('Erro', 'Falha na conexão', 'error');
     } finally {
       setSaving(false);
@@ -164,7 +174,7 @@ export default function TabelaEventos() {
 
   return (
     <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden font-sans">
-      {/* HEADER DA TABELA */}
+      {/* HEADER */}
       <div className="p-10 border-b border-slate-50 flex justify-between items-center bg-white">
         <div>
           <h2 className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Painel do Produtor</h2>
@@ -178,6 +188,7 @@ export default function TabelaEventos() {
         </button>
       </div>
 
+      {/* TABELA */}
       <div className="overflow-x-auto">
         <table className="w-full text-left">
           <thead className="bg-slate-50 text-slate-400 text-[10px] font-bold uppercase tracking-widest">
@@ -195,6 +206,13 @@ export default function TabelaEventos() {
                     <Loader2 className="animate-spin text-[#FF4D4D]" size={32} />
                     <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Carregando...</span>
                   </div>
+                </td>
+              </tr>
+            ) : erroApi ? (
+              <tr>
+                <td colSpan={3} className="py-24 text-center text-[#FF4D4D]">
+                   <AlertCircle className="mx-auto" size={32} />
+                   <p className="font-bold">{erroApi}</p>
                 </td>
               </tr>
             ) : eventos.length === 0 ? (
