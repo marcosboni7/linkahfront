@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { 
   ChevronLeft, ChevronRight, ChevronDown, MapPin, 
-  Globe, Calendar, Clock, Edit3, Trash2, Image as ImageIcon, X, Save, Loader2 
+  Globe, Calendar, Clock, Edit3, Trash2, Image as ImageIcon, X, Save, Loader2, Ticket 
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Swal from 'sweetalert2';
@@ -35,27 +35,22 @@ export default function TabelaEventos() {
   const carregarEventos = async () => {
     setLoading(true);
     try {
-      // 1. Busca Token e User (Tenta múltiplos nomes de chave por segurança)
       const token = localStorage.getItem('@Linkah:Token') || localStorage.getItem('token') || localStorage.getItem('userToken');
       const userStorage = localStorage.getItem('@Linkah:User') || localStorage.getItem('user') || localStorage.getItem('userData');
       
       if (!token || !userStorage) {
-        console.warn("⚠️ Autenticação não encontrada no LocalStorage.");
         setLoading(false);
         return;
       }
 
       const user = JSON.parse(userStorage);
-      // Tenta pegar o email de diferentes estruturas possíveis
       const email = user.email || user.user?.email || user.userData?.email;
 
       if (!email) {
-        console.error("❌ Email do usuário não identificado.");
         setLoading(false);
         return;
       }
 
-      // 2. Chamada para a AWS
       const timestamp = new Date().getTime();
       const res = await fetch(`${API_URL}/api/eventos/listar?email=${email}&t=${timestamp}`, {
         method: 'GET',
@@ -67,14 +62,10 @@ export default function TabelaEventos() {
 
       if (res.ok) {
         const data = await res.json();
-        console.log("✅ Eventos carregados da AWS:", data);
         setEventos(Array.isArray(data) ? data : []);
-      } else {
-        const errorMsg = await res.text();
-        console.error(`❌ Erro ${res.status} na API:`, errorMsg);
       }
     } catch (err) {
-      console.error("💥 Falha crítica na conexão AWS:", err);
+      console.error("💥 Falha na conexão AWS:", err);
     } finally {
       setLoading(false);
     }
@@ -87,7 +78,7 @@ export default function TabelaEventos() {
   const handleExcluir = async (id: number) => {
     const result = await Swal.fire({
       title: "Excluir Evento?",
-      text: "Esta ação removerá o evento permanentemente da AWS.",
+      text: "Esta ação removerá o evento e todos os seus lotes permanentemente.",
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#C22973',
@@ -191,8 +182,8 @@ export default function TabelaEventos() {
               <th className="px-10 py-6">Evento</th>
               <th className="px-6 py-6">Local</th>
               <th className="px-6 py-6">Data</th>
-              <th className="px-6 py-6">Vendas</th>
-              <th className="px-6 py-6">Status</th>
+              <th className="px-6 py-6 text-center">Moeda</th>
+              <th className="px-6 py-6 text-center">Status</th>
               <th className="px-10 py-6 text-right">Ações</th>
             </tr>
           </thead>
@@ -226,12 +217,29 @@ export default function TabelaEventos() {
                   </td>
                   <td className="px-6 py-6 text-xs font-bold text-slate-700">{evento.cidade || '---'}, {evento.estado}</td>
                   <td className="px-6 py-6 text-xs font-bold text-slate-700">{formatarDataLocal(evento.data_inicio)}</td>
-                  <td className="px-6 py-6 text-xs font-bold text-slate-700">{evento.total_vendidos || 0} / {evento.total_vagas || 0}</td>
-                  <td className="px-6 py-6">
+                  
+                  {/* COLUNA DE MOEDA */}
+                  <td className="px-6 py-6 text-center">
+                    <span className={`px-3 py-1 rounded-lg text-[10px] font-black ${evento.moeda === 'EUR' ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                      {evento.moeda || 'BRL'}
+                    </span>
+                  </td>
+
+                  <td className="px-6 py-6 text-center">
                     <span className="px-3 py-1.5 rounded-full text-[9px] font-bold uppercase bg-emerald-50 text-emerald-600 border border-emerald-100">Ativo</span>
                   </td>
+                  
                   <td className="px-10 py-6 text-right">
                     <div className="flex items-center justify-end gap-2">
+                      {/* ATALHO PARA GESTÃO DE INGRESSOS/LOTES */}
+                      <button 
+                        onClick={() => router.push(`/dashboard/eventos/novo/ingressos?id=${evento.id}`)} 
+                        title="Gerenciar Lotes e Preços"
+                        className="p-3 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                      >
+                        <Ticket size={18} />
+                      </button>
+
                       <button onClick={() => abrirModalEdicao(evento)} className="p-3 text-slate-400 hover:text-slate-950 hover:bg-slate-100 rounded-xl transition-all"><Edit3 size={18} /></button>
                       <button onClick={() => handleExcluir(evento.id)} className="p-3 text-slate-400 hover:text-[#C22973] hover:bg-rose-50 rounded-xl transition-all"><Trash2 size={18} /></button>
                     </div>
@@ -272,6 +280,20 @@ export default function TabelaEventos() {
                 <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest ml-1">Nome do Evento</label>
                 <input required className="w-full bg-slate-50 border border-slate-100 p-4 rounded-xl outline-none focus:bg-white focus:border-slate-950 font-bold text-slate-900 transition-all" value={eventoParaEditar.nome} onChange={(e) => setEventoParaEditar({ ...eventoParaEditar, nome: e.target.value })} />
               </div>
+
+              {/* EDIÇÃO RÁPIDA DE MOEDA NO MODAL */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest ml-1">Moeda Principal</label>
+                <select 
+                  className="w-full bg-slate-50 border border-slate-100 p-4 rounded-xl font-bold text-slate-900 outline-none focus:border-slate-950 transition-all"
+                  value={eventoParaEditar.moeda || 'BRL'}
+                  onChange={(e) => setEventoParaEditar({ ...eventoParaEditar, moeda: e.target.value })}
+                >
+                  <option value="BRL">BRL (R$)</option>
+                  <option value="EUR">EUR (€)</option>
+                </select>
+              </div>
+
               <button type="submit" disabled={saving} className="w-full bg-slate-950 text-white py-5 rounded-2xl font-bold uppercase text-xs tracking-widest shadow-xl hover:bg-black transition-all flex items-center justify-center gap-3">
                 {saving ? <Loader2 className="animate-spin" size={18} /> : <><Save size={18} className="text-[#C22973]" /> Salvar na Cloud</>}
               </button>
