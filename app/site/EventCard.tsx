@@ -9,28 +9,15 @@ export function EventCard({ evento }: { evento: any }) {
   
   const locale = language === 'PT' ? 'pt-BR' : 'en-US';
 
-  // --- LÓGICA DE MOEDA COM LOG DE DEPURAÇÃO ---
   const getCurrencySymbol = () => {
-    // ESTE LOG VAI MOSTRAR O QUE A AWS ESTÁ ENTREGANDO DE FATO
-    console.log(`DEBUG [${evento.nome}]:`, {
-      moeda: evento.moeda,
-      currency: evento.currency,
-      dados_completos: evento
-    });
-
-    // Tentamos pegar 'moeda' ou 'currency' e transformamos em maiúsculo
     const m = (evento.moeda || evento.currency || '').toUpperCase();
-    
     if (m === 'EUR') return '€';
     if (m === 'USD') return '$';
     if (m === 'BRL') return 'R$';
-
-    // Se a API não enviou nada (undefined), ele usa o padrão do idioma
     return language === 'PT' ? 'R$' : '$';
   };
 
   const currencySymbol = getCurrencySymbol();
-  // -------------------------------------
 
   const formatarDataVitrine = () => {
     const dataRaw = evento.data_inicio || evento.data;
@@ -46,7 +33,6 @@ export function EventCard({ evento }: { evento: any }) {
     const diaNum = parseInt(partes[2]);
 
     const d = new Date(ano, mesNum, diaNum);
-
     if (isNaN(d.getTime())) return { diaSemana: '', dia: '', mes: '', hora: '' };
 
     const diaSemana = d.toLocaleDateString(locale, { weekday: 'short' }).toUpperCase().replace('.', '');
@@ -78,7 +64,7 @@ export function EventCard({ evento }: { evento: any }) {
   return (
     <Link 
       href={`/evento/${evento.id}`} 
-      className="group block w-full bg-white rounded-2xl overflow-hidden hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] transition-all duration-500 border border-gray-100 flex flex-col h-full"
+      className="group block w-full bg-white rounded-2xl overflow-hidden hover:shadow-[0_30px_60px_-15px_rgba(255,77,77,0.15)] transition-all duration-500 border border-gray-100 flex flex-col h-full"
     >
       <div className="relative aspect-[16/10] overflow-hidden bg-gray-100">
         <img 
@@ -94,7 +80,8 @@ export function EventCard({ evento }: { evento: any }) {
       </div>
 
       <div className="p-6 flex flex-col flex-grow">
-        <div className="flex items-center gap-2 text-blue-600 text-[11px] font-bold uppercase tracking-wider mb-4">
+        {/* Cor alterada de text-blue-600 para text-[#ff4d4d] */}
+        <div className="flex items-center gap-2 text-[#ff4d4d] text-[11px] font-bold uppercase tracking-wider mb-4">
           <Calendar size={14} strokeWidth={2.5} />
           <span>
             {diaSemana}, {dia} {mes}
@@ -102,7 +89,8 @@ export function EventCard({ evento }: { evento: any }) {
           </span>
         </div>
 
-        <h3 className="text-slate-900 font-bold text-lg leading-tight mb-3 group-hover:text-blue-600 transition-colors line-clamp-2 min-h-[56px]">
+        {/* Hover do título alterado para #ff4d4d */}
+        <h3 className="text-slate-900 font-bold text-lg leading-tight mb-3 group-hover:text-[#ff4d4d] transition-colors line-clamp-2 min-h-[56px]">
           {String(evento.nome || "")}
         </h3>
 
@@ -125,8 +113,10 @@ export function EventCard({ evento }: { evento: any }) {
                 : '0.00'}
             </p>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-blue-600 group-hover:text-white group-hover:rotate-45 transition-all duration-500">
-             <ArrowUpRight size={20} />
+          
+          {/* Botão de ação: hover agora fica com fundo #ff4d4d */}
+          <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-[#ff4d4d] group-hover:text-white group-hover:rotate-45 transition-all duration-500">
+              <ArrowUpRight size={20} />
           </div>
         </div>
       </div>
