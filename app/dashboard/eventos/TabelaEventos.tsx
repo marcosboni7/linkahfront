@@ -35,19 +35,17 @@ export default function TabelaEventos() {
 
   const buscarEmailNoStorage = () => {
     try {
-      const chaves = ['@Linkah:User', '@Linkah:user', 'user', 'userData', 'auth'];
+      const chaves = ['@Linkah:User', '@Linkah:user', 'user', 'userData'];
       for (const chave of chaves) {
         const item = localStorage.getItem(chave);
         if (item) {
           const parsed = JSON.parse(item);
-          const email = parsed.email || parsed.user?.email || parsed.data?.email || parsed.userData?.email;
+          const email = parsed.email || parsed.user?.email || parsed.data?.email;
           if (email) return email.toLowerCase().trim();
         }
       }
-      const emailSimples = localStorage.getItem('email');
-      if (emailSimples) return emailSimples.toLowerCase().trim();
-    } catch (e) { console.error("Erro storage:", e); }
-    return null;
+      return localStorage.getItem('email') || null;
+    } catch (e) { return null; }
   };
 
   const carregarEventos = async () => {
@@ -57,33 +55,41 @@ export default function TabelaEventos() {
       const token = localStorage.getItem('@Linkah:Token') || localStorage.getItem('token');
       const email = buscarEmailNoStorage();
       
-      console.log("📧 [DEBUG] E-mail para API:", email);
+      console.log("📧 [DEBUG] E-mail recuperado:", email);
 
-      // Tenta com e-mail primeiro
-      let url = `${API_URL}/api/eventos/listar?email=${email || ''}&t=${Date.now()}`;
-      let res = await fetch(url, {
+      // CORREÇÃO DO ERRO 400: Se email for null, não enviamos o parâmetro "email="
+      let endpoint = `${API_URL}/api/eventos/listar?t=${Date.now()}`;
+      if (email) {
+        endpoint += `&email=${encodeURIComponent(email)}`;
+      }
+
+      const res = await fetch(endpoint, {
         method: 'GET',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
       });
 
-      let data = await res.json();
-
-      // MÁGICA: Se não veio nada com o e-mail, tenta listar TUDO (sem filtro) para teste
-      if (res.ok && (!data || data.length === 0)) {
-        console.warn("⚠️ [DEBUG] Vazio com e-mail. Tentando busca global...");
-        const resGlobal = await fetch(`${API_URL}/api/eventos/listar?t=${Date.now()}`, {
-            method: 'GET',
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (resGlobal.ok) data = await resGlobal.json();
-      }
-
-      if (Array.isArray(data)) {
-        console.log("✅ [DEBUG] Eventos finais:", data.length);
-        setEventos([...data]);
+      if (res.ok) {
+        const data = await res.json();
+        console.log("✅ [DEBUG] Sucesso! Eventos:", data.length);
+        setEventos(Array.isArray(data) ? [...data] : []);
+      } else {
+        console.error("❌ [DEBUG] Erro API:", res.status);
+        // Se deu erro com email, tenta sem nada só por garantia
+        if (res.status === 400 || res.status === 403) {
+            const fallbackRes = await fetch(`${API_URL}/api/eventos/listar?t=${Date.now()}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (fallbackRes.ok) {
+                const fallbackData = await fallbackRes.json();
+                setEventos(fallbackData);
+            }
+        }
       }
     } catch (err) {
-      console.error("💥 Erro:", err);
+      console.error("💥 Erro de conexão:", err);
     } finally {
       setLoading(false);
     }
@@ -117,7 +123,6 @@ export default function TabelaEventos() {
       formData.append('nome', eventoParaEditar.nome);
       formData.append('categoria', eventoParaEditar.categoria || '');
       formData.append('data_inicio', eventoParaEditar.data_inicio);
-      
       if (selectedFile) formData.append('imagem', selectedFile);
 
       const res = await fetch(`${API_URL}/api/eventos/${eventoParaEditar.id}`, {
@@ -128,22 +133,25 @@ export default function TabelaEventos() {
 
       if (res.ok) {
         setIsEditModalOpen(false);
-        Swal.fire({ title: "Guardado!", icon: 'success', timer: 1000, showConfirmButton: false });
-        setTimeout(() => carregarEventos(), 600);
+        Swal.fire({ title: "Atualizado!", icon: 'success', timer: 1000, showConfirmButton: false, toast: true, position: 'top-end' });
+        setTimeout(() => carregarEventos(), 500);
       }
-    } catch (err) { Swal.fire('Erro', 'Falha ao salvar', 'error'); } 
-    finally { setSaving(false); }
+    } catch (err) { 
+        Swal.fire('Erro', 'Falha ao salvar na AWS', 'error'); 
+    } finally { 
+        setSaving(false); 
+    }
   };
 
   return (
     <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden font-sans">
       <div className="p-10 border-b border-slate-50 flex flex-col md:flex-row justify-between items-center gap-6">
         <div>
-          <h2 className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Dashboard Produtor</h2>
-          <p className="text-slate-950 font-bold text-2xl tracking-tighter">Eventos Sincronizados</p>
+          <h2 className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">AWS Manager</h2>
+          <p className="text-slate-950 font-bold text-2xl tracking-tighter">Meus Eventos</p>
         </div>
-        <button onClick={() => router.push('/dashboard/eventos/novo/presencial')} className="bg-slate-950 text-white px-8 py-4 rounded-2xl font-bold flex items-center gap-3 text-xs active:scale-95 transition-all shadow-lg">
-          Criar Novo Evento <ChevronDown size={18} className="text-[#C22973]" />
+        <button onClick={() => router.push('/dashboard/eventos/novo/presencial')} className="bg-slate-950 text-white px-8 py-4 rounded-2xl font-bold flex items-center gap-3 text-xs active:scale-95 transition-all">
+          Novo Evento <ChevronDown size={18} className="text-[#C22973]" />
         </button>
       </div>
 
@@ -160,7 +168,7 @@ export default function TabelaEventos() {
             {loading ? (
               <tr><td colSpan={3} className="py-32 text-center"><Loader2 className="animate-spin mx-auto text-[#C22973]" size={40} /></td></tr>
             ) : eventos.length === 0 ? (
-              <tr><td colSpan={3} className="py-20 text-center text-slate-400 font-bold italic">Nenhum evento na base de dados.</td></tr>
+              <tr><td colSpan={3} className="py-20 text-center text-slate-400 font-bold italic">Nenhum evento encontrado.</td></tr>
             ) : (
               eventos.map((evento) => (
                 <tr key={evento.id} className="hover:bg-slate-50/30 transition-colors group">
@@ -170,7 +178,7 @@ export default function TabelaEventos() {
                         <img src={`${evento.imagem_capa}?t=${Date.now()}`} className="w-full h-full object-cover" onError={(e:any)=>e.target.src='https://placehold.co/400x400?text=Event'} />
                       </div>
                       <div>
-                        <p className="font-bold text-slate-900 text-sm">{evento.nome || 'Sem título'}</p>
+                        <p className="font-bold text-slate-900 text-sm">{evento.nome || 'Evento Linkah'}</p>
                         <p className="text-[10px] text-[#C22973] font-bold uppercase tracking-widest">{evento.categoria}</p>
                       </div>
                     </div>
@@ -194,8 +202,8 @@ export default function TabelaEventos() {
           <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm" onClick={() => setIsEditModalOpen(false)}></div>
           <div className="relative bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in duration-200">
             <div className="p-8 border-b bg-slate-50/50 flex justify-between items-center">
-              <h2 className="text-xl font-bold">Editar Detalhes</h2>
-              <button onClick={() => setIsEditModalOpen(false)} className="text-slate-400 hover:text-rose-500"><X size={24} /></button>
+              <h2 className="text-xl font-bold">Editar Dados</h2>
+              <button onClick={() => setIsEditModalOpen(false)}><X size={24} className="text-slate-400" /></button>
             </div>
             <form onSubmit={handleSalvarEdicao} className="p-8 space-y-6 max-h-[75vh] overflow-y-auto">
               <div className="space-y-2">
@@ -206,11 +214,11 @@ export default function TabelaEventos() {
                 <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
               </div>
               <div className="space-y-4">
-                <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest ml-1">Nome do Evento na AWS</label>
+                <label className="text-[10px] font-bold uppercase text-slate-400 tracking-widest ml-1">Nome do Evento</label>
                 <input required className="w-full bg-slate-50 border p-4 rounded-xl font-bold text-slate-900" value={eventoParaEditar.nome || ''} onChange={(e) => setEventoParaEditar({ ...eventoParaEditar, nome: e.target.value })} />
               </div>
               <button type="submit" disabled={saving} className="w-full bg-slate-950 text-white py-5 rounded-2xl font-bold uppercase text-xs tracking-widest flex items-center justify-center gap-3">
-                {saving ? <Loader2 className="animate-spin" /> : <><Save size={18} className="text-[#C22973]" /> Confirmar Alteração</>}
+                {saving ? <Loader2 className="animate-spin" /> : <><Save size={18} className="text-[#C22973]" /> Salvar na AWS</>}
               </button>
             </form>
           </div>
