@@ -17,7 +17,6 @@ export default function TabelaEventos() {
   const [erroApi, setErroApi] = useState<string | null>(null);
   const router = useRouter();
 
-  // Estados para Edição
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [eventoParaEditar, setEventoParaEditar] = useState<any>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -36,14 +35,12 @@ export default function TabelaEventos() {
   const carregarEventos = async () => {
     setLoading(true);
     setErroApi(null);
-    console.log("🔍 [DEBUG] Buscando lista de eventos...");
     try {
       const rawToken = localStorage.getItem('@Linkah:Token') || localStorage.getItem('token');
       const token = rawToken ? rawToken.replace(/['"]+/g, '').trim() : '';
       let emailBase = localStorage.getItem('userEmail') || localStorage.getItem('email') || "marcosphara@gmail.com";
       const emailLimpo = emailBase.replace(/['"]+/g, '').trim().toLowerCase();
 
-      // Cache buster com timestamp
       let url = `${API_URL}/api/eventos/listar?email=${encodeURIComponent(emailLimpo)}&t=${Date.now()}`;
       let res = await fetch(url, {
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
@@ -58,13 +55,8 @@ export default function TabelaEventos() {
         data = await res.json();
       }
 
-      if (res.ok) {
-        console.log("✅ [DEBUG] Lista recebida:", data);
-        setEventos(Array.isArray(data) ? data : []);
-      } else {
-        console.error("❌ [DEBUG] Erro ao listar:", data);
-        setErroApi(data.error || "Erro ao carregar eventos");
-      }
+      if (res.ok) setEventos(Array.isArray(data) ? data : []);
+      else setErroApi(data.error || "Erro ao carregar eventos");
     } catch (err) {
       setErroApi("Falha na conexão com o servidor");
     } finally {
@@ -91,17 +83,13 @@ export default function TabelaEventos() {
       try {
         const rawToken = localStorage.getItem('@Linkah:Token') || localStorage.getItem('token');
         const token = rawToken ? rawToken.replace(/['"]+/g, '').trim() : '';
-
         const res = await fetch(`${API_URL}/api/eventos/${id}`, {
           method: 'DELETE',
           headers: { 'Authorization': `Bearer ${token}` }
         });
-
         if (res.ok) {
           Swal.fire({ title: 'Excluído!', icon: 'success', timer: 1500, showConfirmButton: false });
           carregarEventos(); 
-        } else {
-          throw new Error('Erro ao deletar');
         }
       } catch (err) {
         Swal.fire('Erro', 'Não foi possível excluir o evento.', 'error');
@@ -110,7 +98,6 @@ export default function TabelaEventos() {
   };
 
   const abrirModalEdicao = (evento: any) => {
-    console.log("✏️ [DEBUG] Abrindo edição para:", evento);
     setEventoParaEditar({ ...evento });
     setPreviewUrl(evento.imagem_capa);
     setSelectedFile(null);
@@ -120,7 +107,6 @@ export default function TabelaEventos() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      console.log("📂 [DEBUG] Arquivo selecionado:", file.name);
       setSelectedFile(file);
       const reader = new FileReader();
       reader.onloadend = () => setPreviewUrl(reader.result as string);
@@ -130,12 +116,7 @@ export default function TabelaEventos() {
 
   const handleSalvarEdicao = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("🚀 [DEBUG] Iniciando salvamento...");
-    
-    if (!eventoParaEditar.nome) {
-      console.warn("⚠️ [DEBUG] Abortado: Nome vazio.");
-      return;
-    }
+    if (!eventoParaEditar.nome) return;
     
     setSaving(true);
     try {
@@ -144,37 +125,34 @@ export default function TabelaEventos() {
       
       const formData = new FormData();
       formData.append('nome', String(eventoParaEditar.nome).trim());
-      formData.append('categoria', eventoParaEditar.categoria || 'Evento');
-      formData.append('data_inicio', eventoParaEditar.data_inicio);
+      
+      // Enviando a data original para evitar o "null" que causava o erro
+      const dataInicioValida = eventoParaEditar.data_inicio || new Date().toISOString();
+      formData.append('data_inicio', dataInicioValida);
+      
+      // Enviando a categoria original
+      formData.append('categoria', eventoParaEditar.categoria || 'Entretenimento');
       
       if (selectedFile) {
         formData.append('imagem', selectedFile);
       }
 
-      // Log para conferir o que está indo no FormData
-      console.log("📤 [DEBUG] Payload enviado:");
-      formData.forEach((value, key) => console.log(`   -> ${key}:`, value));
-
       const res = await fetch(`${API_URL}/api/eventos/${eventoParaEditar.id}`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` },
-        body: formData, // O navegador define o Content-Type automaticamente para multipart/form-data
+        body: formData,
       });
-
-      const dataRes = await res.json();
-      console.log("📥 [DEBUG] Resposta da AWS:", { status: res.status, data: dataRes });
 
       if (res.ok) {
         setIsEditModalOpen(false);
-        await Swal.fire({ title: "Sucesso!", text: "Evento atualizado!", icon: 'success', timer: 1500, showConfirmButton: false });
+        await Swal.fire({ title: "Sucesso!", text: "Dados atualizados.", icon: 'success', timer: 1500, showConfirmButton: false });
         carregarEventos(); 
       } else {
-        console.error("❌ [DEBUG] Falha ao salvar:", dataRes);
-        Swal.fire('Erro', dataRes.error || 'Erro ao salvar', 'error');
+        const errData = await res.json();
+        Swal.fire('Erro', errData.error || 'Erro ao salvar', 'error');
       }
     } catch (err) {
-      console.error("💥 [DEBUG] Erro de rede:", err);
-      Swal.fire('Erro', 'Falha ao atualizar', 'error');
+      Swal.fire('Erro', 'Falha na conexão', 'error');
     } finally {
       setSaving(false);
     }
