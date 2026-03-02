@@ -41,7 +41,7 @@ export default function TabelaEventos() {
       // 1. Tentar pegar o Token
       const token = localStorage.getItem('@Linkah:Token') || localStorage.getItem('token');
       
-      // 2. Tentar recuperar o e-mail do storage
+      // 2. Tentar recuperar o e-mail do storage (mapeamento agressivo)
       let emailEncontrado = null;
       const possiveisChaves = ['@Linkah:User', 'user', 'userData', 'auth'];
       
@@ -58,18 +58,18 @@ export default function TabelaEventos() {
 
       if (!emailEncontrado) emailEncontrado = localStorage.getItem('email');
       
-      // 3. FALLBACK: Se mesmo assim não achar (seu caso atual), define o e-mail manualmente
-      if (!emailEncontrado || emailEncontrado === "null") {
+      // 3. FALLBACK: Força o e-mail caso o Storage esteja vazio (Evita Erro 400)
+      if (!emailEncontrado || emailEncontrado === "null" || emailEncontrado === "undefined") {
         console.warn("⚠️ E-mail não encontrado no Storage. Usando fallback manual.");
-        // --- MUDANÇA AQUI: Coloque entre as aspas o e-mail que você usa no sistema ---
-        emailEncontrado = "seu-email@aqui.com"; 
+        // MUDANÇA AQUI: Coloque seu e-mail real entre as aspas abaixo
+        emailEncontrado = "seu-email-real@dominio.com"; 
       }
 
-      console.log("📧 [DEBUG] E-mail utilizado para o filtro:", emailEncontrado);
+      console.log("📧 [DEBUG] E-mail final para filtro:", emailEncontrado);
 
-      // 4. Montar URL (Garantindo que o e-mail vá para evitar Erro 400)
+      // 4. Montar URL com cache busting (t=timestamp)
       const url = `${API_URL}/api/eventos/listar?email=${encodeURIComponent(emailEncontrado)}&t=${Date.now()}`;
-      console.log("🔗 [DEBUG] URL final:", url);
+      console.log("🔗 [DEBUG] URL de chamada:", url);
 
       const res = await fetch(url, {
         method: 'GET',
@@ -81,16 +81,14 @@ export default function TabelaEventos() {
 
       if (res.ok) {
         const data = await res.json();
-        console.log("✅ [DEBUG] Eventos recebidos:", data);
+        console.log("✅ [DEBUG] Dados recebidos:", data);
         setEventos(Array.isArray(data) ? data : []);
       } else {
         const errorText = await res.text();
         console.error(`❌ [DEBUG] Erro ${res.status}:`, errorText);
-        // Se der erro 400 mesmo com e-mail, pode ser o Token expirado
-        if(res.status === 400) console.error("A API ainda rejeitou a requisição. Verifique o formato do e-mail.");
       }
     } catch (err) {
-      console.error("💥 [DEBUG] Falha na requisição:", err);
+      console.error("💥 [DEBUG] Falha catastrófica:", err);
     } finally {
       setLoading(false);
     }
@@ -179,7 +177,12 @@ export default function TabelaEventos() {
                   <td className="px-10 py-6">
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-xl bg-slate-100 overflow-hidden">
-                        <img src={evento.imagem_capa} className="w-full h-full object-cover" onError={(e:any)=>e.target.src='https://placehold.co/100'} />
+                        <img 
+                          src={evento.imagem_capa} 
+                          className="w-full h-full object-cover" 
+                          onError={(e:any)=>e.target.src='https://placehold.co/100'} 
+                          alt={evento.nome}
+                        />
                       </div>
                       <div>
                         <p className="font-bold text-slate-900 text-sm">{evento.nome}</p>
@@ -204,7 +207,7 @@ export default function TabelaEventos() {
       </div>
 
       {/* MODAL DE EDIÇÃO */}
-      {isEditModalOpen && (
+      {isEditModalOpen && eventoParaEditar && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-white w-full max-w-lg rounded-[2rem] p-8 shadow-2xl">
             <div className="flex justify-between items-center mb-6">
@@ -215,9 +218,9 @@ export default function TabelaEventos() {
               <div>
                 <label className="block text-[10px] font-bold text-slate-400 uppercase mb-2">Imagem</label>
                 <div onClick={() => fileInputRef.current?.click()} className="h-32 bg-slate-50 border-2 border-dashed rounded-2xl flex items-center justify-center cursor-pointer overflow-hidden">
-                  {previewUrl ? <img src={previewUrl} className="w-full h-full object-cover" /> : <Upload className="text-slate-300" />}
+                  {previewUrl ? <img src={previewUrl} className="w-full h-full object-cover" alt="Preview" /> : <Upload className="text-slate-300" />}
                 </div>
-                <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileChange} />
+                <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileChange} accept="image/*" />
               </div>
               <div>
                 <label className="block text-[10px] font-bold text-slate-400 uppercase mb-2">Nome</label>
