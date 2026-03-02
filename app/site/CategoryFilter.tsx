@@ -13,7 +13,6 @@ interface CategoryFilterProps {
 export function CategoryFilter({ categories, activeCategory, onSelect, iconMap }: CategoryFilterProps) {
   const { t }: any = useLanguage();
 
-  // Tradução visual, mas mantém o valor original para o filtro do banco
   const translateCategory = (cat: string) => {
     const map: Record<string, string> = {
       'Arte & Cultura': t.catArt,
@@ -33,13 +32,14 @@ export function CategoryFilter({ categories, activeCategory, onSelect, iconMap }
     <div className="w-full">
       {/* Título da Vibe */}
       <div className="flex items-center justify-center gap-2 mb-5">
-        <Sparkles size={14} className="text-[#ff0082] animate-pulse" />
+        {/* Alterado para #ff4d4d */}
+        <Sparkles size={14} className="text-[#ff4d4d] animate-pulse" />
         <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
           {t.filterVibe || "Escolha sua vibe"}
         </h3>
       </div>
       
-      {/* Container dos Botões com Scroll Horizontal no Mobile */}
+      {/* Container dos Botões */}
       <div className="flex flex-wrap items-center justify-center gap-3">
         {categories.map((cat) => {
           const categoryKey = String(cat).trim();
@@ -52,8 +52,9 @@ export function CategoryFilter({ categories, activeCategory, onSelect, iconMap }
               onClick={() => onSelect(categoryKey)}
               className={`flex items-center gap-2 px-6 py-3 rounded-2xl border transition-all duration-300 whitespace-nowrap ${
                 isAtiva 
-                ? 'bg-[#C22973] border-[#C22973] text-white shadow-lg shadow-pink-100 -translate-y-1' 
-                : 'bg-slate-50 border-slate-100 text-slate-500 hover:bg-white hover:border-pink-200 hover:text-[#C22973] hover:shadow-md'
+                // Cores alteradas para #ff4d4d e sombra ajustada para vermelho
+                ? 'bg-[#ff4d4d] border-[#ff4d4d] text-white shadow-lg shadow-red-100 -translate-y-1' 
+                : 'bg-slate-50 border-slate-100 text-slate-500 hover:bg-white hover:border-red-200 hover:text-[#ff4d4d] hover:shadow-md'
               }`}
             >
               <Icon size={16} strokeWidth={isAtiva ? 3 : 2} />
