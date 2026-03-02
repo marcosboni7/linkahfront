@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { 
-  ChevronLeft, Edit3, Trash2, Image as ImageIcon, 
-  X, Loader2, Ticket, Upload
+  Edit3, X, Loader2, Ticket, Upload, Search, AlertCircle
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Swal from 'sweetalert2';
@@ -15,6 +14,7 @@ export default function TabelaEventos() {
   const { language }: any = useLanguage();
   const [eventos, setEventos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [erroApi, setErroApi] = useState<string | null>(null);
   const router = useRouter();
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -34,41 +34,24 @@ export default function TabelaEventos() {
 
   const carregarEventos = async () => {
     setLoading(true);
-    
+    setErroApi(null);
+    console.log("🔍 [Linkah] Iniciando busca de eventos...");
+
     try {
-      const token = localStorage.getItem('@Linkah:Token') || localStorage.getItem('token');
-      
-      // BUSCA DINÂMICA DO E-MAIL (Sem e-mail fixo no código)
-      let emailLogado = null;
-      const chavesDeUsuario = ['@Linkah:User', 'user', 'userData', 'produtor'];
-      
-      for (const chave of chavesDeUsuario) {
-        const data = localStorage.getItem(chave);
-        if (data) {
-          try {
-            const obj = JSON.parse(data);
-            emailLogado = obj.email || obj.user?.email || obj.produtor_email || obj.data?.email;
-            if (emailLogado) break;
-          } catch (e) {}
-        }
-      }
+      // 1. Recuperar e limpar o Token
+      const rawToken = localStorage.getItem('@Linkah:Token') || localStorage.getItem('token');
+      const token = rawToken ? rawToken.replace(/['"]+/g, '').trim() : '';
 
-      if (!emailLogado) {
-          emailLogado = localStorage.getItem('email') || localStorage.getItem('userEmail') || localStorage.getItem('produtorEmail');
-      }
-      
-      // Se não houver ninguém logado, não faz a chamada para não dar erro 400
-      if (!emailLogado || emailLogado === "null" || emailLogado === "undefined") {
-        console.warn("⚠️ [Linkah] Nenhum usuário logado encontrado no Storage.");
-        setEventos([]);
-        setLoading(false);
-        return;
-      }
+      // 2. Recuperar e limpar o E-mail (Prioridade para o que está no Storage)
+      let emailBase = localStorage.getItem('userEmail') || localStorage.getItem('email') || "marcosphara@gmail.com";
+      const emailLimpo = emailBase.replace(/['"]+/g, '').trim().toLowerCase();
 
-      // Chamada usando produtor_email (padrão do seu banco de dados)
-      const url = `${API_URL}/api/eventos/listar?produtor_email=${encodeURIComponent(emailLogado)}&t=${Date.now()}`;
+      console.log(`📧 [Linkah] Buscando eventos para: ${emailLimpo}`);
+
+      // 3. TENTATIVA 1: Usando 'email' (Baseado no erro "Email não fornecido")
+      let url = `${API_URL}/api/eventos/listar?email=${encodeURIComponent(emailLimpo)}&t=${Date.now()}`;
       
-      const res = await fetch(url, {
+      let res = await fetch(url, {
         method: 'GET',
         headers: { 
           'Authorization': `Bearer ${token}`,
@@ -76,14 +59,34 @@ export default function TabelaEventos() {
         }
       });
 
+      let data = await res.json();
+
+      // 4. TENTATIVA 2: Se a primeira falhou ou disse que não forneceu, tenta 'produtor_email'
+      if (!res.ok || data.error === "Email não fornecido") {
+        console.warn("⚠️ Tentativa 1 falhou, tentando com 'produtor_email'...");
+        url = `${API_URL}/api/eventos/listar?produtor_email=${encodeURIComponent(emailLimpo)}&t=${Date.now()}`;
+        
+        res = await fetch(url, {
+          method: 'GET',
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        data = await res.json();
+      }
+
       if (res.ok) {
-        const data = await res.json();
+        console.log("✅ [Linkah] Eventos encontrados:", data);
         setEventos(Array.isArray(data) ? data : []);
       } else {
-        console.error("Erro ao buscar eventos:", res.status);
+        setErroApi(data.error || "Erro ao carregar eventos");
+        console.error("❌ [Linkah] Erro final da API:", data);
       }
+
     } catch (err) {
-      console.error("Falha na conexão com a API:", err);
+      setErroApi("Falha na conexão com o servidor");
+      console.error("💥 [Linkah] Erro de rede:", err);
     } finally {
       setLoading(false);
     }
@@ -114,12 +117,13 @@ export default function TabelaEventos() {
     e.preventDefault();
     setSaving(true);
     try {
-      const token = localStorage.getItem('@Linkah:Token') || localStorage.getItem('token');
+      const rawToken = localStorage.getItem('@Linkah:Token') || localStorage.getItem('token');
+      const token = rawToken ? rawToken.replace(/['"]+/g, '').trim() : '';
+      
       const formData = new FormData();
       formData.append('nome', eventoParaEditar.nome);
       formData.append('categoria', eventoParaEditar.categoria || '');
       formData.append('data_inicio', eventoParaEditar.data_inicio);
-      
       if (selectedFile) formData.append('imagem', selectedFile);
 
       const res = await fetch(`${API_URL}/api/eventos/${eventoParaEditar.id}`, {
@@ -142,12 +146,15 @@ export default function TabelaEventos() {
 
   return (
     <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden font-sans">
-      <div className="p-10 border-b border-slate-50 flex justify-between items-center">
+      <div className="p-10 border-b border-slate-50 flex justify-between items-center bg-white">
         <div>
-          <h2 className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Gestão de Produtor</h2>
+          <h2 className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Painel do Produtor</h2>
           <p className="text-slate-950 font-bold text-2xl tracking-tighter">Meus Eventos</p>
         </div>
-        <button onClick={() => router.push('/dashboard/eventos/novo/presencial')} className="bg-slate-950 text-white px-6 py-3 rounded-xl font-bold text-xs hover:bg-black transition-all">
+        <button 
+          onClick={() => router.push('/dashboard/eventos/novo/presencial')} 
+          className="bg-[#030712] text-white px-8 py-4 rounded-2xl font-bold text-xs hover:bg-black transition-all shadow-lg active:scale-95"
+        >
           + Novo Evento
         </button>
       </div>
@@ -156,42 +163,78 @@ export default function TabelaEventos() {
         <table className="w-full text-left">
           <thead className="bg-slate-50 text-slate-400 text-[10px] font-bold uppercase tracking-widest">
             <tr>
-              <th className="px-10 py-4">Evento</th>
-              <th className="px-6 py-4 text-center">Data</th>
-              <th className="px-10 py-4 text-right">Ações</th>
+              <th className="px-10 py-5">Evento</th>
+              <th className="px-6 py-5 text-center">Data</th>
+              <th className="px-10 py-5 text-right">Gestão</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
             {loading ? (
-              <tr><td colSpan={3} className="py-20 text-center"><Loader2 className="animate-spin mx-auto text-[#C22973]" /></td></tr>
+              <tr>
+                <td colSpan={3} className="py-24 text-center">
+                  <div className="flex flex-col items-center gap-3">
+                    <Loader2 className="animate-spin text-[#FF4D4D]" size={32} />
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Carregando seus eventos...</span>
+                  </div>
+                </td>
+              </tr>
+            ) : erroApi ? (
+              <tr>
+                <td colSpan={3} className="py-24 text-center">
+                  <div className="flex flex-col items-center gap-2 text-[#FF4D4D]">
+                    <AlertCircle size={32} />
+                    <p className="font-bold text-sm">{erroApi}</p>
+                    <button onClick={carregarEventos} className="text-xs underline text-slate-500 mt-2">Tentar novamente</button>
+                  </div>
+                </td>
+              </tr>
             ) : eventos.length === 0 ? (
-              <tr><td colSpan={3} className="py-20 text-center text-slate-400 italic">Nenhum evento encontrado para este produtor.</td></tr>
+              <tr>
+                <td colSpan={3} className="py-24 text-center">
+                  <div className="flex flex-col items-center gap-2">
+                    <Search className="text-slate-200" size={48} />
+                    <p className="text-slate-400 font-medium">Nenhum evento encontrado para este produtor.</p>
+                  </div>
+                </td>
+              </tr>
             ) : (
               eventos.map((evento) => (
-                <tr key={evento.id} className="hover:bg-slate-50/50 transition-colors">
+                <tr key={evento.id} className="hover:bg-slate-50/50 transition-colors group">
                   <td className="px-10 py-6">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-slate-100 overflow-hidden">
+                    <div className="flex items-center gap-5">
+                      <div className="w-14 h-14 rounded-2xl bg-slate-100 overflow-hidden shadow-inner border border-slate-50">
                         <img 
                           src={evento.imagem_capa} 
-                          className="w-full h-full object-cover" 
-                          onError={(e:any)=>e.target.src='https://placehold.co/100'} 
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                          onError={(e:any)=>e.target.src='https://placehold.co/200x200?text=Linkah'} 
                           alt={evento.nome}
                         />
                       </div>
                       <div>
-                        <p className="font-bold text-slate-900 text-sm">{evento.nome}</p>
-                        <p className="text-[10px] text-[#C22973] font-bold">{evento.categoria}</p>
+                        <p className="font-bold text-slate-900 text-base tracking-tight">{evento.nome}</p>
+                        <p className="text-[10px] text-[#FF4D4D] font-black uppercase tracking-widest">{evento.categoria || 'Evento'}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-6 text-center text-xs font-medium text-slate-600">
+                  <td className="px-6 py-6 text-center text-xs font-bold text-slate-500 uppercase">
                     {formatarDataLocal(evento.data_inicio)}
                   </td>
                   <td className="px-10 py-6 text-right">
-                    <div className="flex justify-end gap-2">
-                      <button onClick={() => abrirModalEdicao(evento)} className="p-2 text-slate-400 hover:text-slate-900 transition-colors"><Edit3 size={18} /></button>
-                      <button onClick={() => router.push(`/dashboard/eventos/novo/ingressos/${evento.id}`)} className="p-2 text-slate-400 hover:text-blue-600 transition-colors"><Ticket size={18} /></button>
+                    <div className="flex justify-end gap-3">
+                      <button 
+                        onClick={() => abrirModalEdicao(evento)} 
+                        className="p-3 bg-slate-50 text-slate-400 hover:text-black hover:bg-slate-100 rounded-xl transition-all"
+                        title="Editar Evento"
+                      >
+                        <Edit3 size={18} />
+                      </button>
+                      <button 
+                        onClick={() => router.push(`/dashboard/eventos/novo/ingressos/${evento.id}`)} 
+                        className="p-3 bg-slate-50 text-slate-400 hover:text-[#FF4D4D] hover:bg-red-50 rounded-xl transition-all"
+                        title="Gerenciar Ingressos"
+                      >
+                        <Ticket size={18} />
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -203,30 +246,50 @@ export default function TabelaEventos() {
 
       {/* MODAL DE EDIÇÃO */}
       {isEditModalOpen && eventoParaEditar && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-lg rounded-[2rem] p-8 shadow-2xl">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="font-bold text-xl">Editar Evento</h3>
-              <button onClick={() => setIsEditModalOpen(false)}><X /></button>
-            </div>
-            <form onSubmit={handleSalvarEdicao} className="space-y-4">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white w-full max-w-lg rounded-[2.5rem] p-10 shadow-2xl animate-in fade-in zoom-in duration-300">
+            <div className="flex justify-between items-center mb-8">
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-2">Capa do Evento</label>
-                <div onClick={() => fileInputRef.current?.click()} className="h-32 bg-slate-50 border-2 border-dashed rounded-2xl flex items-center justify-center cursor-pointer overflow-hidden group">
-                  {previewUrl ? <img src={previewUrl} className="w-full h-full object-cover group-hover:opacity-75 transition-opacity" alt="Preview" /> : <Upload className="text-slate-300" />}
+                <h3 className="font-bold text-2xl tracking-tighter">Editar Evento</h3>
+                <p className="text-slate-400 text-xs font-medium">Atualize as informações principais do seu evento.</p>
+              </div>
+              <button onClick={() => setIsEditModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><X /></button>
+            </div>
+            
+            <form onSubmit={handleSalvarEdicao} className="space-y-6">
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Imagem de Capa</label>
+                <div 
+                  onClick={() => fileInputRef.current?.click()} 
+                  className="h-40 bg-slate-50 border-2 border-dashed border-slate-200 rounded-[2rem] flex items-center justify-center cursor-pointer overflow-hidden group hover:border-[#FF4D4D] transition-all"
+                >
+                  {previewUrl ? (
+                    <img src={previewUrl} className="w-full h-full object-cover group-hover:opacity-80 transition-opacity" alt="Preview" />
+                  ) : (
+                    <div className="flex flex-col items-center gap-2 text-slate-300">
+                      <Upload size={32} />
+                      <span className="text-[10px] font-bold uppercase">Upload da Imagem</span>
+                    </div>
+                  )}
                 </div>
                 <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileChange} accept="image/*" />
               </div>
-              <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-2">Nome do Evento</label>
+
+              <div className="space-y-2">
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nome do Evento</label>
                 <input 
-                  className="w-full p-4 bg-slate-50 rounded-xl font-bold outline-none border border-transparent focus:border-pink-200 focus:bg-white transition-all" 
+                  className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none border border-transparent focus:border-black focus:bg-white transition-all shadow-sm" 
                   value={eventoParaEditar.nome} 
                   onChange={(e) => setEventoParaEditar({...eventoParaEditar, nome: e.target.value})}
                 />
               </div>
-              <button type="submit" disabled={saving} className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold hover:bg-black transition-all flex items-center justify-center gap-2 mt-4 shadow-xl">
-                {saving ? <Loader2 className="animate-spin" size={18} /> : 'Confirmar Alterações'}
+
+              <button 
+                type="submit" 
+                disabled={saving} 
+                className="w-full bg-[#030712] text-white py-5 rounded-2xl font-bold hover:bg-black transition-all flex items-center justify-center gap-3 mt-4 shadow-xl active:scale-[0.98] disabled:opacity-50"
+              >
+                {saving ? <Loader2 className="animate-spin" size={20} /> : 'Salvar Alterações'}
               </button>
             </form>
           </div>
