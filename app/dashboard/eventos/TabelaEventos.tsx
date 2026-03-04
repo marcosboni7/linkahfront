@@ -24,15 +24,16 @@ export default function TabelaEventos() {
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Função para tratar a exibição da imagem
+  // Função para tratar a exibição da imagem com Fallback
   const getImageUrl = (path: string) => {
+    // Se o campo for nulo, indefinido ou vazio, retorna placeholder
     if (!path || path === "null" || path === "undefined" || path === "") {
       return 'https://placehold.co/400x400?text=Sem+Foto';
     }
-    // Se o backend já devolveu a URL completa (como fizemos no Controller agora)
+    // Se já for uma URL completa (S3/Link Externo), usa ela
     if (path.startsWith('http')) return path;
     
-    // Fallback caso ainda existam nomes de arquivos puros no banco
+    // Se for apenas o nome do arquivo, aponta para a pasta de uploads da API
     return `${API_URL}/uploads/${path}`;
   };
 
@@ -146,7 +147,7 @@ export default function TabelaEventos() {
       }
     } catch (err) {
       console.error("Erro na requisição:", err);
-      Swal.fire('Erro', 'Erro ao salvar. Verifique se a imagem não é muito grande.', 'error');
+      Swal.fire('Erro', 'Erro ao salvar. Tente novamente.', 'error');
     } finally {
       setSaving(false);
     }
@@ -183,11 +184,15 @@ export default function TabelaEventos() {
                 <tr key={evento.id} className="hover:bg-slate-50/50 transition-colors group">
                   <td className="px-10 py-6">
                     <div className="flex items-center gap-5">
-                      <div className="w-14 h-14 rounded-2xl bg-slate-100 overflow-hidden border border-slate-50 shadow-inner">
+                      <div className="w-14 h-14 rounded-2xl bg-slate-100 overflow-hidden border border-slate-50 shadow-inner flex items-center justify-center">
                         <img 
                           src={getImageUrl(evento.imagem_capa)} 
                           className="w-full h-full object-cover" 
-                          onError={(e:any) => { e.target.src='https://placehold.co/200x200?text=Linkah' }}
+                          alt={evento.nome}
+                          onError={(e: any) => {
+                            e.target.onerror = null; 
+                            e.target.src = 'https://placehold.co/200x200?text=Sem+Foto';
+                          }}
                         />
                       </div>
                       <div>
@@ -234,7 +239,7 @@ export default function TabelaEventos() {
                   type="file" 
                   ref={fileInputRef} 
                   className="hidden" 
-                  onChange={(e:any) => {
+                  onChange={(e: any) => {
                     const file = e.target.files?.[0];
                     if (file) { 
                       setSelectedFile(file); 
