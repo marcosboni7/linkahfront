@@ -24,15 +24,15 @@ export default function TabelaEventos() {
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Função Inteligente para a Imagem
+  // Função para tratar a exibição da imagem
   const getImageUrl = (path: string) => {
     if (!path || path === "null" || path === "undefined" || path === "") {
       return 'https://placehold.co/400x400?text=Sem+Foto';
     }
-    // Se o banco já mandou a URL completa (começa com http), usa ela direto
+    // Se o backend já devolveu a URL completa (como fizemos no Controller agora)
     if (path.startsWith('http')) return path;
     
-    // Se for só o nome do arquivo, aí sim adiciona o prefixo da API
+    // Fallback caso ainda existam nomes de arquivos puros no banco
     return `${API_URL}/uploads/${path}`;
   };
 
@@ -57,7 +57,6 @@ export default function TabelaEventos() {
       let data = await res.json();
 
       if (res.ok) {
-        console.log("DEBUG EVENTOS:", data); // Olhe isso no console do navegador!
         setEventos(Array.isArray(data) ? data : []);
       }
     } catch (err) {
@@ -115,7 +114,7 @@ export default function TabelaEventos() {
         const formData = new FormData();
         formData.append('nome', eventoParaEditar.nome.trim());
         formData.append('categoria', eventoParaEditar.categoria || 'Entretenimento');
-        formData.append('data_inicio', eventoParaEditar.data_inicio || new Date().toISOString());
+        formData.append('data_inicio', eventoParaEditar.data_inicio || '');
         formData.append('descricao', eventoParaEditar.descricao || '');
         formData.append('local_nome', eventoParaEditar.local_nome || '');
         formData.append('cidade', eventoParaEditar.cidade || '');
@@ -147,7 +146,7 @@ export default function TabelaEventos() {
       }
     } catch (err) {
       console.error("Erro na requisição:", err);
-      Swal.fire('Erro', 'Conexão interrompida.', 'error');
+      Swal.fire('Erro', 'Erro ao salvar. Verifique se a imagem não é muito grande.', 'error');
     } finally {
       setSaving(false);
     }
