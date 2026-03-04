@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { 
-  Edit3, X, Loader2, Ticket, Upload, AlertCircle, Trash2
+  Edit3, X, Loader2, Ticket, Upload, Trash2 
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Swal from 'sweetalert2';
@@ -14,9 +14,9 @@ export default function TabelaEventos() {
   const { language }: any = useLanguage();
   const [eventos, setEventos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [erroApi, setErroApi] = useState<string | null>(null);
   const router = useRouter();
 
+  // Estados do Modal de Edição
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [eventoParaEditar, setEventoParaEditar] = useState<any>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -34,24 +34,22 @@ export default function TabelaEventos() {
 
   const carregarEventos = async () => {
     setLoading(true);
-    setErroApi(null);
     try {
       const rawToken = localStorage.getItem('@Linkah:Token') || localStorage.getItem('token');
       const token = rawToken ? rawToken.replace(/['"]+/g, '').trim() : '';
       let emailBase = localStorage.getItem('userEmail') || localStorage.getItem('email') || "marcosphara@gmail.com";
       const emailLimpo = emailBase.replace(/['"]+/g, '').trim().toLowerCase();
 
+      // Timestamp para evitar cache da AWS
       let url = `${API_URL}/api/eventos/listar?email=${encodeURIComponent(emailLimpo)}&t=${Date.now()}`;
       let res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
       let data = await res.json();
 
       if (res.ok) {
         setEventos(Array.isArray(data) ? data : []);
-      } else {
-        setErroApi("Erro ao carregar eventos");
       }
     } catch (err) {
-      setErroApi("Falha na conexão");
+      console.error("Erro ao carregar:", err);
     } finally {
       setLoading(false);
     }
@@ -72,7 +70,10 @@ export default function TabelaEventos() {
     if (confirm.isConfirmed) {
       const rawToken = localStorage.getItem('@Linkah:Token') || localStorage.getItem('token');
       const token = rawToken ? rawToken.replace(/['"]+/g, '').trim() : '';
-      await fetch(`${API_URL}/api/eventos/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+      await fetch(`${API_URL}/api/eventos/${id}`, { 
+        method: 'DELETE', 
+        headers: { 'Authorization': `Bearer ${token}` } 
+      });
       carregarEventos();
     }
   };
@@ -93,30 +94,43 @@ export default function TabelaEventos() {
       const rawToken = localStorage.getItem('@Linkah:Token') || localStorage.getItem('token');
       const token = rawToken ? rawToken.replace(/['"]+/g, '').trim() : '';
       
-      // ESTRATÉGIA DE SALVAMENTO HÍBRIDO (Garante que a AWS leia os campos)
-      const formData = new FormData();
-      formData.append('nome', eventoParaEditar.nome.trim());
-      formData.append('categoria', eventoParaEditar.categoria || 'Entretenimento');
-      
+      let body: any;
+      let headers: any = { 'Authorization': `Bearer ${token}` };
+
       const dataValida = (eventoParaEditar.data_inicio && eventoParaEditar.data_inicio !== "null") 
         ? eventoParaEditar.data_inicio 
         : new Date().toISOString();
-      formData.append('data_inicio', dataValida);
-      
+
+      // LOGICA DE ENVIO HÍBRIDO
       if (selectedFile) {
+        // Se trocou a foto, usa FormData (O Back-end precisa do Multer aqui)
+        const formData = new FormData();
+        formData.append('nome', eventoParaEditar.nome.trim());
+        formData.append('categoria', eventoParaEditar.categoria || 'Entretenimento');
+        formData.append('data_inicio', dataValida);
         formData.append('imagem', selectedFile);
+        body = formData;
+      } else {
+        // Se não trocou a foto, manda JSON (Mais estável para o Back-end)
+        headers['Content-Type'] = 'application/json';
+        body = JSON.stringify({
+          nome: eventoParaEditar.nome.trim(),
+          categoria: eventoParaEditar.categoria || 'Entretenimento',
+          data_inicio: dataValida,
+          imagem_capa: eventoParaEditar.imagem_capa // Mantém a URL atual
+        });
       }
 
-      // IMPORTANTE: Para Multipart, NÃO definimos o Content-Type manualmente, o fetch faz isso com o boundary correto.
       const res = await fetch(`${API_URL}/api/eventos/${eventoParaEditar.id}`, {
         method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: formData,
+        headers: headers,
+        body: body,
       });
 
       if (res.ok) {
         setIsEditModalOpen(false);
         await Swal.fire({ title: "Sucesso!", icon: 'success', timer: 1000, showConfirmButton: false });
+        // Pequeno delay para a AWS processar o banco antes do refresh
         setTimeout(() => carregarEventos(), 600); 
       } else {
         const errorData = await res.json();
@@ -136,7 +150,7 @@ export default function TabelaEventos() {
           <h2 className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Painel do Produtor</h2>
           <p className="text-slate-950 font-bold text-2xl tracking-tighter">Meus Eventos</p>
         </div>
-        <button onClick={() => router.push('/dashboard/eventos/novo/presencial')} className="bg-[#030712] text-white px-8 py-4 rounded-2xl font-bold text-xs hover:bg-black transition-all shadow-lg">
+        <button onClick={() => router.push('/dashboard/eventos/novo/presencial')} className="bg-[#030712] text-white px-8 py-4 rounded-2xl font-bold text-xs hover:bg-black transition-all shadow-lg active:scale-95">
           + Novo Evento
         </button>
       </div>
@@ -154,22 +168,28 @@ export default function TabelaEventos() {
             {loading ? (
               <tr><td colSpan={3} className="py-24 text-center"><Loader2 className="animate-spin mx-auto text-[#FF4D4D]" size={32} /></td></tr>
             ) : eventos.length === 0 ? (
-              <tr><td colSpan={3} className="py-24 text-center text-slate-400">Nenhum evento encontrado.</td></tr>
+              <tr><td colSpan={3} className="py-24 text-center text-slate-400 font-medium">Nenhum evento encontrado.</td></tr>
             ) : (
               eventos.map((evento) => (
                 <tr key={evento.id} className="hover:bg-slate-50/50 transition-colors group">
                   <td className="px-10 py-6">
                     <div className="flex items-center gap-5">
                       <div className="w-14 h-14 rounded-2xl bg-slate-100 overflow-hidden border border-slate-50 shadow-inner">
-                        <img src={evento.imagem_capa} className="w-full h-full object-cover" onError={(e:any)=>e.target.src='https://placehold.co/200x200?text=Linkah'} />
+                        <img 
+                          src={evento.imagem_capa || 'https://placehold.co/200x200?text=Linkah'} 
+                          className="w-full h-full object-cover" 
+                          onError={(e:any) => e.target.src='https://placehold.co/200x200?text=Linkah'}
+                        />
                       </div>
                       <div>
-                        <p className="font-bold text-slate-900 text-base">{evento.nome || "Sem nome"}</p>
+                        <p className="font-bold text-slate-900 text-base tracking-tight">{evento.nome || "Sem nome"}</p>
                         <p className="text-[10px] text-[#FF4D4D] font-black uppercase tracking-widest">{evento.categoria || 'Evento'}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-6 text-center text-xs font-bold text-slate-500 uppercase">{formatarDataLocal(evento.data_inicio)}</td>
+                  <td className="px-6 py-6 text-center text-xs font-bold text-slate-500 uppercase">
+                    {formatarDataLocal(evento.data_inicio)}
+                  </td>
                   <td className="px-10 py-6 text-right">
                     <div className="flex justify-end gap-2">
                       <button onClick={() => abrirModalEdicao(evento)} className="p-3 bg-slate-50 text-slate-400 hover:text-black rounded-xl transition-all"><Edit3 size={18} /></button>
@@ -195,21 +215,41 @@ export default function TabelaEventos() {
             <form onSubmit={handleSalvarEdicao} className="space-y-6">
               <div>
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Imagem de Capa</label>
-                <div onClick={() => fileInputRef.current?.click()} className="h-40 bg-slate-50 border-2 border-dashed border-slate-200 rounded-[2rem] flex items-center justify-center cursor-pointer overflow-hidden group hover:border-[#FF4D4D] transition-all">
+                <div 
+                  onClick={() => fileInputRef.current?.click()} 
+                  className="h-40 bg-slate-50 border-2 border-dashed border-slate-200 rounded-[2rem] flex items-center justify-center cursor-pointer overflow-hidden group hover:border-[#FF4D4D] transition-all"
+                >
                   {previewUrl ? <img src={previewUrl} className="w-full h-full object-cover" /> : <Upload size={32} className="text-slate-300" />}
                 </div>
-                <input type="file" ref={fileInputRef} className="hidden" onChange={(e:any) => {
-                  const file = e.target.files?.[0];
-                  if (file) { setSelectedFile(file); setPreviewUrl(URL.createObjectURL(file)); }
-                }} accept="image/*" />
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  className="hidden" 
+                  onChange={(e:any) => {
+                    const file = e.target.files?.[0];
+                    if (file) { 
+                      setSelectedFile(file); 
+                      setPreviewUrl(URL.createObjectURL(file)); 
+                    }
+                  }} 
+                  accept="image/*" 
+                />
               </div>
 
               <div className="space-y-2">
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nome do Evento</label>
-                <input className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none border border-transparent focus:border-black focus:bg-white transition-all shadow-sm" value={eventoParaEditar.nome} onChange={(e) => setEventoParaEditar({...eventoParaEditar, nome: e.target.value})} />
+                <input 
+                  className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none border border-transparent focus:border-black focus:bg-white transition-all shadow-sm" 
+                  value={eventoParaEditar.nome} 
+                  onChange={(e) => setEventoParaEditar({...eventoParaEditar, nome: e.target.value})} 
+                />
               </div>
 
-              <button type="submit" disabled={saving} className="w-full bg-[#030712] text-white py-5 rounded-2xl font-bold hover:bg-black transition-all flex items-center justify-center gap-3 shadow-xl active:scale-[0.98] disabled:opacity-50">
+              <button 
+                type="submit" 
+                disabled={saving} 
+                className="w-full bg-[#030712] text-white py-5 rounded-2xl font-bold hover:bg-black transition-all flex items-center justify-center gap-3 shadow-xl active:scale-[0.98] disabled:opacity-50"
+              >
                 {saving ? <Loader2 className="animate-spin" size={20} /> : 'Salvar Alterações'}
               </button>
             </form>
