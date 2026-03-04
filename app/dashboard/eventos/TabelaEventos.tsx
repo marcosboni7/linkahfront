@@ -86,7 +86,9 @@ export default function TabelaEventos() {
 
   const handleSalvarEdicao = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!eventoParaEditar?.nome) return;
+    if (!eventoParaEditar?.nome || eventoParaEditar.nome.trim() === "") {
+      return Swal.fire('Aviso', 'O nome do evento não pode estar vazio', 'warning');
+    }
     setSaving(true);
 
     try {
@@ -102,18 +104,22 @@ export default function TabelaEventos() {
 
       if (selectedFile) {
         // --- ENVIO COM IMAGEM (FormData) ---
-        // IMPORTANTE: Não definimos Content-Type para o browser gerenciar o boundary do arquivo
         const formData = new FormData();
+        // Campos de texto PRIMEIRO para garantir o processamento
         formData.append('nome', eventoParaEditar.nome.trim());
         formData.append('categoria', eventoParaEditar.categoria || 'Entretenimento');
         formData.append('data_inicio', dataValida);
-        formData.append('imagem', selectedFile); 
-        
-        // Campos adicionais para evitar que o back-end receba undefined
         formData.append('descricao', eventoParaEditar.descricao || '');
         formData.append('local_nome', eventoParaEditar.local_nome || '');
+        formData.append('cidade', eventoParaEditar.cidade || '');
+        formData.append('estado', eventoParaEditar.estado || '');
+        formData.append('status', eventoParaEditar.status || 'Ativo');
+        
+        // Arquivo com a chave exata esperada pelo Multer
+        formData.append('imagem_capa', selectedFile); 
         
         body = formData;
+        // Importante: Não setar 'Content-Type' em FormData para o browser definir o boundary
       } else {
         // --- ENVIO SEM IMAGEM (JSON) ---
         headers['Content-Type'] = 'application/json';
@@ -123,7 +129,10 @@ export default function TabelaEventos() {
           data_inicio: dataValida,
           imagem_capa: eventoParaEditar.imagem_capa,
           descricao: eventoParaEditar.descricao || '',
-          local_nome: eventoParaEditar.local_nome || ''
+          local_nome: eventoParaEditar.local_nome || '',
+          cidade: eventoParaEditar.cidade || '',
+          estado: eventoParaEditar.estado || '',
+          status: eventoParaEditar.status || 'Ativo'
         });
       }
 
@@ -136,14 +145,14 @@ export default function TabelaEventos() {
       if (res.ok) {
         setIsEditModalOpen(false);
         await Swal.fire({ title: "Sucesso!", icon: 'success', timer: 1000, showConfirmButton: false });
-        setTimeout(() => carregarEventos(), 600); 
+        carregarEventos(); 
       } else {
         const errorData = await res.json();
         Swal.fire('Erro', errorData.error || 'Erro ao salvar', 'error');
       }
     } catch (err) {
       console.error("Erro na requisição:", err);
-      Swal.fire('Erro', 'Conexão interrompida. Tente uma imagem menor.', 'error');
+      Swal.fire('Erro', 'Conexão interrompida. Verifique o tamanho da imagem.', 'error');
     } finally {
       setSaving(false);
     }
@@ -248,6 +257,7 @@ export default function TabelaEventos() {
                   className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none border border-transparent focus:border-black focus:bg-white transition-all shadow-sm" 
                   value={eventoParaEditar.nome || ""} 
                   onChange={(e) => setEventoParaEditar({...eventoParaEditar, nome: e.target.value})} 
+                  placeholder="Nome do seu evento"
                 />
               </div>
 
