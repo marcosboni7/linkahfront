@@ -24,12 +24,15 @@ export default function TabelaEventos() {
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Função para tratar a exibição da imagem
-  const getImageUrl = (path: string) => {
-    if (!path || path === "null" || path === "undefined" || path === "") {
-      return 'https://placehold.co/400x400?text=Sem+Foto';
+  // --- FUNÇÃO CORRIGIDA: Trata o campo imagem_capa ---
+  const getImageUrl = (path: any) => {
+    if (!path || path === "null" || path === "undefined" || path === "" || path === "[object Object]") {
+      return 'https://placehold.co/600x400?text=Sem+Foto';
     }
-    if (path.startsWith('http')) return path;
+    // Se já for uma URL completa (S3/Cloudfront/AppRunner), retorna ela
+    if (String(path).startsWith('http')) return path;
+    
+    // Caso contrário, anexa ao servidor de uploads
     return `${API_URL}/uploads/${path}`;
   };
 
@@ -104,7 +107,6 @@ export default function TabelaEventos() {
       const rawToken = localStorage.getItem('@Linkah:Token') || localStorage.getItem('token');
       const token = rawToken ? rawToken.replace(/['"]+/g, '').trim() : '';
       
-      // Criamos FormData para TODOS os casos para evitar conflito no Multer do Backend
       const formData = new FormData();
       formData.append('nome', eventoParaEditar.nome.trim());
       formData.append('categoria', eventoParaEditar.categoria || 'Entretenimento');
@@ -116,16 +118,15 @@ export default function TabelaEventos() {
       formData.append('status', eventoParaEditar.status || 'Ativo');
 
       if (selectedFile) {
-        // Se o usuário selecionou um novo arquivo
         formData.append('imagem_capa', selectedFile); 
-      } else if (eventoParaEditar.imagem_capa && eventoParaEditar.imagem_capa !== "undefined") {
-        // Se não mudou a foto, envia a string que já está no banco (desde que não seja "undefined")
+      } else if (eventoParaEditar.imagem_capa && eventoParaEditar.imagem_capa !== "undefined" && eventoParaEditar.imagem_capa !== "null") {
+        // Envia a URL/Nome atual apenas se for válido
         formData.append('imagem_capa', eventoParaEditar.imagem_capa);
       }
 
       const res = await fetch(`${API_URL}/api/eventos/${eventoParaEditar.id}`, {
         method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}` }, // Importante: SEM Content-Type aqui
+        headers: { 'Authorization': `Bearer ${token}` },
         body: formData,
       });
 
@@ -139,7 +140,7 @@ export default function TabelaEventos() {
       }
     } catch (err) {
       console.error("Erro na requisição:", err);
-      Swal.fire('Erro', 'Erro ao salvar. Verifique o tamanho da imagem.', 'error');
+      Swal.fire('Erro', 'Erro ao salvar informações.', 'error');
     } finally {
       setSaving(false);
     }
