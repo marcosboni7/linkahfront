@@ -40,7 +40,6 @@ export default function TabelaEventos() {
       let emailBase = localStorage.getItem('userEmail') || localStorage.getItem('email') || "marcosphara@gmail.com";
       const emailLimpo = emailBase.replace(/['"]+/g, '').trim().toLowerCase();
 
-      // Timestamp para evitar cache da AWS
       let url = `${API_URL}/api/eventos/listar?email=${encodeURIComponent(emailLimpo)}&t=${Date.now()}`;
       let res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
       let data = await res.json();
@@ -87,37 +86,44 @@ export default function TabelaEventos() {
 
   const handleSalvarEdicao = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!eventoParaEditar.nome) return;
+    if (!eventoParaEditar?.nome) return;
     setSaving(true);
 
     try {
       const rawToken = localStorage.getItem('@Linkah:Token') || localStorage.getItem('token');
       const token = rawToken ? rawToken.replace(/['"]+/g, '').trim() : '';
       
+      const headers: any = { 'Authorization': `Bearer ${token}` };
       let body: any;
-      let headers: any = { 'Authorization': `Bearer ${token}` };
 
       const dataValida = (eventoParaEditar.data_inicio && eventoParaEditar.data_inicio !== "null") 
         ? eventoParaEditar.data_inicio 
         : new Date().toISOString();
 
-      // LOGICA DE ENVIO HÍBRIDO
       if (selectedFile) {
-        // Se trocou a foto, usa FormData (O Back-end precisa do Multer aqui)
+        // --- ENVIO COM IMAGEM (FormData) ---
+        // IMPORTANTE: Não definimos Content-Type para o browser gerenciar o boundary do arquivo
         const formData = new FormData();
         formData.append('nome', eventoParaEditar.nome.trim());
         formData.append('categoria', eventoParaEditar.categoria || 'Entretenimento');
         formData.append('data_inicio', dataValida);
-        formData.append('imagem', selectedFile);
+        formData.append('imagem', selectedFile); 
+        
+        // Campos adicionais para evitar que o back-end receba undefined
+        formData.append('descricao', eventoParaEditar.descricao || '');
+        formData.append('local_nome', eventoParaEditar.local_nome || '');
+        
         body = formData;
       } else {
-        // Se não trocou a foto, manda JSON (Mais estável para o Back-end)
+        // --- ENVIO SEM IMAGEM (JSON) ---
         headers['Content-Type'] = 'application/json';
         body = JSON.stringify({
           nome: eventoParaEditar.nome.trim(),
           categoria: eventoParaEditar.categoria || 'Entretenimento',
           data_inicio: dataValida,
-          imagem_capa: eventoParaEditar.imagem_capa // Mantém a URL atual
+          imagem_capa: eventoParaEditar.imagem_capa,
+          descricao: eventoParaEditar.descricao || '',
+          local_nome: eventoParaEditar.local_nome || ''
         });
       }
 
@@ -130,14 +136,14 @@ export default function TabelaEventos() {
       if (res.ok) {
         setIsEditModalOpen(false);
         await Swal.fire({ title: "Sucesso!", icon: 'success', timer: 1000, showConfirmButton: false });
-        // Pequeno delay para a AWS processar o banco antes do refresh
         setTimeout(() => carregarEventos(), 600); 
       } else {
         const errorData = await res.json();
         Swal.fire('Erro', errorData.error || 'Erro ao salvar', 'error');
       }
     } catch (err) {
-      Swal.fire('Erro', 'Falha na conexão', 'error');
+      console.error("Erro na requisição:", err);
+      Swal.fire('Erro', 'Conexão interrompida. Tente uma imagem menor.', 'error');
     } finally {
       setSaving(false);
     }
@@ -240,7 +246,7 @@ export default function TabelaEventos() {
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nome do Evento</label>
                 <input 
                   className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none border border-transparent focus:border-black focus:bg-white transition-all shadow-sm" 
-                  value={eventoParaEditar.nome} 
+                  value={eventoParaEditar.nome || ""} 
                   onChange={(e) => setEventoParaEditar({...eventoParaEditar, nome: e.target.value})} 
                 />
               </div>
