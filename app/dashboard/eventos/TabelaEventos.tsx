@@ -16,13 +16,19 @@ export default function TabelaEventos() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  // Estados do Modal de Edição
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [eventoParaEditar, setEventoParaEditar] = useState<any>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Helper para tratar a URL da imagem
+  const getImageUrl = (path: string) => {
+    if (!path) return 'https://placehold.co/600x400?text=Linkah';
+    if (path.startsWith('http')) return path;
+    return `${API_URL}/uploads/${path}`;
+  };
 
   const formatarDataLocal = (dataString: string) => {
     if (!dataString) return '---';
@@ -79,7 +85,7 @@ export default function TabelaEventos() {
 
   const abrirModalEdicao = (evento: any) => {
     setEventoParaEditar({ ...evento });
-    setPreviewUrl(evento.imagem_capa);
+    setPreviewUrl(getImageUrl(evento.imagem_capa));
     setSelectedFile(null);
     setIsEditModalOpen(true);
   };
@@ -103,9 +109,7 @@ export default function TabelaEventos() {
         : new Date().toISOString();
 
       if (selectedFile) {
-        // --- ENVIO COM IMAGEM (FormData) ---
         const formData = new FormData();
-        // Campos de texto PRIMEIRO para garantir o processamento
         formData.append('nome', eventoParaEditar.nome.trim());
         formData.append('categoria', eventoParaEditar.categoria || 'Entretenimento');
         formData.append('data_inicio', dataValida);
@@ -114,25 +118,14 @@ export default function TabelaEventos() {
         formData.append('cidade', eventoParaEditar.cidade || '');
         formData.append('estado', eventoParaEditar.estado || '');
         formData.append('status', eventoParaEditar.status || 'Ativo');
-        
-        // Arquivo com a chave exata esperada pelo Multer
         formData.append('imagem_capa', selectedFile); 
-        
         body = formData;
-        // Importante: Não setar 'Content-Type' em FormData para o browser definir o boundary
       } else {
-        // --- ENVIO SEM IMAGEM (JSON) ---
         headers['Content-Type'] = 'application/json';
         body = JSON.stringify({
+          ...eventoParaEditar,
           nome: eventoParaEditar.nome.trim(),
-          categoria: eventoParaEditar.categoria || 'Entretenimento',
-          data_inicio: dataValida,
-          imagem_capa: eventoParaEditar.imagem_capa,
-          descricao: eventoParaEditar.descricao || '',
-          local_nome: eventoParaEditar.local_nome || '',
-          cidade: eventoParaEditar.cidade || '',
-          estado: eventoParaEditar.estado || '',
-          status: eventoParaEditar.status || 'Ativo'
+          data_inicio: dataValida
         });
       }
 
@@ -152,7 +145,7 @@ export default function TabelaEventos() {
       }
     } catch (err) {
       console.error("Erro na requisição:", err);
-      Swal.fire('Erro', 'Conexão interrompida. Verifique o tamanho da imagem.', 'error');
+      Swal.fire('Erro', 'Conexão interrompida.', 'error');
     } finally {
       setSaving(false);
     }
@@ -160,7 +153,7 @@ export default function TabelaEventos() {
 
   return (
     <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden font-sans">
-      <div className="p-10 border-b border-slate-50 flex justify-between items-center bg-white">
+      <div className="p-10 border-b border-slate-50 flex justify-between items-center">
         <div>
           <h2 className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Painel do Produtor</h2>
           <p className="text-slate-950 font-bold text-2xl tracking-tighter">Meus Eventos</p>
@@ -191,9 +184,9 @@ export default function TabelaEventos() {
                     <div className="flex items-center gap-5">
                       <div className="w-14 h-14 rounded-2xl bg-slate-100 overflow-hidden border border-slate-50 shadow-inner">
                         <img 
-                          src={evento.imagem_capa || 'https://placehold.co/200x200?text=Linkah'} 
+                          src={getImageUrl(evento.imagem_capa)} 
                           className="w-full h-full object-cover" 
-                          onError={(e:any) => e.target.src='https://placehold.co/200x200?text=Linkah'}
+                          onError={(e:any) => { e.target.src='https://placehold.co/200x200?text=Linkah' }}
                         />
                       </div>
                       <div>
@@ -257,7 +250,6 @@ export default function TabelaEventos() {
                   className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none border border-transparent focus:border-black focus:bg-white transition-all shadow-sm" 
                   value={eventoParaEditar.nome || ""} 
                   onChange={(e) => setEventoParaEditar({...eventoParaEditar, nome: e.target.value})} 
-                  placeholder="Nome do seu evento"
                 />
               </div>
 
