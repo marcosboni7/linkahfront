@@ -25,7 +25,9 @@ export default function TabelaEventos() {
 
   // Função para garantir que a imagem seja válida ou mostre um placeholder
   const validarImagem = (url: any) => {
+    // LOG 1: Monitora o que entra na função de validação
     if (!url || url === "undefined" || url === "null" || url === "[object Object]") {
+      console.warn("⚠️ [DEBUG-IMG] URL inválida interceptada:", { valor: url, tipo: typeof url });
       return 'https://placehold.co/200x200?text=Linkah';
     }
     return url;
@@ -47,16 +49,30 @@ export default function TabelaEventos() {
       let emailBase = localStorage.getItem('userEmail') || localStorage.getItem('email') || "marcosphara@gmail.com";
       const emailLimpo = emailBase.replace(/['"]+/g, '').trim().toLowerCase();
 
-      // Adicionando timestamp para evitar cache do navegador
       let url = `${API_URL}/api/eventos/listar?email=${encodeURIComponent(emailLimpo)}&t=${Date.now()}`;
+      
+      // LOG 2: Monitora a chamada da API
+      console.log("🚀 [API-GET] Solicitando eventos:", url);
+      
       let res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
       let data = await res.json();
 
       if (res.ok) {
+        // LOG 3: Monitora o array que voltou do banco
+        console.log("✅ [API-SUCCESS] Eventos carregados:", data.length);
+        if (data.length > 0) {
+          console.log("🔍 [DATA-SAMPLE] Verificando campos do primeiro evento:", {
+            id: data[0].id,
+            nome: data[0].nome,
+            imagem_capa: data[0].imagem_capa // Aqui matamos se o erro vem do Banco
+          });
+        }
         setEventos(Array.isArray(data) ? data : []);
+      } else {
+        console.error("❌ [API-ERROR] Falha na resposta:", res.status);
       }
     } catch (err) {
-      console.error("Erro ao carregar eventos:", err);
+      console.error("❌ [FETCH-ERROR] Erro na requisição:", err);
     } finally {
       setLoading(false);
     }
@@ -86,13 +102,13 @@ export default function TabelaEventos() {
   };
 
   const abrirModalEdicao = (evento: any) => {
+    console.log("📝 [MODAL] Editando evento ID:", evento.id);
     setEventoParaEditar({ ...evento });
     setPreviewUrl(validarImagem(evento.imagem_capa));
     setSelectedFile(null);
     setIsEditModalOpen(true);
   };
 
-  // --- LÓGICA DE ALTERAR NOME E IMAGEM ---
   const handleSalvarEdicao = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!eventoParaEditar?.nome) return;
@@ -106,17 +122,18 @@ export default function TabelaEventos() {
       formData.append('nome', eventoParaEditar.nome.trim());
       formData.append('categoria', eventoParaEditar.categoria || 'Entretenimento');
       
-      // Se houver novo arquivo, envia o binário. Se não, envia a URL atual para preservação.
       if (selectedFile) {
         formData.append('imagem_capa', selectedFile);
+        console.log("📤 [UPLOAD] Enviando novo arquivo binário");
       } else {
         formData.append('imagem_capa', eventoParaEditar.imagem_capa);
+        console.log("📤 [UPLOAD] Mantendo URL/String atual:", eventoParaEditar.imagem_capa);
       }
 
       const res = await fetch(`${API_URL}/api/eventos/${eventoParaEditar.id}`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` },
-        body: formData, // O fetch define o Content-Type: multipart/form-data automaticamente
+        body: formData,
       });
 
       if (res.ok) {
@@ -125,6 +142,7 @@ export default function TabelaEventos() {
         carregarEventos(); 
       } else {
         const errorData = await res.json();
+        console.error("❌ [PUT-ERROR] Erro ao salvar:", errorData);
         Swal.fire('Erro', errorData.error || 'Erro ao salvar', 'error');
       }
     } catch (err) {
@@ -136,7 +154,6 @@ export default function TabelaEventos() {
 
   return (
     <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden font-sans">
-      {/* Header da Tabela */}
       <div className="p-10 border-b border-slate-50 flex justify-between items-center bg-white">
         <div>
           <h2 className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Painel do Produtor</h2>
@@ -173,7 +190,11 @@ export default function TabelaEventos() {
                         <img 
                           src={validarImagem(evento.imagem_capa)} 
                           className="w-full h-full object-cover" 
-                          onError={(e:any) => e.target.src='https://placehold.co/200x200?text=Linkah'} 
+                          onError={(e:any) => {
+                            // LOG 4: Captura falha de carregamento real no navegador
+                            console.error(`🖼️ [IMG-ERROR] Falha ao carregar img do evento ID ${evento.id}. URL tentada:`, evento.imagem_capa);
+                            e.target.src='https://placehold.co/200x200?text=Linkah';
+                          }} 
                         />
                       </div>
                       <div>
@@ -209,7 +230,6 @@ export default function TabelaEventos() {
             </div>
             
             <form onSubmit={handleSalvarEdicao} className="space-y-6">
-              {/* Upload de Imagem com Preview */}
               <div>
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Imagem de Capa</label>
                 <div 
@@ -230,14 +250,15 @@ export default function TabelaEventos() {
                     const file = e.target.files?.[0];
                     if (file) { 
                       setSelectedFile(file); 
-                      setPreviewUrl(URL.createObjectURL(file)); 
+                      const localUrl = URL.createObjectURL(file);
+                      setPreviewUrl(localUrl);
+                      console.log("📸 [FILE-SELECT] Nova imagem selecionada:", file.name);
                     }
                   }} 
                   accept="image/*" 
                 />
               </div>
 
-              {/* Input de Nome */}
               <div className="space-y-2">
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nome do Evento</label>
                 <input 
