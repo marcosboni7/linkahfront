@@ -16,6 +16,7 @@ export default function TabelaEventos() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
+  // Estados do Modal de Edição
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [eventoParaEditar, setEventoParaEditar] = useState<any>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -23,10 +24,15 @@ export default function TabelaEventos() {
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Helper para tratar a URL da imagem
+  // Função Inteligente para a Imagem
   const getImageUrl = (path: string) => {
-    if (!path) return 'https://placehold.co/600x400?text=Linkah';
+    if (!path || path === "null" || path === "undefined" || path === "") {
+      return 'https://placehold.co/400x400?text=Sem+Foto';
+    }
+    // Se o banco já mandou a URL completa (começa com http), usa ela direto
     if (path.startsWith('http')) return path;
+    
+    // Se for só o nome do arquivo, aí sim adiciona o prefixo da API
     return `${API_URL}/uploads/${path}`;
   };
 
@@ -51,6 +57,7 @@ export default function TabelaEventos() {
       let data = await res.json();
 
       if (res.ok) {
+        console.log("DEBUG EVENTOS:", data); // Olhe isso no console do navegador!
         setEventos(Array.isArray(data) ? data : []);
       }
     } catch (err) {
@@ -104,15 +111,11 @@ export default function TabelaEventos() {
       const headers: any = { 'Authorization': `Bearer ${token}` };
       let body: any;
 
-      const dataValida = (eventoParaEditar.data_inicio && eventoParaEditar.data_inicio !== "null") 
-        ? eventoParaEditar.data_inicio 
-        : new Date().toISOString();
-
       if (selectedFile) {
         const formData = new FormData();
         formData.append('nome', eventoParaEditar.nome.trim());
         formData.append('categoria', eventoParaEditar.categoria || 'Entretenimento');
-        formData.append('data_inicio', dataValida);
+        formData.append('data_inicio', eventoParaEditar.data_inicio || new Date().toISOString());
         formData.append('descricao', eventoParaEditar.descricao || '');
         formData.append('local_nome', eventoParaEditar.local_nome || '');
         formData.append('cidade', eventoParaEditar.cidade || '');
@@ -124,8 +127,7 @@ export default function TabelaEventos() {
         headers['Content-Type'] = 'application/json';
         body = JSON.stringify({
           ...eventoParaEditar,
-          nome: eventoParaEditar.nome.trim(),
-          data_inicio: dataValida
+          nome: eventoParaEditar.nome.trim()
         });
       }
 
@@ -153,7 +155,7 @@ export default function TabelaEventos() {
 
   return (
     <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden font-sans">
-      <div className="p-10 border-b border-slate-50 flex justify-between items-center">
+      <div className="p-10 border-b border-slate-50 flex justify-between items-center bg-white">
         <div>
           <h2 className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Painel do Produtor</h2>
           <p className="text-slate-950 font-bold text-2xl tracking-tighter">Meus Eventos</p>
