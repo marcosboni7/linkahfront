@@ -23,13 +23,17 @@ export default function TabelaEventos() {
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Função para garantir que a imagem seja válida ou mostre um placeholder
+  // Função robusta para validar e formatar a URL da imagem
   const validarImagem = (url: any) => {
-    // LOG 1: Monitora o que entra na função de validação
     if (!url || url === "undefined" || url === "null" || url === "[object Object]") {
-      console.warn("⚠️ [DEBUG-IMG] URL inválida interceptada:", { valor: url, tipo: typeof url });
-      return 'https://placehold.co/200x200?text=Linkah';
+      return 'https://placehold.co/200x200/e2e8f0/64748b?text=Linkah';
     }
+
+    // Se a URL for apenas o nome do arquivo (sem http), concatena o servidor
+    if (typeof url === 'string' && !url.startsWith('http')) {
+      return `${API_URL}/uploads/${url}`;
+    }
+
     return url;
   };
 
@@ -51,22 +55,13 @@ export default function TabelaEventos() {
 
       let url = `${API_URL}/api/eventos/listar?email=${encodeURIComponent(emailLimpo)}&t=${Date.now()}`;
       
-      // LOG 2: Monitora a chamada da API
       console.log("🚀 [API-GET] Solicitando eventos:", url);
       
       let res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
       let data = await res.json();
 
       if (res.ok) {
-        // LOG 3: Monitora o array que voltou do banco
         console.log("✅ [API-SUCCESS] Eventos carregados:", data.length);
-        if (data.length > 0) {
-          console.log("🔍 [DATA-SAMPLE] Verificando campos do primeiro evento:", {
-            id: data[0].id,
-            nome: data[0].nome,
-            imagem_capa: data[0].imagem_capa // Aqui matamos se o erro vem do Banco
-          });
-        }
         setEventos(Array.isArray(data) ? data : []);
       } else {
         console.error("❌ [API-ERROR] Falha na resposta:", res.status);
@@ -102,7 +97,7 @@ export default function TabelaEventos() {
   };
 
   const abrirModalEdicao = (evento: any) => {
-    console.log("📝 [MODAL] Editando evento ID:", evento.id);
+    console.log("📝 [MODAL] Abrindo edição para:", evento.id, "Imagem atual:", evento.imagem_capa);
     setEventoParaEditar({ ...evento });
     setPreviewUrl(validarImagem(evento.imagem_capa));
     setSelectedFile(null);
@@ -124,28 +119,33 @@ export default function TabelaEventos() {
       
       if (selectedFile) {
         formData.append('imagem_capa', selectedFile);
-        console.log("📤 [UPLOAD] Enviando novo arquivo binário");
+        console.log("📤 [UPLOAD] Enviando NOVO arquivo:", selectedFile.name);
       } else {
-        formData.append('imagem_capa', eventoParaEditar.imagem_capa);
-        console.log("📤 [UPLOAD] Mantendo URL/String atual:", eventoParaEditar.imagem_capa);
+        // Envia o valor atual se não houver novo arquivo
+        formData.append('imagem_capa', eventoParaEditar.imagem_capa || '');
+        console.log("📤 [UPLOAD] Mantendo imagem existente:", eventoParaEditar.imagem_capa);
       }
 
       const res = await fetch(`${API_URL}/api/eventos/${eventoParaEditar.id}`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` },
-        body: formData,
+        body: formData, // FormData não precisa de Content-Type manual
       });
+
+      const result = await res.json();
+      console.log("📡 [API-RESPONSE] Resultado do PUT:", result);
 
       if (res.ok) {
         setIsEditModalOpen(false);
-        await Swal.fire({ title: "Sucesso!", icon: 'success', timer: 1000, showConfirmButton: false });
+        await Swal.fire({ title: "Atualizado!", icon: 'success', timer: 1500, showConfirmButton: false });
+        // Recarregar lista para refletir a nova imagem do banco
         carregarEventos(); 
       } else {
-        const errorData = await res.json();
-        console.error("❌ [PUT-ERROR] Erro ao salvar:", errorData);
-        Swal.fire('Erro', errorData.error || 'Erro ao salvar', 'error');
+        console.error("❌ [PUT-ERROR] Erro ao salvar:", result);
+        Swal.fire('Erro', result.error || 'Erro ao salvar', 'error');
       }
     } catch (err) {
+      console.error("❌ [FATAL-ERROR]", err);
       Swal.fire('Erro', 'Falha na conexão', 'error');
     } finally {
       setSaving(false);
@@ -188,12 +188,13 @@ export default function TabelaEventos() {
                     <div className="flex items-center gap-5">
                       <div className="w-14 h-14 rounded-2xl bg-slate-100 overflow-hidden border border-slate-50 shadow-inner">
                         <img 
-                          src={validarImagem(evento.imagem_capa)} 
+                          // O timestamp force o refresh da imagem se o nome do arquivo for o mesmo
+                          src={`${validarImagem(evento.imagem_capa)}?t=${Date.now()}`} 
                           className="w-full h-full object-cover" 
+                          alt={evento.nome}
                           onError={(e:any) => {
-                            // LOG 4: Captura falha de carregamento real no navegador
-                            console.error(`🖼️ [IMG-ERROR] Falha ao carregar img do evento ID ${evento.id}. URL tentada:`, evento.imagem_capa);
-                            e.target.src='https://placehold.co/200x200?text=Linkah';
+                            console.error(`🖼️ [IMG-ERROR] Evento ${evento.id}. Tentou:`, e.target.src);
+                            e.target.src='https://placehold.co/200x200?text=Erro+Img';
                           }} 
                         />
                       </div>
@@ -223,7 +224,7 @@ export default function TabelaEventos() {
       {/* MODAL DE EDIÇÃO */}
       {isEditModalOpen && eventoParaEditar && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-lg rounded-[2.5rem] p-10 shadow-2xl animate-in fade-in zoom-in duration-300">
+          <div className="bg-white w-full max-w-lg rounded-[2.5rem] p-10 shadow-2xl">
             <div className="flex justify-between items-center mb-8">
               <h3 className="font-bold text-2xl tracking-tighter">Editar Evento</h3>
               <button onClick={() => setIsEditModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><X /></button>
@@ -252,7 +253,6 @@ export default function TabelaEventos() {
                       setSelectedFile(file); 
                       const localUrl = URL.createObjectURL(file);
                       setPreviewUrl(localUrl);
-                      console.log("📸 [FILE-SELECT] Nova imagem selecionada:", file.name);
                     }
                   }} 
                   accept="image/*" 
@@ -271,7 +271,7 @@ export default function TabelaEventos() {
               <button 
                 type="submit" 
                 disabled={saving} 
-                className="w-full bg-[#030712] text-white py-5 rounded-2xl font-bold hover:bg-black transition-all flex items-center justify-center gap-3 shadow-xl active:scale-[0.98] disabled:opacity-50"
+                className="w-full bg-[#030712] text-white py-5 rounded-2xl font-bold hover:bg-black transition-all flex items-center justify-center gap-3 shadow-xl disabled:opacity-50"
               >
                 {saving ? <Loader2 className="animate-spin" size={20} /> : 'Salvar Alterações'}
               </button>
