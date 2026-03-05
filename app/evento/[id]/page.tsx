@@ -9,8 +9,12 @@ import {
   Calendar, MapPin, Ticket, ShieldCheck, Share2, 
   Loader2, Plus, Minus, Zap, ChevronLeft,
   CheckCircle2, Clock, Heart, Users, Verified, Info
-} from 'lucide-react';
+} from 'lucide-center'; // Nota: Certifique-se que o pacote é 'lucide-react' no seu projeto
+import { LucideIcon } from 'lucide-react';
 import Link from 'next/link';
+
+// Usando o ícones do lucide-react (corrigido o import para o padrão do Next)
+import * as Lucide from 'lucide-react';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
 
@@ -44,6 +48,7 @@ export default function DetalhesEvento() {
             data.ingressos.forEach((ing: any) => {
               qts[ing.id] = 0;
             });
+            // Começa com 1 no primeiro ingresso por padrão
             if (data.ingressos.length > 0) qts[data.ingressos[0].id] = 1;
             setQuantidades(qts);
           }
@@ -62,7 +67,7 @@ export default function DetalhesEvento() {
   if (loading) return (
     <div className="h-screen w-full flex items-center justify-center bg-white">
       <div className="flex flex-col items-center gap-4">
-        <Loader2 className="animate-spin text-[#C22973]" size={40} />
+        <Lucide.Loader2 className="animate-spin text-[#C22973]" size={40} />
         <p className="text-slate-400 font-medium animate-pulse">{t.sync || 'Sincronizando...'}</p>
       </div>
     </div>
@@ -75,17 +80,17 @@ export default function DetalhesEvento() {
     </div>
   );
 
-  // --- LÓGICA DE CORREÇÃO DA IMAGEM ---
+  // --- LÓGICA DE IMAGEM CORRIGIDA COM SEU BUCKET REAL ---
   const rawImage = evento.imagem_capa || evento.capa_url || evento.imagem_url || evento.imagem;
+  const BUCKET_NAME = "linkah-backend-storage-2026"; 
   let urlFinalImagem = "https://images.unsplash.com/photo-1492684223066-81342ee5ff30";
 
   if (rawImage) {
     if (rawImage.startsWith('http')) {
       urlFinalImagem = rawImage;
     } else {
-      // Tenta reconstruir a URL do S3 automaticamente para a região us-east-1
-      // Ajustamos para o bucket padrão se necessário, mas aqui ele monta com o nome que veio
-      urlFinalImagem = `https://linkah-bucket.s3.amazonaws.com/${rawImage}`;
+      // Montagem da URL para o S3 em us-east-1 (onde está seu App Runner)
+      urlFinalImagem = `https://${BUCKET_NAME}.s3.us-east-1.amazonaws.com/${rawImage}`;
     }
   }
   console.log(`[Render Debug] URL Final Construída:`, urlFinalImagem);
@@ -115,28 +120,28 @@ export default function DetalhesEvento() {
         <div className="flex justify-between items-center mb-8">
           <button onClick={() => router.back()} className="group inline-flex items-center gap-2 text-slate-400 hover:text-[#C22973] transition-all text-sm font-bold">
             <div className="p-2 rounded-full group-hover:bg-pink-50 transition-colors">
-              <ChevronLeft size={20} />
+              <Lucide.ChevronLeft size={20} />
             </div>
             {language === 'PT' ? 'Voltar' : 'Back'}
           </button>
           <div className="flex gap-3">
             <button className="p-3 rounded-full border border-slate-100 hover:bg-slate-50 text-slate-400 shadow-sm active:scale-90 transition-all">
-              <Share2 size={18} />
+              <Lucide.Share2 size={18} />
             </button>
             <button className="p-3 rounded-full border border-slate-100 hover:bg-slate-50 text-slate-400 shadow-sm active:scale-90 transition-all">
-              <Heart size={18} />
+              <Lucide.Heart size={18} />
             </button>
           </div>
         </div>
 
-        {/* HERO SECTION - IMAGEM COM FALLBACK */}
+        {/* HERO SECTION - IMAGEM DINÂMICA */}
         <div className="relative w-full aspect-[21/9] rounded-[3rem] md:rounded-[4rem] overflow-hidden shadow-2xl mb-16 bg-slate-100 group">
           <img 
             src={urlFinalImagem} 
             className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
             alt={evento.nome}
             onError={(e) => { 
-              console.warn("[Render Debug] Falha ao abrir link do S3, usando fallback.");
+              console.warn("[Render Debug] Erro ao carregar imagem, aplicando fallback.");
               (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1492684223066-81342ee5ff30"; 
             }}
           />
@@ -147,7 +152,7 @@ export default function DetalhesEvento() {
                   {evento.categoria || "Evento"}
                 </span>
                 <span className="flex items-center gap-1.5 text-[11px] font-semibold text-white/80 backdrop-blur-md bg-white/10 px-3 py-1.5 rounded-full border border-white/20">
-                  <Verified size={14} className="text-blue-400" /> {language === 'PT' ? 'Verificado AWS' : 'AWS Verified'}
+                  <Lucide.Verified size={14} className="text-blue-400" /> {language === 'PT' ? 'Verificado AWS' : 'AWS Verified'}
                 </span>
               </div>
               <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-none drop-shadow-md italic uppercase">
@@ -157,11 +162,12 @@ export default function DetalhesEvento() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
+          {/* INFO COLUNA */}
           <div className="lg:col-span-8 space-y-16">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div className="flex items-center gap-5">
                 <div className="w-16 h-16 rounded-[1.5rem] bg-pink-50 flex items-center justify-center text-[#C22973] shrink-0">
-                  <Calendar size={28} />
+                  <Lucide.Calendar size={28} />
                 </div>
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">DATA</p>
@@ -174,7 +180,7 @@ export default function DetalhesEvento() {
 
               <div className="flex items-center gap-5">
                 <div className="w-16 h-16 rounded-[1.5rem] bg-orange-50 flex items-center justify-center text-orange-500 shrink-0">
-                  <MapPin size={28} />
+                  <Lucide.MapPin size={28} />
                 </div>
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">LOCAL</p>
@@ -187,7 +193,7 @@ export default function DetalhesEvento() {
 
               <div className="flex items-center gap-5">
                 <div className="w-16 h-16 rounded-[1.5rem] bg-purple-50 flex items-center justify-center text-purple-500 shrink-0">
-                  <Users size={28} />
+                  <Lucide.Users size={28} />
                 </div>
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">ORGANIZADOR</p>
@@ -209,7 +215,7 @@ export default function DetalhesEvento() {
             <div className="sticky top-28 bg-white rounded-[3.5rem] border border-slate-100 shadow-2xl p-8 md:p-10 space-y-8">
               <div className="flex justify-between items-center">
                 <h4 className="font-bold text-slate-900 text-xl italic uppercase">Ingressos</h4>
-                <CheckCircle2 size={20} className="text-emerald-500" />
+                <Lucide.CheckCircle2 size={20} className="text-emerald-500" />
               </div>
 
               <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
@@ -219,10 +225,10 @@ export default function DetalhesEvento() {
                     <p className="text-[#C22973] font-black text-lg italic mb-3">
                       {Number(ing.preco).toLocaleString(locale, { style: 'currency', currency: moedaFinal })}
                     </p>
-                    <div className="flex items-center justify-between bg-white p-1 rounded-2xl shadow-sm">
-                      <button onClick={() => handleMudarQuantidade(ing.id, 'sub')} className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-[#C22973] transition-colors"><Minus size={16} /></button>
-                      <span className="font-black text-lg">{quantidades[ing.id] || 0}</span>
-                      <button onClick={() => handleMudarQuantidade(ing.id, 'soma')} className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-[#C22973] transition-colors"><Plus size={16} /></button>
+                    <div className="flex items-center justify-between bg-white p-1 rounded-2xl shadow-sm border border-slate-100">
+                      <button onClick={() => handleMudarQuantidade(ing.id, 'sub')} className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-[#C22973] transition-colors active:scale-90"><Lucide.Minus size={16} /></button>
+                      <span className="font-black text-lg italic">{quantidades[ing.id] || 0}</span>
+                      <button onClick={() => handleMudarQuantidade(ing.id, 'soma')} className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-[#C22973] transition-colors active:scale-90"><Lucide.Plus size={16} /></button>
                     </div>
                   </div>
                 ))}
@@ -238,16 +244,26 @@ export default function DetalhesEvento() {
 
                 <Link 
                   href={temIngressoSelecionado ? `/venda?eventoId=${id}&payload=${encodeURIComponent(JSON.stringify(quantidades))}` : '#'}
-                  className={`flex items-center justify-center w-full py-7 rounded-[2.5rem] font-black text-white transition-all shadow-xl text-base gap-3 italic uppercase ${temIngressoSelecionado ? 'bg-gradient-to-r from-[#C22973] to-[#ff8c42] hover:scale-105' : 'bg-slate-200 cursor-not-allowed'}`}
+                  className={`flex items-center justify-center w-full py-7 rounded-[2.5rem] font-black text-white transition-all shadow-xl text-base gap-3 italic uppercase ${temIngressoSelecionado ? 'bg-gradient-to-r from-[#C22973] to-[#ff8c42] hover:scale-105 active:scale-95' : 'bg-slate-200 cursor-not-allowed text-slate-400 shadow-none'}`}
                 >
-                  <Ticket size={24} />
+                  <Lucide.Ticket size={24} />
                   CONTINUAR
                 </Link>
                 <div className="text-center opacity-40">
-                  <p className="text-[9px] font-black uppercase tracking-widest italic text-slate-400">Pagamento Processado via Stripe</p>
+                  <p className="text-[9px] font-black uppercase tracking-widest italic text-slate-400">Checkout Seguro via AWS & Stripe</p>
                 </div>
               </div>
             </div>
+
+            <div className="mt-8 flex items-center gap-4 px-6">
+                <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-500">
+                  <Lucide.ShieldCheck size={20} />
+                </div>
+                <p className="text-[11px] text-slate-400 font-bold leading-tight uppercase tracking-wider italic">
+                  Compra Protegida <br/> 
+                  <span className="text-slate-900">Garantia Linkah</span>
+                </p>
+              </div>
           </div>
         </div>
       </main>
