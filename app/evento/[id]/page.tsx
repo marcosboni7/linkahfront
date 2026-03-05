@@ -28,6 +28,8 @@ export default function DetalhesEvento() {
   useEffect(() => {
     async function carregarEvento() {
       try {
+        console.log(`%c[AWS Debug] Buscando evento ID: ${id}`, "color: #C22973; font-weight: bold;");
+        
         const timestamp = new Date().getTime();
         const res = await fetch(`${API_URL}/api/eventos/${id}?t=${timestamp}`, {
           cache: 'no-store'
@@ -35,6 +37,8 @@ export default function DetalhesEvento() {
         
         if (res.ok) {
           const data = await res.json();
+          console.log("[AWS Debug] Objeto completo recebido:", data);
+          
           setEvento(data);
           
           // Inicializa as quantidades com 0 para cada lote encontrado
@@ -43,13 +47,15 @@ export default function DetalhesEvento() {
             data.ingressos.forEach((ing: any) => {
               qts[ing.id] = 0;
             });
-            // Começa com 1 no primeiro ingresso por padrão
+            // Começa com 1 no primeiro ingresso por padrão para incentivar a conversão
             if (data.ingressos.length > 0) qts[data.ingressos[0].id] = 1;
             setQuantidades(qts);
           }
+        } else {
+          console.error(`[AWS Debug] Erro HTTP: ${res.status}`);
         }
       } catch (err) {
-        console.error("Erro ao carregar da AWS:", err);
+        console.error("[AWS Debug] Erro na conexão com App Runner:", err);
       } finally {
         setLoading(false);
       }
@@ -66,13 +72,21 @@ export default function DetalhesEvento() {
     </div>
   );
 
-  if (!evento) return <div className="p-20 text-center text-slate-500 font-medium">Evento não encontrado.</div>;
+  if (!evento) return (
+    <div className="h-screen flex items-center justify-center flex-col gap-4">
+       <p className="text-slate-500 font-medium italic">Evento não encontrado.</p>
+       <button onClick={() => router.push('/')} className="text-[#C22973] font-bold underline">Voltar para o início</button>
+    </div>
+  );
 
-  // Lógica de Moeda Internacional
+  // Lógica de Imagem com Fallback e Log de Renderização
+  const urlFinalImagem = evento.imagem_capa || evento.capa_url || evento.imagem_url || evento.imagem || "https://images.unsplash.com/photo-1492684223066-81342ee5ff30";
+  console.log(`[Render Debug] URL da Imagem selecionada:`, urlFinalImagem);
+
+  // Lógica de Moeda e Internacionalização
   const moedaFinal = (evento.moeda || 'BRL').toUpperCase();
   const locale = language === 'PT' ? 'pt-BR' : 'en-US';
 
-  // Cálculo do total geral
   const calcularTotalGeral = () => {
     if (!evento.ingressos) return 0;
     return evento.ingressos.reduce((acc: number, ing: any) => {
@@ -116,20 +130,15 @@ export default function DetalhesEvento() {
           </div>
         </div>
 
-        {/* SEÇÃO HERO - CORREÇÃO DA IMAGEM AQUI */}
+        {/* SEÇÃO HERO - IMAGEM DINÂMICA */}
         <div className="relative w-full aspect-[21/9] rounded-[3rem] md:rounded-[4rem] overflow-hidden shadow-2xl mb-16 bg-slate-100 group">
           <img 
-            src={
-              evento.imagem_capa || 
-              evento.capa_url || 
-              evento.imagem_url || 
-              evento.imagem || 
-              "https://images.unsplash.com/photo-1492684223066-81342ee5ff30"
-            } 
+            src={urlFinalImagem} 
             className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
             alt={evento.nome}
-            onError={(e) => {
-              (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1492684223066-81342ee5ff30";
+            onError={(e) => { 
+              console.warn("[Render Debug] Erro ao carregar imagem, aplicando fallback do Unsplash.");
+              (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1492684223066-81342ee5ff30"; 
             }}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
@@ -151,7 +160,7 @@ export default function DetalhesEvento() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
           
-          {/* COLUNA ESQUERDA: INFORMAÇÕES */}
+          {/* COLUNA ESQUERDA: INFORMAÇÕES DETALHADAS */}
           <div className="lg:col-span-8 space-y-16">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div className="flex items-center gap-5">
@@ -174,9 +183,9 @@ export default function DetalhesEvento() {
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">{t.thLocation || 'Local'}</p>
                   <p className="font-bold text-slate-800 text-lg line-clamp-1">
-                    {evento.tipo === 'online' ? (language === 'PT' ? 'Plataforma Linkah' : 'Linkah Platform') : (evento.local_nome || evento.local)}
+                    {evento.tipo === 'online' ? 'Plataforma Linkah' : (evento.local_nome || evento.local)}
                   </p>
-                  <p className="text-sm text-slate-500 font-medium line-clamp-1">{evento.cidade || 'Linkah Transmissão'}{evento.estado ? `, ${evento.estado}` : ''}</p>
+                  <p className="text-sm text-slate-500 font-medium line-clamp-1">{evento.cidade || 'Digital'}{evento.estado ? `, ${evento.estado}` : ''}</p>
                 </div>
               </div>
 
@@ -186,7 +195,7 @@ export default function DetalhesEvento() {
                 </div>
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">{language === 'PT' ? 'ORGANIZADOR' : 'ORGANIZER'}</p>
-                  <p className="font-bold text-slate-800 text-lg line-clamp-1 capitalize">{evento.produtor_nome || t.producerDefaultName || 'Organizador'}</p>
+                  <p className="font-bold text-slate-800 text-lg line-clamp-1 capitalize">{evento.produtor_nome || 'Organizador'}</p>
                   <button className="text-sm text-[#C22973] font-bold hover:underline">{language === 'PT' ? 'Ver Perfil' : 'View Profile'}</button>
                 </div>
               </div>
@@ -203,7 +212,7 @@ export default function DetalhesEvento() {
             </div>
           </div>
 
-          {/* COLUNA DIREITA: CHECKOUT */}
+          {/* COLUNA DIREITA: CARD DE INGRESSOS E CHECKOUT */}
           <div className="lg:col-span-4">
             <div className="sticky top-28">
               <div className="bg-white rounded-[3.5rem] border border-slate-100 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.12)] overflow-hidden">
@@ -222,7 +231,7 @@ export default function DetalhesEvento() {
                         <div key={ing.id} className={`p-5 rounded-[2.5rem] border transition-all ${quantidades[ing.id] > 0 ? 'bg-pink-50/30 border-[#C22973]/20 shadow-sm' : 'bg-slate-50 border-slate-100'}`}>
                           <div className="flex justify-between items-start mb-4">
                             <div className="flex-1">
-                              <p className="font-bold text-slate-800 italic uppercase text-sm leading-tight">{ing.nome || (language === 'PT' ? 'Individual' : 'Single')}</p>
+                              <p className="font-bold text-slate-800 italic uppercase text-sm leading-tight">{ing.nome || 'Individual'}</p>
                               {ing.descricao && <p className="text-[10px] text-slate-400 mt-1 line-clamp-2">{ing.descricao}</p>}
                               <p className="text-[#C22973] font-black text-lg italic mt-1">
                                 {Number(ing.preco).toLocaleString(locale, { style: 'currency', currency: moedaFinal })}
@@ -248,13 +257,11 @@ export default function DetalhesEvento() {
                         </div>
                       ))
                     ) : (
-                      <div className="text-center py-6 text-slate-400 text-xs italic">
-                        Nenhum lote disponível no momento.
-                      </div>
+                      <div className="text-center py-6 text-slate-400 text-xs italic">Nenhum lote disponível no momento.</div>
                     )}
                   </div>
 
-                  {/* RESUMO E BOTÃO */}
+                  {/* RESUMO E BOTÃO DE COMPRA */}
                   <div className="pt-6 border-t border-slate-100 space-y-6">
                     <div className="flex justify-between items-end">
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Total da Reserva</p>
@@ -287,7 +294,7 @@ export default function DetalhesEvento() {
                 </div>
                 <p className="text-[11px] text-slate-400 font-bold leading-tight uppercase tracking-wider italic">
                   {language === 'PT' ? 'Compra Protegida' : 'Secure Checkout'} <br/> 
-                  <span className="text-slate-900">{language === 'PT' ? 'Garantia Linkah' : 'Linkah Guarantee'}</span>
+                  <span className="text-slate-900">Garantia Linkah</span>
                 </p>
               </div>
             </div>
