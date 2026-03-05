@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState, useCallback, Suspense } from 'react'; // ✅ Adicionado Suspense
+import { useEffect, useState, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   UserCircle, Save, Loader2, ArrowLeft, Info, 
-  MapPin, CreditCard, ExternalLink, CheckCircle2 
+  MapPin, CreditCard, ExternalLink, CheckCircle2, AlertCircle
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import Link from 'next/link';
@@ -12,7 +12,13 @@ import { useLanguage } from '@/app/context/LanguageContext';
 
 const API_URL = 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
 
-// ✅ 1. Criamos um componente interno para a lógica
+interface StripeDetails {
+  charges_enabled: boolean;
+  payouts_enabled: boolean;
+  business_name: string;
+  status_banco: string;
+}
+
 function PerfilContent() {
   const { t } = useLanguage();
   const router = useRouter();
@@ -23,6 +29,7 @@ function PerfilContent() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [stripeAccountId, setStripeAccountId] = useState<string | null>(null);
   const [stripeAtivo, setStripeAtivo] = useState(false);
+  const [stripeDetails, setStripeDetails] = useState<StripeDetails | null>(null);
   
   const [formData, setFormData] = useState({
     nome: '',
@@ -35,13 +42,20 @@ function PerfilContent() {
 
   const checarStatusStripe = useCallback(async (email: string) => {
     try {
-      console.log("🔍 Verificando status do Stripe para:", email);
+      console.log("🔍 Verificando detalhes reais do Stripe para:", email);
       const res = await fetch(`${API_URL}/api/pagamento/status-stripe?email=${email}`);
       const data = await res.json();
       
       if (data.conectado) {
-        setStripeAtivo(true);
-        if (searchParams.get('stripe') === 'success') {
+        setStripeAtivo(data.charges_enabled);
+        setStripeDetails({
+          charges_enabled: data.charges_enabled,
+          payouts_enabled: data.payouts_enabled,
+          business_name: data.business_name,
+          status_banco: data.status_banco
+        });
+
+        if (searchParams.get('stripe_callback') === 'true' && data.charges_enabled) {
           Swal.fire({
             title: 'CONTA ATIVADA!',
             text: 'Sua conta Stripe foi vinculada e está pronta para receber vendas.',
@@ -67,7 +81,6 @@ function PerfilContent() {
       }
 
       try {
-        console.log("📡 Carregando dados do perfil...");
         const response = await fetch(`${API_URL}/api/auth/perfil?email=${emailLogado}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -263,35 +276,55 @@ function PerfilContent() {
                 <h3 className="text-slate-900 font-black text-xs uppercase tracking-[0.3em] italic">Configuração de Recebimentos</h3>
               </div>
 
-              {stripeAtivo ? (
-                <div className="bg-emerald-50/50 border-2 border-emerald-100 p-8 rounded-[2.5rem] flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="bg-emerald-500 p-2 rounded-xl text-white">
-                      <CheckCircle2 size={20} />
+              {stripeAtivo && stripeDetails ? (
+                /* CARD DE CONTA CONECTADA E ATIVA */
+                <div className="bg-emerald-50/50 border-2 border-emerald-100 p-8 rounded-[2.5rem] space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="bg-emerald-500 p-2 rounded-xl text-white shadow-lg shadow-emerald-200">
+                        <CheckCircle2 size={20} />
+                      </div>
+                      <div>
+                        <p className="text-emerald-900 font-black uppercase text-[10px] tracking-widest leading-none">
+                          {stripeDetails.business_name}
+                        </p>
+                        <p className="text-slate-500 font-bold text-xs mt-1 italic">Vínculo estabelecido com sucesso</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-emerald-900 font-black uppercase text-[10px] tracking-widest leading-none">Conta Stripe Vinculada</p>
-                      <p className="text-slate-500 font-bold text-xs mt-1 italic">Sua conta está apta a receber via Pix e Cartão.</p>
+                    <span className="text-[10px] font-black text-emerald-600 bg-white px-4 py-2 rounded-full shadow-sm border border-emerald-50">ATIVO</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-6 border-t border-emerald-100/50">
+                    <div className="flex items-center gap-3 bg-white/50 p-3 rounded-2xl border border-emerald-50">
+                       <div className={`w-2 h-2 rounded-full ${stripeDetails.charges_enabled ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
+                       <span className="text-[10px] font-black text-slate-600 uppercase tracking-tight">Vendas: {stripeDetails.charges_enabled ? 'Habilitadas' : 'Bloqueadas'}</span>
+                    </div>
+                    <div className="flex items-center gap-3 bg-white/50 p-3 rounded-2xl border border-emerald-50">
+                       <div className={`w-2 h-2 rounded-full ${stripeDetails.payouts_enabled ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
+                       <span className="text-[10px] font-black text-slate-600 uppercase tracking-tight">Saques: {stripeDetails.payouts_enabled ? 'Liberados' : 'Em Verificação'}</span>
                     </div>
                   </div>
-                  <span className="text-[10px] font-black text-emerald-600 bg-white px-4 py-2 rounded-full shadow-sm">ATIVO</span>
                 </div>
               ) : (
+                /* CARD DE CONTA PENDENTE OU NÃO CONECTADA */
                 <div className="bg-slate-50 p-8 rounded-[2.5rem] border-2 border-dashed border-slate-200 flex flex-col md:flex-row items-center justify-between gap-6">
                   <div className="max-w-md">
-                    <p className="text-slate-700 font-bold text-sm mb-1 italic">
-                      {stripeAccountId ? "Finalize seu cadastro" : "Vincule sua conta bancária"}
-                    </p>
+                    <div className="flex items-center gap-2 mb-2">
+                       {stripeAccountId ? <AlertCircle className="text-amber-500" size={18} /> : null}
+                       <p className="text-slate-700 font-black text-sm italic uppercase">
+                        {stripeAccountId ? "Pendência no Cadastro" : "Vincule sua conta bancária"}
+                       </p>
+                    </div>
                     <p className="text-slate-400 font-medium text-[11px] leading-relaxed uppercase tracking-tight">
                       {stripeAccountId 
-                        ? "Clique no botão para completar os dados pendentes no painel do Stripe."
+                        ? "Sua conta foi criada, mas faltam documentos ou informações para liberar as vendas no Stripe."
                         : "Para vender e receber via Pix ou Cartão, conecte ao Stripe. Nós retemos apenas 5% de taxa."}
                     </p>
                   </div>
                   <button 
                     type="button" 
                     onClick={handleConectarStripe}
-                    className="bg-slate-900 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-3 hover:bg-black transition-all shadow-lg active:scale-95"
+                    className="bg-slate-900 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-3 hover:bg-black transition-all shadow-lg active:scale-95 whitespace-nowrap"
                   >
                     <ExternalLink size={16} /> {stripeAccountId ? "Concluir Onboarding" : "Configurar Recebimentos"}
                   </button>
@@ -317,7 +350,6 @@ function PerfilContent() {
   );
 }
 
-// ✅ 2. O export default agora envolve o conteúdo em um Suspense
 export default function PerfilPage() {
   return (
     <Suspense fallback={
