@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState, useCallback } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   UserCircle, Save, Loader2, ArrowLeft, Info, 
   MapPin, CreditCard, ExternalLink, CheckCircle2 
@@ -15,10 +15,13 @@ const API_URL = 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
 export default function PerfilPage() {
   const { t } = useLanguage();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [stripeAccountId, setStripeAccountId] = useState<string | null>(null);
+  const [stripeAtivo, setStripeAtivo] = useState(false);
   
   const [formData, setFormData] = useState({
     nome: '',
@@ -28,6 +31,29 @@ export default function PerfilPage() {
     numero: '',
     bairro: ''
   });
+
+  // Função para checar se o produtor completou o onboarding no Stripe
+  const checarStatusStripe = useCallback(async (email: string) => {
+    try {
+      const res = await fetch(`${API_URL}/api/pagamento/status-stripe?email=${email}`);
+      const data = await res.json();
+      
+      if (data.conectado) {
+        setStripeAtivo(true);
+        // Se detectarmos o retorno do Stripe agora, avisamos o usuário
+        if (searchParams.get('stripe') === 'success') {
+          Swal.fire({
+            title: 'CONTA ATIVADA!',
+            text: 'Sua conta Stripe foi vinculada e está pronta para receber vendas.',
+            icon: 'success',
+            confirmButtonColor: '#C22973'
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Erro ao verificar status Stripe:", error);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const carregarDados = async () => {
@@ -56,8 +82,12 @@ export default function PerfilPage() {
             bairro: data.bairro || ''
           });
           
-          // Guarda o ID da conta Stripe se existir
           setStripeAccountId(data.stripe_account_id || null);
+
+          // Se já tem ID, checa se a conta está ativa (charges_enabled)
+          if (data.stripe_account_id) {
+            await checarStatusStripe(emailLogado);
+          }
 
           if (data.cpf_cnpj && data.cep) {
             localStorage.setItem('perfil_completo', 'true');
@@ -71,7 +101,7 @@ export default function PerfilPage() {
     };
 
     carregarDados();
-  }, [router]);
+  }, [router, checarStatusStripe]);
 
   const handleConectarStripe = async () => {
     setIsSaving(true);
@@ -197,7 +227,6 @@ export default function PerfilPage() {
           </div>
           
           <form onSubmit={handleSalvar} className="space-y-12 relative z-10">
-            {/* CAMPOS BÁSICOS */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
               <div className="space-y-3">
                 <label className={`text-[11px] font-black uppercase tracking-[0.2em] block ml-1 ${errors.nome ? 'text-red-500' : 'text-slate-400'}`}>Nome do Responsável *</label>
@@ -209,7 +238,6 @@ export default function PerfilPage() {
               </div>
             </div>
 
-            {/* ENDEREÇO */}
             <div className="pt-12 border-t border-slate-100">
               <div className="flex items-center gap-2 mb-8">
                 <MapPin size={18} className="text-[#C22973]" />
@@ -231,14 +259,13 @@ export default function PerfilPage() {
               </div>
             </div>
 
-            {/* STRIPE CONNECT SECTION */}
             <div className="pt-12 border-t border-slate-100">
               <div className="flex items-center gap-2 mb-8">
                 <CreditCard size={18} className="text-[#C22973]" />
                 <h3 className="text-slate-900 font-black text-xs uppercase tracking-[0.3em] italic">Configuração de Recebimentos</h3>
               </div>
 
-              {stripeAccountId ? (
+              {stripeAtivo ? (
                 <div className="bg-emerald-50/50 border-2 border-emerald-100 p-8 rounded-[2.5rem] flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <div className="bg-emerald-500 p-2 rounded-xl text-white">
@@ -246,7 +273,7 @@ export default function PerfilPage() {
                     </div>
                     <div>
                       <p className="text-emerald-900 font-black uppercase text-[10px] tracking-widest leading-none">Conta Stripe Vinculada</p>
-                      <p className="text-slate-500 font-bold text-xs mt-1 italic">Receba 95% das vendas direto na sua conta.</p>
+                      <p className="text-slate-500 font-bold text-xs mt-1 italic">Sua conta está apta a receber via Pix e Cartão.</p>
                     </div>
                   </div>
                   <span className="text-[10px] font-black text-emerald-600 bg-white px-4 py-2 rounded-full shadow-sm">ATIVO</span>
@@ -254,9 +281,13 @@ export default function PerfilPage() {
               ) : (
                 <div className="bg-slate-50 p-8 rounded-[2.5rem] border-2 border-dashed border-slate-200 flex flex-col md:flex-row items-center justify-between gap-6">
                   <div className="max-w-md">
-                    <p className="text-slate-700 font-bold text-sm mb-1 italic">Vincule sua conta bancária</p>
+                    <p className="text-slate-700 font-bold text-sm mb-1 italic">
+                      {stripeAccountId ? "Finalize seu cadastro" : "Vincule sua conta bancária"}
+                    </p>
                     <p className="text-slate-400 font-medium text-[11px] leading-relaxed uppercase tracking-tight">
-                      Para vender e receber via <strong>Pix ou Cartão</strong>, conecte ao Stripe. Nós retemos apenas 5% de taxa.
+                      {stripeAccountId 
+                        ? "Clique no botão para completar os dados pendentes no painel do Stripe."
+                        : "Para vender e receber via Pix ou Cartão, conecte ao Stripe. Nós retemos apenas 5% de taxa."}
                     </p>
                   </div>
                   <button 
@@ -264,7 +295,7 @@ export default function PerfilPage() {
                     onClick={handleConectarStripe}
                     className="bg-slate-900 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-3 hover:bg-black transition-all shadow-lg active:scale-95"
                   >
-                    <ExternalLink size={16} /> Configurar Recebimentos
+                    <ExternalLink size={16} /> {stripeAccountId ? "Concluir Onboarding" : "Configurar Recebimentos"}
                   </button>
                 </div>
               )}

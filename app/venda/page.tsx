@@ -10,7 +10,6 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
-// --- CONFIGURAÇÃO DA API ATUALIZADA (AWS APP RUNNER) ---
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
 
 function CheckoutContent() {
@@ -22,20 +21,22 @@ function CheckoutContent() {
   const [evento, setEvento] = useState<any>(null);
   const [formData, setFormData] = useState({ nome: '', email: '' });
 
-  // Pegando as traduções do contexto
   const { t, language }: any = useLanguage();
 
   useEffect(() => {
     async function carregarEvento() {
       if (!eventoId) return;
       try {
+        console.log(`📡 Carregando evento ID: ${eventoId}...`);
         const res = await fetch(`${API_URL}/api/eventos/${eventoId}`);
         if (res.ok) {
           const data = await res.json();
           setEvento(data);
+        } else {
+          console.error("❌ Falha ao carregar evento:", res.status);
         }
       } catch (err) {
-        console.error("Erro ao carregar evento na AWS:", err);
+        console.error("🚨 Erro de conexão ao carregar evento:", err);
       }
     }
     carregarEvento();
@@ -54,7 +55,11 @@ function CheckoutContent() {
       alert(t.fillData || "Por favor, preencha seus dados.");
       return;
     }
+
     setLoading(true);
+    console.log("🚀 Iniciando Checkout...");
+    console.log("📦 Payload:", { eventoId, email: formData.email, qtd });
+
     try {
       const response = await fetch(`${API_URL}/api/pagamentos/checkout`, {
         method: 'POST',
@@ -65,15 +70,29 @@ function CheckoutContent() {
           quantidade: qtd
         }),
       });
-      
+
+      console.log("📡 Resposta bruta (Status):", response.status);
+
+      // Verificação de segurança: se não for JSON, pegamos o texto puro para logar
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        const textError = await response.text();
+        console.error("❌ O SERVIDOR NÃO RETORNOU JSON! Retornou HTML/Texto:");
+        console.log(textError); // Aqui você verá o erro real (ex: "Not Found" ou erro do Stripe)
+        throw new Error(`Servidor retornou erro ${response.status}. Verifique o console.`);
+      }
+
       const data = await response.json();
+      console.log("📥 Dados recebidos:", data);
       
       if (data.url) {
+        console.log("💸 Redirecionando para Stripe...");
         window.location.assign(data.url);
       } else {
-        throw new Error(t.paymentError || "Não foi possível gerar o link de pagamento.");
+        throw new Error(data.message || t.paymentError || "Erro ao gerar link de pagamento.");
       }
     } catch (err: any) {
+      console.error("🚨 Erro no processo de Checkout:", err.message);
       alert(`${t.transactionError || 'Erro na transação'}: ${err.message}`);
     } finally {
       setLoading(false);
@@ -82,6 +101,7 @@ function CheckoutContent() {
 
   return (
     <main className="max-w-4xl mx-auto px-6 py-12 bg-[#FCFBFA] min-h-screen">
+      {/* ... (resto do seu HTML permanece igual) ... */}
       <div className="mb-12">
         <Link href={`/evento/${eventoId}`} className="inline-flex items-center gap-2 text-slate-400 hover:text-slate-900 transition-all text-sm font-medium">
           <ArrowLeft size={16} /> {t.backToEvent || 'Voltar para o evento'}
@@ -181,12 +201,7 @@ export default function CheckoutPage() {
   return (
     <div className="bg-[#FCFBFA] min-h-screen">
       <Navbar />
-      <Suspense fallback={
-        <div className="h-[80vh] flex flex-col items-center justify-center gap-4">
-          <Loader2 className="animate-spin text-blue-600" size={40} />
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{t.preparingCheckout || 'Preparando Checkout...'}</p>
-        </div>
-      }>
+      <Suspense fallback={<Loader2 className="animate-spin text-blue-600 mx-auto mt-20" size={40} />}>
         <CheckoutContent />
       </Suspense>
     </div>
