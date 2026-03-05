@@ -3,7 +3,8 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 type Language = 'PT' | 'EN';
 
-const translations = {
+// Exportamos o objeto de traduções para que o TS possa inferir os tipos das chaves
+export const translations = {
   PT: {
     // Navbar e Geral
     welcome: "Bem-vindo",
@@ -18,6 +19,7 @@ const translations = {
     done: "Concluído",
     places: "lugar",
     placesPlural: "lugares",
+    from: "A partir de",
 
     // --- HOME / VITRINE ---
     slide1Title: "Descubra o seu",
@@ -40,7 +42,7 @@ const translations = {
     resultsFor: "Resultados para",
     noEventsFound: "Nenhum evento encontrado para esta seleção.",
 
-    // Filtros e Categorias (SINCRONIZADO COM DB)
+    // Filtros e Categorias
     filterVibe: "Filtrar por Vibe",
     allCategories: "Todos",
     catArt: "Arte & Cultura",
@@ -82,7 +84,7 @@ const translations = {
     labelLocation: "Local do Evento",
     btnSyncChanges: "Sincronizar Alterações",
 
-    // Cadastro de Evento Presencial (Passo 1)
+    // Cadastro de Evento Presencial
     eventPresencialTitle: "Novo Evento Presencial",
     eventInitialConfig: "Configuração Inicial • Passo 1",
     btnNextStep: "PRÓXIMO PASSO",
@@ -158,7 +160,7 @@ const translations = {
     errorSave: "Falha ao salvar dados",
     errorAWSConnection: "Conexão interrompida com o servidor AWS.",
 
-    // Sala de Chat / Comunidade Real-time (Linkah Skype)
+    // Sala de Chat / Comunidade
     chatRestrictedTitle: "Acesso Restrito",
     chatRestrictedSub: "Você precisa estar logado para entrar nesta sala.",
     chatRedirecting: "Redirecionando...",
@@ -270,6 +272,7 @@ const translations = {
     done: "Done",
     places: "seat",
     placesPlural: "seats",
+    from: "From",
 
     // --- HOME / SHOWCASE ---
     slide1Title: "Discover your",
@@ -292,16 +295,16 @@ const translations = {
     resultsFor: "Results for",
     noEventsFound: "No events found for this selection.",
 
-    // Filters and Categories (SINCRONIZADO COM DB)
+    // Filters and Categories
     filterVibe: "Filter by Vibe",
     allCategories: "All",
-    catArt: "Arte & Cultura",
-    catEnt: "Entretenimento",
-    catBiz: "Negócios",
-    catEdu: "Educação & Desenvolvimento",
-    catHealth: "Esportes & Bem-estar",
-    catLife: "Experiências & Lifestyle",
-    catFamily: "Família & Comunidade",
+    catArt: "Arts & Culture",
+    catEnt: "Entertainment",
+    catBiz: "Business",
+    catEdu: "Education",
+    catHealth: "Sports & Wellbeing",
+    catLife: "Experience & Lifestyle",
+    catFamily: "Family & Community",
 
     // Ticket Visual (Success Page / AWS)
     ticketTitle: "Your entry is granted!",
@@ -510,33 +513,59 @@ const translations = {
   }
 };
 
+// --- TIPAGEM ---
+// Isso resolve o erro 'string can't be used to index type'
+export type TranslationKeys = keyof typeof translations.PT;
+
 export interface LanguageContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
-  t: typeof translations.PT; 
+  // Forçamos o tipo para aceitar indexação por string (Record<string, string>) 
+  // mantendo a inteligência do editor para as chaves conhecidas
+  t: typeof translations.PT & Record<string, string>;
+  isMounted: boolean;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguage] = useState<Language>('PT');
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem('@Linkah:Lang') as Language;
-    if (saved) setLanguage(saved);
+    // Marca que o componente montou no navegador
+    setIsMounted(true);
+    
+    // Tenta recuperar idioma salvo com segurança
+    try {
+      const saved = localStorage.getItem('@Linkah:Lang') as Language;
+      if (saved && (saved === 'PT' || saved === 'EN')) {
+        setLanguage(saved);
+      }
+    } catch (e) {
+      console.warn("Ambiente sem suporte a localStorage");
+    }
   }, []);
 
   const handleSetLanguage = (lang: Language) => {
     setLanguage(lang);
-    localStorage.setItem('@Linkah:Lang', lang);
+    try {
+      localStorage.setItem('@Linkah:Lang', lang);
+    } catch (e) {
+      console.error("Erro ao persistir idioma");
+    }
+  };
+
+  const value = {
+    language,
+    setLanguage: handleSetLanguage,
+    // Cast para garantir que t possa ser indexado dinamicamente
+    t: translations[language] as typeof translations.PT & Record<string, string>,
+    isMounted
   };
 
   return (
-    <LanguageContext.Provider value={{ 
-      language, 
-      setLanguage: handleSetLanguage, 
-      t: translations[language] 
-    }}>
+    <LanguageContext.Provider value={value}>
       {children}
     </LanguageContext.Provider>
   );
