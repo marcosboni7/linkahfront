@@ -20,7 +20,7 @@ export function EventCard({ evento }: { evento: any }) {
 
   // --- LÓGICA DE IMAGEM BLINDADA ---
   const renderImagem = () => {
-    const img = evento.imagem_capa || evento.imagem;
+    const img = evento?.imagem_capa || evento?.imagem;
     
     if (!img || img === "null" || img === "undefined") {
       return "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4";
@@ -30,11 +30,11 @@ export function EventCard({ evento }: { evento: any }) {
       return img;
     }
 
-    return `${API_URL_BASE}/uploads/${img.replace(/^\/+/, '')}`;
+    return `${API_URL_BASE}/uploads/${String(img).replace(/^\/+/, '')}`;
   };
 
   const getCurrencySymbol = () => {
-    const m = String(evento.moeda || evento.currency || '').toUpperCase();
+    const m = String(evento?.moeda || evento?.currency || '').toUpperCase();
     if (m === 'EUR') return '€';
     if (m === 'USD') return '$';
     if (m === 'BRL') return 'R$';
@@ -42,10 +42,9 @@ export function EventCard({ evento }: { evento: any }) {
   };
 
   const formatarDataVitrine = () => {
-    // Se não estiver montado, retorna vazio para não dar conflito de fuso horário entre servidor/cliente
     if (!isMounted) return { diaSemana: '', dia: '', mes: '', hora: '' };
 
-    const dataRaw = evento.data_inicio || evento.data;
+    const dataRaw = evento?.data_inicio || evento?.data;
     if (!dataRaw) return { diaSemana: '', dia: '', mes: '', hora: '' };
 
     try {
@@ -65,7 +64,7 @@ export function EventCard({ evento }: { evento: any }) {
       const dia = d.toLocaleDateString(locale, { day: '2-digit' });
       const mes = d.toLocaleDateString(locale, { month: 'short' }).toUpperCase().replace('.', '');
       
-      const horaRaw = String(evento.horario || evento.hora_inicio || "");
+      const horaRaw = String(evento?.horario || evento?.hora_inicio || "");
       let horaFormatada = horaRaw.slice(0, 5);
       if (horaFormatada === "00:00" || !horaFormatada) horaFormatada = "";
 
@@ -78,7 +77,7 @@ export function EventCard({ evento }: { evento: any }) {
   const { diaSemana, dia, mes, hora } = formatarDataVitrine();
 
   const traduzirCategoria = (cat: string) => {
-    if (!isMounted) return cat; // Evita erro de tradução antes de carregar o contexto
+    if (!isMounted || !t) return cat; 
     const categorias: Record<string, string> = {
       'Arte & Cultura': t?.catArt || 'Arte & Cultura',
       'Entretenimento': t?.catEnt || 'Entretenimento',
@@ -91,7 +90,7 @@ export function EventCard({ evento }: { evento: any }) {
     return categorias[cat] || cat;
   };
 
-  // Enquanto não monta no cliente, renderizamos um "esqueleto" vazio para estabilidade
+  // Renderiza um placeholder idêntico ao server-side para evitar mismatch
   if (!isMounted) {
     return (
       <div className="w-full aspect-[16/10] bg-slate-50 rounded-2xl animate-pulse border border-gray-100" />
@@ -100,19 +99,19 @@ export function EventCard({ evento }: { evento: any }) {
 
   return (
     <Link 
-      href={`/evento/${evento.id}`} 
+      href={`/evento/${evento?.id || ''}`} 
       className="group block w-full bg-white rounded-2xl overflow-hidden hover:shadow-[0_30px_60px_-15px_rgba(255,77,77,0.15)] transition-all duration-500 border border-gray-100 flex flex-col h-full"
     >
       <div className="relative aspect-[16/10] overflow-hidden bg-gray-100">
         <img 
           src={renderImagem()} 
           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-          alt={String(evento.nome || "Evento")}
+          alt={String(evento?.nome || "Evento")}
           onError={(e) => { e.currentTarget.src = "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4"; }}
         />
         <div className="absolute top-4 left-4">
           <span className="bg-white/95 backdrop-blur-sm text-slate-900 text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-lg shadow-sm">
-            {traduzirCategoria(String(evento.categoria || 'Evento'))}
+            {traduzirCategoria(String(evento?.categoria || 'Evento'))}
           </span>
         </div>
       </div>
@@ -127,13 +126,13 @@ export function EventCard({ evento }: { evento: any }) {
         </div>
 
         <h3 className="text-slate-900 font-bold text-lg leading-tight mb-3 group-hover:text-[#ff4d4d] transition-colors line-clamp-2 min-h-[56px]">
-          {String(evento.nome || "Evento sem nome")}
+          {String(evento?.nome || "Evento sem nome")}
         </h3>
 
         <div className="flex items-center gap-1.5 text-gray-400 mb-6">
           <MapPin size={14} className="flex-shrink-0 text-gray-300" />
           <span className="text-xs font-medium truncate">
-            {String(evento.local_nome || 'Local')}, {String(evento.cidade || '')}
+            {String(evento?.local_nome || 'Local')}, {String(evento?.cidade || '')}
           </span>
         </div>
 
@@ -144,7 +143,7 @@ export function EventCard({ evento }: { evento: any }) {
             </p>
             <p className="text-xl font-black text-slate-900 tracking-tight">
               <span className="text-sm font-bold mr-0.5">{getCurrencySymbol()}</span>
-              {evento.preco_minimo 
+              {evento?.preco_minimo 
                 ? Number(evento.preco_minimo).toLocaleString(locale, { minimumFractionDigits: 2 }) 
                 : '0.00'}
             </p>

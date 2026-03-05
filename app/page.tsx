@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import dynamic from 'next/dynamic'; // ✅ Importação correta do Next.js
-import { Navbar } from './site/Navbar'; //teste
+import dynamic from 'next/dynamic';
+import { Navbar } from './site/Navbar';
 import { Footer } from './site/Footer';
 import { useLanguage } from '@/app/context/LanguageContext';
 import {
@@ -20,7 +20,7 @@ import {
   MessageCircle,
   Calendar,
 } from 'lucide-react';
-import Link from 'next/link'; // ✅ Corrigido: 'next/link'
+import Link from 'next/link';
 import Image from 'next/image';
 
 // 🔥 CONFIGURAÇÃO DINÂMICA: Resolve o erro de hidratação
@@ -64,7 +64,10 @@ const SLIDES = [
 ];
 
 export default function BuyTicketHome() {
-  const { t }: any = useLanguage();
+  const languageData = useLanguage();
+  // 🔥 SOLUÇÃO PARA O ERRO TS(7053): Forçamos t como Record<string, any>
+  const t = languageData?.t as Record<string, any> | undefined;
+
   const [isMounted, setIsMounted] = useState(false);
   const [eventos, setEventos] = useState<any[]>([]);
   const [comunidades, setComunidades] = useState<any[]>([]);
@@ -155,7 +158,10 @@ export default function BuyTicketHome() {
       <section className="relative h-[60vh] flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">
           {SLIDES.map((s, i) => (
-            <div key={s.id} className={`absolute inset-0 transition-all duration-[2000ms] ${i === currentSlide ? 'opacity-100 scale-100' : 'opacity-0 scale-105'}`}>
+            <div 
+              key={s.id} 
+              className={`absolute inset-0 transition-all duration-[2000ms] ${i === currentSlide ? 'opacity-100 scale-100' : 'opacity-0 scale-105'}`}
+            >
               <Image src={s.url} alt="Destaque" fill priority={i === 0} className="object-cover" />
               <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px]" />
               <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white" />
@@ -165,8 +171,11 @@ export default function BuyTicketHome() {
 
         <div className="relative z-10 w-full max-w-5xl px-6 text-center">
           <h1 className="text-5xl md:text-7xl font-black tracking-tighter text-slate-900 leading-none mb-10 uppercase">
-            {String(t?.[slide.titleKey] || "CRIANDO")} <br />
-            <span className="text-[#ff4d4d] italic font-serif font-light">{String(t?.[slide.highlightKey] || "MOMENTOS")}</span>
+            {/* O uso do operador opcional chaining ?. e do fallback garante que o site não quebre */}
+            {String(t?.[slide.titleKey] || "DESCUBRA")} <br />
+            <span className="text-[#ff4d4d] italic font-serif font-light">
+              {String(t?.[slide.highlightKey] || "EXPERIÊNCIAS")}
+            </span>
           </h1>
 
           <div className="mx-auto max-w-2xl bg-white rounded-2xl shadow-xl shadow-slate-200/50 p-1.5 flex border border-slate-100">
