@@ -1,10 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, dynamic } from 'react';
 import { Navbar } from './site/Navbar';
-import { EventCard } from './site/EventCard';
 import { Footer } from './site/Footer';
-import { CategoryFilter } from './site/CategoryFilter';
 import { useLanguage } from '@/app/context/LanguageContext';
 import {
   Search,
@@ -23,6 +21,10 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+
+// 🔥 IMPORTAÇÃO DINÂMICA: Isso remove o erro de hidratação (bloqueio)
+const EventCard = dynamic(() => import('./site/EventCard').then(mod => mod.EventCard), { ssr: false });
+const CategoryFilter = dynamic(() => import('./site/CategoryFilter').then(mod => mod.CategoryFilter), { ssr: false });
 
 const API_URL_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
 
@@ -56,7 +58,7 @@ const SLIDES = [
 
 export default function BuyTicketHome() {
   const { t }: any = useLanguage();
-  const [isMounted, setIsMounted] = useState(false); // 🔥 Trava de Hidratação
+  const [isMounted, setIsMounted] = useState(false);
   const [eventos, setEventos] = useState<any[]>([]);
   const [comunidades, setComunidades] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,7 +67,6 @@ export default function BuyTicketHome() {
   const [buscaNome, setBuscaNome] = useState('');
   const [currentSlide, setCurrentSlide] = useState(0);
 
-  // Garante que o componente só renderize conteúdo lógico após montar no cliente
   useEffect(() => {
     setIsMounted(true);
   }, []);
@@ -103,7 +104,7 @@ export default function BuyTicketHome() {
   }, [isMounted]);
 
   const vitrineFiltrada = useMemo(() => {
-    if (!isMounted) return []; // Retorna vazio durante SSR
+    if (!isMounted) return [];
 
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
@@ -136,13 +137,13 @@ export default function BuyTicketHome() {
     });
   }, [eventos, buscaNome, categoriaAtiva, filtroData, isMounted]);
 
-  // Se não montou, renderiza um fundo branco liso para evitar erro de servidor/cliente
+  // Se não estiver montado, renderiza apenas um container vazio para evitar conflito de HTML
   if (!isMounted) return <div className="min-h-screen bg-white" />;
 
   const slide = SLIDES[currentSlide];
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 selection:bg-[#ff4d4d]/20 font-sans">
+    <div className="min-h-screen bg-white text-slate-900 font-sans">
       <Navbar />
 
       <section className="relative h-[60vh] flex items-center justify-center overflow-hidden">
