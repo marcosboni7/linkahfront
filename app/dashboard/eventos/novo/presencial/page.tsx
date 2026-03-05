@@ -34,7 +34,7 @@ export default function NovoEventoPresencial() {
   const autocompleteRef = useRef<any>(null);
 
   const [previewImage, setPreviewImage] = useState<string | null>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null); // Guardar o arquivo real
+  const [selectedFile, setSelectedFile] = useState<File | null>(null); 
   
   const [formData, setFormData] = useState({
     nome: '', 
@@ -137,6 +137,8 @@ export default function NovoEventoPresencial() {
   };
 
   const handleSalvar = async () => {
+    console.log("🚀 Iniciando processo de salvamento...");
+    
     const token = localStorage.getItem('@Linkah:Token');
     let emailProdutor = localStorage.getItem('userEmail');
 
@@ -146,9 +148,11 @@ export default function NovoEventoPresencial() {
         try {
           const parsed = JSON.parse(userJSON);
           emailProdutor = parsed.email || parsed.user?.email;
-        } catch (e) { console.error("Falha ao parsear user"); }
+        } catch (e) { console.error("❌ Falha ao parsear user"); }
       }
     }
+
+    console.log("🔑 Dados de Autenticação:", { hasToken: !!token, emailProdutor });
 
     if (!token || !emailProdutor) {
       alert("Sessão expirada. Por favor, faça login novamente.");
@@ -156,13 +160,13 @@ export default function NovoEventoPresencial() {
     }
 
     if (!formData.nome || !formData.data_inicio || !formData.local_nome || !formData.categoria) {
+      console.warn("⚠️ Campos obrigatórios ausentes:", formData);
       alert("Por favor, preencha os campos obrigatórios.");
       return;
     }
 
     setIsLoading(true);
 
-    // --- NOVA LOGICA COM FORMDATA PARA EVITAR PLACEHOLDER ---
     const dataToSend = new FormData();
     
     // Adiciona campos de texto
@@ -172,29 +176,41 @@ export default function NovoEventoPresencial() {
     
     dataToSend.append('produtor_email', emailProdutor);
     
-    // Envia o arquivo real da imagem
     if (selectedFile) {
+      console.log("📸 Imagem anexada:", selectedFile.name);
       dataToSend.append('imagem_capa', selectedFile);
+    } else {
+      console.log("📸 Nenhuma imagem selecionada.");
+    }
+
+    // Log para conferir o que está indo no FormData (DEBUG)
+    console.log("📦 Dados enviados (FormData):");
+    for (let [key, value] of (dataToSend as any).entries()) {
+        console.log(`${key}:`, value);
     }
 
     try {
       const response = await fetch(`${API_URL}/api/eventos/novo-presencial`, {
         method: 'POST',
         headers: { 
-            // IMPORTANTE: Ao usar FormData, não defina o Content-Type manualmente
             'Authorization': `Bearer ${token}`
         },
         body: dataToSend,
       });
 
+      console.log("📡 Resposta do servidor (Status):", response.status);
       const data = await response.json();
+      console.log("📥 Dados recebidos do servidor:", data);
 
       if (response.ok) {
+        console.log("✅ Sucesso! Redirecionando...");
         router.push(`/dashboard/eventos/novo/ingressos/${data.id}`);
       } else {
+        console.error("❌ Erro retornado pela API:", data);
         alert(`Erro: ${data.message || "Erro ao salvar"}`);
       }
     } catch (error) {
+      console.error("🚨 Erro de conexão/rede:", error);
       alert("Falha de conexão com o servidor AWS.");
     } finally {
       setIsLoading(false);
