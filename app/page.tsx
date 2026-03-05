@@ -99,10 +99,15 @@ export default function BuyTicketHome() {
     const amanha = new Date(hoje);
     amanha.setDate(hoje.getDate() + 1);
 
-    return eventos.filter((ev) => {
-      const dataString = (ev.data_inicio || ev.data || '').split('T')[0];
-      const [ano, mes, dia] = dataString.split('-').map(Number);
-      const dataEv = new Date(ano, mes - 1, dia);
+    return (eventos || []).filter((ev) => {
+      const dataString = String(ev.data_inicio || ev.data || '').split('T')[0];
+      const partes = dataString.split('-');
+      
+      let dataEv = new Date(0); // Data padrão caso falhe
+      if (partes.length === 3) {
+        const [ano, mes, dia] = partes.map(Number);
+        dataEv = new Date(ano, mes - 1, dia);
+      }
       dataEv.setHours(0, 0, 0, 0);
 
       const nomeMatch = String(ev.nome || '').toLowerCase().includes(buscaNome.toLowerCase());
@@ -126,7 +131,6 @@ export default function BuyTicketHome() {
     <div className="min-h-screen bg-white text-slate-900 selection:bg-[#ff4d4d]/20 font-sans">
       <Navbar />
 
-      {/* --- HERO SECTION --- */}
       <section className="relative h-[60vh] flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">
           {SLIDES.map((s, i) => (
@@ -161,7 +165,6 @@ export default function BuyTicketHome() {
         </div>
       </section>
 
-      {/* FILTROS STICKY */}
       <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-100 py-4">
         <div className="mx-auto max-w-7xl px-6">
           <CategoryFilter categories={CATEGORIAS_FIXAS} activeCategory={categoriaAtiva} onSelect={setCategoriaAtiva} iconMap={iconMap} />
@@ -169,8 +172,6 @@ export default function BuyTicketHome() {
       </div>
 
       <main className="mx-auto max-w-7xl px-6 py-16 space-y-24">
-        
-        {/* --- VITRINE PRINCIPAL --- */}
         <section id="vitrine-principal" className="scroll-mt-32">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
             <div>
@@ -178,7 +179,6 @@ export default function BuyTicketHome() {
               <div className="h-1 w-12 bg-slate-900 rounded-full mt-2" />
             </div>
 
-            {/* PILLS DE DATA MAIS DISCRETOS */}
             <div className="flex flex-wrap gap-2 p-1 bg-slate-100 rounded-xl">
               {[
                 { id: 'todos', label: 'Todos', icon: Ticket },
@@ -212,7 +212,6 @@ export default function BuyTicketHome() {
           </div>
         </section>
 
-        {/* --- COMUNIDADES --- */}
         {!loading && comunidades.length > 0 && (
           <section className="space-y-10">
             <div className="flex items-end justify-between border-b border-slate-100 pb-6">
@@ -224,19 +223,21 @@ export default function BuyTicketHome() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {comunidades.map((com) => {
                 const rawFoto = com.foto_url || com.imagem || com.capa;
-                const fotoFinal = rawFoto ? (rawFoto.startsWith('http') ? rawFoto : `${API_URL_BASE}${rawFoto.startsWith('/') ? '' : '/'}${rawFoto}`) : 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?q=80&w=2070';
+                const fotoFinal = (rawFoto && typeof rawFoto === 'string') 
+                  ? (rawFoto.startsWith('http') ? rawFoto : `${API_URL_BASE}${rawFoto.startsWith('/') ? '' : '/'}${rawFoto}`) 
+                  : 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?q=80&w=2070';
                 
                 return (
                   <Link key={com.id} href={`/comunidades/${com.id}`} className="group bg-white rounded-3xl border border-slate-100 hover:border-slate-200 hover:shadow-xl transition-all duration-300 flex flex-col overflow-hidden">
                     <div className="relative h-48 w-full overflow-hidden bg-slate-50">
-                      <Image src={fotoFinal} alt={com.nome} fill unoptimized className="object-cover group-hover:scale-105 transition-transform duration-500" />
+                      <Image src={fotoFinal} alt={com.nome || "Comunidade"} fill unoptimized className="object-cover group-hover:scale-105 transition-transform duration-500" />
                     </div>
                     <div className="p-6 flex-grow">
                       <div className="bg-slate-100 w-fit px-3 py-1 rounded-full text-[9px] font-bold text-slate-600 mb-4 flex items-center gap-1.5 uppercase">
                         <Users size={12} /> {com.membros_count || 0} Membros
                       </div>
-                      <h3 className="text-xl font-black text-slate-900 mb-2 group-hover:text-[#ff4d4d] transition-colors uppercase tracking-tight">{com.nome}</h3>
-                      <p className="text-slate-500 text-sm line-clamp-2 leading-relaxed">{com.descricao || "Participe das discussões exclusivas desta comunidade."}</p>
+                      <h3 className="text-xl font-black text-slate-900 mb-2 group-hover:text-[#ff4d4d] transition-colors uppercase tracking-tight">{com.nome || "Sem Nome"}</h3>
+                      <p className="text-slate-500 text-sm line-clamp-2 leading-relaxed">{com.descricao || "Participe das discussões exclusivas."}</p>
                     </div>
                     <div className="px-6 pb-6">
                       <div className="w-full py-4 bg-slate-900 rounded-xl flex items-center justify-center gap-2 text-white font-bold text-[10px] uppercase tracking-widest group-hover:bg-slate-800 transition-all">
@@ -249,7 +250,6 @@ export default function BuyTicketHome() {
             </div>
           </section>
         )}
-
       </main>
       <Footer />
     </div>

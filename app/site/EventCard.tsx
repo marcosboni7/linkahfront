@@ -4,13 +4,33 @@ import Link from 'next/link';
 import { MapPin, Calendar, ArrowUpRight } from 'lucide-react';
 import { useLanguage } from '@/app/context/LanguageContext';
 
+const API_URL_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
+
 export function EventCard({ evento }: { evento: any }) {
   const { language, t }: any = useLanguage();
   
   const locale = language === 'PT' ? 'pt-BR' : 'en-US';
 
+  // --- LÓGICA DE IMAGEM BLINDADA ---
+  const renderImagem = () => {
+    const img = evento.imagem_capa || evento.imagem;
+    
+    // Se não tiver imagem ou for lixo, manda o fallback
+    if (!img || img === "null" || img === "undefined") {
+      return "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4";
+    }
+
+    // Se já for uma URL completa (S3 ou Unsplash), usa direto
+    if (String(img).startsWith('http')) {
+      return img;
+    }
+
+    // Se for apenas o nome do arquivo, monta com a URL da API
+    return `${API_URL_BASE}/uploads/${img}`;
+  };
+
   const getCurrencySymbol = () => {
-    const m = (evento.moeda || evento.currency || '').toUpperCase();
+    const m = String(evento.moeda || evento.currency || '').toUpperCase();
     if (m === 'EUR') return '€';
     if (m === 'USD') return '$';
     if (m === 'BRL') return 'R$';
@@ -23,40 +43,44 @@ export function EventCard({ evento }: { evento: any }) {
     const dataRaw = evento.data_inicio || evento.data;
     if (!dataRaw) return { diaSemana: '', dia: '', mes: '', hora: '' };
 
-    const apenasData = String(dataRaw).split('T')[0];
-    const partes = apenasData.split('-');
-    
-    if (partes.length !== 3) return { diaSemana: '', dia: '', mes: '', hora: '' };
+    try {
+      const apenasData = String(dataRaw).split('T')[0];
+      const partes = apenasData.split('-');
+      
+      if (partes.length !== 3) return { diaSemana: '', dia: '', mes: '', hora: '' };
 
-    const ano = parseInt(partes[0]);
-    const mesNum = parseInt(partes[1]) - 1; 
-    const diaNum = parseInt(partes[2]);
+      const ano = parseInt(partes[0]);
+      const mesNum = parseInt(partes[1]) - 1; 
+      const diaNum = parseInt(partes[2]);
 
-    const d = new Date(ano, mesNum, diaNum);
-    if (isNaN(d.getTime())) return { diaSemana: '', dia: '', mes: '', hora: '' };
+      const d = new Date(ano, mesNum, diaNum);
+      if (isNaN(d.getTime())) return { diaSemana: '', dia: '', mes: '', hora: '' };
 
-    const diaSemana = d.toLocaleDateString(locale, { weekday: 'short' }).toUpperCase().replace('.', '');
-    const dia = d.toLocaleDateString(locale, { day: '2-digit' });
-    const mes = d.toLocaleDateString(locale, { month: 'short' }).toUpperCase().replace('.', '');
-    
-    const horaRaw = evento.horario || evento.hora_inicio || "";
-    let horaFormatada = horaRaw.slice(0, 5);
-    if (horaFormatada === "00:00" || !horaFormatada) horaFormatada = "";
+      const diaSemana = d.toLocaleDateString(locale, { weekday: 'short' }).toUpperCase().replace('.', '');
+      const dia = d.toLocaleDateString(locale, { day: '2-digit' });
+      const mes = d.toLocaleDateString(locale, { month: 'short' }).toUpperCase().replace('.', '');
+      
+      const horaRaw = String(evento.horario || evento.hora_inicio || "");
+      let horaFormatada = horaRaw.slice(0, 5);
+      if (horaFormatada === "00:00" || !horaFormatada) horaFormatada = "";
 
-    return { diaSemana, dia, mes, hora: horaFormatada };
+      return { diaSemana, dia, mes, hora: horaFormatada };
+    } catch (e) {
+      return { diaSemana: '', dia: '', mes: '', hora: '' };
+    }
   };
 
   const { diaSemana, dia, mes, hora } = formatarDataVitrine();
 
   const traduzirCategoria = (cat: string) => {
     const categorias: Record<string, string> = {
-      'Arte & Cultura': t.catArt,
-      'Entretenimento': t.catEnt,
-      'Negócios': t.catBiz,
-      'Educação & Desenvolvimento': t.catEdu,
-      'Esportes & Bem-estar': t.catHealth,
-      'Experiências & Lifestyle': t.catLife,
-      'Família & Comunidade': t.catFamily,
+      'Arte & Cultura': t?.catArt || 'Arte',
+      'Entretenimento': t?.catEnt || 'Entretenimento',
+      'Negócios': t?.catBiz || 'Negócios',
+      'Educação & Desenvolvimento': t?.catEdu || 'Educação',
+      'Esportes & Bem-estar': t?.catHealth || 'Bem-estar',
+      'Experiências & Lifestyle': t?.catLife || 'Lifestyle',
+      'Família & Comunidade': t?.catFamily || 'Comunidade',
     };
     return categorias[cat] || cat;
   };
@@ -68,9 +92,10 @@ export function EventCard({ evento }: { evento: any }) {
     >
       <div className="relative aspect-[16/10] overflow-hidden bg-gray-100">
         <img 
-          src={String(evento.imagem_capa || evento.imagem || "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4")} 
+          src={renderImagem()} 
           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
           alt={String(evento.nome || "Evento")}
+          onError={(e) => { e.currentTarget.src = "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4"; }}
         />
         <div className="absolute top-4 left-4">
           <span className="bg-white/95 backdrop-blur-sm text-slate-900 text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-lg shadow-sm">
@@ -80,18 +105,16 @@ export function EventCard({ evento }: { evento: any }) {
       </div>
 
       <div className="p-6 flex flex-col flex-grow">
-        {/* Cor alterada de text-blue-600 para text-[#ff4d4d] */}
         <div className="flex items-center gap-2 text-[#ff4d4d] text-[11px] font-bold uppercase tracking-wider mb-4">
           <Calendar size={14} strokeWidth={2.5} />
           <span>
-            {diaSemana}, {dia} {mes}
+            {diaSemana ? `${diaSemana}, ${dia} ${mes}` : 'Data a definir'}
             {hora && ` • ${hora}`}
           </span>
         </div>
 
-        {/* Hover do título alterado para #ff4d4d */}
         <h3 className="text-slate-900 font-bold text-lg leading-tight mb-3 group-hover:text-[#ff4d4d] transition-colors line-clamp-2 min-h-[56px]">
-          {String(evento.nome || "")}
+          {String(evento.nome || "Evento sem nome")}
         </h3>
 
         <div className="flex items-center gap-1.5 text-gray-400 mb-6">
@@ -114,7 +137,6 @@ export function EventCard({ evento }: { evento: any }) {
             </p>
           </div>
           
-          {/* Botão de ação: hover agora fica com fundo #ff4d4d */}
           <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-[#ff4d4d] group-hover:text-white group-hover:rotate-45 transition-all duration-500">
               <ArrowUpRight size={20} />
           </div>
