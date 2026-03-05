@@ -12,7 +12,10 @@ const API_URL = 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
 
 function CheckoutContent() {
   const router = useRouter();
-  const { id } = useParams();
+  const params = useParams();
+  
+  // ✅ Garantindo que o ID seja capturado corretamente da URL
+  const id = params?.id;
   
   const [isSaving, setIsSaving] = useState(false);
   const [evento, setEvento] = useState<any>(null);
@@ -28,27 +31,44 @@ function CheckoutContent() {
 
   useEffect(() => {
     const carregarEvento = async () => {
-      if (!id) return;
+      // ✅ Log de debug para verificar se o ID existe ao carregar a página
+      console.log("🔍 Checkout ID detectado:", id);
+
+      if (!id) {
+        console.error("❌ ID não encontrado na URL. Verifique se a pasta é [id]");
+        return;
+      }
+
       try {
-        // Busca o evento - se o servidor demorar, o resto da página já apareceu
         const response = await fetch(`${API_URL}/api/eventos/${id}`);
-        if (!response.ok) throw new Error();
+        
+        if (!response.ok) {
+          console.error("❌ Erro na resposta da API:", response.status);
+          throw new Error("Evento não encontrado");
+        }
+
         const data = await response.json();
+        console.log("✅ Dados do evento carregados:", data);
         setEvento(data);
       } catch (error) {
         setError(true);
-        console.error("❌ Erro ao carregar evento");
+        console.error("❌ Erro ao buscar evento no servidor");
+        Swal.fire('Erro', 'Não foi possível carregar os detalhes deste evento.', 'error');
       }
     };
+
     carregarEvento();
   }, [id]);
 
   const handleFinalizarCompra = async () => {
     if (!evento) return;
     setIsSaving(true);
+
     try {
       const userStorage = localStorage.getItem('@Linkah:User');
       const emailLogado = userStorage ? JSON.parse(userStorage).email : localStorage.getItem('userEmail');
+
+      console.log("🚀 Iniciando checkout para:", emailLogado);
 
       const response = await fetch(`${API_URL}/api/pagamento/checkout`, {
         method: 'POST',
@@ -61,15 +81,17 @@ function CheckoutContent() {
       });
 
       const data = await response.json();
+
       if (data.url) {
         window.location.href = data.url;
       } else {
-        throw new Error(data.error);
+        throw new Error(data.error || "Erro ao gerar link de pagamento");
       }
     } catch (error: any) {
+      console.error("❌ Erro no processo de pagamento:", error);
       Swal.fire({
         title: 'Servidor Ocupado',
-        text: 'O sistema de pagamentos está acordando. Tente clicar novamente em 5 segundos.',
+        text: 'O sistema está processando sua solicitação. Tente clicar novamente em instantes.',
         icon: 'warning',
         confirmButtonColor: '#C22973'
       });
@@ -81,7 +103,7 @@ function CheckoutContent() {
   return (
     <div className="min-h-screen bg-[#FDFDFF] p-6 md:p-12 font-sans">
       <div className="max-w-[850px] mx-auto">
-        <button onClick={() => router.back()} className="inline-flex items-center gap-3 text-slate-400 hover:text-[#C22973] mb-10 font-black text-[10px] tracking-[0.2em] uppercase">
+        <button onClick={() => router.back()} className="inline-flex items-center gap-3 text-slate-400 hover:text-[#C22973] mb-10 font-black text-[10px] tracking-[0.2em] uppercase transition-colors">
           <ArrowLeft size={18} /> Voltar
         </button>
 
@@ -99,7 +121,7 @@ function CheckoutContent() {
           </div>
           
           <div className="space-y-12 relative z-10">
-            {/* Detalhes do Evento com Skeleton */}
+            {/* Detalhes do Evento com Skeleton condicional */}
             <div className="bg-slate-50 p-8 rounded-[2.5rem] border-2 border-slate-100">
               {!evento && !error ? (
                 <div className="flex animate-pulse gap-6">
@@ -108,6 +130,10 @@ function CheckoutContent() {
                     <div className="h-4 bg-slate-200 rounded w-3/4" />
                     <div className="h-4 bg-slate-200 rounded w-1/2" />
                   </div>
+                </div>
+              ) : error ? (
+                <div className="text-center py-4">
+                  <p className="text-red-500 font-bold uppercase text-xs tracking-widest">Erro ao carregar evento</p>
                 </div>
               ) : (
                 <div className="flex flex-col md:flex-row gap-8">
@@ -119,8 +145,8 @@ function CheckoutContent() {
                   <div className="space-y-3">
                     <h4 className="text-2xl font-black text-slate-800 uppercase italic tracking-tight">{evento?.titulo}</h4>
                     <div className="flex items-center gap-4 text-slate-500 font-bold text-xs uppercase tracking-widest">
-                      <span className="flex items-center gap-1"><Calendar size={14}/> {evento?.data ? new Date(evento.data).toLocaleDateString() : '...'}</span>
-                      <span className="flex items-center gap-1"><MapPin size={14}/> {evento?.local || '...'}</span>
+                      <span className="flex items-center gap-1"><Calendar size={14}/> {evento?.data ? new Date(evento.data).toLocaleDateString() : 'A definir'}</span>
+                      <span className="flex items-center gap-1"><MapPin size={14}/> {evento?.local || 'Local não informado'}</span>
                     </div>
                   </div>
                 </div>
@@ -148,7 +174,7 @@ function CheckoutContent() {
             <div className="bg-emerald-50/30 p-8 rounded-[2.5rem] flex gap-5 items-center border border-emerald-100/50">
               <ShieldCheck className="text-emerald-500 shrink-0" size={24} />
               <p className="text-[11px] text-emerald-900 font-bold uppercase tracking-tight">
-                Criptografia de ponta a ponta ativa.
+                Pagamento processado via Stripe. Seus dados estão protegidos.
               </p>
             </div>
 
@@ -166,7 +192,7 @@ function CheckoutContent() {
     </div>
   );
 }
-
+s
 export default function CheckoutPage() {
   return (
     <Suspense fallback={<div className="h-screen bg-white" />}>
