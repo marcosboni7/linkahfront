@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Poppins } from "next/font/google"; // Trocado Geist por Poppins
+import { Poppins } from "next/font/google";
 import "./globals.css";
 import Script from "next/script";
 import { LanguageProvider } from "./context/LanguageContext";
@@ -10,11 +10,10 @@ declare global {
   }
 }
 
-// Configuração da Poppins
 const poppins = Poppins({ 
   variable: "--font-poppins", 
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800", "900"], // Pesos que você costuma usar nos cards
+  weight: ["400", "500", "600", "700", "800", "900"],
 });
 
 export const metadata: Metadata = {
@@ -25,15 +24,20 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
-      <body className={`${poppins.variable} font-sans antialiased`}>
-        {/* Adicionei 'font-sans' para que a Poppins seja a fonte padrão de tudo */}
+      {/* O suppressHydrationWarning no <html> e <body> ajuda a ignorar 
+          extensões de browser que injetam código e causam erro de hidratação */}
+      <body className={`${poppins.variable} font-sans antialiased`} suppressHydrationWarning>
         <LanguageProvider>
           {children}
         </LanguageProvider>
 
+        {/* MUDANÇA CRÍTICA: strategy="afterInteractive" 
+          Isso evita que o script bloqueie a hidratação do React.
+          O beforeInteractive muitas vezes causa o crash "Application Error" no App Runner.
+        */}
         <Script
-          src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDlGFav-T-Dig9xkdqpqfr98pJP8zmWbE8&libraries=places"
-          strategy="beforeInteractive"
+          src={`https://maps.googleapis.com/maps/api/js?key=AIzaSyDlGFav-T-Dig9xkdqpqfr98pJP8zmWbE8&libraries=places`}
+          strategy="lazyOnload" // Ou "afterInteractive" se você precisar do mapa instantaneamente
         />
       </body>
     </html>
