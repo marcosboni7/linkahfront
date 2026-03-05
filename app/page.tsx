@@ -1,9 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-// ✅ Importação correta do dynamic para Next.js
-import dynamic from 'next/dynamic';
-import { Navbar } from './site/Navbar';
+import dynamic from 'next/dynamic'; // ✅ Importação correta do Next.js
+import { Navbar } from './site/Navbar'; //teste
 import { Footer } from './site/Footer';
 import { useLanguage } from '@/app/context/LanguageContext';
 import {
@@ -21,10 +20,10 @@ import {
   MessageCircle,
   Calendar,
 } from 'lucide-react';
-import Link from 'link';
+import Link from 'next/link'; // ✅ Corrigido: 'next/link'
 import Image from 'next/image';
 
-// 🔥 CONFIGURAÇÃO DINÂMICA: Impede que esses componentes quebrem o SSR/Hidratação
+// 🔥 CONFIGURAÇÃO DINÂMICA: Resolve o erro de hidratação
 const EventCard = dynamic(() => import('./site/EventCard').then(mod => mod.EventCard), { 
   ssr: false,
   loading: () => <div className="h-64 bg-slate-50 animate-pulse rounded-3xl" /> 
@@ -75,7 +74,6 @@ export default function BuyTicketHome() {
   const [buscaNome, setBuscaNome] = useState('');
   const [currentSlide, setCurrentSlide] = useState(0);
 
-  // Garante que o código lógico só rode no Navegador
   useEffect(() => {
     setIsMounted(true);
   }, []);
@@ -146,7 +144,6 @@ export default function BuyTicketHome() {
     });
   }, [eventos, buscaNome, categoriaAtiva, filtroData, isMounted]);
 
-  // Bloqueio preventivo de renderização no Servidor
   if (!isMounted) return <div className="min-h-screen bg-white" />;
 
   const slide = SLIDES[currentSlide];
@@ -274,7 +271,7 @@ export default function BuyTicketHome() {
             </div>
           </section>
         )}
-      </main>
+      </main> 
       <Footer />
     </div>
   );
