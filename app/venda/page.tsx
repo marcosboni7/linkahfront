@@ -6,11 +6,12 @@ import { Navbar } from '../site/Navbar';
 import { useLanguage } from '@/app/context/LanguageContext';
 import { 
   ShieldCheck, Lock, Loader2, ArrowLeft, 
-  Ticket as TicketIcon, Check, CreditCard
+  Ticket as TicketIcon, CreditCard
 } from 'lucide-react';
 import Link from 'next/link';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
+// ✅ URL DO BACKEND - Certifique-se de que esta é a URL da API Node.js
+const API_URL = 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
 
 function CheckoutContent() {
   const searchParams = useSearchParams();
@@ -27,22 +28,27 @@ function CheckoutContent() {
     async function carregarEvento() {
       if (!eventoId) return;
       try {
-        console.log(`📡 Carregando evento ID: ${eventoId}...`);
+        console.log(`📡 [1] Buscando detalhes do evento ID: ${eventoId}...`);
         const res = await fetch(`${API_URL}/api/eventos/${eventoId}`);
+        
+        console.log(`📡 [2] Resposta do Servidor (Status): ${res.status}`);
+        
         if (res.ok) {
           const data = await res.json();
+          console.log("✅ [3] Evento carregado com sucesso:", data);
           setEvento(data);
         } else {
-          console.error("❌ Falha ao carregar evento:", res.status);
+          const errorText = await res.text();
+          console.error("❌ [Erro] Falha ao carregar evento:", errorText);
         }
       } catch (err) {
-        console.error("🚨 Erro de conexão ao carregar evento:", err);
+        console.error("🚨 [Erro] Falha de conexão ao carregar evento:", err);
       }
     }
     carregarEvento();
   }, [eventoId]);
 
-  const precoBase = evento?.ingressos?.[0]?.preco ? Number(evento.ingressos[0].preco) : 0;
+  const precoBase = evento?.preco ? Number(evento.preco) : 0;
   const total = precoBase * qtd;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -57,42 +63,49 @@ function CheckoutContent() {
     }
 
     setLoading(true);
-    console.log("🚀 Iniciando Checkout...");
     
+    console.log("🚀 [4] Iniciando processo de Checkout...");
+    const payload = {
+      evento: { 
+        id: eventoId, 
+        nome: evento?.nome, 
+        preco: precoBase 
+      },
+      usuarioEmail: formData.email,
+      quantidade: qtd
+    };
+    
+    console.log("📦 [5] Payload enviado:", JSON.stringify(payload, null, 2));
+
     try {
-      // CORREÇÃO: Removido o 's' de /pagamentos para bater com a rota do Backend
       const response = await fetch(`${API_URL}/api/pagamento/checkout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          eventoId: eventoId, // Enviando ID direto conforme esperado pelo controller
-          titulo: evento?.nome,
-          preco: precoBase,
-          usuarioEmail: formData.email,
-          quantidade: qtd,
-          nomeComprador: formData.nome
-        }),
+        body: JSON.stringify(payload),
       });
 
-      const contentType = response.headers.get("content-type");
-      
-      if (!response.ok) {
-        const errorData = contentType?.includes("application/json") 
-          ? await response.json() 
-          : { message: await response.text() };
-        throw new Error(errorData.message || `Erro ${response.status}`);
+      console.log(`📡 [6] Resposta da API Checkout (Status): ${response.status}`);
+
+      // Lendo a resposta como texto primeiro para depurar o erro do JSON
+      const textResponse = await response.text();
+      console.log("📄 [7] Conteúdo bruto da resposta:", textResponse);
+
+      if (textResponse.startsWith('<!DOCTYPE') || textResponse.startsWith('<html')) {
+        console.error("🚨 O servidor retornou HTML! Isso geralmente significa um 404 (rota errada) ou 500 (crash no server).");
+        throw new Error("A API retornou um erro inesperado (Página HTML). Verifique se a rota /api/pagamento/checkout existe no backend.");
       }
 
-      const data = await response.json();
+      const data = JSON.parse(textResponse);
       
       if (data.url) {
-        console.log("💸 Redirecionando para Stripe...");
+        console.log("💸 [8] URL do Stripe gerada! Redirecionando...");
         window.location.assign(data.url);
       } else {
-        throw new Error("O servidor não retornou a URL de pagamento.");
+        console.error("❌ [Erro] API não retornou URL:", data);
+        throw new Error(data.error || "O servidor não retornou a URL de pagamento.");
       }
     } catch (err: any) {
-      console.error("🚨 Erro no Checkout:", err.message);
+      console.error("🚨 [Erro Crítico] Detalhes:", err.message);
       alert(`Erro na transação: ${err.message}`);
     } finally {
       setLoading(false);
@@ -183,10 +196,6 @@ function CheckoutContent() {
             >
               {loading ? <Loader2 className="animate-spin" size={20} /> : <><Lock size={18}/> {t.goToPayment || 'Ir para Pagamento'}</>}
             </button>
-
-            <p className="text-[10px] text-slate-300 font-bold uppercase tracking-[0.2em] text-center">
-              Secured by Linkah AWS Architecture
-            </p>
           </div>
         </div>
       </div>
