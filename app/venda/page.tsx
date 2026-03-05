@@ -58,42 +58,42 @@ function CheckoutContent() {
 
     setLoading(true);
     console.log("🚀 Iniciando Checkout...");
-    console.log("📦 Payload:", { eventoId, email: formData.email, qtd });
-
+    
     try {
-      const response = await fetch(`${API_URL}/api/pagamentos/checkout`, {
+      // CORREÇÃO: Removido o 's' de /pagamentos para bater com a rota do Backend
+      const response = await fetch(`${API_URL}/api/pagamento/checkout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          evento: { id: eventoId, titulo: evento?.nome, preco: precoBase },
+          eventoId: eventoId, // Enviando ID direto conforme esperado pelo controller
+          titulo: evento?.nome,
+          preco: precoBase,
           usuarioEmail: formData.email,
-          quantidade: qtd
+          quantidade: qtd,
+          nomeComprador: formData.nome
         }),
       });
 
-      console.log("📡 Resposta bruta (Status):", response.status);
-
-      // Verificação de segurança: se não for JSON, pegamos o texto puro para logar
       const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        const textError = await response.text();
-        console.error("❌ O SERVIDOR NÃO RETORNOU JSON! Retornou HTML/Texto:");
-        console.log(textError); // Aqui você verá o erro real (ex: "Not Found" ou erro do Stripe)
-        throw new Error(`Servidor retornou erro ${response.status}. Verifique o console.`);
+      
+      if (!response.ok) {
+        const errorData = contentType?.includes("application/json") 
+          ? await response.json() 
+          : { message: await response.text() };
+        throw new Error(errorData.message || `Erro ${response.status}`);
       }
 
       const data = await response.json();
-      console.log("📥 Dados recebidos:", data);
       
       if (data.url) {
         console.log("💸 Redirecionando para Stripe...");
         window.location.assign(data.url);
       } else {
-        throw new Error(data.message || t.paymentError || "Erro ao gerar link de pagamento.");
+        throw new Error("O servidor não retornou a URL de pagamento.");
       }
     } catch (err: any) {
-      console.error("🚨 Erro no processo de Checkout:", err.message);
-      alert(`${t.transactionError || 'Erro na transação'}: ${err.message}`);
+      console.error("🚨 Erro no Checkout:", err.message);
+      alert(`Erro na transação: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -101,7 +101,6 @@ function CheckoutContent() {
 
   return (
     <main className="max-w-4xl mx-auto px-6 py-12 bg-[#FCFBFA] min-h-screen">
-      {/* ... (resto do seu HTML permanece igual) ... */}
       <div className="mb-12">
         <Link href={`/evento/${eventoId}`} className="inline-flex items-center gap-2 text-slate-400 hover:text-slate-900 transition-all text-sm font-medium">
           <ArrowLeft size={16} /> {t.backToEvent || 'Voltar para o evento'}
@@ -196,12 +195,14 @@ function CheckoutContent() {
 }
 
 export default function CheckoutPage() {
-  const { t }: any = useLanguage();
-  
   return (
     <div className="bg-[#FCFBFA] min-h-screen">
       <Navbar />
-      <Suspense fallback={<Loader2 className="animate-spin text-blue-600 mx-auto mt-20" size={40} />}>
+      <Suspense fallback={
+        <div className="flex justify-center mt-20">
+          <Loader2 className="animate-spin text-blue-600" size={40} />
+        </div>
+      }>
         <CheckoutContent />
       </Suspense>
     </div>
