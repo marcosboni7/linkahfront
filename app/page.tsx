@@ -1,6 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useState, dynamic } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+// ✅ Importação correta do dynamic para Next.js
+import dynamic from 'next/dynamic';
 import { Navbar } from './site/Navbar';
 import { Footer } from './site/Footer';
 import { useLanguage } from '@/app/context/LanguageContext';
@@ -19,12 +21,18 @@ import {
   MessageCircle,
   Calendar,
 } from 'lucide-react';
-import Link from 'next/link';
+import Link from 'link';
 import Image from 'next/image';
 
-// 🔥 IMPORTAÇÃO DINÂMICA: Isso remove o erro de hidratação (bloqueio)
-const EventCard = dynamic(() => import('./site/EventCard').then(mod => mod.EventCard), { ssr: false });
-const CategoryFilter = dynamic(() => import('./site/CategoryFilter').then(mod => mod.CategoryFilter), { ssr: false });
+// 🔥 CONFIGURAÇÃO DINÂMICA: Impede que esses componentes quebrem o SSR/Hidratação
+const EventCard = dynamic(() => import('./site/EventCard').then(mod => mod.EventCard), { 
+  ssr: false,
+  loading: () => <div className="h-64 bg-slate-50 animate-pulse rounded-3xl" /> 
+});
+
+const CategoryFilter = dynamic(() => import('./site/CategoryFilter').then(mod => mod.CategoryFilter), { 
+  ssr: false 
+});
 
 const API_URL_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
 
@@ -67,6 +75,7 @@ export default function BuyTicketHome() {
   const [buscaNome, setBuscaNome] = useState('');
   const [currentSlide, setCurrentSlide] = useState(0);
 
+  // Garante que o código lógico só rode no Navegador
   useEffect(() => {
     setIsMounted(true);
   }, []);
@@ -137,13 +146,13 @@ export default function BuyTicketHome() {
     });
   }, [eventos, buscaNome, categoriaAtiva, filtroData, isMounted]);
 
-  // Se não estiver montado, renderiza apenas um container vazio para evitar conflito de HTML
+  // Bloqueio preventivo de renderização no Servidor
   if (!isMounted) return <div className="min-h-screen bg-white" />;
 
   const slide = SLIDES[currentSlide];
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 font-sans">
+    <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-[#ff4d4d]/20">
       <Navbar />
 
       <section className="relative h-[60vh] flex items-center justify-center overflow-hidden">
