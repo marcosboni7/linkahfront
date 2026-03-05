@@ -23,23 +23,24 @@ export default function TabelaEventos() {
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Debug da função de imagem
+  // Função de validação de imagem corrigida
   const validarImagem = (url: any) => {
-    console.log("🔍 [DEBUG-IMG] Validando entrada:", url);
-    
-    if (!url || url === "undefined" || url === "null" || String(url).includes('[object Object]')) {
-      console.log("⚠️ [DEBUG-IMG] Entrada inválida, usando placeholder.");
-      return 'https://placehold.co/400x400/e2e8f0/64748b?text=Sem+Imagem';
+    // Se for null, undefined ou a string "null"/"undefined" ou conter erro de objeto
+    if (!url || url === "null" || url === "undefined" || String(url).includes('[object Object]')) {
+      return 'https://placehold.co/400x400/e2e8f0/64748b?text=Linkah';
     }
 
-    if (typeof url === 'string' && url.startsWith('http')) {
-      console.log("🔗 [DEBUG-IMG] URL completa detectada:", url);
+    // Se a URL já for completa (S3 ou externa)
+    if (typeof url === 'string' && (url.startsWith('http://') || url.startsWith('https://'))) {
+      // Evita tentar carregar a imagem padrão que sabemos estar dando 404/403 no seu servidor
+      if (url.includes('default-event.png')) {
+        return 'https://placehold.co/400x400/e2e8f0/64748b?text=Evento';
+      }
       return url;
     }
 
-    const finalUrl = `${API_URL}/uploads/${url}`;
-    console.log("📁 [DEBUG-IMG] Nome de arquivo detectado. URL final:", finalUrl);
-    return finalUrl;
+    // Se for apenas o nome do arquivo, concatena com a rota de uploads
+    return `${API_URL}/uploads/${url}`;
   };
 
   const formatarDataLocal = (dataString: string) => {
@@ -52,26 +53,26 @@ export default function TabelaEventos() {
 
   const carregarEventos = async () => {
     setLoading(true);
-    console.log("🔄 [REFRESH] Iniciando busca de eventos...");
     try {
       const rawToken = localStorage.getItem('@Linkah:Token') || localStorage.getItem('token');
       const token = rawToken ? rawToken.replace(/['"]+/g, '').trim() : '';
-      let emailBase = localStorage.getItem('userEmail') || localStorage.getItem('email') || "marcosphara@gmail.com";
+      let emailBase = localStorage.getItem('userEmail') || localStorage.getItem('email') || "";
       const emailLimpo = emailBase.replace(/['"]+/g, '').trim().toLowerCase();
 
+      // Timestamp para evitar cache agressivo da AWS/Browser
       let url = `${API_URL}/api/eventos/listar?email=${encodeURIComponent(emailLimpo)}&t=${Date.now()}`;
       
-      let res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+      let res = await fetch(url, { 
+        headers: { 'Authorization': `Bearer ${token}` },
+        cache: 'no-store'
+      });
       let data = await res.json();
 
       if (res.ok) {
-        console.log("✅ [LISTA] Sucesso. Itens:", data.length);
         setEventos(Array.isArray(data) ? data : []);
-      } else {
-        console.error("❌ [LISTA] Erro HTTP:", res.status);
       }
     } catch (err) {
-      console.error("❌ [LISTA] Falha crítica:", err);
+      console.error("❌ Erro ao buscar lista:", err);
     } finally {
       setLoading(false);
     }
@@ -80,10 +81,8 @@ export default function TabelaEventos() {
   useEffect(() => { carregarEventos(); }, []);
 
   const abrirModalEdicao = (evento: any) => {
-    console.log("📝 [MODAL] Abrindo edição:", { id: evento.id, imagemAtual: evento.imagem_capa });
     setEventoParaEditar({ ...evento });
-    const inicialPreview = validarImagem(evento.imagem_capa);
-    setPreviewUrl(inicialPreview);
+    setPreviewUrl(validarImagem(evento.imagem_capa));
     setSelectedFile(null);
     setIsEditModalOpen(true);
   };
@@ -93,8 +92,6 @@ export default function TabelaEventos() {
     if (!eventoParaEditar?.nome) return;
     
     setSaving(true);
-    console.log("📤 [PUT] Preparando envio...");
-
     try {
       const rawToken = localStorage.getItem('@Linkah:Token') || localStorage.getItem('token');
       const token = rawToken ? rawToken.replace(/['"]+/g, '').trim() : '';
@@ -105,10 +102,9 @@ export default function TabelaEventos() {
       
       if (selectedFile) {
         formData.append('imagem_capa', selectedFile);
-        console.log("📷 [FOTO] Enviando novo arquivo:", selectedFile.name);
       } else {
+        // Se não mudou a foto, envia o valor atual (pode ser null ou o nome do arquivo antigo)
         formData.append('imagem_capa', eventoParaEditar.imagem_capa || '');
-        console.log("🔗 [FOTO] Mantendo valor atual do banco:", eventoParaEditar.imagem_capa);
       }
 
       const res = await fetch(`${API_URL}/api/eventos/${eventoParaEditar.id}`, {
@@ -117,28 +113,46 @@ export default function TabelaEventos() {
         body: formData,
       });
 
-      const result = await res.json();
-
       if (res.ok) {
-        console.log("✅ [PUT] Resposta do servidor:", result);
         setIsEditModalOpen(false);
-        await Swal.fire({ title: "Atualizado!", icon: 'success', timer: 1500, showConfirmButton: false });
+        await Swal.fire({ title: "Sucesso!", text: "Evento atualizado", icon: 'success', timer: 1500, showConfirmButton: false });
         carregarEventos();
       } else {
-        console.error("❌ [PUT] Erro retornado:", result);
-        Swal.fire('Erro', result.error || 'Erro ao salvar', 'error');
+        const errorData = await res.json();
+        Swal.fire('Erro', errorData.error || 'Erro ao salvar', 'error');
       }
     } catch (err) {
-      console.error("❌ [PUT] Exceção:", err);
-      Swal.fire('Erro', 'Falha ao conectar com o servidor', 'error');
+      Swal.fire('Erro', 'Falha na comunicação com servidor', 'error');
     } finally {
       setSaving(false);
     }
   };
 
+  const handleExcluir = async (id: any) => {
+    const result = await Swal.fire({
+      title: 'Excluir evento?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sim',
+      cancelButtonText: 'Não'
+    });
+
+    if (result.isConfirmed) {
+      try {
+        const rawToken = localStorage.getItem('@Linkah:Token') || localStorage.getItem('token');
+        const token = rawToken ? rawToken.replace(/['"]+/g, '').trim() : '';
+        await fetch(`${API_URL}/api/eventos/${id}`, { 
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        carregarEventos();
+      } catch (e) { console.error(e); }
+    }
+  };
+
   return (
     <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden font-sans">
-      <div className="p-10 border-b border-slate-50 flex justify-between items-center bg-white">
+      <div className="p-10 border-b border-slate-50 flex justify-between items-center">
         <div>
           <h2 className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Painel do Produtor</h2>
           <p className="text-slate-950 font-bold text-2xl tracking-tighter">Meus Eventos</p>
@@ -163,50 +177,47 @@ export default function TabelaEventos() {
           <tbody className="divide-y divide-slate-50">
             {loading ? (
               <tr><td colSpan={3} className="py-24 text-center"><Loader2 className="animate-spin mx-auto text-[#FF4D4D]" size={32} /></td></tr>
+            ) : eventos.length === 0 ? (
+                <tr><td colSpan={3} className="py-24 text-center text-slate-400">Nenhum evento encontrado.</td></tr>
             ) : (
-              eventos.map((evento) => {
-                const imgSource = `${validarImagem(evento.imagem_capa)}?t=${Date.now()}`;
-                return (
-                  <tr key={evento.id} className="hover:bg-slate-50/50 transition-colors group">
-                    <td className="px-10 py-6">
-                      <div className="flex items-center gap-5">
-                        <div className="w-14 h-14 rounded-2xl bg-slate-100 overflow-hidden border border-slate-50 shadow-inner">
-                          <img 
-                            src={imgSource} 
-                            className="w-full h-full object-cover" 
-                            alt={evento.nome}
-                            onError={(e:any) => {
-                              console.error(`❌ [IMG-ERROR] Falha ao carregar ID ${evento.id}. URL tentada: ${e.target.src}`);
-                              e.target.onerror = null; 
-                              e.target.src='https://placehold.co/400x400/e2e8f0/64748b?text=Erro+403/404';
-                            }} 
-                          />
-                        </div>
-                        <div>
-                          <p className="font-bold text-slate-900 text-base">{evento.nome || "Sem nome"}</p>
-                          <p className="text-[10px] text-[#FF4D4D] font-black uppercase tracking-widest">{evento.categoria || 'Evento'}</p>
-                        </div>
+              eventos.map((evento) => (
+                <tr key={evento.id} className="hover:bg-slate-50/50 transition-colors group">
+                  <td className="px-10 py-6">
+                    <div className="flex items-center gap-5">
+                      <div className="w-14 h-14 rounded-2xl bg-slate-100 overflow-hidden border border-slate-50 shadow-inner">
+                        <img 
+                          src={validarImagem(evento.imagem_capa)} 
+                          className="w-full h-full object-cover" 
+                          alt={evento.nome}
+                          onError={(e:any) => {
+                            e.target.onerror = null; 
+                            e.target.src='https://placehold.co/400x400/e2e8f0/64748b?text=Erro+404';
+                          }} 
+                        />
                       </div>
-                    </td>
-                    <td className="px-6 py-6 text-center text-xs font-bold text-slate-500 uppercase">
-                      {formatarDataLocal(evento.data_inicio)}
-                    </td>
-                    <td className="px-10 py-6 text-right">
-                      <div className="flex justify-end gap-2">
-                        <button onClick={() => abrirModalEdicao(evento)} className="p-3 bg-slate-50 text-slate-400 hover:text-black rounded-xl transition-all"><Edit3 size={18} /></button>
-                        <button onClick={() => router.push(`/dashboard/eventos/novo/ingressos/${evento.id}`)} className="p-3 bg-slate-50 text-slate-400 hover:text-[#FF4D4D] rounded-xl transition-all"><Ticket size={18} /></button>
-                        <button onClick={() => console.log("Excluir", evento.id)} className="p-3 bg-slate-50 text-slate-400 hover:text-red-600 rounded-xl transition-all"><Trash2 size={18} /></button>
+                      <div>
+                        <p className="font-bold text-slate-900 text-base">{evento.nome || "Sem nome"}</p>
+                        <p className="text-[10px] text-[#FF4D4D] font-black uppercase tracking-widest">{evento.categoria || 'Evento'}</p>
                       </div>
-                    </td>
-                  </tr>
-                );
-              })
+                    </div>
+                  </td>
+                  <td className="px-6 py-6 text-center text-xs font-bold text-slate-500 uppercase">
+                    {formatarDataLocal(evento.data_inicio)}
+                  </td>
+                  <td className="px-10 py-6 text-right">
+                    <div className="flex justify-end gap-2">
+                      <button onClick={() => abrirModalEdicao(evento)} className="p-3 bg-slate-50 text-slate-400 hover:text-black rounded-xl transition-all"><Edit3 size={18} /></button>
+                      <button onClick={() => router.push(`/dashboard/eventos/novo/ingressos/${evento.id}`)} className="p-3 bg-slate-50 text-slate-400 hover:text-[#FF4D4D] rounded-xl transition-all"><Ticket size={18} /></button>
+                      <button onClick={() => handleExcluir(evento.id)} className="p-3 bg-slate-50 text-slate-400 hover:text-red-600 rounded-xl transition-all"><Trash2 size={18} /></button>
+                    </div>
+                  </td>
+                </tr>
+              ))
             )}
           </tbody>
         </table>
       </div>
 
-      {/* MODAL DE EDIÇÃO */}
       {isEditModalOpen && eventoParaEditar && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="bg-white w-full max-w-lg rounded-[2.5rem] p-10 shadow-2xl">
@@ -235,7 +246,6 @@ export default function TabelaEventos() {
                   onChange={(e:any) => {
                     const file = e.target.files?.[0];
                     if (file) { 
-                      console.log("📂 [LOCAL] Arquivo selecionado para preview:", file.name);
                       setSelectedFile(file); 
                       setPreviewUrl(URL.createObjectURL(file));
                     }
