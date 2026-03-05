@@ -5,11 +5,10 @@ import { useParams, useRouter } from 'next/navigation';
 import { Navbar } from '../../site/Navbar';
 import { Footer } from '../../site/Footer';
 import { useLanguage } from '@/app/context/LanguageContext';
-// CORREÇÃO DOS IMPORTS: Removido 'lucide-center' que não existe
 import { 
-  Calendar, MapPin, Ticket, ShieldCheck, Share2, 
-  Loader2, Plus, Minus, Zap, ChevronLeft,
-  CheckCircle2, Clock, Heart, Users, Verified, Info
+  Calendar, MapPin, Ticket, Share2, 
+  Loader2, Plus, Minus, ChevronLeft,
+  CheckCircle2, Heart, Users, Verified
 } from 'lucide-react'; 
 import Link from 'next/link';
 
@@ -36,8 +35,6 @@ export default function DetalhesEvento() {
         
         if (res.ok) {
           const data = await res.json();
-          console.log("[AWS Debug] Objeto completo recebido:", data);
-          
           setEvento(data);
           
           if (data.ingressos && Array.isArray(data.ingressos)) {
@@ -45,14 +42,13 @@ export default function DetalhesEvento() {
             data.ingressos.forEach((ing: any) => {
               qts[ing.id] = 0;
             });
+            // Pré-seleciona 1 do primeiro tipo de ingresso se houver
             if (data.ingressos.length > 0) qts[data.ingressos[0].id] = 1;
             setQuantidades(qts);
           }
-        } else {
-          console.error(`[AWS Debug] Erro HTTP: ${res.status}`);
         }
       } catch (err) {
-        console.error("[AWS Debug] Erro na conexão com App Runner:", err);
+        console.error("[AWS Debug] Erro na conexão:", err);
       } finally {
         setLoading(false);
       }
@@ -64,7 +60,7 @@ export default function DetalhesEvento() {
     <div className="h-screen w-full flex items-center justify-center bg-white">
       <div className="flex flex-col items-center gap-4">
         <Loader2 className="animate-spin text-[#C22973]" size={40} />
-        <p className="text-slate-400 font-medium animate-pulse">{t.sync || 'Sincronizando...'}</p>
+        <p className="text-slate-400 font-medium animate-pulse">{t?.sync || 'Sincronizando...'}</p>
       </div>
     </div>
   );
@@ -76,20 +72,18 @@ export default function DetalhesEvento() {
     </div>
   );
 
-  // --- LÓGICA DE IMAGEM CORRIGIDA E TESTADA ---
+  // --- LÓGICA DE IMAGEM SINCRONIZADA COM A TABELA (QUE FUNCIONA) ---
   const rawImage = evento.imagem_capa || evento.capa_url || evento.imagem_url || evento.imagem;
-  const BUCKET_NAME = "linkah-backend-storage-2026"; 
   let urlFinalImagem = "https://images.unsplash.com/photo-1492684223066-81342ee5ff30";
 
-  if (rawImage) {
-    if (rawImage.startsWith('http')) {
+  if (rawImage && rawImage !== "null" && rawImage !== "undefined") {
+    if (typeof rawImage === 'string' && (rawImage.startsWith('http://') || rawImage.startsWith('https://'))) {
       urlFinalImagem = rawImage;
     } else {
-      // Usando o bucket real que você encontrou na AWS
-      urlFinalImagem = `https://${BUCKET_NAME}.s3.us-east-1.amazonaws.com/${rawImage}`;
+      // Usando a rota de uploads do backend para servir a imagem do S3 via proxy
+      urlFinalImagem = `${API_URL}/uploads/${rawImage}`;
     }
   }
-  console.log(`[Render Debug] URL Final Construída:`, urlFinalImagem);
 
   const moedaFinal = (evento.moeda || 'BRL').toUpperCase();
   const locale = language === 'PT' ? 'pt-BR' : 'en-US';
@@ -136,7 +130,7 @@ export default function DetalhesEvento() {
             className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
             alt={evento.nome}
             onError={(e) => { 
-              console.warn("[Render Debug] Erro no S3, usando fallback.");
+              console.warn("[Render Debug] Falha na imagem, usando fallback.");
               (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1492684223066-81342ee5ff30"; 
             }}
           />
@@ -147,7 +141,7 @@ export default function DetalhesEvento() {
                   {evento.categoria || "Evento"}
                 </span>
                 <span className="flex items-center gap-1.5 text-[11px] font-semibold text-white/80 backdrop-blur-md bg-white/10 px-3 py-1.5 rounded-full border border-white/20">
-                  <Verified size={14} className="text-blue-400" /> {language === 'PT' ? 'Verificado AWS' : 'AWS Verified'}
+                  <Verified size={14} className="text-blue-400" /> {language === 'PT' ? 'Verificado Linkah' : 'Linkah Verified'}
                 </span>
               </div>
               <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-none italic uppercase">
@@ -237,7 +231,7 @@ export default function DetalhesEvento() {
 
                 <Link 
                   href={temIngressoSelecionado ? `/venda?eventoId=${id}&payload=${encodeURIComponent(JSON.stringify(quantidades))}` : '#'}
-                  className={`flex items-center justify-center w-full py-7 rounded-[2.5rem] font-black text-white shadow-xl italic uppercase ${temIngressoSelecionado ? 'bg-gradient-to-r from-[#C22973] to-[#ff8c42] hover:scale-105 active:scale-95' : 'bg-slate-200 cursor-not-allowed text-slate-400'}`}
+                  className={`flex items-center justify-center w-full py-7 rounded-[2.5rem] font-black text-white shadow-xl italic uppercase transition-all ${temIngressoSelecionado ? 'bg-gradient-to-r from-[#C22973] to-[#ff8c42] hover:scale-105 active:scale-95' : 'bg-slate-200 cursor-not-allowed text-slate-400'}`}
                 >
                   <Ticket size={24} className="mr-2" />
                   CONTINUAR
