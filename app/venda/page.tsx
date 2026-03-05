@@ -1,226 +1,209 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Navbar } from '../site/Navbar';
+import { useLanguage } from '@/app/context/LanguageContext';
 import { 
-  Loader2, ArrowLeft, MapPin, CreditCard, 
-  Calendar, Ticket, ShieldCheck 
+  ShieldCheck, Lock, Loader2, ArrowLeft, 
+  Ticket as TicketIcon, Check, CreditCard
 } from 'lucide-react';
-import Swal from 'sweetalert2';
+import Link from 'next/link';
 
-const API_URL = 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
 
 function CheckoutContent() {
-  const router = useRouter();
-  const params = useParams();
-  
-  // ✅ Captura segura: Tenta pegar 'id' ou 'eventoId' dependendo do nome da sua pasta
-  const id = params?.id || params?.eventoId;
-  
-  const [isSaving, setIsSaving] = useState(false);
-  const [evento, setEvento] = useState<any>(null);
-  const [error, setError] = useState(false);
+  const searchParams = useSearchParams();
+  const eventoId = searchParams.get('eventoId');
+  const qtd = parseInt(searchParams.get('qtd') || '1');
 
-  const formatarMoeda = (valor: any) => {
-    const num = Number(valor);
-    if (isNaN(num) || !num) return 'R$ 0,00';
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency', currency: 'BRL',
-    }).format(num);
-  };
+  const [loading, setLoading] = useState(false);
+  const [evento, setEvento] = useState<any>(null);
+  const [formData, setFormData] = useState({ nome: '', email: '' });
+
+  const { t, language }: any = useLanguage();
 
   useEffect(() => {
-    const carregarEvento = async () => {
-      // ✅ Só dispara o fetch quando o Next.js realmente carregar o ID da URL
-      if (!id || id === 'undefined') {
-        console.log("⏳ Aguardando ID da URL ficar disponível...");
-        return;
-      }
-
-      console.log("📡 [AWS Debug] Buscando evento ID:", id);
-
+    async function carregarEvento() {
+      if (!eventoId) return;
       try {
-        const response = await fetch(`${API_URL}/api/eventos/${id}`, { mode: 'cors' });
-        
-        if (!response.ok) throw new Error(`Erro API: ${response.status}`);
-        
-        const data = await response.json();
-        console.log("✅ Dados brutos recebidos:", data);
-
-        // ✅ Mapeamento exato baseado no seu SQL do Back-end
-        setEvento({
-          id: data.id,
-          titulo: data.nome || data.titulo, 
-          preco: data.preco,
-          data: data.data_inicio,
-          local: data.local_nome || data.local,
-          imagem: data.imagem_url || 'https://via.placeholder.com/600x400?text=Linkah+Evento'
-        });
+        console.log(`📡 Carregando evento ID: ${eventoId}...`);
+        const res = await fetch(`${API_URL}/api/eventos/${eventoId}`);
+        if (res.ok) {
+          const data = await res.json();
+          setEvento(data);
+        } else {
+          console.error("❌ Falha ao carregar evento:", res.status);
+        }
       } catch (err) {
-        console.error("🚨 Erro ao carregar evento:", err);
-        setError(true);
+        console.error("🚨 Erro de conexão ao carregar evento:", err);
       }
-    };
-
+    }
     carregarEvento();
-  }, [id]);
+  }, [eventoId]);
+
+  const precoBase = evento?.ingressos?.[0]?.preco ? Number(evento.ingressos[0].preco) : 0;
+  const total = precoBase * qtd;
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
 
   const handleFinalizarCompra = async () => {
-    if (!evento) return;
-    setIsSaving(true);
+    if (!formData.email || !formData.nome) {
+      alert(t.fillData || "Por favor, preencha seus dados.");
+      return;
+    }
+
+    setLoading(true);
+    console.log("🚀 Iniciando Checkout...");
+    console.log("📦 Payload:", { eventoId, email: formData.email, qtd });
 
     try {
-      const userStorage = localStorage.getItem('@Linkah:User');
-      const emailLogado = userStorage ? JSON.parse(userStorage).email : localStorage.getItem('userEmail');
-
-      // ✅ Estrutura de Payload que o seu pagamentoController espera
-      const payload = {
-        evento: {
-          id: id,
-          preco: evento.preco
-        },
-        usuarioEmail: emailLogado || 'comprador@teste.com',
-        quantidade: 1
-      };
-
-      console.log("📤 Enviando para Checkout:", payload);
-
-      const response = await fetch(`${API_URL}/api/pagamento/checkout`, {
+      const response = await fetch(`${API_URL}/api/pagamentos/checkout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          evento: { id: eventoId, titulo: evento?.nome, preco: precoBase },
+          usuarioEmail: formData.email,
+          quantidade: qtd
+        }),
       });
+
+      console.log("📡 Resposta bruta (Status):", response.status);
+
+      // Verificação de segurança: se não for JSON, pegamos o texto puro para logar
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        const textError = await response.text();
+        console.error("❌ O SERVIDOR NÃO RETORNOU JSON! Retornou HTML/Texto:");
+        console.log(textError); // Aqui você verá o erro real (ex: "Not Found" ou erro do Stripe)
+        throw new Error(`Servidor retornou erro ${response.status}. Verifique o console.`);
+      }
 
       const data = await response.json();
-
+      console.log("📥 Dados recebidos:", data);
+      
       if (data.url) {
-        console.log("🔗 Redirecionando para Stripe...");
-        window.location.href = data.url;
+        console.log("💸 Redirecionando para Stripe...");
+        window.location.assign(data.url);
       } else {
-        throw new Error(data.error || "Erro ao gerar sessão");
+        throw new Error(data.message || t.paymentError || "Erro ao gerar link de pagamento.");
       }
-    } catch (error: any) {
-      console.error("❌ Erro no pagamento:", error);
-      Swal.fire({
-        title: 'Sistema em Processamento',
-        text: 'O servidor está preparando sua transação. Clique novamente em 3 segundos.',
-        icon: 'info',
-        confirmButtonColor: '#C22973'
-      });
+    } catch (err: any) {
+      console.error("🚨 Erro no processo de Checkout:", err.message);
+      alert(`${t.transactionError || 'Erro na transação'}: ${err.message}`);
     } finally {
-      setIsSaving(false);
+      setLoading(false);
     }
   };
 
-  if (error) {
-    return (
-      <div className="flex h-screen flex-col items-center justify-center gap-4 bg-white">
-        <p className="text-slate-500 font-bold uppercase text-xs">Erro ao conectar com o evento {id}</p>
-        <button onClick={() => window.location.reload()} className="bg-[#C22973] text-white px-8 py-3 rounded-full font-black uppercase text-[10px] tracking-widest shadow-lg">
-          Tentar Novamente
-        </button>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-[#FDFDFF] p-6 md:p-12 font-sans">
-      <div className="max-w-[850px] mx-auto">
-        <button onClick={() => router.back()} className="inline-flex items-center gap-3 text-slate-400 hover:text-[#C22973] mb-10 font-black text-[10px] tracking-[0.2em] uppercase transition-all">
-          <ArrowLeft size={18} /> Voltar
-        </button>
+    <main className="max-w-4xl mx-auto px-6 py-12 bg-[#FCFBFA] min-h-screen">
+      {/* ... (resto do seu HTML permanece igual) ... */}
+      <div className="mb-12">
+        <Link href={`/evento/${eventoId}`} className="inline-flex items-center gap-2 text-slate-400 hover:text-slate-900 transition-all text-sm font-medium">
+          <ArrowLeft size={16} /> {t.backToEvent || 'Voltar para o evento'}
+        </Link>
+      </div>
 
-        <div className="bg-white rounded-[3.5rem] shadow-2xl p-8 md:p-16 border border-slate-50 relative overflow-hidden">
-          <div className="flex items-center gap-6 mb-16 relative z-10">
-            <div className="w-20 h-20 bg-[#C22973] rounded-[2rem] flex items-center justify-center shadow-lg shadow-pink-100">
-              <Ticket className="text-white" size={40} />
-            </div>
-            <div>
-              <h2 className="text-4xl font-black text-slate-900 leading-none tracking-tighter italic uppercase">Checkout</h2>
-              <p className="text-slate-400 mt-2 font-bold uppercase text-[10px] tracking-widest italic text-pink-500">
-                {isSaving ? "Conectando ao Stripe..." : "Ambiente Seguro"}
-              </p>
-            </div>
-          </div>
-          
-          <div className="space-y-12 relative z-10">
-            {/* Detalhes do Evento com Skeleton */}
-            <div className="bg-slate-50 p-8 rounded-[2.5rem] border-2 border-slate-100">
-              {!evento ? (
-                <div className="flex animate-pulse gap-6">
-                  <div className="w-48 h-32 bg-slate-200 rounded-3xl" />
-                  <div className="flex-1 space-y-4 py-1">
-                    <div className="h-4 bg-slate-200 rounded w-3/4" />
-                    <div className="h-4 bg-slate-200 rounded w-1/2" />
-                  </div>
-                </div>
-              ) : (
-                <div className="flex flex-col md:flex-row gap-8">
-                  <img 
-                    src={evento.imagem} 
-                    className="w-full md:w-48 h-32 object-cover rounded-3xl shadow-md bg-slate-200" 
-                    alt="Banner"
-                    onError={(e: any) => e.target.src = 'https://via.placeholder.com/600x400?text=Linkah'}
-                  />
-                  <div className="space-y-3">
-                    <h4 className="text-2xl font-black text-slate-800 uppercase italic tracking-tight">{evento.titulo}</h4>
-                    <div className="flex items-center gap-4 text-slate-500 font-bold text-xs uppercase tracking-widest">
-                      <span className="flex items-center gap-1">
-                        <Calendar size={14}/> {evento.data ? new Date(evento.data).toLocaleDateString('pt-BR') : 'A definir'}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <MapPin size={14}/> {evento.local}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-16">
+        <div className="lg:col-span-3 space-y-12">
+          <header className="space-y-2">
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900">{t.finishPurchase || 'Finalizar Compra'}</h1>
+            <p className="text-slate-500 font-medium">{t.ticketsEmailInfo || 'Os ingressos serão enviados para o seu e-mail.'}</p>
+          </header>
+
+          <section className="space-y-6">
+            <div className="space-y-4">
+              <label className="text-sm font-bold text-slate-700 ml-1">{t.yourData || 'Seus Dados'}</label>
+              <input 
+                name="nome" 
+                value={formData.nome} 
+                onChange={handleInputChange} 
+                placeholder={t.fullNamePlaceholder || "Nome Completo"} 
+                className="w-full p-4 bg-white rounded-2xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-50 outline-none transition-all shadow-sm" 
+              />
+              <input 
+                name="email" 
+                type="email" 
+                value={formData.email} 
+                onChange={handleInputChange} 
+                placeholder={t.emailPlaceholder || "E-mail principal"} 
+                className="w-full p-4 bg-white rounded-2xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-50 outline-none transition-all shadow-sm" 
+              />
             </div>
 
-            {/* Total */}
-            <div className="pt-12 border-t border-slate-100">
-              <div className="flex items-center justify-between mb-8">
-                <div>
-                  <h3 className="text-slate-900 font-black text-xs uppercase tracking-[0.3em] italic">Total a Pagar</h3>
-                </div>
-                <div className="text-right">
-                  {!evento ? (
-                    <Loader2 className="animate-spin text-slate-300" />
-                  ) : (
-                    <span className="text-5xl font-black italic tracking-tighter text-[#C22973]">
-                      {formatarMoeda(evento.preco)}
-                    </span>
-                  )}
-                </div>
+            <div className="p-6 rounded-3xl bg-white border border-slate-100 shadow-sm space-y-4">
+              <div className="flex items-center gap-3 text-slate-600">
+                <CreditCard size={20} className="text-blue-600" />
+                <span className="text-sm font-semibold">{t.paymentMethods || 'Pix ou Cartão via Stripe'}</span>
+              </div>
+              <div className="flex items-center gap-3 text-slate-600">
+                <ShieldCheck size={20} className="text-emerald-500" />
+                <span className="text-sm font-medium">{t.securePaymentInfo || 'Pagamento seguro processado na AWS'}</span>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div className="lg:col-span-2">
+          <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm sticky top-24 space-y-8">
+            <div className="flex items-center gap-4 pb-6 border-b border-slate-50">
+              <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
+                <TicketIcon size={24} />
+              </div>
+              <div className="flex-1">
+                <p className="font-bold text-slate-900 leading-tight line-clamp-1">{evento?.nome || t.processing || 'Processando...'}</p>
+                <p className="text-xs text-slate-400 font-bold uppercase tracking-tighter">{qtd}x {qtd > 1 ? (t.placesPlural || 'Ingressos') : (t.places || 'Ingresso')}</p>
               </div>
             </div>
 
-            <div className="bg-emerald-50/30 p-8 rounded-[2.5rem] flex gap-5 items-center border border-emerald-100/50">
-              <ShieldCheck className="text-emerald-500 shrink-0" size={24} />
-              <p className="text-[11px] text-emerald-900 font-bold uppercase tracking-tight">
-                Pagamento processado via Stripe Connect (Cartão e Pix liberados).
-              </p>
+            <div className="space-y-3">
+              <div className="flex justify-between text-sm font-medium">
+                <span className="text-slate-500">{t.unitValue || 'Valor Unitário'}</span>
+                <span>{precoBase.toLocaleString(language === 'PT' ? 'pt-BR' : 'en-US', { style: 'currency', currency: 'BRL' })}</span>
+              </div>
+              <div className="flex justify-between text-sm font-medium">
+                <span className="text-slate-500">{t.fees || 'Taxas'}</span>
+                <span className="text-emerald-500">R$ 0,00</span>
+              </div>
+              <div className="pt-4 flex justify-between items-end border-t border-slate-50">
+                <span className="font-bold text-slate-900">Total</span>
+                <span className="text-3xl font-black tracking-tight text-slate-900">
+                  {total.toLocaleString(language === 'PT' ? 'pt-BR' : 'en-US', { style: 'currency', currency: 'BRL' })}
+                </span>
+              </div>
             </div>
 
             <button 
-              onClick={handleFinalizarCompra}
-              disabled={isSaving || !evento} 
-              className="w-full bg-[#C22973] text-white py-7 rounded-[2rem] font-black uppercase tracking-[0.4em] italic flex items-center justify-center gap-4 hover:bg-[#a62262] transition-all shadow-2xl disabled:opacity-50 active:scale-95 group"
+              onClick={handleFinalizarCompra} 
+              disabled={loading || !formData.nome || !formData.email} 
+              className="w-full bg-slate-900 text-white py-5 rounded-2xl font-bold hover:bg-black transition-all disabled:opacity-30 disabled:cursor-not-allowed flex justify-center items-center gap-2 shadow-xl active:scale-[0.98]"
             >
-              {isSaving ? <Loader2 className="animate-spin" /> : <CreditCard size={22} />} 
-              {isSaving ? 'Iniciando Sessão...' : 'Pagar Agora'}
+              {loading ? <Loader2 className="animate-spin" size={20} /> : <><Lock size={18}/> {t.goToPayment || 'Ir para Pagamento'}</>}
             </button>
+
+            <p className="text-[10px] text-slate-300 font-bold uppercase tracking-[0.2em] text-center">
+              Secured by Linkah AWS Architecture
+            </p>
           </div>
         </div>
       </div>
-    </div>
+    </main>
   );
 }
 
 export default function CheckoutPage() {
+  const { t }: any = useLanguage();
+  
   return (
-    <Suspense fallback={<div className="h-screen bg-white" />}>
-      <CheckoutContent />
-    </Suspense>
+    <div className="bg-[#FCFBFA] min-h-screen">
+      <Navbar />
+      <Suspense fallback={<Loader2 className="animate-spin text-blue-600 mx-auto mt-20" size={40} />}>
+        <CheckoutContent />
+      </Suspense>
+    </div>
   );
 }
