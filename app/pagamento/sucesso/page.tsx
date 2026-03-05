@@ -15,11 +15,11 @@ function TicketVisual() {
   const [erro, setErro] = useState(false);
   const [compra, setCompra] = useState<any>(null);
   
-  const { t, language }: any = useLanguage();
+  const { language }: any = useLanguage();
 
   useEffect(() => {
     let tentativas = 0;
-    const maxTentativas = 6; // Aumentei um pouco o fôlego para o Webhook processar
+    const maxTentativas = 12; // Aumentado para 12 (aprox. 48 segundos de espera total)
 
     async function buscar() {
       if (!sessionId) { 
@@ -29,32 +29,36 @@ function TicketVisual() {
       }
 
       try {
-        // ✅ CORREÇÃO DA ROTA: Removido o "s" de pagamentos
         const res = await fetch(`${API_URL}/api/pagamento/detalhes/${sessionId}`);
         
-        if (res.ok) {
-          const data = await res.json();
-          if (data) {
-            setCompra(data);
-            setLoading(false);
-          } else {
-            throw new Error("Compra confirmada, mas dados ainda não processados.");
-          }
+        // ✅ SOLUÇÃO DO ERRO: Lemos como texto primeiro para evitar SyntaxError no JSON vazio
+        const textoResponse = await res.text();
+
+        if (res.ok && textoResponse && textoResponse.trim().length > 0) {
+          const data = JSON.parse(textoResponse);
+          setCompra(data);
+          setLoading(false);
+          console.log("✅ Dados do ingresso carregados.");
         } else {
-          // Se der 404, o Webhook pode estar processando, então tentamos de novo
+          // Se o status for 404 ou o corpo vier vazio, o Webhook ainda não salvou
           if (tentativas < maxTentativas) {
             tentativas++;
-            console.log(`⏳ Tentativa ${tentativas}: Aguardando confirmação do banco...`);
-            setTimeout(buscar, 3000); 
+            console.warn(`⏳ Tentativa ${tentativas}: Compra não encontrada no banco. Tentando novamente em 4s...`);
+            setTimeout(buscar, 4000); 
           } else {
             setLoading(false);
             setErro(true);
           }
         }
       } catch (e) {
-        console.error("🚨 Erro na busca da API:", e);
-        setLoading(false);
-        setErro(true);
+        console.error("🚨 Erro na comunicação:", e);
+        if (tentativas < maxTentativas) {
+          tentativas++;
+          setTimeout(buscar, 4000);
+        } else {
+          setLoading(false);
+          setErro(true);
+        }
       }
     }
     buscar();
@@ -76,18 +80,18 @@ function TicketVisual() {
         <AlertCircle className="text-[#C22973]" size={40} />
       </div>
       <h3 className="font-black text-slate-800 uppercase italic text-xl">
-        {language === 'PT' ? 'Quase lá!' : 'Almost there!'}
+        {language === 'PT' ? 'Processando Registro' : 'Processing Record'}
       </h3>
       <p className="text-slate-500 text-sm max-w-xs leading-relaxed">
         {language === 'PT' 
-          ? 'Seu pagamento foi confirmado pelo Stripe, mas o servidor está finalizando a gravação no banco de dados.' 
-          : 'Your payment was confirmed, but the server is finalizing the database record.'}
+          ? 'O pagamento foi aprovado, mas o ticket ainda não consta no banco. Atualize a página em instantes.' 
+          : 'Payment approved, but ticket not found in database yet. Refresh in a few moments.'}
       </p>
       <button 
         onClick={() => window.location.reload()} 
         className="mt-4 bg-[#C22973] hover:bg-[#a62262] text-white px-10 py-4 rounded-full font-bold uppercase text-xs transition-all shadow-lg active:scale-95"
       >
-        {language === 'PT' ? 'Verificar Novamente' : 'Check Again'}
+        {language === 'PT' ? 'Atualizar Agora' : 'Refresh Now'}
       </button>
     </div>
   );
@@ -111,7 +115,6 @@ function TicketVisual() {
         }
       `}</style>
 
-      {/* HEADER */}
       <div className="text-center mb-10 no-print">
         <div className="inline-flex items-center gap-2 bg-emerald-50 text-emerald-600 px-5 py-2.5 rounded-full mb-6 border border-emerald-100 shadow-sm">
           <CheckCircle2 size={16} />
@@ -124,9 +127,7 @@ function TicketVisual() {
         </h1>
       </div>
 
-      {/* TICKET VISUAL */}
       <div className="ticket-card ticket-mask bg-white rounded-[3rem] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.1)] overflow-hidden border border-slate-100 relative mb-10">
-        
         <div className="bg-gradient-to-br from-[#C22973] to-[#8a1d52] p-10 text-center relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none flex flex-wrap gap-6 p-4">
             {[...Array(12)].map((_, i) => <Ticket key={i} size={40} className="-rotate-12" />)}
@@ -250,12 +251,7 @@ function TicketVisual() {
 export default function PaginaSucesso() {
   return (
     <div className="bg-slate-50 min-h-screen">
-      <Suspense fallback={
-        <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-4">
-          <Loader2 className="animate-spin text-[#C22973]" size={50} />
-          <p className="font-black text-[#C22973] uppercase tracking-widest animate-pulse italic text-sm">Validando transação...</p>
-        </div>
-      }>
+      <Suspense fallback={null}>
         <TicketVisual />
       </Suspense>
     </div>
