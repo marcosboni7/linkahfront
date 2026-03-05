@@ -23,7 +23,6 @@ export default function DetalhesEvento() {
   const [loading, setLoading] = useState(true);
   
   // Estado para controlar a quantidade de cada ingresso
-  // Usamos um objeto onde a chave é o ID do ingresso
   const [quantidades, setQuantidades] = useState<{[key: string]: number}>({});
 
   useEffect(() => {
@@ -39,12 +38,12 @@ export default function DetalhesEvento() {
           setEvento(data);
           
           // Inicializa as quantidades com 0 para cada lote encontrado
-          if (data.ingressos) {
+          if (data.ingressos && Array.isArray(data.ingressos)) {
             const qts: any = {};
             data.ingressos.forEach((ing: any) => {
               qts[ing.id] = 0;
             });
-            // Opcional: Começar com 1 no primeiro ingresso se quiser
+            // Começa com 1 no primeiro ingresso por padrão
             if (data.ingressos.length > 0) qts[data.ingressos[0].id] = 1;
             setQuantidades(qts);
           }
@@ -69,10 +68,11 @@ export default function DetalhesEvento() {
 
   if (!evento) return <div className="p-20 text-center text-slate-500 font-medium">Evento não encontrado.</div>;
 
+  // Lógica de Moeda Internacional
   const moedaFinal = (evento.moeda || 'BRL').toUpperCase();
   const locale = language === 'PT' ? 'pt-BR' : 'en-US';
 
-  // Cálculo do total geral somando todos os ingressos selecionados
+  // Cálculo do total geral
   const calcularTotalGeral = () => {
     if (!evento.ingressos) return 0;
     return evento.ingressos.reduce((acc: number, ing: any) => {
@@ -116,12 +116,21 @@ export default function DetalhesEvento() {
           </div>
         </div>
 
-        {/* SEÇÃO HERO */}
+        {/* SEÇÃO HERO - CORREÇÃO DA IMAGEM AQUI */}
         <div className="relative w-full aspect-[21/9] rounded-[3rem] md:rounded-[4rem] overflow-hidden shadow-2xl mb-16 bg-slate-100 group">
           <img 
-            src={evento.imagem_capa || evento.imagem || "https://images.unsplash.com/photo-1492684223066-81342ee5ff30"} 
+            src={
+              evento.imagem_capa || 
+              evento.capa_url || 
+              evento.imagem_url || 
+              evento.imagem || 
+              "https://images.unsplash.com/photo-1492684223066-81342ee5ff30"
+            } 
             className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
             alt={evento.nome}
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1492684223066-81342ee5ff30";
+            }}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
           
@@ -194,7 +203,7 @@ export default function DetalhesEvento() {
             </div>
           </div>
 
-          {/* COLUNA DIREITA: CHECKOUT - AGORA COM LISTA DE LOTES */}
+          {/* COLUNA DIREITA: CHECKOUT */}
           <div className="lg:col-span-4">
             <div className="sticky top-28">
               <div className="bg-white rounded-[3.5rem] border border-slate-100 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.12)] overflow-hidden">
@@ -206,7 +215,7 @@ export default function DetalhesEvento() {
                     </span>
                   </div>
 
-                  {/* LISTAGEM DE INGRESSOS/LOTES DINÂMICA */}
+                  {/* LISTAGEM DE INGRESSOS */}
                   <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                     {evento.ingressos && evento.ingressos.length > 0 ? (
                       evento.ingressos.map((ing: any) => (
