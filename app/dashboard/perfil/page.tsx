@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, Suspense } from 'react'; // ✅ Adicionado Suspense
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   UserCircle, Save, Loader2, ArrowLeft, Info, 
@@ -12,7 +12,8 @@ import { useLanguage } from '@/app/context/LanguageContext';
 
 const API_URL = 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
 
-export default function PerfilPage() {
+// ✅ 1. Criamos um componente interno para a lógica
+function PerfilContent() {
   const { t } = useLanguage();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -32,15 +33,14 @@ export default function PerfilPage() {
     bairro: ''
   });
 
-  // Função para checar se o produtor completou o onboarding no Stripe
   const checarStatusStripe = useCallback(async (email: string) => {
     try {
+      console.log("🔍 Verificando status do Stripe para:", email);
       const res = await fetch(`${API_URL}/api/pagamento/status-stripe?email=${email}`);
       const data = await res.json();
       
       if (data.conectado) {
         setStripeAtivo(true);
-        // Se detectarmos o retorno do Stripe agora, avisamos o usuário
         if (searchParams.get('stripe') === 'success') {
           Swal.fire({
             title: 'CONTA ATIVADA!',
@@ -67,6 +67,7 @@ export default function PerfilPage() {
       }
 
       try {
+        console.log("📡 Carregando dados do perfil...");
         const response = await fetch(`${API_URL}/api/auth/perfil?email=${emailLogado}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -84,7 +85,6 @@ export default function PerfilPage() {
           
           setStripeAccountId(data.stripe_account_id || null);
 
-          // Se já tem ID, checa se a conta está ativa (charges_enabled)
           if (data.stripe_account_id) {
             await checarStatusStripe(emailLogado);
           }
@@ -184,8 +184,7 @@ export default function PerfilPage() {
           title: 'DADOS ATUALIZADOS!',
           text: 'Suas informações foram sincronizadas.',
           icon: 'success',
-          confirmButtonColor: '#C22973',
-          customClass: { popup: 'rounded-[2rem] font-sans' }
+          confirmButtonColor: '#C22973'
         });
         router.push('/dashboard/eventos');
       }
@@ -198,9 +197,9 @@ export default function PerfilPage() {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen w-screen flex-col items-center justify-center bg-white gap-4 font-sans">
+      <div className="flex h-screen w-screen flex-col items-center justify-center bg-white gap-4">
         <Loader2 className="animate-spin text-[#C22973]" size={48} />
-        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 italic">Sincronizando Poppins...</span>
+        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 italic">Sincronizando...</span>
       </div>
     );
   }
@@ -208,7 +207,6 @@ export default function PerfilPage() {
   return (
     <div className="min-h-screen bg-[#FDFDFF] p-6 md:p-12 font-sans">
       <div className="max-w-[850px] mx-auto">
-        
         <Link href="/dashboard/eventos" className="inline-flex items-center gap-3 text-slate-400 hover:text-[#C22973] transition-all mb-10 font-black text-[10px] tracking-[0.2em] uppercase group">
           <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" /> Voltar ao Dashboard
         </Link>
@@ -316,5 +314,19 @@ export default function PerfilPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// ✅ 2. O export default agora envolve o conteúdo em um Suspense
+export default function PerfilPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-screen w-screen flex-col items-center justify-center bg-white gap-4 font-sans">
+        <Loader2 className="animate-spin text-[#C22973]" size={48} />
+        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 italic">Carregando Painel...</span>
+      </div>
+    }>
+      <PerfilContent />
+    </Suspense>
   );
 }
