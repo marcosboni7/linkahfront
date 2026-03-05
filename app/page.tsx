@@ -56,6 +56,7 @@ const SLIDES = [
 
 export default function BuyTicketHome() {
   const { t }: any = useLanguage();
+  const [isMounted, setIsMounted] = useState(false); // 🔥 Trava de Hidratação
   const [eventos, setEventos] = useState<any[]>([]);
   const [comunidades, setComunidades] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,7 +65,14 @@ export default function BuyTicketHome() {
   const [buscaNome, setBuscaNome] = useState('');
   const [currentSlide, setCurrentSlide] = useState(0);
 
+  // Garante que o componente só renderize conteúdo lógico após montar no cliente
   useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isMounted) return;
+
     async function carregarDados() {
       setLoading(true);
       try {
@@ -84,16 +92,19 @@ export default function BuyTicketHome() {
       }
     }
     carregarDados();
-  }, []);
+  }, [isMounted]);
 
   useEffect(() => {
+    if (!isMounted) return;
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev === SLIDES.length - 1 ? 0 : prev + 1));
     }, 6500);
     return () => clearInterval(interval);
-  }, []);
+  }, [isMounted]);
 
   const vitrineFiltrada = useMemo(() => {
+    if (!isMounted) return []; // Retorna vazio durante SSR
+
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
     const amanha = new Date(hoje);
@@ -103,7 +114,7 @@ export default function BuyTicketHome() {
       const dataString = String(ev.data_inicio || ev.data || '').split('T')[0];
       const partes = dataString.split('-');
       
-      let dataEv = new Date(0); // Data padrão caso falhe
+      let dataEv = new Date(0);
       if (partes.length === 3) {
         const [ano, mes, dia] = partes.map(Number);
         dataEv = new Date(ano, mes - 1, dia);
@@ -123,7 +134,10 @@ export default function BuyTicketHome() {
 
       return nomeMatch && catMatch && dataMatch;
     });
-  }, [eventos, buscaNome, categoriaAtiva, filtroData]);
+  }, [eventos, buscaNome, categoriaAtiva, filtroData, isMounted]);
+
+  // Se não montou, renderiza um fundo branco liso para evitar erro de servidor/cliente
+  if (!isMounted) return <div className="min-h-screen bg-white" />;
 
   const slide = SLIDES[currentSlide];
 
@@ -144,8 +158,8 @@ export default function BuyTicketHome() {
 
         <div className="relative z-10 w-full max-w-5xl px-6 text-center">
           <h1 className="text-5xl md:text-7xl font-black tracking-tighter text-slate-900 leading-none mb-10 uppercase">
-            {String(t?.[slide.titleKey] || "VIVA O")} <br />
-            <span className="text-[#ff4d4d] italic font-serif font-light">{String(t?.[slide.highlightKey] || "AGORA")}</span>
+            {String(t?.[slide.titleKey] || "CRIANDO")} <br />
+            <span className="text-[#ff4d4d] italic font-serif font-light">{String(t?.[slide.highlightKey] || "MOMENTOS")}</span>
           </h1>
 
           <div className="mx-auto max-w-2xl bg-white rounded-2xl shadow-xl shadow-slate-200/50 p-1.5 flex border border-slate-100">
@@ -224,7 +238,7 @@ export default function BuyTicketHome() {
               {comunidades.map((com) => {
                 const rawFoto = com.foto_url || com.imagem || com.capa;
                 const fotoFinal = (rawFoto && typeof rawFoto === 'string') 
-                  ? (rawFoto.startsWith('http') ? rawFoto : `${API_URL_BASE}${rawFoto.startsWith('/') ? '' : '/'}${rawFoto}`) 
+                  ? (rawFoto.startsWith('http') ? rawFoto : `${API_URL_BASE}/uploads/${rawFoto.replace(/^\/+/, '')}`) 
                   : 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?q=80&w=2070';
                 
                 return (

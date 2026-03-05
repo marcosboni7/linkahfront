@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { MapPin, Calendar, ArrowUpRight } from 'lucide-react';
 import { useLanguage } from '@/app/context/LanguageContext';
@@ -8,6 +9,12 @@ const API_URL_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://zmn9xuwd4y.us-e
 
 export function EventCard({ evento }: { evento: any }) {
   const { language, t }: any = useLanguage();
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Essencial para evitar o erro de hidratação (Application Error)
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
   
   const locale = language === 'PT' ? 'pt-BR' : 'en-US';
 
@@ -15,18 +22,15 @@ export function EventCard({ evento }: { evento: any }) {
   const renderImagem = () => {
     const img = evento.imagem_capa || evento.imagem;
     
-    // Se não tiver imagem ou for lixo, manda o fallback
     if (!img || img === "null" || img === "undefined") {
       return "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4";
     }
 
-    // Se já for uma URL completa (S3 ou Unsplash), usa direto
     if (String(img).startsWith('http')) {
       return img;
     }
 
-    // Se for apenas o nome do arquivo, monta com a URL da API
-    return `${API_URL_BASE}/uploads/${img}`;
+    return `${API_URL_BASE}/uploads/${img.replace(/^\/+/, '')}`;
   };
 
   const getCurrencySymbol = () => {
@@ -37,9 +41,10 @@ export function EventCard({ evento }: { evento: any }) {
     return language === 'PT' ? 'R$' : '$';
   };
 
-  const currencySymbol = getCurrencySymbol();
-
   const formatarDataVitrine = () => {
+    // Se não estiver montado, retorna vazio para não dar conflito de fuso horário entre servidor/cliente
+    if (!isMounted) return { diaSemana: '', dia: '', mes: '', hora: '' };
+
     const dataRaw = evento.data_inicio || evento.data;
     if (!dataRaw) return { diaSemana: '', dia: '', mes: '', hora: '' };
 
@@ -73,8 +78,9 @@ export function EventCard({ evento }: { evento: any }) {
   const { diaSemana, dia, mes, hora } = formatarDataVitrine();
 
   const traduzirCategoria = (cat: string) => {
+    if (!isMounted) return cat; // Evita erro de tradução antes de carregar o contexto
     const categorias: Record<string, string> = {
-      'Arte & Cultura': t?.catArt || 'Arte',
+      'Arte & Cultura': t?.catArt || 'Arte & Cultura',
       'Entretenimento': t?.catEnt || 'Entretenimento',
       'Negócios': t?.catBiz || 'Negócios',
       'Educação & Desenvolvimento': t?.catEdu || 'Educação',
@@ -84,6 +90,13 @@ export function EventCard({ evento }: { evento: any }) {
     };
     return categorias[cat] || cat;
   };
+
+  // Enquanto não monta no cliente, renderizamos um "esqueleto" vazio para estabilidade
+  if (!isMounted) {
+    return (
+      <div className="w-full aspect-[16/10] bg-slate-50 rounded-2xl animate-pulse border border-gray-100" />
+    );
+  }
 
   return (
     <Link 
@@ -127,10 +140,10 @@ export function EventCard({ evento }: { evento: any }) {
         <div className="mt-auto pt-5 border-t border-gray-50 flex items-center justify-between">
           <div>
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
-              {String(t?.from || 'Tickets')}
+              {String(t?.from || 'A partir de')}
             </p>
             <p className="text-xl font-black text-slate-900 tracking-tight">
-              <span className="text-sm font-bold mr-0.5">{currencySymbol}</span>
+              <span className="text-sm font-bold mr-0.5">{getCurrencySymbol()}</span>
               {evento.preco_minimo 
                 ? Number(evento.preco_minimo).toLocaleString(locale, { minimumFractionDigits: 2 }) 
                 : '0.00'}
