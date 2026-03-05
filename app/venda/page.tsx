@@ -30,11 +30,18 @@ function CheckoutContent() {
   useEffect(() => {
     const carregarEvento = async () => {
       if (!id) return;
+      console.log(`[AWS Debug] Buscando evento ID: ${id}`);
       try {
         const response = await fetch(`${API_URL}/api/eventos/${id}`);
         if (!response.ok) throw new Error();
         const data = await response.json();
-        setEvento(data);
+        
+        // Ajuste para garantir compatibilidade com os nomes de colunas do seu banco
+        setEvento({
+          ...data,
+          titulo: data.titulo || data.nome, // Se no banco for 'nome', ele assume como título
+          imagem_url: data.imagem_url || data.banner_url || 'https://via.placeholder.com/600x400?text=Linkah+Evento'
+        });
       } catch (error) {
         setError(true);
         console.error("❌ Erro ao carregar evento");
@@ -51,7 +58,7 @@ function CheckoutContent() {
       const userStorage = localStorage.getItem('@Linkah:User');
       const emailLogado = userStorage ? JSON.parse(userStorage).email : localStorage.getItem('userEmail');
 
-      // ✅ CORREÇÃO NO BODY: Ajustado para o que o pagamentoController.criarSessaoCheckout espera
+      // ✅ Estrutura exata que o seu pagamentoController.criarSessaoCheckout espera
       const bodyEnvio = {
         evento: {
           id: id,
@@ -72,14 +79,14 @@ function CheckoutContent() {
       if (data.url) {
         window.location.href = data.url;
       } else {
-        throw new Error(data.error || "Erro no servidor");
+        throw new Error(data.error || "Erro ao gerar checkout");
       }
     } catch (error: any) {
-      console.error("❌ Erro:", error);
+      console.error("❌ Erro no checkout:", error);
       Swal.fire({
-        title: 'Erro no Pagamento',
-        text: error.message || 'Verifique se você está logado.',
-        icon: 'error',
+        title: 'Sistema em Aquecimento',
+        text: 'O servidor AWS está processando. Tente clicar novamente em 3 segundos.',
+        icon: 'info',
         confirmButtonColor: '#C22973'
       });
     } finally {
@@ -96,13 +103,13 @@ function CheckoutContent() {
 
         <div className="bg-white rounded-[3.5rem] shadow-2xl p-8 md:p-16 border border-slate-50 relative overflow-hidden">
           <div className="flex items-center gap-6 mb-16 relative z-10">
-            <div className="w-20 h-20 bg-[#C22973] rounded-[2rem] flex items-center justify-center shadow-lg shadow-pink-200">
+            <div className="w-20 h-20 bg-[#C22973] rounded-[2rem] flex items-center justify-center shadow-lg">
               <Ticket className="text-white" size={40} />
             </div>
             <div>
               <h2 className="text-4xl font-black text-slate-900 leading-none tracking-tighter italic uppercase">Checkout</h2>
               <p className="text-slate-400 mt-2 font-bold uppercase text-[10px] tracking-widest italic text-pink-500">
-                {isSaving ? "Gerando PIX/Cartão..." : "Ambiente Seguro"}
+                {isSaving ? "Gerando PIX..." : "Ambiente Seguro"}
               </p>
             </div>
           </div>
@@ -120,15 +127,21 @@ function CheckoutContent() {
               ) : (
                 <div className="flex flex-col md:flex-row gap-8">
                   <img 
-                    src={evento?.imagem_url || 'https://via.placeholder.com/300x200'} 
-                    className="w-full md:w-48 h-32 object-cover rounded-3xl shadow-md"
-                    alt="Banner"
+                    src={evento?.imagem_url} 
+                    className="w-full md:w-48 h-32 object-cover rounded-3xl shadow-md bg-slate-200"
+                    alt="Evento"
+                    onError={(e: any) => {
+                       console.log("[Render Debug] Falha na imagem, usando fallback.");
+                       e.target.src = 'https://via.placeholder.com/600x400?text=Linkah+Evento';
+                    }}
                   />
                   <div className="space-y-3">
-                    <h4 className="text-2xl font-black text-slate-800 uppercase italic tracking-tight">{evento?.titulo}</h4>
+                    <h4 className="text-2xl font-black text-slate-800 uppercase italic tracking-tight">
+                      {evento?.titulo || 'Carregando...'}
+                    </h4>
                     <div className="flex items-center gap-4 text-slate-500 font-bold text-xs uppercase tracking-widest">
-                      <span className="flex items-center gap-1"><Calendar size={14}/> {evento?.data ? new Date(evento.data).toLocaleDateString() : 'A definir'}</span>
-                      <span className="flex items-center gap-1"><MapPin size={14}/> {evento?.local || 'Local não informado'}</span>
+                      <span className="flex items-center gap-1"><Calendar size={14}/> {evento?.data_inicio ? new Date(evento.data_inicio).toLocaleDateString() : 'A definir'}</span>
+                      <span className="flex items-center gap-1"><MapPin size={14}/> {evento?.local_nome || evento?.local || 'Local não informado'}</span>
                     </div>
                   </div>
                 </div>
@@ -139,7 +152,6 @@ function CheckoutContent() {
               <div className="flex items-center justify-between mb-8">
                 <div>
                   <h3 className="text-slate-900 font-black text-xs uppercase tracking-[0.3em] italic">Total a Pagar</h3>
-                  <p className="text-slate-400 font-bold text-[10px] uppercase mt-1 italic">Taxas inclusas (Split Connect)</p>
                 </div>
                 <div className="text-right">
                   {!evento ? (
@@ -156,7 +168,7 @@ function CheckoutContent() {
             <div className="bg-emerald-50/30 p-8 rounded-[2.5rem] flex gap-5 items-center border border-emerald-100/50">
               <ShieldCheck className="text-emerald-500 shrink-0" size={24} />
               <p className="text-[11px] text-emerald-900 font-bold uppercase tracking-tight">
-                Pagamento processado via Stripe Connect. Pix e Cartão disponíveis.
+                Pagamento processado via Stripe Connect (5% taxa inclusa).
               </p>
             </div>
 
@@ -166,7 +178,7 @@ function CheckoutContent() {
               className="w-full bg-[#C22973] text-white py-7 rounded-[2rem] font-black uppercase tracking-[0.4em] italic flex items-center justify-center gap-4 hover:bg-[#a62262] transition-all shadow-2xl disabled:opacity-50 active:scale-95 group"
             >
               {isSaving ? <Loader2 className="animate-spin" /> : <CreditCard size={22} />} 
-              {isSaving ? 'Iniciando...' : 'Pagar Agora'}
+              {isSaving ? 'Processando...' : 'Pagar Agora'}
             </button>
           </div>
         </div>
