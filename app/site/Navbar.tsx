@@ -18,14 +18,21 @@ export function Navbar() {
   const [buscandoTickets, setBuscandoTickets] = useState(false);
   const [meusIngressos, setMeusIngressos] = useState<any[]>([]);
   
-  // Tipando t como any temporariamente para evitar erros de propriedade inexistente no TS
-  const { language, setLanguage, t }: any = useLanguage();
+  // Usando a tipagem correta que configuramos no Context
+  const { language, setLanguage, t, isMounted } = useLanguage();
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const savedUser = localStorage.getItem('@Linkah:User');
     if (savedUser) {
-      try { setUsuario(JSON.parse(savedUser)); } catch (e) { console.error("Erro ao ler usuário"); }
+      try { 
+        const parsed = JSON.parse(savedUser);
+        if (parsed && parsed.nome) {
+          setUsuario(parsed);
+        }
+      } catch (e) { 
+        console.error("Erro ao ler usuário"); 
+      }
     }
 
     const handleClickOutside = (event: MouseEvent) => {
@@ -61,6 +68,9 @@ export function Navbar() {
       setBuscandoTickets(false);
     }
   };
+
+  // Previne erros de hidratação na Navbar também
+  if (!isMounted) return <div className="h-16 bg-white border-b border-gray-200" />;
 
   return (
     <>
@@ -123,8 +133,11 @@ export function Navbar() {
                   onClick={() => setIsMenuOpen(!isMenuOpen)}
                   className="flex items-center gap-2 p-1 pl-3 border border-gray-200 rounded-full hover:shadow-md transition-all bg-white"
                 >
-                  <div className="flex flex-col items-end hidden sm:block">
-                    <span className="text-[12px] font-bold text-gray-900 leading-none">{usuario.nome.split(' ')[0]}</span>
+                  <div className="flex flex-col items-end hidden sm:block text-right">
+                    {/* CORREÇÃO AQUI: Optional Chaining e Fallback */}
+                    <span className="text-[12px] font-bold text-gray-900 leading-none block">
+                      {usuario?.nome?.split(' ')?.[0] || 'Membro'}
+                    </span>
                     <span className="text-[10px] text-blue-500 font-medium">{t.member || 'Membro'}</span>
                   </div>
                   <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center border border-gray-200">
@@ -138,7 +151,7 @@ export function Navbar() {
                   <div className="absolute right-0 top-full mt-2 w-56 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
                     <div className="p-4 border-b border-gray-50 bg-gray-50/50">
                       <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Conta</p>
-                      <p className="text-xs font-bold text-gray-900 truncate mt-1">{usuario.email}</p>
+                      <p className="text-xs font-bold text-gray-900 truncate mt-1">{usuario?.email}</p>
                     </div>
                     
                     <div className="p-1">
