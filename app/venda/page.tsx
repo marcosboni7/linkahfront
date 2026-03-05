@@ -13,8 +13,6 @@ const API_URL = 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
 function CheckoutContent() {
   const router = useRouter();
   const params = useParams();
-  
-  // ✅ Garantindo que o ID seja capturado corretamente da URL
   const id = params?.id;
   
   const [isSaving, setIsSaving] = useState(false);
@@ -31,32 +29,17 @@ function CheckoutContent() {
 
   useEffect(() => {
     const carregarEvento = async () => {
-      // ✅ Log de debug para verificar se o ID existe ao carregar a página
-      console.log("🔍 Checkout ID detectado:", id);
-
-      if (!id) {
-        console.error("❌ ID não encontrado na URL. Verifique se a pasta é [id]");
-        return;
-      }
-
+      if (!id) return;
       try {
         const response = await fetch(`${API_URL}/api/eventos/${id}`);
-        
-        if (!response.ok) {
-          console.error("❌ Erro na resposta da API:", response.status);
-          throw new Error("Evento não encontrado");
-        }
-
+        if (!response.ok) throw new Error();
         const data = await response.json();
-        console.log("✅ Dados do evento carregados:", data);
         setEvento(data);
       } catch (error) {
         setError(true);
-        console.error("❌ Erro ao buscar evento no servidor");
-        Swal.fire('Erro', 'Não foi possível carregar os detalhes deste evento.', 'error');
+        console.error("❌ Erro ao carregar evento");
       }
     };
-
     carregarEvento();
   }, [id]);
 
@@ -68,16 +51,20 @@ function CheckoutContent() {
       const userStorage = localStorage.getItem('@Linkah:User');
       const emailLogado = userStorage ? JSON.parse(userStorage).email : localStorage.getItem('userEmail');
 
-      console.log("🚀 Iniciando checkout para:", emailLogado);
+      // ✅ CORREÇÃO NO BODY: Ajustado para o que o pagamentoController.criarSessaoCheckout espera
+      const bodyEnvio = {
+        evento: {
+          id: id,
+          preco: evento.preco
+        },
+        usuarioEmail: emailLogado || 'comprador@teste.com',
+        quantidade: 1
+      };
 
       const response = await fetch(`${API_URL}/api/pagamento/checkout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          eventoId: id,
-          quantidade: 1,
-          emailComprador: emailLogado || 'comprador@teste.com',
-        }),
+        body: JSON.stringify(bodyEnvio),
       });
 
       const data = await response.json();
@@ -85,14 +72,14 @@ function CheckoutContent() {
       if (data.url) {
         window.location.href = data.url;
       } else {
-        throw new Error(data.error || "Erro ao gerar link de pagamento");
+        throw new Error(data.error || "Erro no servidor");
       }
     } catch (error: any) {
-      console.error("❌ Erro no processo de pagamento:", error);
+      console.error("❌ Erro:", error);
       Swal.fire({
-        title: 'Servidor Ocupado',
-        text: 'O sistema está processando sua solicitação. Tente clicar novamente em instantes.',
-        icon: 'warning',
+        title: 'Erro no Pagamento',
+        text: error.message || 'Verifique se você está logado.',
+        icon: 'error',
         confirmButtonColor: '#C22973'
       });
     } finally {
@@ -103,25 +90,24 @@ function CheckoutContent() {
   return (
     <div className="min-h-screen bg-[#FDFDFF] p-6 md:p-12 font-sans">
       <div className="max-w-[850px] mx-auto">
-        <button onClick={() => router.back()} className="inline-flex items-center gap-3 text-slate-400 hover:text-[#C22973] mb-10 font-black text-[10px] tracking-[0.2em] uppercase transition-colors">
+        <button onClick={() => router.back()} className="inline-flex items-center gap-3 text-slate-400 hover:text-[#C22973] mb-10 font-black text-[10px] tracking-[0.2em] uppercase transition-all">
           <ArrowLeft size={18} /> Voltar
         </button>
 
         <div className="bg-white rounded-[3.5rem] shadow-2xl p-8 md:p-16 border border-slate-50 relative overflow-hidden">
           <div className="flex items-center gap-6 mb-16 relative z-10">
-            <div className="w-20 h-20 bg-[#C22973] rounded-[2rem] flex items-center justify-center shadow-lg">
+            <div className="w-20 h-20 bg-[#C22973] rounded-[2rem] flex items-center justify-center shadow-lg shadow-pink-200">
               <Ticket className="text-white" size={40} />
             </div>
             <div>
               <h2 className="text-4xl font-black text-slate-900 leading-none tracking-tighter italic uppercase">Checkout</h2>
               <p className="text-slate-400 mt-2 font-bold uppercase text-[10px] tracking-widest italic text-pink-500">
-                {isSaving ? "Conectando ao Stripe..." : "Ambiente Seguro"}
+                {isSaving ? "Gerando PIX/Cartão..." : "Ambiente Seguro"}
               </p>
             </div>
           </div>
           
           <div className="space-y-12 relative z-10">
-            {/* Detalhes do Evento com Skeleton condicional */}
             <div className="bg-slate-50 p-8 rounded-[2.5rem] border-2 border-slate-100">
               {!evento && !error ? (
                 <div className="flex animate-pulse gap-6">
@@ -130,10 +116,6 @@ function CheckoutContent() {
                     <div className="h-4 bg-slate-200 rounded w-3/4" />
                     <div className="h-4 bg-slate-200 rounded w-1/2" />
                   </div>
-                </div>
-              ) : error ? (
-                <div className="text-center py-4">
-                  <p className="text-red-500 font-bold uppercase text-xs tracking-widest">Erro ao carregar evento</p>
                 </div>
               ) : (
                 <div className="flex flex-col md:flex-row gap-8">
@@ -153,11 +135,11 @@ function CheckoutContent() {
               )}
             </div>
 
-            {/* Total */}
             <div className="pt-12 border-t border-slate-100">
               <div className="flex items-center justify-between mb-8">
                 <div>
                   <h3 className="text-slate-900 font-black text-xs uppercase tracking-[0.3em] italic">Total a Pagar</h3>
+                  <p className="text-slate-400 font-bold text-[10px] uppercase mt-1 italic">Taxas inclusas (Split Connect)</p>
                 </div>
                 <div className="text-right">
                   {!evento ? (
@@ -174,7 +156,7 @@ function CheckoutContent() {
             <div className="bg-emerald-50/30 p-8 rounded-[2.5rem] flex gap-5 items-center border border-emerald-100/50">
               <ShieldCheck className="text-emerald-500 shrink-0" size={24} />
               <p className="text-[11px] text-emerald-900 font-bold uppercase tracking-tight">
-                Pagamento processado via Stripe. Seus dados estão protegidos.
+                Pagamento processado via Stripe Connect. Pix e Cartão disponíveis.
               </p>
             </div>
 
@@ -184,7 +166,7 @@ function CheckoutContent() {
               className="w-full bg-[#C22973] text-white py-7 rounded-[2rem] font-black uppercase tracking-[0.4em] italic flex items-center justify-center gap-4 hover:bg-[#a62262] transition-all shadow-2xl disabled:opacity-50 active:scale-95 group"
             >
               {isSaving ? <Loader2 className="animate-spin" /> : <CreditCard size={22} />} 
-              {isSaving ? 'Sincronizando...' : 'Pagar Agora'}
+              {isSaving ? 'Iniciando...' : 'Pagar Agora'}
             </button>
           </div>
         </div>
@@ -192,7 +174,7 @@ function CheckoutContent() {
     </div>
   );
 }
-s
+
 export default function CheckoutPage() {
   return (
     <Suspense fallback={<div className="h-screen bg-white" />}>
