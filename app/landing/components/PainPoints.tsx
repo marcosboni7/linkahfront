@@ -1,3 +1,6 @@
+'use client';
+
+import { useRouter } from 'next/navigation';
 import { MapPin, Home, Users, Link } from 'lucide-react';
 
 const pains = [
@@ -24,6 +27,8 @@ const pains = [
 ];
 
 export default function PainPoints() {
+  const router = useRouter();
+
   return (
     <section className="py-24 bg-white">
       <div className="max-w-7xl mx-auto px-6">
@@ -50,13 +55,19 @@ export default function PainPoints() {
           ))}
         </div>
 
-        {/* Botões com o estilo fiel à imagem */}
+        {/* Botões com o estilo fiel à imagem e rotas atualizadas */}
         <div className="flex flex-col sm:flex-row justify-center items-center gap-6">
-          <button className="min-w-[240px] py-4 bg-gradient-to-r from-[#7a37f5] via-[#ff4d6d] to-[#ff8c66] text-white rounded-full font-bold text-lg shadow-lg hover:opacity-90 transition-opacity">
+          <button 
+            onClick={() => router.push('/?old=true')}
+            className="min-w-[240px] py-4 bg-gradient-to-r from-[#7a37f5] via-[#ff4d6d] to-[#ff8c66] text-white rounded-full font-bold text-lg shadow-lg hover:opacity-90 transition-opacity"
+          >
             Comprar Ingresso
           </button>
           
-          <button className="min-w-[240px] py-4 border-2 border-transparent bg-origin-border bg-clip-content bg-gradient-to-r from-[#7a37f5] via-[#ff4d6d] to-[#ff8c66] rounded-full relative group">
+          <button 
+            onClick={() => router.push('/auth/login')}
+            className="min-w-[240px] py-4 border-2 border-transparent bg-origin-border bg-clip-content bg-gradient-to-r from-[#7a37f5] via-[#ff4d6d] to-[#ff8c66] rounded-full relative group"
+          >
              <div className="absolute inset-0 bg-white rounded-full m-[2px] transition-colors group-hover:bg-slate-50"></div>
              <span className="relative z-10 font-bold text-lg text-[#1a1a1a]">Criar Evento</span>
           </button>

@@ -30,14 +30,14 @@ export default function Banner() {
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <button 
-            onClick={() => router.push('/site')}
+            onClick={() => router.push('/?old=true')}
             className="w-full sm:w-auto px-10 py-5 bg-gradient-to-r from-pink-500 to-orange-500 text-white rounded-full font-bold text-lg hover:scale-105 transition-all shadow-2xl"
           >
             Comprar Ingresso
           </button>
           
           <button 
-            onClick={() => router.push('/auth/registro')}
+            onClick={() => router.push('/auth/login')}
             className="w-full sm:w-auto px-10 py-5 bg-white/10 hover:bg-white/20 text-white border border-white/30 backdrop-blur-md rounded-full font-bold text-lg transition-all"
           >
             Criar Evento
@@ -45,7 +45,7 @@ export default function Banner() {
         </div>
       </div>
 
-      {/* Ícone de Whats Flutuante (como na sua imagem) */}
+      {/* Ícone de Whats Flutuante */}
       <a 
         href="https://wa.me/seunumeroaqui" 
         target="_blank" 
