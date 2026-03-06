@@ -1,33 +1,72 @@
-import { Star, Quote } from 'lucide-react';
+import { Star } from 'lucide-react';
 
 export default function Testimonials() {
+  const stats = [
+    { value: "100%", label: "completaram o fluxo" },
+    { value: "100%", label: "repetiriam a experiência" },
+    { value: "100%", label: "matches bem sucedidos" },
+  ];
+
   const reviews = [
-    { name: "Mariana Silva", role: "Participante", text: "Fui sozinha para um evento em SP e graças à comunidade Linkah conheci pessoas incríveis antes mesmo de embarcar. Me senti segura o tempo todo!" },
-    { name: "Ricardo Santos", role: "Organizador de Eventos", text: "Minha taxa de retenção dobrou. Os participantes criam laços reais e voltam em todos os meus eventos agora. A plataforma é fantástica." },
-    { name: "Ana Beatriz", role: "Viajante Solo", text: "O matching por afinidade me conectou com pessoas que gostam do mesmo estilo de música que eu. Fiz amigos para a vida toda." },
+    {
+      name: "Rafael Melo",
+      role: "Participante",
+      text: "A Linkah mudou minha forma de ir a eventos. Pela primeira vez, me senti seguro e conectado antes mesmo de chegar."
+    },
+    {
+      name: "Camila Reis",
+      role: "Participante",
+      text: "Encontrei não só companhia de viagem, mas amigos para a vida. A plataforma é incrível!"
+    },
+    {
+      name: "Andrea Araujo",
+      role: "Organizadora",
+      text: "Como organizadora, vi o engajamento triplicar. Os participantes chegam prontos para viver o evento."
+    }
   ];
 
   return (
-    <section className="py-24 bg-pink-600 text-white overflow-hidden">
+    <section className="py-24 bg-white">
       <div className="max-w-7xl mx-auto px-6">
-        <div className="flex flex-col md:flex-row items-end justify-between mb-16 gap-6">
-          <div className="max-w-2xl">
-            <h2 className="text-5xl font-black tracking-tighter mb-4">O que dizem sobre nós.</h2>
-            <p className="text-pink-100 text-lg font-medium">Histórias reais de quem transformou um evento em uma experiência de vida.</p>
-          </div>
-          <div className="flex gap-1 text-orange-400">
-            {[1,2,3,4,5].map(i => <Star key={i} fill="currentColor" size={20}/>)}
-          </div>
+        
+        {/* Seção de Estatísticas (Stats) baseada na imagem */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-20 text-center">
+          {stats.map((stat, i) => (
+            <div key={i} className="flex flex-col gap-2">
+              <span className="text-[64px] font-bold text-[#ff4d6d] leading-none tracking-tighter">
+                {stat.value}
+              </span>
+              <span className="text-slate-500 text-sm font-medium">
+                {stat.label}
+              </span>
+            </div>
+          ))}
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8">
+        {/* Grid de Depoimentos (Reviews) */}
+        <div className="grid md:grid-cols-3 gap-6">
           {reviews.map((r, i) => (
-            <div key={i} className="bg-white p-10 rounded-[3rem] text-slate-900 relative">
-              <Quote className="text-pink-100 absolute top-8 right-8" size={40} />
-              <p className="text-slate-600 font-medium leading-relaxed mb-8 italic">"{r.text}"</p>
+            <div key={i} className="bg-white p-8 rounded-[1.5rem] border border-slate-100 shadow-sm flex flex-col justify-between">
               <div>
-                <h4 className="font-black uppercase tracking-tighter">{r.name}</h4>
-                <span className="text-xs font-bold text-pink-600 uppercase tracking-widest">{r.role}</span>
+                {/* Estrelas laranjas conforme a imagem */}
+                <div className="flex gap-1 text-[#ff8c66] mb-6">
+                  {[...Array(5)].map((_, starIdx) => (
+                    <Star key={starIdx} fill="currentColor" size={16} strokeWidth={0} />
+                  ))}
+                </div>
+                
+                <p className="text-slate-600 text-[15px] leading-relaxed mb-8 italic">
+                  "{r.text}"
+                </p>
+              </div>
+              
+              <div>
+                <h4 className="font-bold text-[#1a1a1a] text-sm">
+                  {r.name}
+                </h4>
+                <span className="text-[11px] text-slate-400 font-medium">
+                  {r.role}
+                </span>
               </div>
             </div>
           ))}

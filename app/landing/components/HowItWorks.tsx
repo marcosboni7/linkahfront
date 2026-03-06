@@ -1,55 +1,63 @@
-import { Search, ShoppingBag, MessageSquare, Shield, Smile, Plus, Zap, Users, Gift, TrendingUp } from 'lucide-react';
+import { CalendarDays, Ticket, Users, Plane, PartyPopper, PlusCircle, Megaphone, Zap, Gift, RefreshCw } from 'lucide-react';
 
 export default function HowItWorks() {
   const stepsPart = [
-    { icon: <Search size={20}/>, text: "Escolhe o evento" },
-    { icon: <ShoppingBag size={20}/>, text: "Compra o ticket" },
-    { icon: <MessageSquare size={20}/>, text: "Conecta via Comunidade" },
-    { icon: <Shield size={20}/>, text: "Viaja com segurança" },
-    { icon: <Smile size={20}/>, text: "Vive Experiência Inesquecível" },
+    { icon: <CalendarDays size={20}/>, text: "Escolhe o evento" },
+    { icon: <Ticket size={20}/>, text: "Compra o ticket" },
+    { icon: <Users size={20}/>, text: "Conecta via Comunidade" },
+    { icon: <Plane size={20}/>, text: "Viaja com segurança" },
+    { icon: <PartyPopper size={20}/>, text: "Vive Experiência Inesquecível" },
   ];
 
   const stepsOrg = [
-    { icon: <Plus size={20}/>, text: "Cria o evento" },
-    { icon: <Zap size={20}/>, text: "Ativa comunidade" },
-    { icon: <Users size={20}/>, text: "Engaja os participantes" },
+    { icon: <PlusCircle size={20}/>, text: "Cria o evento" },
+    { icon: <Megaphone size={20}/>, text: "Ativa comunidade" },
+    { icon: <Zap size={20}/>, text: "Engaja os participantes" },
     { icon: <Gift size={20}/>, text: "Entrega valor" },
-    { icon: <TrendingUp size={20}/>, text: "Multiplica resultados" },
+    { icon: <RefreshCw size={20}/>, text: "Multiplica resultados" },
   ];
 
   return (
-    <section className="py-32 bg-white">
-      <div className="max-w-6xl mx-auto px-6">
-        <h2 className="text-6xl font-black text-center mb-24 tracking-tighter">Como <span className="text-pink-600 underline decoration-orange-500">funciona</span></h2>
+    <section className="py-24 bg-white">
+      <div className="max-w-5xl mx-auto px-6">
+        {/* Título com degradê sutil no 'funciona' */}
+        <h2 className="text-[44px] font-bold text-center mb-20 tracking-tight text-[#1a1a1a]">
+          Como <span className="text-[#ff4d6d]">funciona</span>
+        </h2>
         
-        <div className="grid md:grid-cols-2 gap-16">
-          {/* PARTICIPANTE */}
-          <div className="bg-slate-50/50 p-8 rounded-[3rem] border border-slate-100">
-            <h4 className="text-center font-black text-blue-900 mb-10 uppercase tracking-[0.3em] text-xs">Participante</h4>
-            <div className="space-y-4">
+        <div className="grid md:grid-cols-2 gap-x-16 gap-y-12">
+          {/* COLUNA PARTICIPANTE */}
+          <div className="flex flex-col gap-4">
+            <h4 className="text-center font-bold text-[#1a1a1a] mb-6 text-xl">Participante</h4>
+            <div className="space-y-3">
               {stepsPart.map((s, i) => (
-                <div key={i} className="flex items-center justify-between p-6 bg-white rounded-3xl shadow-sm border border-slate-100 hover:scale-[1.02] transition-transform cursor-default">
-                  <div className="flex items-center gap-5">
-                    <div className="w-12 h-12 bg-orange-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-orange-500/20">{s.icon}</div>
-                    <span className="font-black text-slate-800 text-sm uppercase tracking-tighter">{s.text}</span>
+                <div key={i} className="flex items-center justify-between p-4 bg-white rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-center gap-4">
+                    {/* Ícone com o degradê coral padrão */}
+                    <div className="w-10 h-10 bg-gradient-to-br from-[#ff4d6d] to-[#ff8c66] text-white rounded-xl flex items-center justify-center">
+                      {s.icon}
+                    </div>
+                    <span className="font-bold text-[#1a1a1a] text-sm">{s.text}</span>
                   </div>
-                  <span className="text-[10px] font-black text-slate-300 italic uppercase">Passo {i+1}</span>
+                  <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Passo {i+1}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* ORGANIZADOR */}
-          <div className="bg-slate-50/50 p-8 rounded-[3rem] border border-slate-100">
-            <h4 className="text-center font-black text-orange-600 mb-10 uppercase tracking-[0.3em] text-xs">Organizador</h4>
-            <div className="space-y-4">
+          {/* COLUNA ORGANIZADOR */}
+          <div className="flex flex-col gap-4">
+            <h4 className="text-center font-bold text-[#ff4d6d] mb-6 text-xl">Organizador</h4>
+            <div className="space-y-3">
               {stepsOrg.map((s, i) => (
-                <div key={i} className="flex items-center justify-between p-6 bg-white rounded-3xl shadow-sm border border-slate-100 hover:scale-[1.02] transition-transform cursor-default">
-                  <div className="flex items-center gap-5">
-                    <div className="w-12 h-12 bg-pink-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-pink-500/20">{s.icon}</div>
-                    <span className="font-black text-slate-800 text-sm uppercase tracking-tighter">{s.text}</span>
+                <div key={i} className="flex items-center justify-between p-4 bg-white rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-gradient-to-br from-[#ff4d6d] to-[#ff8c66] text-white rounded-xl flex items-center justify-center">
+                      {s.icon}
+                    </div>
+                    <span className="font-bold text-[#1a1a1a] text-sm">{s.text}</span>
                   </div>
-                  <span className="text-[10px] font-black text-slate-300 italic uppercase">Passo {i+1}</span>
+                  <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Passo {i+1}</span>
                 </div>
               ))}
             </div>
