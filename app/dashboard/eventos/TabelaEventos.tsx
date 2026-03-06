@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { 
   Edit3, X, Loader2, Ticket, Upload, Trash2, ChevronDown, 
-  MapPin, Monitor, Search, ExternalLink, TrendingUp 
+  MapPin, Monitor, Search, ExternalLink, Lock 
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Swal from 'sweetalert2';
@@ -27,7 +27,7 @@ export default function TabelaEventos() {
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Lógica de Filtro em tempo real
+  // 1. FILTRO DE BUSCA EM TEMPO REAL
   const eventosFiltrados = eventos.filter(evento => 
     evento.nome?.toLowerCase().includes(busca.toLowerCase()) ||
     evento.categoria?.toLowerCase().includes(busca.toLowerCase())
@@ -44,14 +44,22 @@ export default function TabelaEventos() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // 2. LOGICA DE "EM BREVE" PARA PÁGINA PÚBLICA
+  const handlePaginaPublicaEmBreve = () => {
+    Swal.fire({
+      title: 'Funcionalidade em Breve',
+      text: 'A visualização da página pública externa está em fase de homologação.',
+      icon: 'info',
+      confirmButtonColor: '#030712',
+      confirmButtonText: 'Entendido'
+    });
+  };
+
   const validarImagem = (url: any) => {
     if (!url || url === "null" || url === "undefined" || String(url).includes('[object Object]')) {
       return 'https://placehold.co/400x400/e2e8f0/64748b?text=Linkah';
     }
     if (typeof url === 'string' && (url.startsWith('http://') || url.startsWith('https://'))) {
-      if (url.includes('default-event.png')) {
-        return 'https://placehold.co/400x400/e2e8f0/64748b?text=Evento';
-      }
       return url;
     }
     return `${API_URL}/uploads/${url}`;
@@ -103,21 +111,14 @@ export default function TabelaEventos() {
   const handleSalvarEdicao = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!eventoParaEditar?.nome) return;
-    
     setSaving(true);
     try {
       const rawToken = localStorage.getItem('@Linkah:Token') || localStorage.getItem('token');
       const token = rawToken ? rawToken.replace(/['"]+/g, '').trim() : '';
-      
       const formData = new FormData();
       formData.append('nome', eventoParaEditar.nome.trim());
       formData.append('categoria', eventoParaEditar.categoria || 'Entretenimento');
-      
-      if (selectedFile) {
-        formData.append('imagem_capa', selectedFile);
-      } else {
-        formData.append('imagem_capa', eventoParaEditar.imagem_capa || '');
-      }
+      if (selectedFile) formData.append('imagem_capa', selectedFile);
 
       const res = await fetch(`${API_URL}/api/eventos/${eventoParaEditar.id}`, {
         method: 'PUT',
@@ -162,7 +163,7 @@ export default function TabelaEventos() {
   return (
     <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden font-sans">
       
-      {/* HEADER COM BUSCA E BOTÃO NOVO */}
+      {/* HEADER: BUSCA E BOTÃO NOVO */}
       <div className="p-10 border-b border-slate-50 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
         <div>
           <h2 className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Painel do Produtor</h2>
@@ -170,7 +171,7 @@ export default function TabelaEventos() {
         </div>
 
         <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
-          {/* BARRA DE BUSCA */}
+          {/* CAMPO DE BUSCA */}
           <div className="relative w-full sm:w-64 group">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-black transition-colors" size={16} />
             <input 
@@ -198,27 +199,21 @@ export default function TabelaEventos() {
                   onClick={() => { setShowDropdown(false); router.push('/dashboard/eventos/novo/presencial'); }}
                   className="w-full px-5 py-4 text-left hover:bg-slate-50 flex items-center gap-3 transition-colors"
                 >
-                  <div className="p-2 bg-orange-50 text-orange-600 rounded-lg">
-                    <MapPin size={18} />
-                  </div>
+                  <div className="p-2 bg-orange-50 text-orange-600 rounded-lg"><MapPin size={18} /></div>
                   <div className="flex flex-col">
                     <span className="text-slate-900 font-bold text-sm">Presencial</span>
-                    <span className="text-slate-400 text-[10px]">Locais físicos e check-in</span>
+                    <span className="text-slate-400 text-[10px]">Locais físicos</span>
                   </div>
                 </button>
-
                 <div className="h-[1px] bg-slate-50 mx-4 my-1" />
-
                 <button 
                   onClick={() => { setShowDropdown(false); router.push('/dashboard/eventos/novo/online'); }}
                   className="w-full px-5 py-4 text-left hover:bg-slate-50 flex items-center gap-3 transition-colors"
                 >
-                  <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
-                    <Monitor size={18} />
-                  </div>
+                  <div className="p-2 bg-blue-50 text-blue-600 rounded-lg"><Monitor size={18} /></div>
                   <div className="flex flex-col">
                     <span className="text-slate-900 font-bold text-sm">Online</span>
-                    <span className="text-slate-400 text-[10px]">Lives, Cursos e Vídeos</span>
+                    <span className="text-slate-400 text-[10px]">Lives e Mentorias</span>
                   </div>
                 </button>
               </div>
@@ -227,7 +222,7 @@ export default function TabelaEventos() {
         </div>
       </div>
 
-      {/* TABELA DE EVENTOS */}
+      {/* TABELA */}
       <div className="overflow-x-auto">
         <table className="w-full text-left">
           <thead className="bg-slate-50 text-slate-400 text-[10px] font-bold uppercase tracking-widest">
@@ -249,11 +244,7 @@ export default function TabelaEventos() {
                   <td className="px-10 py-6">
                     <div className="flex items-center gap-5">
                       <div className="w-14 h-14 rounded-2xl bg-slate-100 overflow-hidden border border-slate-50 shadow-inner shrink-0">
-                        <img 
-                          src={validarImagem(evento.imagem_capa)} 
-                          className="w-full h-full object-cover" 
-                          alt={evento.nome}
-                        />
+                        <img src={validarImagem(evento.imagem_capa)} className="w-full h-full object-cover" alt={evento.nome} />
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
@@ -270,7 +261,7 @@ export default function TabelaEventos() {
                     </div>
                   </td>
 
-                  {/* COLUNA DE VENDAS */}
+                  {/* CONTADOR DE VENDAS */}
                   <td className="px-6 py-6 text-center">
                     <div className="flex flex-col items-center">
                       <span className="text-slate-950 font-bold text-sm leading-none">{evento.vendas_count || 0}</span>
@@ -284,19 +275,17 @@ export default function TabelaEventos() {
 
                   <td className="px-10 py-6 text-right">
                     <div className="flex justify-end gap-2">
-                      {/* VER PÁGINA PÚBLICA */}
+                      {/* BOTÃO PÁGINA PÚBLICA (BLOQUEADO/EM BREVE) */}
                       <button 
-                        onClick={() => window.open(`https://linkah.com/evento/${evento.slug || evento.id}`, '_blank')} 
-                        className="p-3 bg-slate-50 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-xl transition-all"
-                        title="Ver página pública"
+                        onClick={handlePaginaPublicaEmBreve} 
+                        className="p-3 bg-slate-50 text-slate-300 hover:text-slate-500 hover:bg-slate-100 rounded-xl transition-all"
+                        title="Ver página pública (Em Breve)"
                       >
-                        <ExternalLink size={18} />
+                        <Lock size={18} />
                       </button>
 
                       <button onClick={() => abrirModalEdicao(evento)} className="p-3 bg-slate-50 text-slate-400 hover:text-black hover:bg-slate-100 rounded-xl transition-all" title="Editar"><Edit3 size={18} /></button>
-                      
                       <button onClick={() => router.push(`/dashboard/eventos/novo/ingressos/${evento.id}`)} className="p-3 bg-slate-50 text-slate-400 hover:text-[#FF4D4D] hover:bg-red-50 rounded-xl transition-all" title="Ingressos"><Ticket size={18} /></button>
-                      
                       <button onClick={() => handleExcluir(evento.id)} className="p-3 bg-slate-50 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all" title="Excluir"><Trash2 size={18} /></button>
                     </div>
                   </td>
@@ -315,49 +304,19 @@ export default function TabelaEventos() {
               <h3 className="font-bold text-2xl tracking-tighter">Editar Evento</h3>
               <button onClick={() => setIsEditModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><X /></button>
             </div>
-            
             <form onSubmit={handleSalvarEdicao} className="space-y-6">
               <div>
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Imagem de Capa</label>
-                <div 
-                  onClick={() => fileInputRef.current?.click()} 
-                  className="h-40 bg-slate-50 border-2 border-dashed border-slate-200 rounded-[2rem] flex items-center justify-center cursor-pointer overflow-hidden group hover:border-[#FF4D4D] transition-all"
-                >
-                  {previewUrl ? (
-                    <img src={previewUrl} className="w-full h-full object-cover" alt="Preview" />
-                  ) : (
-                    <Upload size={32} className="text-slate-300" />
-                  )}
+                <div onClick={() => fileInputRef.current?.click()} className="h-40 bg-slate-50 border-2 border-dashed border-slate-200 rounded-[2rem] flex items-center justify-center cursor-pointer overflow-hidden group hover:border-[#FF4D4D] transition-all">
+                  {previewUrl ? <img src={previewUrl} className="w-full h-full object-cover" alt="Preview" /> : <Upload size={32} className="text-slate-300" />}
                 </div>
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  className="hidden" 
-                  onChange={(e:any) => {
-                    const file = e.target.files?.[0];
-                    if (file) { 
-                      setSelectedFile(file); 
-                      setPreviewUrl(URL.createObjectURL(file));
-                    }
-                  }} 
-                  accept="image/*" 
-                />
+                <input type="file" ref={fileInputRef} className="hidden" onChange={(e:any) => { const file = e.target.files?.[0]; if (file) { setSelectedFile(file); setPreviewUrl(URL.createObjectURL(file)); }}} accept="image/*" />
               </div>
-
               <div className="space-y-2">
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nome do Evento</label>
-                <input 
-                  className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none border border-transparent focus:border-black focus:bg-white transition-all shadow-sm" 
-                  value={eventoParaEditar.nome || ""} 
-                  onChange={(e) => setEventoParaEditar({...eventoParaEditar, nome: e.target.value})} 
-                />
+                <input className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none border border-transparent focus:border-black focus:bg-white transition-all shadow-sm" value={eventoParaEditar.nome || ""} onChange={(e) => setEventoParaEditar({...eventoParaEditar, nome: e.target.value})} />
               </div>
-
-              <button 
-                type="submit" 
-                disabled={saving} 
-                className="w-full bg-[#030712] text-white py-5 rounded-2xl font-bold hover:bg-black transition-all flex items-center justify-center gap-3 shadow-xl disabled:opacity-50"
-              >
+              <button type="submit" disabled={saving} className="w-full bg-[#030712] text-white py-5 rounded-2xl font-bold hover:bg-black transition-all flex items-center justify-center gap-3 shadow-xl disabled:opacity-50">
                 {saving ? <Loader2 className="animate-spin" size={20} /> : 'Salvar Alterações'}
               </button>
             </form>
