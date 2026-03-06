@@ -10,7 +10,6 @@ import {
   Loader2, 
   Users, 
   Info, 
-  Ticket, 
   Link as LinkIcon, 
   Sparkles 
 } from 'lucide-react';
@@ -36,9 +35,9 @@ export default function NovoEventoOnline() {
     data_termino: '', 
     hora_termino: '',
     local_nome: 'Plataforma Online',
-    url_transmissao: '',
+    link_reuniao: '', // Corrigido para bater com a coluna do Banco de Dados
     capacidade: '',
-    tipo: 'Online',
+    tipo: 'online', // Padronizado para minúsculo
     regras: '',
     visibilidade: 'Publico'
   });
@@ -100,7 +99,7 @@ export default function NovoEventoOnline() {
         }
       });
       
-      // 2. Adiciona campos obrigatórios que o backend espera (mesmo sendo online)
+      // 2. Adiciona campos obrigatórios que o backend espera
       dataToSend.append('produtor_email', emailProdutor);
       dataToSend.append('cidade', 'Online');
       dataToSend.append('estado', 'ON');
@@ -109,15 +108,12 @@ export default function NovoEventoOnline() {
       if (selectedFile) {
         dataToSend.append('imagem_capa', selectedFile);
         console.log("📸 Imagem anexada com sucesso.");
-      } else {
-        console.warn("⚠️ Nenhuma imagem selecionada.");
       }
 
       const response = await fetch(`${API_URL}/api/eventos/novo-online`, {
         method: 'POST',
         headers: { 
             'Authorization': `Bearer ${token}`
-            // Nota: O navegador define o Content-Type automaticamente para multipart/form-data
         },
         body: dataToSend,
       });
@@ -126,6 +122,7 @@ export default function NovoEventoOnline() {
       console.log("📡 Resposta API:", result);
 
       if (response.ok) {
+        // Redireciona para a criação de ingressos usando o ID retornado
         router.push(`/dashboard/eventos/novo/ingressos/${result.id}`);
       } else {
         alert(`Erro: ${result.message || "Erro ao salvar"}`);
@@ -223,8 +220,14 @@ export default function NovoEventoOnline() {
               </div>
               <div className="bg-white rounded-[2.5rem] p-10 shadow-sm border border-slate-100 space-y-6">
                 <div className="space-y-3">
-                  <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider ml-1">URL da Transmissão</label>
-                  <input name="url_transmissao" value={formData.url_transmissao} onChange={handleChange} placeholder="Link da live..." className="w-full bg-slate-900 text-pink-400 p-5 rounded-2xl outline-none font-mono text-sm border-2 border-slate-800 focus:border-[#C22973] transition-all" />
+                  <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider ml-1">URL da Transmissão (Link da Live)</label>
+                  <input 
+                    name="link_reuniao" 
+                    value={formData.link_reuniao} 
+                    onChange={handleChange} 
+                    placeholder="https://meet.google.com/..." 
+                    className="w-full bg-slate-900 text-pink-400 p-5 rounded-2xl outline-none font-mono text-sm border-2 border-slate-800 focus:border-[#C22973] transition-all" 
+                  />
                 </div>
               </div>
             </section>
