@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { 
-  Edit3, X, Loader2, Ticket, Upload, Trash2 
+  Edit3, X, Loader2, Ticket, Upload, Trash2, ChevronDown, MapPin, Monitor 
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Swal from 'sweetalert2';
@@ -14,6 +14,8 @@ export default function TabelaEventos() {
   const { language }: any = useLanguage();
   const [eventos, setEventos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -23,23 +25,27 @@ export default function TabelaEventos() {
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Função de validação de imagem corrigida
+  // Fecha o dropdown ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const validarImagem = (url: any) => {
-    // Se for null, undefined ou a string "null"/"undefined" ou conter erro de objeto
     if (!url || url === "null" || url === "undefined" || String(url).includes('[object Object]')) {
       return 'https://placehold.co/400x400/e2e8f0/64748b?text=Linkah';
     }
-
-    // Se a URL já for completa (S3 ou externa)
     if (typeof url === 'string' && (url.startsWith('http://') || url.startsWith('https://'))) {
-      // Evita tentar carregar a imagem padrão que sabemos estar dando 404/403 no seu servidor
       if (url.includes('default-event.png')) {
         return 'https://placehold.co/400x400/e2e8f0/64748b?text=Evento';
       }
       return url;
     }
-
-    // Se for apenas o nome do arquivo, concatena com a rota de uploads
     return `${API_URL}/uploads/${url}`;
   };
 
@@ -59,7 +65,6 @@ export default function TabelaEventos() {
       let emailBase = localStorage.getItem('userEmail') || localStorage.getItem('email') || "";
       const emailLimpo = emailBase.replace(/['"]+/g, '').trim().toLowerCase();
 
-      // Timestamp para evitar cache agressivo da AWS/Browser
       let url = `${API_URL}/api/eventos/listar?email=${encodeURIComponent(emailLimpo)}&t=${Date.now()}`;
       
       let res = await fetch(url, { 
@@ -103,7 +108,6 @@ export default function TabelaEventos() {
       if (selectedFile) {
         formData.append('imagem_capa', selectedFile);
       } else {
-        // Se não mudou a foto, envia o valor atual (pode ser null ou o nome do arquivo antigo)
         formData.append('imagem_capa', eventoParaEditar.imagem_capa || '');
       }
 
@@ -157,12 +161,49 @@ export default function TabelaEventos() {
           <h2 className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Painel do Produtor</h2>
           <p className="text-slate-950 font-bold text-2xl tracking-tighter">Meus Eventos</p>
         </div>
-        <button 
-          onClick={() => router.push('/dashboard/eventos/novo/presencial')} 
-          className="bg-[#030712] text-white px-8 py-4 rounded-2xl font-bold text-xs hover:bg-black transition-all shadow-lg"
-        >
-          + Novo Evento
-        </button>
+
+        {/* DROPDOWN MENU */}
+        <div className="relative" ref={dropdownRef}>
+          <button 
+            onClick={() => setShowDropdown(!showDropdown)} 
+            className="bg-[#030712] text-white px-8 py-4 rounded-2xl font-bold text-xs hover:bg-black transition-all shadow-lg flex items-center gap-2"
+          >
+            + Novo Evento
+            <ChevronDown size={14} className={`transition-transform duration-200 ${showDropdown ? 'rotate-180' : ''}`} />
+          </button>
+
+          {showDropdown && (
+            <div className="absolute right-0 mt-3 w-64 bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 py-3 overflow-hidden animate-in fade-in slide-in-from-top-2">
+              <button 
+                onClick={() => { setShowDropdown(false); router.push('/dashboard/eventos/novo/presencial'); }}
+                className="w-full px-5 py-4 text-left hover:bg-slate-50 flex items-center gap-3 transition-colors"
+              >
+                <div className="p-2 bg-orange-50 text-orange-600 rounded-lg">
+                  <MapPin size={18} />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-slate-900 font-bold text-sm">Presencial</span>
+                  <span className="text-slate-400 text-[10px]">Shows, Festas e Encontros</span>
+                </div>
+              </button>
+
+              <div className="h-[1px] bg-slate-50 mx-4 my-1" />
+
+              <button 
+                onClick={() => { setShowDropdown(false); router.push('/dashboard/eventos/novo/online'); }}
+                className="w-full px-5 py-4 text-left hover:bg-slate-50 flex items-center gap-3 transition-colors"
+              >
+                <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                  <Monitor size={18} />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-slate-900 font-bold text-sm">Online</span>
+                  <span className="text-slate-400 text-[10px]">Lives, Cursos e Mentorias</span>
+                </div>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="overflow-x-auto">
