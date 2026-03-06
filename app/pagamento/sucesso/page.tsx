@@ -2,7 +2,11 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Ticket, Download, ArrowRight, Loader2, Calendar, User, Hash, MapPin, AlertCircle, CheckCircle2, Verified, ExternalLink, Video } from 'lucide-react';
+import { 
+  Ticket, Download, ArrowRight, Loader2, Calendar, User, 
+  Hash, MapPin, AlertCircle, CheckCircle2, Verified, 
+  ExternalLink, Video, Globe 
+} from 'lucide-react';
 import Link from 'next/link';
 import { useLanguage } from '@/app/context/LanguageContext';
 
@@ -36,11 +40,9 @@ function TicketVisual() {
           const data = JSON.parse(textoResponse);
           setCompra(data);
           setLoading(false);
-          console.log("✅ Ticket carregado com sucesso:", data);
         } else {
           if (tentativas < maxTentativas) {
             tentativas++;
-            console.log(`⏳ Aguardando registro na AWS... Tentativa ${tentativas}`);
             setTimeout(buscar, 4000); 
           } else {
             setLoading(false);
@@ -72,20 +74,18 @@ function TicketVisual() {
 
   if (erro || !compra) return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 px-6 text-center gap-4">
-      <div className="w-20 h-20 bg-pink-50 rounded-full flex items-center justify-center mb-2">
-        <AlertCircle className="text-[#C22973]" size={40} />
-      </div>
+      <AlertCircle className="text-[#C22973]" size={40} />
       <h3 className="font-black text-slate-800 uppercase italic text-xl">
         {language === 'PT' ? 'Processando Registro' : 'Processing Record'}
       </h3>
-      <p className="text-slate-500 text-sm max-w-xs mb-4">
-        {language === 'PT' ? 'Quase lá! O sistema está processando seu ingresso.' : 'Almost there! The system is processing your ticket.'}
-      </p>
       <button onClick={() => window.location.reload()} className="bg-[#C22973] text-white px-10 py-4 rounded-full font-bold uppercase text-xs shadow-lg transition-transform active:scale-95">
         {language === 'PT' ? 'Atualizar Agora' : 'Refresh Now'}
       </button>
     </div>
   );
+
+  // Lógica para identificar se o evento é online
+  const isOnline = compra.tipo_evento === 'Online' || !!compra.link_reuniao;
 
   return (
     <main className="max-w-2xl mx-auto px-4 py-12 min-h-screen bg-white">
@@ -156,28 +156,28 @@ function TicketVisual() {
               <div className="min-w-0">
                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">{language === 'PT' ? 'Local' : 'Venue'}</p>
                 <p className="font-bold text-slate-700 text-sm uppercase truncate">
-                  {compra.link_reuniao ? 'Online' : (compra.local_evento || 'A confirmar')}
+                  {isOnline ? 'Plataforma Online' : (compra.local_evento || 'A confirmar')}
                 </p>
               </div>
             </div>
           </div>
 
-          {/* SEÇÃO DO LINK ONLINE - Só aparece se houver link_reuniao no banco */}
-          {compra.link_reuniao && (
-            <div className="bg-blue-50 border-2 border-blue-100 rounded-[2.5rem] p-6 text-center animate-in fade-in slide-in-from-bottom-4 duration-700">
-              <div className="flex items-center justify-center gap-2 mb-2 text-blue-600">
-                <Video size={18} />
+          {/* SEÇÃO DO LINK ONLINE DENTRO DO CARD - Condicional para Evento Online */}
+          {isOnline && compra.link_reuniao && (
+            <div className="bg-pink-50/50 border-2 border-pink-100 rounded-[2.5rem] p-6 text-center animate-in zoom-in-95 duration-500">
+              <div className="flex items-center justify-center gap-2 mb-3 text-[#C22973]">
+                <Globe size={18} className="animate-spin-slow" />
                 <p className="text-[10px] font-black uppercase tracking-[0.2em]">
-                  {language === 'PT' ? 'Link da Transmissão / Reunião' : 'Meeting / Stream Link'}
+                  {language === 'PT' ? 'Acesso Liberado para a Live' : 'Live Stream Access Granted'}
                 </p>
               </div>
               <a 
                 href={compra.link_reuniao} 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="text-[#C22973] font-bold text-sm underline break-all hover:text-[#8a1d52] transition-colors flex items-center justify-center gap-2"
+                className="text-slate-900 font-bold text-xs break-all hover:underline flex items-center justify-center gap-2 bg-white px-4 py-2 rounded-xl shadow-sm"
               >
-                {compra.link_reuniao} <ExternalLink size={14} />
+                {compra.link_reuniao} <ExternalLink size={14} className="text-[#C22973]" />
               </a>
             </div>
           )}
@@ -203,14 +203,15 @@ function TicketVisual() {
       </div>
 
       <div className="space-y-4 no-print max-w-sm mx-auto">
-        {compra.link_reuniao && (
+        {/* BOTÃO PRINCIPAL DE ACESSO - Só aparece para eventos online */}
+        {isOnline && (
           <a 
             href={compra.link_reuniao}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full bg-[#C22973] text-white py-5 rounded-3xl font-black uppercase text-[11px] tracking-widest flex items-center justify-center gap-3 shadow-2xl hover:scale-105 transition-all"
+            className="w-full bg-gradient-to-r from-[#C22973] to-[#8a1d52] text-white py-5 rounded-3xl font-black uppercase text-[11px] tracking-widest flex items-center justify-center gap-3 shadow-[0_20px_40px_-10px_rgba(194,41,115,0.4)] hover:scale-105 transition-all"
           >
-             <Video size={18}/> {language === 'PT' ? 'Acessar Reunião Agora' : 'Join Meeting Now'}
+             <Video size={18}/> {language === 'PT' ? 'Acessar Live Agora' : 'Watch Live Now'}
           </a>
         )}
 
