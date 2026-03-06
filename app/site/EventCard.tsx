@@ -11,25 +11,28 @@ export function EventCard({ evento }: { evento: any }) {
   const { language, t }: any = useLanguage();
   const [isMounted, setIsMounted] = useState(false);
 
-  // Essencial para evitar o erro de hidratação (Application Error)
   useEffect(() => {
     setIsMounted(true);
   }, []);
-  
+
   const locale = language === 'PT' ? 'pt-BR' : 'en-US';
+
+  // --- LOGS DE DEPURAÇÃO ---
+  useEffect(() => {
+    if (isMounted && evento) {
+      console.log(`--- DEBUG EVENTO: ${evento.nome} ---`);
+      console.log("Data Raw da API:", evento.data_inicio || evento.data);
+      console.log("Preço Mínimo:", evento.preco_minimo);
+    }
+  }, [isMounted, evento]);
 
   // --- LÓGICA DE IMAGEM BLINDADA ---
   const renderImagem = () => {
     const img = evento?.imagem_capa || evento?.imagem;
-    
     if (!img || img === "null" || img === "undefined") {
       return "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4";
     }
-
-    if (String(img).startsWith('http')) {
-      return img;
-    }
-
+    if (String(img).startsWith('http')) return img;
     return `${API_URL_BASE}/uploads/${String(img).replace(/^\/+/, '')}`;
   };
 
@@ -48,7 +51,7 @@ export function EventCard({ evento }: { evento: any }) {
     if (!dataRaw) return { diaSemana: '', dia: '', mes: '', hora: '' };
 
     try {
-      // 🔥 CORREÇÃO FUSO HORÁRIO: Pegamos apenas a parte da data YYYY-MM-DD
+      // 1. Pega apenas YYYY-MM-DD
       const apenasData = String(dataRaw).split('T')[0];
       const partes = apenasData.split('-');
       
@@ -58,9 +61,12 @@ export function EventCard({ evento }: { evento: any }) {
       const mesNum = parseInt(partes[1]) - 1; 
       const diaNum = parseInt(partes[2]);
 
-      // Criar a data passando os argumentos individuais impede o JS de aplicar o fuso UTC
-      const d = new Date(ano, mesNum, diaNum);
+      // 🔥 SOLUÇÃO: Criar a data ao meio-dia (12:00) para evitar que o fuso
+      // pule para o dia anterior ou posterior.
+      const d = new Date(ano, mesNum, diaNum, 12, 0, 0);
       
+      console.log(`Data Processada (${evento.nome}):`, d.toString());
+
       if (isNaN(d.getTime())) return { diaSemana: '', dia: '', mes: '', hora: '' };
 
       const diaSemana = d.toLocaleDateString(locale, { weekday: 'short' }).toUpperCase().replace('.', '');
@@ -73,6 +79,7 @@ export function EventCard({ evento }: { evento: any }) {
 
       return { diaSemana, dia, mes, hora: horaFormatada };
     } catch (e) {
+      console.error("Erro ao formatar data:", e);
       return { diaSemana: '', dia: '', mes: '', hora: '' };
     }
   };
@@ -94,9 +101,7 @@ export function EventCard({ evento }: { evento: any }) {
   };
 
   if (!isMounted) {
-    return (
-      <div className="w-full aspect-[16/10] bg-slate-50 rounded-2xl animate-pulse border border-gray-100" />
-    );
+    return <div className="w-full aspect-[16/10] bg-slate-50 rounded-2xl animate-pulse border border-gray-100" />;
   }
 
   return (
