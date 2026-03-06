@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   UserCircle, Save, Loader2, ArrowLeft, Info, 
-  MapPin, CreditCard, ExternalLink, CheckCircle2, AlertCircle
+  MapPin, CreditCard, ExternalLink, CheckCircle2, AlertCircle, Mail
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import Link from 'next/link';
@@ -16,6 +16,7 @@ interface StripeDetails {
   charges_enabled: boolean;
   payouts_enabled: boolean;
   business_name: string;
+  email_stripe: string; // Adicionado para refletir o backend
   status_banco: string;
 }
 
@@ -52,6 +53,7 @@ function PerfilContent() {
           charges_enabled: data.charges_enabled,
           payouts_enabled: data.payouts_enabled,
           business_name: data.business_name,
+          email_stripe: data.email_stripe, // Capturando o email do Stripe
           status_banco: data.status_banco
         });
 
@@ -277,7 +279,6 @@ function PerfilContent() {
               </div>
 
               {stripeAtivo && stripeDetails ? (
-                /* CARD DE CONTA CONECTADA E ATIVA */
                 <div className="bg-emerald-50/50 border-2 border-emerald-100 p-8 rounded-[2.5rem] space-y-6">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
@@ -288,7 +289,12 @@ function PerfilContent() {
                         <p className="text-emerald-900 font-black uppercase text-[10px] tracking-widest leading-none">
                           {stripeDetails.business_name}
                         </p>
-                        <p className="text-slate-500 font-bold text-xs mt-1 italic">Vínculo estabelecido com sucesso</p>
+                        {/* EXIBIÇÃO DO EMAIL CADASTRADO NO STRIPE */}
+                        <div className="flex items-center gap-1.5 mt-1 text-emerald-700/60 font-bold text-[9px] uppercase tracking-tighter">
+                          <Mail size={10} />
+                          {stripeDetails.email_stripe}
+                        </div>
+                        <p className="text-slate-500 font-bold text-[9px] mt-1 italic uppercase">Vínculo estabelecido com sucesso</p>
                       </div>
                     </div>
                     <span className="text-[10px] font-black text-emerald-600 bg-white px-4 py-2 rounded-full shadow-sm border border-emerald-50">ATIVO</span>
@@ -306,7 +312,6 @@ function PerfilContent() {
                   </div>
                 </div>
               ) : (
-                /* CARD DE CONTA PENDENTE OU NÃO CONECTADA */
                 <div className="bg-slate-50 p-8 rounded-[2.5rem] border-2 border-dashed border-slate-200 flex flex-col md:flex-row items-center justify-between gap-6">
                   <div className="max-w-md">
                     <div className="flex items-center gap-2 mb-2">
