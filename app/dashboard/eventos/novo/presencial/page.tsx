@@ -58,6 +58,11 @@ export default function NovoEventoPresencial() {
     visibilidade: 'Publico'
   });
 
+  // --- LOG DE ESTADO PARA DEBUG ---
+  useEffect(() => {
+    console.log("🛠️ Estado Atual do Formulário:", formData);
+  }, [formData]);
+
   // --- LÓGICA DO GOOGLE MAPS ---
   const initGoogleMaps = () => {
     if (typeof window === 'undefined' || !window.google || !mapContainerRef.current || googleMap.current) return;
@@ -152,15 +157,12 @@ export default function NovoEventoPresencial() {
       }
     }
 
-    console.log("🔑 Dados de Autenticação:", { hasToken: !!token, emailProdutor });
-
     if (!token || !emailProdutor) {
       alert("Sessão expirada. Por favor, faça login novamente.");
       return;
     }
 
     if (!formData.nome || !formData.data_inicio || !formData.local_nome || !formData.categoria) {
-      console.warn("⚠️ Campos obrigatórios ausentes:", formData);
       alert("Por favor, preencha os campos obrigatórios.");
       return;
     }
@@ -179,15 +181,10 @@ export default function NovoEventoPresencial() {
     if (selectedFile) {
       console.log("📸 Imagem anexada:", selectedFile.name);
       dataToSend.append('imagem_capa', selectedFile);
-    } else {
-      console.log("📸 Nenhuma imagem selecionada.");
     }
 
-    // Log para conferir o que está indo no FormData (DEBUG)
-    console.log("📦 Dados enviados (FormData):");
-    for (let [key, value] of (dataToSend as any).entries()) {
-        console.log(`${key}:`, value);
-    }
+    // Log de envio
+    console.log("📦 Payload FormData preparado para envio.");
 
     try {
       const response = await fetch(`${API_URL}/api/eventos/novo-presencial`, {
@@ -198,19 +195,17 @@ export default function NovoEventoPresencial() {
         body: dataToSend,
       });
 
-      console.log("📡 Resposta do servidor (Status):", response.status);
       const data = await response.json();
-      console.log("📥 Dados recebidos do servidor:", data);
+      console.log("📥 Resposta da API:", data);
 
       if (response.ok) {
-        console.log("✅ Sucesso! Redirecionando...");
+        console.log("✅ Sucesso!");
         router.push(`/dashboard/eventos/novo/ingressos/${data.id}`);
       } else {
-        console.error("❌ Erro retornado pela API:", data);
         alert(`Erro: ${data.message || "Erro ao salvar"}`);
       }
     } catch (error) {
-      console.error("🚨 Erro de conexão/rede:", error);
+      console.error("🚨 Erro de conexão:", error);
       alert("Falha de conexão com o servidor AWS.");
     } finally {
       setIsLoading(false);
@@ -266,12 +261,15 @@ export default function NovoEventoPresencial() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-3">
                     <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider ml-1">Categoria</label>
-                    <select name="categoria" value={formData.categoria} onChange={handleChange} className="w-full bg-slate-50 p-5 rounded-3xl outline-none font-bold text-slate-600">
+                    <select name="categoria" value={formData.categoria} onChange={handleChange} className="w-full bg-slate-50 p-5 rounded-3xl outline-none font-bold text-slate-600 focus:bg-white border-2 border-transparent focus:border-pink-100">
                         <option value="">Selecione...</option>
                         <option value="Arte & Cultura">🎨 Arte & Cultura</option>
                         <option value="Entretenimento">🍿 Entretenimento</option>
                         <option value="Negócios">💼 Negócios</option>
-                        <option value="Educação">🧠 Educação</option>
+                        <option value="Educação & Desenvolvimento">🧠 Educação & Desenvolvimento</option>
+                        <option value="Esportes & Bem-estar">🏃‍♂️ Esportes & Bem-estar</option>
+                        <option value="Experiências & Lifestyle">✨ Experiências & Lifestyle</option>
+                        <option value="Família & Comunidade">👨‍👩‍👧‍👦 Família & Comunidade</option>
                     </select>
                   </div>
                   <div className="space-y-3">
@@ -282,7 +280,7 @@ export default function NovoEventoPresencial() {
 
                 <div className="space-y-3">
                   <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider ml-1">Descrição</label>
-                  <textarea name="descricao" value={formData.descricao} onChange={handleChange} rows={4} className="w-full bg-slate-50 p-6 rounded-[2rem] outline-none resize-none font-medium text-slate-600" />
+                  <textarea name="descricao" value={formData.descricao} onChange={handleChange} rows={4} className="w-full bg-slate-50 p-6 rounded-[2rem] outline-none resize-none font-medium text-slate-600 focus:bg-white border-2 border-transparent focus:border-pink-100 transition-all" />
                 </div>
               </div>
             </section>
