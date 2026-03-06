@@ -58,9 +58,9 @@ export default function NovoEventoPresencial() {
     visibilidade: 'Publico'
   });
 
-  // --- LOG DE ESTADO PARA DEBUG ---
+  // --- LOGS DE DEPURAÇÃO PARA MONITORAR O FORMULÁRIO ---
   useEffect(() => {
-    console.log("🛠️ Estado Atual do Formulário:", formData);
+    console.log("📝 Dados atuais do formulário:", formData);
   }, [formData]);
 
   // --- LÓGICA DO GOOGLE MAPS ---
@@ -125,7 +125,6 @@ export default function NovoEventoPresencial() {
     }
   };
 
-  // --- HANDLERS ---
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -142,7 +141,7 @@ export default function NovoEventoPresencial() {
   };
 
   const handleSalvar = async () => {
-    console.log("🚀 Iniciando processo de salvamento...");
+    console.log("🚀 Iniciando envio para o servidor...");
     
     const token = localStorage.getItem('@Linkah:Token');
     let emailProdutor = localStorage.getItem('userEmail');
@@ -153,25 +152,23 @@ export default function NovoEventoPresencial() {
         try {
           const parsed = JSON.parse(userJSON);
           emailProdutor = parsed.email || parsed.user?.email;
-        } catch (e) { console.error("❌ Falha ao parsear user"); }
+        } catch (e) { console.error("❌ Erro ao recuperar e-mail"); }
       }
     }
 
     if (!token || !emailProdutor) {
-      alert("Sessão expirada. Por favor, faça login novamente.");
+      alert("Sessão expirada. Refaça o login.");
       return;
     }
 
-    if (!formData.nome || !formData.data_inicio || !formData.local_nome || !formData.categoria) {
-      alert("Por favor, preencha os campos obrigatórios.");
+    if (!formData.nome || !formData.data_inicio || !formData.categoria) {
+      alert("Nome, Data e Categoria são obrigatórios.");
       return;
     }
 
     setIsLoading(true);
 
     const dataToSend = new FormData();
-    
-    // Adiciona campos de texto
     Object.entries(formData).forEach(([key, value]) => {
       dataToSend.append(key, value);
     });
@@ -179,34 +176,28 @@ export default function NovoEventoPresencial() {
     dataToSend.append('produtor_email', emailProdutor);
     
     if (selectedFile) {
-      console.log("📸 Imagem anexada:", selectedFile.name);
       dataToSend.append('imagem_capa', selectedFile);
+      console.log("📸 Imagem incluída no envio.");
     }
-
-    // Log de envio
-    console.log("📦 Payload FormData preparado para envio.");
 
     try {
       const response = await fetch(`${API_URL}/api/eventos/novo-presencial`, {
         method: 'POST',
-        headers: { 
-            'Authorization': `Bearer ${token}`
-        },
+        headers: { 'Authorization': `Bearer ${token}` },
         body: dataToSend,
       });
 
       const data = await response.json();
-      console.log("📥 Resposta da API:", data);
+      console.log("📡 Resposta API:", data);
 
       if (response.ok) {
-        console.log("✅ Sucesso!");
         router.push(`/dashboard/eventos/novo/ingressos/${data.id}`);
       } else {
-        alert(`Erro: ${data.message || "Erro ao salvar"}`);
+        alert(`Erro: ${data.message || "Falha ao salvar"}`);
       }
     } catch (error) {
-      console.error("🚨 Erro de conexão:", error);
-      alert("Falha de conexão com o servidor AWS.");
+      console.error("🚨 Erro de Rede:", error);
+      alert("Erro de conexão com AWS.");
     } finally {
       setIsLoading(false);
     }
@@ -261,7 +252,12 @@ export default function NovoEventoPresencial() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-3">
                     <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider ml-1">Categoria</label>
-                    <select name="categoria" value={formData.categoria} onChange={handleChange} className="w-full bg-slate-50 p-5 rounded-3xl outline-none font-bold text-slate-600 focus:bg-white border-2 border-transparent focus:border-pink-100">
+                    <select 
+                      name="categoria" 
+                      value={formData.categoria} 
+                      onChange={handleChange} 
+                      className="w-full bg-slate-50 p-5 rounded-3xl outline-none font-bold text-slate-600 focus:bg-white border-2 border-transparent focus:border-pink-100 transition-all"
+                    >
                         <option value="">Selecione...</option>
                         <option value="Arte & Cultura">🎨 Arte & Cultura</option>
                         <option value="Entretenimento">🍿 Entretenimento</option>
