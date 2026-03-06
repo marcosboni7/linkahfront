@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   ChevronLeft, 
   ImageIcon, 
@@ -58,40 +58,39 @@ export default function NovoEventoPresencial() {
     visibilidade: 'Publico'
   });
 
-  // --- LOGS DE DEPURAÇÃO PARA MONITORAR O FORMULÁRIO ---
-  useEffect(() => {
-    console.log("📝 Dados atuais do formulário:", formData);
-  }, [formData]);
+  // --- LÓGICA DO GOOGLE MAPS CORRIGIDA ---
+  const initGoogleMaps = useCallback(() => {
+    if (typeof window === 'undefined' || !window.google || !mapContainerRef.current) return;
 
-  // --- LÓGICA DO GOOGLE MAPS ---
-  const initGoogleMaps = () => {
-    if (typeof window === 'undefined' || !window.google || !mapContainerRef.current || googleMap.current) return;
+    // Inicializa o Mapa apenas se ainda não existir
+    if (!googleMap.current) {
+      googleMap.current = new window.google.maps.Map(mapContainerRef.current, {
+        center: { lat: -23.5505, lng: -46.6333 },
+        zoom: 15,
+        disableDefaultUI: true,
+        styles: [
+          { featureType: "all", elementType: "geometry", stylers: [{ color: "#f5f5f5" }] },
+          { featureType: "water", elementType: "geometry", stylers: [{ color: "#e9e9e9" }] },
+          { featureType: "poi", elementType: "labels", stylers: [{ visibility: "off" }] },
+          { featureType: "road", elementType: "geometry", stylers: [{ color: "#ffffff" }] }
+        ]
+      });
+      
+      marker.current = new window.google.maps.Marker({
+        map: googleMap.current,
+        animation: window.google.maps.Animation.DROP,
+        icon: {
+          path: window.google.maps.SymbolPath.BACKWARD_CLOSED_ARROW,
+          scale: 7,
+          fillColor: "#C22973",
+          fillOpacity: 1,
+          strokeWeight: 2,
+          strokeColor: "#ffffff",
+        }
+      });
+    }
 
-    googleMap.current = new window.google.maps.Map(mapContainerRef.current, {
-      center: { lat: -23.5505, lng: -46.6333 },
-      zoom: 15,
-      disableDefaultUI: true,
-      styles: [
-        { featureType: "all", elementType: "geometry", stylers: [{ color: "#f5f5f5" }] },
-        { featureType: "water", elementType: "geometry", stylers: [{ color: "#e9e9e9" }] },
-        { featureType: "poi", elementType: "labels", stylers: [{ visibility: "off" }] },
-        { featureType: "road", elementType: "geometry", stylers: [{ color: "#ffffff" }] }
-      ]
-    });
-    
-    marker.current = new window.google.maps.Marker({
-      map: googleMap.current,
-      animation: window.google.maps.Animation.DROP,
-      icon: {
-        path: window.google.maps.SymbolPath.BACKWARD_CLOSED_ARROW,
-        scale: 7,
-        fillColor: "#C22973",
-        fillOpacity: 1,
-        strokeWeight: 2,
-        strokeColor: "#ffffff",
-      }
-    });
-
+    // Inicializa o Autocomplete apenas se o input estiver pronto e não houver instância anterior
     if (searchInputRef.current && !autocompleteRef.current) {
       autocompleteRef.current = new window.google.maps.places.Autocomplete(searchInputRef.current, {
         types: ['geocode', 'establishment'],
@@ -122,8 +121,18 @@ export default function NovoEventoPresencial() {
           estado: getUF(),
         }));
       });
+
+      // Evita submissão acidental do form ao dar Enter na busca
+      searchInputRef.current.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') e.preventDefault();
+      });
     }
-  };
+  }, []);
+
+  // Garante inicialização quando o Script carregar ou o componente montar
+  useEffect(() => {
+    if (window.google) initGoogleMaps();
+  }, [initGoogleMaps]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -144,16 +153,17 @@ export default function NovoEventoPresencial() {
     console.log("🚀 Iniciando envio para o servidor...");
     
     const token = localStorage.getItem('@Linkah:Token');
-    let emailProdutor = localStorage.getItem('userEmail');
+    const userRaw = localStorage.getItem('@Linkah:User');
+    let emailProdutor = '';
 
-    if (!emailProdutor) {
-      const userJSON = localStorage.getItem('@Linkah:User');
-      if (userJSON) {
-        try {
-          const parsed = JSON.parse(userJSON);
-          emailProdutor = parsed.email || parsed.user?.email;
-        } catch (e) { console.error("❌ Erro ao recuperar e-mail"); }
+    try {
+      if (userRaw) {
+        const userObj = JSON.parse(userRaw);
+        emailProdutor = userObj.email || userObj.user?.email || userObj.data?.email;
       }
+      if (!emailProdutor) emailProdutor = localStorage.getItem('userEmail') || '';
+    } catch (e) {
+      console.error("Erro ao processar user local");
     }
 
     if (!token || !emailProdutor) {
@@ -177,7 +187,6 @@ export default function NovoEventoPresencial() {
     
     if (selectedFile) {
       dataToSend.append('imagem_capa', selectedFile);
-      console.log("📸 Imagem incluída no envio.");
     }
 
     try {
@@ -246,7 +255,7 @@ export default function NovoEventoPresencial() {
               <div className="space-y-6">
                 <div className="space-y-3">
                   <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider ml-1">Título do Evento</label>
-                  <input name="nome" value={formData.nome} onChange={handleChange} placeholder="Ex: Show de Lançamento" className="w-full bg-slate-50 p-5 rounded-3xl outline-none font-bold text-slate-800 focus:bg-white border-2 border-transparent focus:border-pink-100 transition-all" />
+                  <input name="nome" value={formData.nome} onChange={handleChange} placeholder="Ex: Show de Lançamento" className="w-full bg-slate-50 p-5 rounded-3xl outline-none font-bold text-slate-800 focus:bg-white border-2 border-transparent focus:border-pink-100 transition-all shadow-inner" />
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -256,7 +265,7 @@ export default function NovoEventoPresencial() {
                       name="categoria" 
                       value={formData.categoria} 
                       onChange={handleChange} 
-                      className="w-full bg-slate-50 p-5 rounded-3xl outline-none font-bold text-slate-600 focus:bg-white border-2 border-transparent focus:border-pink-100 transition-all"
+                      className="w-full bg-slate-50 p-5 rounded-3xl outline-none font-bold text-slate-600 focus:bg-white border-2 border-transparent focus:border-pink-100 transition-all shadow-inner cursor-pointer"
                     >
                         <option value="">Selecione...</option>
                         <option value="Arte & Cultura">🎨 Arte & Cultura</option>
@@ -270,13 +279,13 @@ export default function NovoEventoPresencial() {
                   </div>
                   <div className="space-y-3">
                     <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider ml-1">Capacidade</label>
-                    <input name="capacidade" value={formData.capacidade} onChange={handleChange} type="number" placeholder="Qtd Pessoas" className="w-full bg-slate-50 p-5 rounded-3xl outline-none font-bold text-slate-800" />
+                    <input name="capacidade" value={formData.capacidade} onChange={handleChange} type="number" placeholder="Qtd Pessoas" className="w-full bg-slate-50 p-5 rounded-3xl outline-none font-bold text-slate-800 shadow-inner" />
                   </div>
                 </div>
 
                 <div className="space-y-3">
                   <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider ml-1">Descrição</label>
-                  <textarea name="descricao" value={formData.descricao} onChange={handleChange} rows={4} className="w-full bg-slate-50 p-6 rounded-[2rem] outline-none resize-none font-medium text-slate-600 focus:bg-white border-2 border-transparent focus:border-pink-100 transition-all" />
+                  <textarea name="descricao" value={formData.descricao} onChange={handleChange} rows={4} className="w-full bg-slate-50 p-6 rounded-[2rem] outline-none resize-none font-medium text-slate-600 focus:bg-white border-2 border-transparent focus:border-pink-100 transition-all shadow-inner" />
                 </div>
               </div>
             </section>
@@ -289,19 +298,19 @@ export default function NovoEventoPresencial() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Data Início</label>
-                  <input name="data_inicio" value={formData.data_inicio} onChange={handleChange} type="date" className="w-full bg-slate-50 p-4 rounded-2xl text-xs font-bold outline-none" />
+                  <input name="data_inicio" value={formData.data_inicio} onChange={handleChange} type="date" className="w-full bg-slate-50 p-4 rounded-2xl text-xs font-bold outline-none shadow-inner" />
                 </div>
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Hora Início</label>
-                  <input name="hora_inicio" value={formData.hora_inicio} onChange={handleChange} type="time" className="w-full bg-slate-50 p-4 rounded-2xl text-xs font-bold outline-none" />
+                  <input name="hora_inicio" value={formData.hora_inicio} onChange={handleChange} type="time" className="w-full bg-slate-50 p-4 rounded-2xl text-xs font-bold outline-none shadow-inner" />
                 </div>
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Data Fim</label>
-                  <input name="data_termino" value={formData.data_termino} onChange={handleChange} type="date" className="w-full bg-slate-50 p-4 rounded-2xl text-xs font-bold outline-none" />
+                  <input name="data_termino" value={formData.data_termino} onChange={handleChange} type="date" className="w-full bg-slate-50 p-4 rounded-2xl text-xs font-bold outline-none shadow-inner" />
                 </div>
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Hora Fim</label>
-                  <input name="hora_termino" value={formData.hora_termino} onChange={handleChange} type="time" className="w-full bg-slate-50 p-4 rounded-2xl text-xs font-bold outline-none" />
+                  <input name="hora_termino" value={formData.hora_termino} onChange={handleChange} type="time" className="w-full bg-slate-50 p-4 rounded-2xl text-xs font-bold outline-none shadow-inner" />
                 </div>
               </div>
             </section>
@@ -315,17 +324,22 @@ export default function NovoEventoPresencial() {
               <div className="space-y-6">
                 <div className="relative">
                   <Search size={18} className="absolute left-6 top-1/2 -translate-y-1/2 text-[#C22973]" />
-                  <input ref={searchInputRef} placeholder="Busque o endereço no Google Maps..." className="w-full bg-slate-900 text-white p-6 pl-16 rounded-3xl outline-none font-bold text-sm" />
+                  {/* Busca não controlada para o Google Maps não bugar com Re-renders */}
+                  <input 
+                    ref={searchInputRef} 
+                    placeholder="Busque o endereço no Google Maps..." 
+                    className="w-full bg-slate-900 text-white p-6 pl-16 rounded-3xl outline-none font-bold text-sm shadow-2xl focus:ring-2 focus:ring-pink-500/20 transition-all" 
+                  />
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <input name="local_nome" value={formData.local_nome} onChange={handleChange} placeholder="Nome do Local" className="w-full bg-slate-50 p-4 rounded-2xl outline-none font-bold" />
-                  <input name="cep" value={formData.cep} onChange={handleChange} placeholder="CEP" className="w-full bg-slate-50 p-4 rounded-2xl outline-none font-bold" />
+                  <input name="local_nome" value={formData.local_nome} onChange={handleChange} placeholder="Nome do Local" className="w-full bg-slate-50 p-4 rounded-2xl outline-none font-bold shadow-inner" />
+                  <input name="cep" value={formData.cep} onChange={handleChange} placeholder="CEP" className="w-full bg-slate-50 p-4 rounded-2xl outline-none font-bold shadow-inner" />
                 </div>
                 
                 <div className="grid grid-cols-4 gap-4">
-                   <input name="endereco" value={formData.endereco} onChange={handleChange} placeholder="Endereço" className="col-span-3 w-full bg-slate-50 p-4 rounded-2xl outline-none font-bold" />
-                   <input name="numero" value={formData.numero} onChange={handleChange} placeholder="Nº" className="col-span-1 w-full bg-slate-50 p-4 rounded-2xl outline-none font-bold" />
+                   <input name="endereco" value={formData.endereco} onChange={handleChange} placeholder="Endereço" className="col-span-3 w-full bg-slate-50 p-4 rounded-2xl outline-none font-bold shadow-inner" />
+                   <input name="numero" value={formData.numero} onChange={handleChange} placeholder="Nº" className="col-span-1 w-full bg-slate-50 p-4 rounded-2xl outline-none font-bold shadow-inner" />
                 </div>
               </div>
             </section>
@@ -336,8 +350,8 @@ export default function NovoEventoPresencial() {
               <h4 className="text-[10px] text-slate-400 font-black uppercase mb-6 tracking-widest text-center italic">Capa do Evento</h4>
               <div className="relative">
                 {previewImage ? (
-                  <div className="relative w-full aspect-[4/5] rounded-[2.5rem] overflow-hidden shadow-2xl">
-                    <img src={previewImage} alt="Preview" className="w-full h-full object-cover" />
+                  <div className="relative w-full aspect-[4/5] rounded-[2.5rem] overflow-hidden shadow-2xl group">
+                    <img src={previewImage} alt="Preview" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
                     <button onClick={() => {setPreviewImage(null); setSelectedFile(null);}} className="absolute top-6 right-6 bg-white w-12 h-12 rounded-2xl text-[#C22973] shadow-lg flex items-center justify-center hover:scale-110 transition-all">
                       <X size={20} />
                     </button>
