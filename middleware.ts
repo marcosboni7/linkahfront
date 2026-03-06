@@ -5,25 +5,32 @@ export function middleware(request: NextRequest) {
   const userEmail = request.cookies.get('userEmail')?.value;
   const { pathname } = request.nextUrl;
 
-  // 1. LISTA BRANCA: Rotas que NUNCA devem ser bloqueadas
-  // Adicionei 'public' e arquivos estáticos comuns
+  // =============================================================
+  // 1. REGRA DA LANDING PAGE (RAIZ)
+  // Se o usuário acessar a Home "/", mostramos a pasta /landing
+  // =============================================================
+  if (pathname === '/') {
+    return NextResponse.rewrite(new URL('/landing', request.url));
+  }
+
+  // 2. LISTA BRANCA: Rotas que NUNCA devem ser bloqueadas
   const isPublicRoute = 
-    pathname === '/' || 
+    pathname.startsWith('/landing') || // Permite carregar os recursos da pasta landing
     pathname.startsWith('/auth') || 
     pathname.startsWith('/site') || 
     pathname.startsWith('/evento') ||
-    pathname.startsWith('/api/') || // Geralmente APIs internas têm sua própria trava
+    pathname.startsWith('/api/') || 
     pathname.startsWith('/_next') ||
     pathname.startsWith('/static') ||
-    pathname.includes('.') || // Pega favicon.ico, logo.png, etc.
+    pathname.includes('.') || 
     pathname === '/favicon.ico';
 
   if (isPublicRoute) {
     return NextResponse.next();
   }
 
-  // 2. PROTEÇÃO DE ROTAS PRIVADAS
-  // Se NÃO está logado e tenta acessar Dashboard ou Venda (e suas sub-rotas)
+  // 3. PROTEÇÃO DE ROTAS PRIVADAS
+  // Se NÃO está logado e tenta acessar Dashboard ou Venda
   const isPrivateRoute = 
     pathname.startsWith('/dashboard') || 
     pathname.startsWith('/venda') || 
@@ -31,22 +38,20 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/admin');
 
   if (!userEmail && isPrivateRoute) {
-    // Adicionamos o ?from= para o usuário voltar de onde parou após logar
     const loginUrl = new URL('/auth/login', request.url);
-    // loginUrl.searchParams.set('from', pathname); 
     return NextResponse.redirect(loginUrl);
   }
 
-  // 3. LOGADO TENTANDO ACESSAR LOGIN/REGISTER
-  // Se já está logado, não faz sentido ver a tela de login
+  // 4. LOGADO TENTANDO ACESSAR LOGIN/REGISTER
+  // Se já está logado, redireciona para o dashboard (ou home)
   if (userEmail && pathname.startsWith('/auth')) {
-    return NextResponse.redirect(new URL('/', request.url));
+    return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
   return NextResponse.next();
 }
 
-// O Matcher é o segredo para não pesar o site
+// O Matcher garante que o middleware rode em todas as rotas relevantes
 export const config = {
   matcher: [
     /*
