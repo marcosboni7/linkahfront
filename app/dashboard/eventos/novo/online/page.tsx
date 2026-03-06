@@ -51,20 +51,29 @@ export default function NovoEventoOnline() {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setSelectedFile(file); // Guarda o arquivo real para o FormData
+      setSelectedFile(file);
       const reader = new FileReader();
-      reader.onloadend = () => setPreviewImage(reader.result as string); // Só para o preview visual
+      reader.onloadend = () => setPreviewImage(reader.result as string);
       reader.readAsDataURL(file);
     }
   };
 
   const handleSalvar = async () => {
-    const token = localStorage.getItem('@Linkah:Token');
+    console.log("🚀 Iniciando envio do evento ONLINE...");
     
-    // Busca e-mail de forma mais robusta
+    const token = localStorage.getItem('@Linkah:Token');
     const userRaw = localStorage.getItem('@Linkah:User');
-    const userObj = userRaw ? JSON.parse(userRaw) : null;
-    const emailProdutor = userObj?.email || localStorage.getItem('userEmail');
+    let emailProdutor = '';
+
+    try {
+      if (userRaw) {
+        const userObj = JSON.parse(userRaw);
+        emailProdutor = userObj.email || userObj.user?.email;
+      }
+      if (!emailProdutor) emailProdutor = localStorage.getItem('userEmail') || '';
+    } catch (e) {
+      console.error("Erro ao processar user local");
+    }
 
     if (!token || !emailProdutor) {
       alert("Sessão expirada. Faça login novamente.");
@@ -82,9 +91,8 @@ export default function NovoEventoOnline() {
     try {
       const dataToSend = new FormData();
       
-      // Adiciona campos de texto
+      // 1. Adiciona os campos do formulário
       Object.entries(formData).forEach(([key, value]) => {
-        // Envia 0 se capacidade estiver vazia para evitar erro de string no backend
         if (key === 'capacidade') {
           dataToSend.append(key, value === '' ? '0' : value);
         } else {
@@ -92,25 +100,30 @@ export default function NovoEventoOnline() {
         }
       });
       
+      // 2. Adiciona campos obrigatórios que o backend espera (mesmo sendo online)
       dataToSend.append('produtor_email', emailProdutor);
       dataToSend.append('cidade', 'Online');
       dataToSend.append('estado', 'ON');
       
-      // ANEXA O ARQUIVO (Certifique-se que o backend espera o nome 'imagem_capa')
+      // 3. Anexa o arquivo de imagem
       if (selectedFile) {
         dataToSend.append('imagem_capa', selectedFile);
+        console.log("📸 Imagem anexada com sucesso.");
+      } else {
+        console.warn("⚠️ Nenhuma imagem selecionada.");
       }
 
       const response = await fetch(`${API_URL}/api/eventos/novo-online`, {
         method: 'POST',
         headers: { 
-            // IMPORTANTE: NÃO definir Content-Type ao usar FormData
             'Authorization': `Bearer ${token}`
+            // Nota: O navegador define o Content-Type automaticamente para multipart/form-data
         },
         body: dataToSend,
       });
 
       const result = await response.json();
+      console.log("📡 Resposta API:", result);
 
       if (response.ok) {
         router.push(`/dashboard/eventos/novo/ingressos/${result.id}`);
@@ -118,8 +131,8 @@ export default function NovoEventoOnline() {
         alert(`Erro: ${result.message || "Erro ao salvar"}`);
       }
     } catch (error) {
-      console.error("Erro no upload:", error);
-      alert("Falha ao conectar com o servidor.");
+      console.error("🚨 Erro de Rede:", error);
+      alert("Falha ao conectar com o servidor AWS.");
     } finally {
       setIsLoading(false);
     }
@@ -148,9 +161,8 @@ export default function NovoEventoOnline() {
           className="relative overflow-hidden bg-slate-900 text-white px-8 md:px-12 py-4 rounded-2xl font-black uppercase text-[11px] tracking-[0.2em] hover:bg-black transition-all shadow-2xl disabled:opacity-50 flex items-center gap-3 group"
         >
           {isLoading ? <Loader2 className="animate-spin" size={16} /> : (
-            <>Próximo Passo <Sparkles size={14} className="text-pink-400" /></>
+            <span className="relative z-10 flex items-center gap-2">Próximo Passo <Sparkles size={14} className="text-pink-400" /></span>
           )}
-          <div className="absolute inset-0 bg-gradient-to-r from-[#C22973] to-[#E53E3E] opacity-0 group-hover:opacity-100 transition-opacity" />
         </button>
       </header>
 
@@ -247,8 +259,14 @@ export default function NovoEventoOnline() {
               </h4>
               <div className="space-y-6">
                 <div className="grid grid-cols-2 gap-4">
-                  <input name="data_inicio" value={formData.data_inicio} onChange={handleChange} type="date" className="w-full bg-slate-50 border-none p-4 rounded-2xl text-xs font-bold text-slate-700" />
-                  <input name="hora_inicio" value={formData.hora_inicio} onChange={handleChange} type="time" className="w-full bg-slate-50 border-none p-4 rounded-2xl text-xs font-bold text-slate-700" />
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-bold text-slate-400 uppercase ml-1">Data</label>
+                    <input name="data_inicio" value={formData.data_inicio} onChange={handleChange} type="date" className="w-full bg-slate-50 border-none p-4 rounded-2xl text-xs font-bold text-slate-700" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-bold text-slate-400 uppercase ml-1">Hora</label>
+                    <input name="hora_inicio" value={formData.hora_inicio} onChange={handleChange} type="time" className="w-full bg-slate-50 border-none p-4 rounded-2xl text-xs font-bold text-slate-700" />
+                  </div>
                 </div>
               </div>
             </div>
