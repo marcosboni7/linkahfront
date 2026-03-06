@@ -23,7 +23,7 @@ import {
 import Link from 'next/link';
 import Image from 'next/image';
 
-// 🔥 CONFIGURAÇÃO DINÂMICA: Resolve o erro de hidratação
+// 🔥 CONFIGURAÇÃO DINÂMICA
 const EventCard = dynamic(() => import('./site/EventCard').then(mod => mod.EventCard), { 
   ssr: false,
   loading: () => <div className="h-64 bg-slate-50 animate-pulse rounded-3xl" /> 
@@ -65,7 +65,6 @@ const SLIDES = [
 
 export default function BuyTicketHome() {
   const languageData = useLanguage();
-  // 🔥 SOLUÇÃO PARA O ERRO TS(7053): Forçamos t como Record<string, any>
   const t = languageData?.t as Record<string, any> | undefined;
 
   const [isMounted, setIsMounted] = useState(false);
@@ -122,13 +121,14 @@ export default function BuyTicketHome() {
     amanha.setDate(hoje.getDate() + 1);
 
     return (eventos || []).filter((ev) => {
+      // 🔥 CORREÇÃO FUSO NO FILTRO
       const dataString = String(ev.data_inicio || ev.data || '').split('T')[0];
       const partes = dataString.split('-');
       
       let dataEv = new Date(0);
       if (partes.length === 3) {
-        const [ano, mes, dia] = partes.map(Number);
-        dataEv = new Date(ano, mes - 1, dia);
+        // Criando a data ignorando UTC
+        dataEv = new Date(Number(partes[0]), Number(partes[1]) - 1, Number(partes[2]));
       }
       dataEv.setHours(0, 0, 0, 0);
 
@@ -171,7 +171,6 @@ export default function BuyTicketHome() {
 
         <div className="relative z-10 w-full max-w-5xl px-6 text-center">
           <h1 className="text-5xl md:text-7xl font-black tracking-tighter text-slate-900 leading-none mb-10 uppercase">
-            {/* O uso do operador opcional chaining ?. e do fallback garante que o site não quebre */}
             {String(t?.[slide.titleKey] || "DESCUBRA")} <br />
             <span className="text-[#ff4d4d] italic font-serif font-light">
               {String(t?.[slide.highlightKey] || "EXPERIÊNCIAS")}

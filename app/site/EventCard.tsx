@@ -48,6 +48,7 @@ export function EventCard({ evento }: { evento: any }) {
     if (!dataRaw) return { diaSemana: '', dia: '', mes: '', hora: '' };
 
     try {
+      // 🔥 CORREÇÃO FUSO HORÁRIO: Pegamos apenas a parte da data YYYY-MM-DD
       const apenasData = String(dataRaw).split('T')[0];
       const partes = apenasData.split('-');
       
@@ -57,7 +58,9 @@ export function EventCard({ evento }: { evento: any }) {
       const mesNum = parseInt(partes[1]) - 1; 
       const diaNum = parseInt(partes[2]);
 
+      // Criar a data passando os argumentos individuais impede o JS de aplicar o fuso UTC
       const d = new Date(ano, mesNum, diaNum);
+      
       if (isNaN(d.getTime())) return { diaSemana: '', dia: '', mes: '', hora: '' };
 
       const diaSemana = d.toLocaleDateString(locale, { weekday: 'short' }).toUpperCase().replace('.', '');
@@ -90,7 +93,6 @@ export function EventCard({ evento }: { evento: any }) {
     return categorias[cat] || cat;
   };
 
-  // Renderiza um placeholder idêntico ao server-side para evitar mismatch
   if (!isMounted) {
     return (
       <div className="w-full aspect-[16/10] bg-slate-50 rounded-2xl animate-pulse border border-gray-100" />
