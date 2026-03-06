@@ -58,6 +58,7 @@ export default function NovoEventoOnline() {
   const handleSalvar = async () => {
     console.log("🚀 Iniciando envio do evento ONLINE...");
     
+    // --- BUSCA DO EMAIL (CORREÇÃO DO ERRO 400) ---
     const token = localStorage.getItem('@Linkah:Token');
     const userRaw = localStorage.getItem('@Linkah:User');
     let emailProdutor = '';
@@ -65,42 +66,55 @@ export default function NovoEventoOnline() {
     try {
       if (userRaw) {
         const userObj = JSON.parse(userRaw);
-        emailProdutor = userObj.email || userObj.user?.email;
+        // Tenta pegar o email de várias estruturas possíveis para evitar o null
+        emailProdutor = userObj.email || userObj.user?.email || userObj.data?.email;
       }
-      if (!emailProdutor) emailProdutor = localStorage.getItem('userEmail') || '';
+      
+      // Fallbacks extras caso o objeto User não esteja completo
+      if (!emailProdutor) {
+        emailProdutor = localStorage.getItem('userEmail') || localStorage.getItem('email') || '';
+      }
     } catch (e) {
-      console.error("Erro ao processar user local");
+      console.error("Erro ao processar user local:", e);
     }
 
-    if (!token || !emailProdutor) {
+    console.log("📧 Email identificado:", emailProdutor);
+
+    // Validações antes de enviar
+    if (!token) {
       alert("Sessão expirada. Faça login novamente.");
       router.push('/auth/login');
       return;
     }
 
-    if (!formData.nome || !formData.data_inicio || !formData.categoria) {
-      alert("Preencha Nome, Data e Categoria.");
+    if (!emailProdutor || !formData.nome) {
+      alert("Erro crítico: Nome do evento ou E-mail do produtor não identificados.");
+      return;
+    }
+
+    if (!formData.data_inicio || !formData.categoria) {
+      alert("Preencha a Data e a Categoria do evento.");
       return;
     }
 
     setIsLoading(true);
 
     try {
-      // Criamos o Payload JSON (Backend espera req.body)
+      // Montagem do Payload JSON puro
       const payload = {
         ...formData,
         produtor_email: emailProdutor,
         cidade: 'Online',
         estado: 'ON',
         capacidade: formData.capacidade === '' ? 0 : Number(formData.capacidade),
-        imagem_capa: previewImage // Envia a string Base64
+        imagem_capa: previewImage // String Base64 enviada diretamente no JSON
       };
 
       const response = await fetch(`${API_URL}/api/eventos/novo-online`, {
         method: 'POST',
         headers: { 
             'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json' // OBRIGATÓRIO para o Express ler link_reuniao
         },
         body: JSON.stringify(payload),
       });
@@ -109,13 +123,15 @@ export default function NovoEventoOnline() {
       console.log("📡 Resposta API:", result);
 
       if (response.ok) {
+        // Redireciona para a próxima etapa com o ID gerado pelo banco
         router.push(`/dashboard/eventos/novo/ingressos/${result.id}`);
       } else {
-        alert(`Erro: ${result.error || result.message || "Erro ao salvar"}`);
+        // Exibe o erro exato que o backend retornou
+        alert(`Erro do Servidor: ${result.error || result.message || "Falha ao salvar"}`);
       }
     } catch (error) {
       console.error("🚨 Erro de Rede:", error);
-      alert("Falha ao conectar com o servidor AWS.");
+      alert("Falha ao conectar com o servidor. Verifique sua conexão ou se o serviço está online.");
     } finally {
       setIsLoading(false);
     }
