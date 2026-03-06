@@ -4,18 +4,25 @@ import type { NextRequest } from 'next/server';
 export function middleware(request: NextRequest) {
   const userEmail = request.cookies.get('userEmail')?.value;
   const { pathname } = request.nextUrl;
+  const searchParams = request.nextUrl.searchParams;
 
   // =============================================================
   // 1. REGRA DA LANDING PAGE (RAIZ)
-  // Se o usuário acessar a Home "/", mostramos a pasta /landing
+  // Se acessar "/", checamos se quer a Landing ou a página original
   // =============================================================
   if (pathname === '/') {
+    // Se você acessar seu-site.com.br/?old=true, ele carrega o app/page.tsx
+    if (searchParams.get('old') === 'true') {
+      return NextResponse.next();
+    }
+    
+    // Caso contrário, mostra a nova Landing Page (app/landing/page.tsx)
     return NextResponse.rewrite(new URL('/landing', request.url));
   }
 
   // 2. LISTA BRANCA: Rotas que NUNCA devem ser bloqueadas
   const isPublicRoute = 
-    pathname.startsWith('/landing') || // Permite carregar os recursos da pasta landing
+    pathname.startsWith('/landing') || 
     pathname.startsWith('/auth') || 
     pathname.startsWith('/site') || 
     pathname.startsWith('/evento') ||
@@ -30,7 +37,6 @@ export function middleware(request: NextRequest) {
   }
 
   // 3. PROTEÇÃO DE ROTAS PRIVADAS
-  // Se NÃO está logado e tenta acessar Dashboard ou Venda
   const isPrivateRoute = 
     pathname.startsWith('/dashboard') || 
     pathname.startsWith('/venda') || 
@@ -43,7 +49,6 @@ export function middleware(request: NextRequest) {
   }
 
   // 4. LOGADO TENTANDO ACESSAR LOGIN/REGISTER
-  // Se já está logado, redireciona para o dashboard (ou home)
   if (userEmail && pathname.startsWith('/auth')) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
@@ -51,16 +56,8 @@ export function middleware(request: NextRequest) {
   return NextResponse.next();
 }
 
-// O Matcher garante que o middleware rode em todas as rotas relevantes
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
     '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
 };
