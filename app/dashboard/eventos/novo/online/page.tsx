@@ -1,7 +1,19 @@
 'use client';
 
-import { useState } from 'react';
-import { ChevronLeft, ImageIcon, Calendar, Globe, X, Loader2, Users, Info, Ticket, Link as LinkIcon, Sparkles } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { 
+  ChevronLeft, 
+  ImageIcon, 
+  Calendar, 
+  Globe, 
+  X, 
+  Loader2, 
+  Users, 
+  Info, 
+  Ticket, 
+  Link as LinkIcon, 
+  Sparkles 
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/app/context/LanguageContext';
 
@@ -12,6 +24,7 @@ export default function NovoEventoOnline() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   
   const [formData, setFormData] = useState({
     nome: '', 
@@ -30,6 +43,11 @@ export default function NovoEventoOnline() {
     visibilidade: 'Publico'
   });
 
+  // Log de depuração para monitorar o preenchimento
+  useEffect(() => {
+    console.log("📝 Dados Online:", formData);
+  }, [formData]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -38,6 +56,7 @@ export default function NovoEventoOnline() {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setSelectedFile(file);
       const reader = new FileReader();
       reader.onloadend = () => setPreviewImage(reader.result as string);
       reader.readAsDataURL(file);
@@ -45,51 +64,70 @@ export default function NovoEventoOnline() {
   };
 
   const handleSalvar = async () => {
-    const token = localStorage.getItem('@Linkah:Token') || localStorage.getItem('token');
-    const userStorage = localStorage.getItem('@Linkah:User') || localStorage.getItem('user');
+    console.log("🚀 Iniciando salvamento de evento Online...");
     
-    if (!token || !userStorage) {
+    const token = localStorage.getItem('@Linkah:Token');
+    let emailProdutor = localStorage.getItem('userEmail');
+
+    // Tenta recuperar o e-mail do objeto de usuário se não estiver direto no storage
+    if (!emailProdutor) {
+      const userJSON = localStorage.getItem('@Linkah:User');
+      if (userJSON) {
+        try {
+          const parsed = JSON.parse(userJSON);
+          emailProdutor = parsed.email || parsed.user?.email;
+        } catch (e) { console.error("❌ Erro ao ler e-mail do storage"); }
+      }
+    }
+
+    if (!token || !emailProdutor) {
       alert("Sessão expirada. Faça login novamente.");
       router.push('/auth/login');
       return;
     }
 
-    const user = JSON.parse(userStorage);
-    const emailProdutor = user.email;
-
     if (!formData.nome || !formData.data_inicio || !formData.categoria) {
-      alert("Por favor, preencha os campos obrigatórios.");
+      alert("Por favor, preencha o Nome, Data e Categoria.");
       return;
     }
 
     setIsLoading(true);
-    const payload = { 
-      ...formData, 
-      produtor_email: emailProdutor,
-      imagem_capa: previewImage,
-      capacidade: Number(formData.capacidade) || 0,
-      cidade: 'Online',
-      estado: 'ON'
-    };
+
+    // Usando FormData para suportar o upload de imagem para a AWS
+    const dataToSend = new FormData();
+    
+    Object.entries(formData).forEach(([key, value]) => {
+      dataToSend.append(key, value);
+    });
+    
+    dataToSend.append('produtor_email', emailProdutor);
+    dataToSend.append('cidade', 'Online'); // Valor padrão para online
+    dataToSend.append('estado', 'ON');    // Valor padrão para online
+    
+    if (selectedFile) {
+      dataToSend.append('imagem_capa', selectedFile);
+    }
 
     try {
       const response = await fetch(`${API_URL}/api/eventos/novo-online`, {
         method: 'POST',
         headers: { 
-            'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(payload),
+        body: dataToSend,
       });
 
       const data = await response.json();
+      console.log("📥 Resposta AWS:", data);
+
       if (response.ok) {
         router.push(`/dashboard/eventos/novo/ingressos/${data.id}`);
       } else {
         alert(`Erro: ${data.message || "Erro ao salvar"}`);
       }
     } catch (error) {
-      alert("Falha de conexão.");
+      console.error("🚨 Erro de conexão:", error);
+      alert("Falha de conexão com o servidor.");
     } finally {
       setIsLoading(false);
     }
@@ -121,7 +159,7 @@ export default function NovoEventoOnline() {
         <button 
           onClick={handleSalvar} 
           disabled={isLoading}
-          className="relative overflow-hidden bg-slate-900 text-white px-8 md:px-12 py-4 rounded-2xl font-black uppercase text-[11px] tracking-[0.2em] hover:bg-black transition-all shadow-2xl shadow-slate-200 disabled:opacity-50 flex items-center gap-3 group"
+          className="relative overflow-hidden bg-slate-900 text-white px-8 md:px-12 py-4 rounded-2xl font-black uppercase text-[11px] tracking-[0.2em] hover:bg-black transition-all shadow-2xl disabled:opacity-50 flex items-center gap-3 group"
         >
           <span className="relative z-10 flex items-center gap-2">
             {isLoading ? <Loader2 className="animate-spin" size={16} /> : (
@@ -145,7 +183,7 @@ export default function NovoEventoOnline() {
                 <h3 className="text-slate-800 text-sm font-black uppercase tracking-widest italic">Conceito do Evento</h3>
               </div>
 
-              <div className="bg-white rounded-[2.5rem] p-10 shadow-[0_20px_50px_rgba(0,0,0,0.02)] border border-slate-100 space-y-8 transition-all hover:shadow-lg">
+              <div className="bg-white rounded-[2.5rem] p-10 shadow-sm border border-slate-100 space-y-8 transition-all hover:shadow-lg">
                 <div className="space-y-3">
                   <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider ml-1">Título da Experiência</label>
                   <input 
@@ -153,7 +191,7 @@ export default function NovoEventoOnline() {
                     value={formData.nome} 
                     onChange={handleChange} 
                     placeholder="Dê um nome impactante ao seu evento..." 
-                    className="w-full bg-slate-50 border-2 border-transparent p-5 rounded-3xl outline-none font-bold text-lg text-slate-800 placeholder:text-slate-300 focus:border-pink-100 focus:bg-white transition-all shadow-inner" 
+                    className="w-full bg-slate-50 border-2 border-transparent p-5 rounded-3xl outline-none font-bold text-lg text-slate-800 focus:border-pink-100 focus:bg-white transition-all shadow-inner" 
                   />
                 </div>
                 
@@ -166,12 +204,14 @@ export default function NovoEventoOnline() {
                       onChange={handleChange} 
                       className="w-full bg-slate-50 border-2 border-transparent p-5 rounded-3xl outline-none font-bold text-slate-600 focus:border-pink-100 focus:bg-white transition-all shadow-inner cursor-pointer"
                     >
-                        <option value="">{t.selectDefault}</option>
-                        <option value="Negócios">🚀 {t.catBiz}</option>
-                        <option value="Educação & Desenvolvimento">🧠 {t.catEdu}</option>
-                        <option value="Entretenimento">🎭 {t.catEnt}</option>
-                        <option value="Esportes & Bem-estar">🧘 {t.catHealth}</option>
-                        <option value="Arte & Cultura">🎨 {t.catArt}</option>
+                        <option value="">Selecione...</option>
+                        <option value="Arte & Cultura">🎨 Arte & Cultura</option>
+                        <option value="Entretenimento">🍿 Entretenimento</option>
+                        <option value="Negócios">💼 Negócios</option>
+                        <option value="Educação & Desenvolvimento">🧠 Educação & Desenvolvimento</option>
+                        <option value="Esportes & Bem-estar">🏃‍♂️ Esportes & Bem-estar</option>
+                        <option value="Experiências & Lifestyle">✨ Experiências & Lifestyle</option>
+                        <option value="Família & Comunidade">👨‍👩‍👧‍👦 Família & Comunidade</option>
                     </select>
                   </div>
 
@@ -214,7 +254,7 @@ export default function NovoEventoOnline() {
                 <h3 className="text-slate-800 text-sm font-black uppercase tracking-widest italic">Acesso Restrito</h3>
               </div>
 
-              <div className="bg-white rounded-[2.5rem] p-10 shadow-[0_20px_50px_rgba(0,0,0,0.02)] border border-slate-100 space-y-6">
+              <div className="bg-white rounded-[2.5rem] p-10 shadow-sm border border-slate-100 space-y-6">
                 <div className="flex items-center gap-4 p-6 bg-pink-50/30 rounded-3xl border border-pink-100/50">
                   <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm shrink-0">
                     <Sparkles size={20} className="text-[#C22973]" />
@@ -252,17 +292,16 @@ export default function NovoEventoOnline() {
           {/* COLUNA DIREITA - SIDEBAR */}
           <div className="lg:col-span-4 space-y-10">
             {/* CARD DE CAPA */}
-            <div className="bg-white rounded-[3rem] p-8 shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100">
+            <div className="bg-white rounded-[3rem] p-8 shadow-sm border border-slate-100">
               <h4 className="text-[10px] text-slate-400 font-black uppercase mb-6 tracking-[0.2em] text-center italic">Key Visual / Capa</h4>
               
               <div className="relative">
                 {previewImage ? (
                   <div className="relative w-full aspect-[4/5] rounded-[2.5rem] overflow-hidden group shadow-2xl">
                     <img src={previewImage} alt="Preview" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
-                    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors" />
                     <button 
-                      onClick={() => setPreviewImage(null)} 
-                      className="absolute top-6 right-6 bg-white/90 backdrop-blur-sm w-12 h-12 rounded-2xl text-[#C22973] shadow-lg flex items-center justify-center hover:bg-white hover:scale-110 transition-all active:scale-95"
+                      onClick={() => {setPreviewImage(null); setSelectedFile(null);}} 
+                      className="absolute top-6 right-6 bg-white w-12 h-12 rounded-2xl text-[#C22973] shadow-lg flex items-center justify-center hover:scale-110 transition-all"
                     >
                       <X size={20} />
                     </button>
@@ -270,7 +309,7 @@ export default function NovoEventoOnline() {
                 ) : (
                   <label className="aspect-[4/5] border-2 border-dashed border-slate-100 rounded-[2.5rem] bg-slate-50/50 cursor-pointer flex flex-col items-center justify-center hover:bg-white hover:border-pink-200 transition-all group shadow-inner">
                     <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
-                    <div className="w-20 h-20 bg-white rounded-[2rem] flex items-center justify-center mb-6 shadow-sm border border-slate-50 group-hover:scale-110 group-hover:shadow-pink-100 group-hover:shadow-xl transition-all duration-500">
+                    <div className="w-20 h-20 bg-white rounded-[2rem] flex items-center justify-center mb-6 shadow-sm border border-slate-50 group-hover:scale-110 transition-all duration-500">
                         <ImageIcon size={32} className="text-[#C22973]" />
                     </div>
                     <div className="text-center">
@@ -282,8 +321,8 @@ export default function NovoEventoOnline() {
               </div>
             </div>
 
-            {/* CARD DE DATA TIPO "NEUMORPHIC" */}
-            <div className="bg-white rounded-[3rem] p-8 shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100">
+            {/* CARD DE DATA */}
+            <div className="bg-white rounded-[3rem] p-8 shadow-sm border border-slate-100">
               <h4 className="text-[10px] text-slate-400 font-black uppercase mb-6 tracking-[0.2em] italic flex items-center gap-2">
                 <Calendar size={14} className="text-[#C22973]" /> Cronograma
               </h4>
@@ -292,42 +331,39 @@ export default function NovoEventoOnline() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <p className="text-[9px] font-black text-slate-400 uppercase ml-1">Início</p>
-                    <input name="data_inicio" value={formData.data_inicio} onChange={handleChange} type="date" className="w-full bg-slate-50 border-none p-4 rounded-2xl text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-pink-100 transition-all" />
+                    <input name="data_inicio" value={formData.data_inicio} onChange={handleChange} type="date" className="w-full bg-slate-50 border-none p-4 rounded-2xl text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-pink-100" />
                   </div>
                   <div className="space-y-2">
                     <p className="text-[9px] font-black text-slate-400 uppercase ml-1">Hora</p>
-                    <input name="hora_inicio" value={formData.hora_inicio} onChange={handleChange} type="time" className="w-full bg-slate-50 border-none p-4 rounded-2xl text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-pink-100 transition-all" />
+                    <input name="hora_inicio" value={formData.hora_inicio} onChange={handleChange} type="time" className="w-full bg-slate-50 border-none p-4 rounded-2xl text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-pink-100" />
                   </div>
                 </div>
                 
-                <div className="h-px bg-slate-50 w-full" />
+                <div className="h-px bg-slate-100 w-full" />
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <p className="text-[9px] font-black text-slate-400 uppercase ml-1">Fim</p>
-                    <input name="data_termino" value={formData.data_termino} onChange={handleChange} type="date" className="w-full bg-slate-50 border-none p-4 rounded-2xl text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-pink-100 transition-all" />
+                    <input name="data_termino" value={formData.data_termino} onChange={handleChange} type="date" className="w-full bg-slate-50 border-none p-4 rounded-2xl text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-pink-100" />
                   </div>
                   <div className="space-y-2">
                     <p className="text-[9px] font-black text-slate-400 uppercase ml-1">Hora</p>
-                    <input name="hora_termino" value={formData.hora_termino} onChange={handleChange} type="time" className="w-full bg-slate-50 border-none p-4 rounded-2xl text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-pink-100 transition-all" />
+                    <input name="hora_termino" value={formData.hora_termino} onChange={handleChange} type="time" className="w-full bg-slate-50 border-none p-4 rounded-2xl text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-pink-100" />
                   </div>
                 </div>
               </div>
             </div>
 
             {/* CARD PRÓXIMO PASSO */}
-            <div className="bg-gradient-to-br from-[#C22973] to-[#8a1d52] rounded-[3rem] p-10 text-white shadow-2xl shadow-pink-200 relative overflow-hidden group active:scale-[0.98] transition-all cursor-default">
-               <div className="absolute -right-6 -bottom-6 opacity-10 group-hover:scale-125 transition-transform duration-1000 rotate-12">
-                  <Ticket size={180} />
-               </div>
+            <div className="bg-gradient-to-br from-[#C22973] to-[#8a1d52] rounded-[3rem] p-10 text-white shadow-2xl relative overflow-hidden group transition-all">
                <Ticket className="mb-6 opacity-60" size={40} />
                <h4 className="font-black italic text-2xl uppercase leading-tight mb-3 tracking-tighter">Monetização & Ingressos</h4>
-               <p className="text-[11px] font-bold text-pink-100 uppercase tracking-wider leading-relaxed opacity-90">
+               <p className="text-[11px] font-bold text-pink-100 uppercase tracking-wider opacity-90">
                  Próximo passo: Configure o Stripe ou Pix para começar a faturar.
                </p>
                <div className="mt-8 flex items-center gap-2">
                  <div className="w-2 h-2 bg-pink-300 rounded-full animate-ping" />
-                 <span className="text-[9px] font-black uppercase tracking-[0.3em]">Step 01 de 02</span>
+                 <span className="text-[9px] font-black uppercase tracking-[0.3em]">Passo 01 de 02</span>
                </div>
             </div>
           </div>
