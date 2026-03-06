@@ -12,7 +12,6 @@ import { useLanguage } from '@/app/context/LanguageContext';
 
 const API_URL = 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
 
-// Mapeamento de categorias conforme a imagem enviada
 const CATEGORIAS = [
   { id: 'Arte & Cultura', icon: <Music size={14}/> },
   { id: 'Entretenimento', icon: <Theater size={14}/> },
@@ -63,11 +62,17 @@ export default function TabelaEventos() {
     });
   };
 
+  // AJUSTADO: Função robusta para validar e exibir imagens da AWS ou Local
   const validarImagem = (url: any) => {
     if (!url || url === "null" || url === "undefined" || String(url).includes('[object Object]')) {
-      return 'https://placehold.co/400x400/e2e8f0/64748b?text=Linkah';
+      return 'https://placehold.co/600x400/e2e8f0/64748b?text=Sem+Imagem';
     }
-    return typeof url === 'string' && (url.startsWith('http')) ? url : `${API_URL}/uploads/${url}`;
+    // Se a URL já for um link completo (S3), não concatena o API_URL
+    if (typeof url === 'string' && (url.startsWith('http://') || url.startsWith('https://'))) {
+      return url;
+    }
+    // Caso contrário, tenta buscar no diretório de uploads do servidor
+    return `${API_URL}/uploads/${url}`;
   };
 
   const carregarEventos = async () => {
@@ -75,16 +80,26 @@ export default function TabelaEventos() {
     try {
       const rawToken = localStorage.getItem('@Linkah:Token') || localStorage.getItem('token');
       const token = rawToken ? rawToken.replace(/['"]+/g, '').trim() : '';
-      let emailBase = localStorage.getItem('userEmail') || localStorage.getItem('email') || "";
-      const emailLimpo = emailBase.replace(/['"]+/g, '').trim().toLowerCase();
+      
+      const userRaw = localStorage.getItem('@Linkah:User');
+      let emailProdutor = "";
+      
+      if (userRaw) {
+          const userObj = JSON.parse(userRaw);
+          emailProdutor = userObj.email || userObj.user?.email || "";
+      }
+      
+      if (!emailProdutor) {
+          emailProdutor = (localStorage.getItem('userEmail') || "").replace(/['"]+/g, '').trim();
+      }
 
-      let res = await fetch(`${API_URL}/api/eventos/listar?email=${encodeURIComponent(emailLimpo)}&t=${Date.now()}`, { 
+      const res = await fetch(`${API_URL}/api/eventos/listar?email=${encodeURIComponent(emailProdutor.toLowerCase())}&t=${Date.now()}`, { 
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      let data = await res.json();
+      const data = await res.json();
       if (res.ok) setEventos(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error("Erro:", err);
+      console.error("Erro ao carregar eventos:", err);
     } finally {
       setLoading(false);
     }
@@ -110,7 +125,7 @@ export default function TabelaEventos() {
       formData.append('nome', eventoParaEditar.nome);
       formData.append('categoria', eventoParaEditar.categoria);
       formData.append('descricao', eventoParaEditar.descricao || '');
-      formData.append('localizacao', eventoParaEditar.localizacao || '');
+      formData.append('local_nome', eventoParaEditar.local_nome || eventoParaEditar.localizacao || '');
       formData.append('data_inicio', eventoParaEditar.data_inicio || '');
 
       if (selectedFile) formData.append('imagem_capa', selectedFile);
@@ -123,11 +138,14 @@ export default function TabelaEventos() {
 
       if (res.ok) {
         setIsEditModalOpen(false);
-        Swal.fire({ title: "Sucesso!", icon: 'success', timer: 1500, showConfirmButton: false });
+        Swal.fire({ title: "Atualizado!", icon: 'success', timer: 1500, showConfirmButton: false });
         carregarEventos();
+      } else {
+          const errData = await res.json();
+          Swal.fire('Erro', errData.message || 'Falha ao salvar', 'error');
       }
     } catch (err) {
-      Swal.fire('Erro', 'Falha ao salvar', 'error');
+      Swal.fire('Erro', 'Falha ao conectar com o servidor', 'error');
     } finally {
       setSaving(false);
     }
@@ -136,7 +154,6 @@ export default function TabelaEventos() {
   return (
     <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden font-sans">
       
-      {/* HEADER */}
       <div className="p-10 border-b border-slate-50 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
         <div>
           <h2 className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Painel do Produtor</h2>
@@ -180,7 +197,6 @@ export default function TabelaEventos() {
         </div>
       </div>
 
-      {/* TABELA */}
       <div className="overflow-x-auto">
         <table className="w-full text-left">
           <thead className="bg-slate-50 text-slate-400 text-[10px] font-bold uppercase tracking-widest">
@@ -192,20 +208,22 @@ export default function TabelaEventos() {
           </thead>
           <tbody className="divide-y divide-slate-50">
             {loading ? (
-              <tr><td colSpan={3} className="py-24 text-center"><Loader2 className="animate-spin mx-auto text-[#FF4D4D]" size={32} /></td></tr>
+              <tr><td colSpan={3} className="py-24 text-center"><Loader2 className="animate-spin mx-auto text-pink-500" size={32} /></td></tr>
+            ) : eventosFiltrados.length === 0 ? (
+                <tr><td colSpan={3} className="py-12 text-center text-slate-400 text-sm">Nenhum evento encontrado.</td></tr>
             ) : eventosFiltrados.map((evento) => (
               <tr key={evento.id} className="hover:bg-slate-50/50 transition-colors">
                 <td className="px-10 py-6">
                   <div className="flex items-center gap-5">
-                    <img src={validarImagem(evento.imagem_capa)} className="w-14 h-14 rounded-2xl object-cover shadow-sm" alt="" />
+                    <img src={validarImagem(evento.imagem_capa)} className="w-14 h-14 rounded-2xl object-cover shadow-sm bg-slate-100" alt="" />
                     <div>
                       <div className="flex items-center gap-2">
                         <p className="font-bold text-slate-900 text-base">{evento.nome}</p>
-                        <span className={`text-[8px] px-2 py-0.5 rounded-full font-black uppercase ${evento.tipo === 'online' ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'}`}>
+                        <span className={`text-[8px] px-2 py-0.5 rounded-full font-black uppercase ${evento.tipo?.toLowerCase() === 'online' ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'}`}>
                           {evento.tipo || 'Presencial'}
                         </span>
                       </div>
-                      <p className="text-[10px] text-[#FF4D4D] font-black uppercase tracking-widest">{evento.categoria}</p>
+                      <p className="text-[10px] text-pink-600 font-black uppercase tracking-widest">{evento.categoria}</p>
                     </div>
                   </div>
                 </td>
@@ -217,7 +235,7 @@ export default function TabelaEventos() {
                   <div className="flex justify-end gap-2">
                     <button onClick={handlePaginaPublicaEmBreve} className="p-3 bg-slate-50 text-slate-300 rounded-xl hover:text-slate-500 transition-all"><Lock size={18} /></button>
                     <button onClick={() => abrirModalEdicao(evento)} className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:text-black transition-all"><Edit3 size={18} /></button>
-                    <button onClick={() => router.push(`/dashboard/eventos/novo/ingressos/${evento.id}`)} className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:text-[#FF4D4D] transition-all"><Ticket size={18} /></button>
+                    <button onClick={() => router.push(`/dashboard/eventos/novo/ingressos/${evento.id}`)} className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:text-pink-600 transition-all"><Ticket size={18} /></button>
                     <button onClick={() => {/* Logica delete */}} className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:text-red-600 transition-all"><Trash2 size={18} /></button>
                   </div>
                 </td>
@@ -227,34 +245,40 @@ export default function TabelaEventos() {
         </table>
       </div>
 
-      {/* MODAL DE EDIÇÃO COM AS CATEGORIAS NOVAS */}
       {isEditModalOpen && eventoParaEditar && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
           <div className="bg-white w-full max-w-2xl rounded-[2.5rem] p-10 shadow-2xl my-8">
             <div className="flex justify-between items-center mb-8">
-              <h3 className="font-bold text-2xl tracking-tighter">Editar Evento</h3>
+              <h3 className="font-bold text-2xl tracking-tighter">Editar Experiência</h3>
               <button onClick={() => setIsEditModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-full"><X /></button>
             </div>
 
             <form onSubmit={handleSalvarEdicao} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Capa</label>
-                  <div onClick={() => fileInputRef.current?.click()} className="aspect-video bg-slate-50 border-2 border-dashed border-slate-200 rounded-[2rem] flex items-center justify-center cursor-pointer overflow-hidden relative">
-                    {previewUrl ? <img src={previewUrl} className="w-full h-full object-cover" alt="" /> : <Upload size={32} className="text-slate-300" />}
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Capa do Evento</label>
+                  <div onClick={() => fileInputRef.current?.click()} className="aspect-video bg-slate-50 border-2 border-dashed border-slate-200 rounded-[2rem] flex items-center justify-center cursor-pointer overflow-hidden relative group">
+                    {previewUrl ? (
+                        <>
+                            <img src={previewUrl} className="w-full h-full object-cover" alt="" />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <Upload className="text-white" size={24} />
+                            </div>
+                        </>
+                    ) : <Upload size={32} className="text-slate-300" />}
                   </div>
-                  <input type="file" ref={fileInputRef} className="hidden" onChange={(e:any) => { const file = e.target.files?.[0]; if (file) { setSelectedFile(file); setPreviewUrl(URL.createObjectURL(file)); }}} />
+                  <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e:any) => { const file = e.target.files?.[0]; if (file) { setSelectedFile(file); setPreviewUrl(URL.createObjectURL(file)); }}} />
                 </div>
 
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nome</label>
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nome do Evento</label>
                     <input className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none focus:border-black border border-transparent transition-all" value={eventoParaEditar.nome || ""} onChange={(e) => setEventoParaEditar({...eventoParaEditar, nome: e.target.value})} />
                   </div>
                   <div className="space-y-2">
                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Categoria</label>
                     <select 
-                      className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none focus:border-black border border-transparent transition-all appearance-none" 
+                      className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none focus:border-black border border-transparent transition-all appearance-none cursor-pointer" 
                       value={eventoParaEditar.categoria} 
                       onChange={(e) => setEventoParaEditar({...eventoParaEditar, categoria: e.target.value})}
                     >
@@ -268,14 +292,14 @@ export default function TabelaEventos() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1"><Calendar size={12} className="inline mr-1"/> Data</label>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1"><Calendar size={12} className="inline mr-1"/> Data de Início</label>
                   <input type="date" className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none focus:border-black border border-transparent transition-all" value={eventoParaEditar.data_inicio?.split('T')[0] || ""} onChange={(e) => setEventoParaEditar({...eventoParaEditar, data_inicio: e.target.value})} />
                 </div>
                 <div className="space-y-2">
                   <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                    {eventoParaEditar.tipo === 'online' ? <><LinkIcon size={12} className="inline mr-1"/> Link</> : <><MapPin size={12} className="inline mr-1"/> Local</>}
+                    {eventoParaEditar.tipo?.toLowerCase() === 'online' ? <><LinkIcon size={12} className="inline mr-1"/> Link da Transmissão</> : <><MapPin size={12} className="inline mr-1"/> Nome do Local</>}
                   </label>
-                  <input className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none focus:border-black border border-transparent transition-all" value={eventoParaEditar.localizacao || ""} onChange={(e) => setEventoParaEditar({...eventoParaEditar, localizacao: e.target.value})} />
+                  <input className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none focus:border-black border border-transparent transition-all" value={eventoParaEditar.local_nome || eventoParaEditar.localizacao || ""} onChange={(e) => setEventoParaEditar({...eventoParaEditar, local_nome: e.target.value})} />
                 </div>
               </div>
 
