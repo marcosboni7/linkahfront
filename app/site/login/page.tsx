@@ -39,10 +39,11 @@ export default function LoginPage() {
       localStorage.setItem('@Linkah:User', JSON.stringify(data.user));
 
       // Lógica de redirecionamento inteligente
+      // Admins vão para o dashboard, usuários comuns para a home com filtro
       if (data.user.role === 'admin') {
         router.push('/dashboard');
       } else {
-        router.push('/');
+        router.push('/?old=true');
       }
 
     } catch (err: any) {
@@ -62,7 +63,7 @@ export default function LoginPage() {
         <div className="absolute bottom-[-10%] left-[-10%] w-[300px] h-[300px] bg-white opacity-5 blur-[100px] rounded-full" />
         
         <div className="relative z-10 p-12 text-center max-w-lg">
-          <Link href="/" className="text-white text-3xl font-bold tracking-tighter mb-12 block group">
+          <Link href="/?old=true" className="text-white text-3xl font-bold tracking-tighter mb-12 block group">
             LINKAH<span className="text-[#ff4d4d] group-hover:animate-pulse">.</span>
           </Link>
           
@@ -89,7 +90,7 @@ export default function LoginPage() {
       {/* LADO DIREITO: FORMULÁRIO */}
       <div className="flex-1 flex items-center justify-center p-8 md:p-16 bg-[#FCFBFA]">
         <div className="w-full max-w-sm">
-          <Link href="/" className="inline-flex items-center gap-2 text-slate-400 hover:text-slate-900 font-bold text-xs tracking-tight mb-12 transition-all group">
+          <Link href="/?old=true" className="inline-flex items-center gap-2 text-slate-400 hover:text-slate-900 font-bold text-xs tracking-tight mb-12 transition-all group">
             <ChevronLeft size={16} className="group-hover:-translate-x-1 transition-transform" /> Voltar para o início
           </Link>
 
