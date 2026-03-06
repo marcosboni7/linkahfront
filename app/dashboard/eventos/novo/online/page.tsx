@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { 
   ChevronLeft, 
   ImageIcon, 
@@ -23,7 +23,6 @@ export default function NovoEventoOnline() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   
   const [formData, setFormData] = useState({
     nome: '', 
@@ -35,9 +34,9 @@ export default function NovoEventoOnline() {
     data_termino: '', 
     hora_termino: '',
     local_nome: 'Plataforma Online',
-    link_reuniao: '', // Corrigido para bater com a coluna do Banco de Dados
+    link_reuniao: '', 
     capacidade: '',
-    tipo: 'online', // Padronizado para minúsculo
+    tipo: 'online', 
     regras: '',
     visibilidade: 'Publico'
   });
@@ -50,7 +49,6 @@ export default function NovoEventoOnline() {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setSelectedFile(file);
       const reader = new FileReader();
       reader.onloadend = () => setPreviewImage(reader.result as string);
       reader.readAsDataURL(file);
@@ -88,44 +86,32 @@ export default function NovoEventoOnline() {
     setIsLoading(true);
 
     try {
-      const dataToSend = new FormData();
-      
-      // 1. Adiciona os campos do formulário
-      Object.entries(formData).forEach(([key, value]) => {
-        if (key === 'capacidade') {
-          dataToSend.append(key, value === '' ? '0' : value);
-        } else {
-          dataToSend.append(key, value);
-        }
-      });
-      
-      // 2. Adiciona campos obrigatórios que o backend espera
-      dataToSend.append('produtor_email', emailProdutor);
-      dataToSend.append('cidade', 'Online');
-      dataToSend.append('estado', 'ON');
-      
-      // 3. Anexa o arquivo de imagem
-      if (selectedFile) {
-        dataToSend.append('imagem_capa', selectedFile);
-        console.log("📸 Imagem anexada com sucesso.");
-      }
+      // Criamos o Payload JSON (Backend espera req.body)
+      const payload = {
+        ...formData,
+        produtor_email: emailProdutor,
+        cidade: 'Online',
+        estado: 'ON',
+        capacidade: formData.capacidade === '' ? 0 : Number(formData.capacidade),
+        imagem_capa: previewImage // Envia a string Base64
+      };
 
       const response = await fetch(`${API_URL}/api/eventos/novo-online`, {
         method: 'POST',
         headers: { 
-            'Authorization': `Bearer ${token}`
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
         },
-        body: dataToSend,
+        body: JSON.stringify(payload),
       });
 
       const result = await response.json();
       console.log("📡 Resposta API:", result);
 
       if (response.ok) {
-        // Redireciona para a criação de ingressos usando o ID retornado
         router.push(`/dashboard/eventos/novo/ingressos/${result.id}`);
       } else {
-        alert(`Erro: ${result.message || "Erro ao salvar"}`);
+        alert(`Erro: ${result.error || result.message || "Erro ao salvar"}`);
       }
     } catch (error) {
       console.error("🚨 Erro de Rede:", error);
@@ -240,7 +226,7 @@ export default function NovoEventoOnline() {
                 {previewImage ? (
                   <div className="relative w-full aspect-[4/5] rounded-[2.5rem] overflow-hidden group shadow-2xl">
                     <img src={previewImage} alt="Preview" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
-                    <button onClick={() => {setPreviewImage(null); setSelectedFile(null);}} className="absolute top-6 right-6 bg-white w-12 h-12 rounded-2xl text-[#C22973] shadow-lg flex items-center justify-center">
+                    <button onClick={() => setPreviewImage(null)} className="absolute top-6 right-6 bg-white w-12 h-12 rounded-2xl text-[#C22973] shadow-lg flex items-center justify-center">
                       <X size={20} />
                     </button>
                   </div>
