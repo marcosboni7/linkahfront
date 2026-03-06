@@ -153,7 +153,7 @@ export default function LoginPage() {
           <div className="mt-12 text-center">
              <p className="text-sm font-medium text-slate-400">
                Ainda não faz parte?
-               <Link href="site/register" className="text-slate-900 font-black ml-2 hover:underline underline-offset-4 decoration-[#ff4d4d] decoration-2">
+               <Link href="/register" className="text-slate-900 font-black ml-2 hover:underline underline-offset-4 decoration-[#ff4d4d] decoration-2">
                  Criar conta
                </Link>
              </p>

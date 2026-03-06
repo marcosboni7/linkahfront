@@ -167,7 +167,7 @@ export default function RegisterPage() {
           <div className="mt-12 text-center">
              <p className="text-sm font-medium text-slate-400">
                Já faz parte da Linkah? 
-               <Link href="site/login" className="text-slate-900 font-black ml-2 hover:underline underline-offset-4 decoration-[#ff4d4d] decoration-2">
+               <Link href="/login" className="text-slate-900 font-black ml-2 hover:underline underline-offset-4 decoration-[#ff4d4d] decoration-2">
                  Fazer Login
                </Link>
              </p>
