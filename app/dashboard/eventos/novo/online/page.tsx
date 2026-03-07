@@ -23,7 +23,7 @@ export default function NovoEventoOnline() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null); // ADICIONADO: Para guardar o arquivo real
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   
   const [formData, setFormData] = useState({
     nome: '', 
@@ -50,7 +50,7 @@ export default function NovoEventoOnline() {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setSelectedFile(file); // Guarda o arquivo binário
+      setSelectedFile(file);
       const reader = new FileReader();
       reader.onloadend = () => setPreviewImage(reader.result as string);
       reader.readAsDataURL(file);
@@ -74,33 +74,40 @@ export default function NovoEventoOnline() {
       console.error("Erro ao processar user local:", e);
     }
 
+    // Validações imediatas
     if (!token) {
       alert("Sessão expirada. Faça login novamente.");
       router.push('/auth/login');
       return;
     }
 
-    if (!emailProdutor || !formData.nome) {
-      alert("Erro crítico: Nome do evento ou E-mail do produtor não identificados.");
+    if (!emailProdutor || !formData.nome.trim()) {
+      alert("E-mail do produtor e nome do evento são obrigatórios.");
       return;
     }
 
     setIsLoading(true);
 
     try {
-      // --- MUDANÇA AQUI: USANDO FORMDATA EM VEZ DE JSON ---
+      // Usando FormData para suportar o envio da imagem
       const dataToSend = new FormData();
       
-      // Adiciona os campos de texto
+      // 1. Inserir campos obrigatórios primeiro (ajuda o parser do backend)
+      dataToSend.append('produtor_email', emailProdutor);
+      dataToSend.append('nome', formData.nome);
+      
+      // 2. Inserir demais campos do formulário
       Object.entries(formData).forEach(([key, value]) => {
-        dataToSend.append(key, value);
+        if (key !== 'nome') { // evita duplicar o nome
+           dataToSend.append(key, value);
+        }
       });
       
-      dataToSend.append('produtor_email', emailProdutor);
+      // 3. Campos fixos de localização para evento online
       dataToSend.append('cidade', 'Online');
       dataToSend.append('estado', 'ON');
       
-      // Adiciona o arquivo da imagem se ele existir
+      // 4. Anexar o arquivo da imagem
       if (selectedFile) {
         dataToSend.append('imagem_capa', selectedFile);
       }
@@ -109,8 +116,7 @@ export default function NovoEventoOnline() {
         method: 'POST',
         headers: { 
             'Authorization': `Bearer ${token}`
-            // Nota: Não defina 'Content-Type' manualmente ao usar FormData. 
-            // O navegador fará isso automaticamente com o "boundary" correto.
+            // IMPORTANTE: Ao enviar FormData, não definimos o Content-Type manualmente
         },
         body: dataToSend,
       });
