@@ -23,7 +23,6 @@ export default function NovoEventoOnline() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   
   const [formData, setFormData] = useState({
     nome: '', 
@@ -50,7 +49,6 @@ export default function NovoEventoOnline() {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setSelectedFile(file);
       const reader = new FileReader();
       reader.onloadend = () => setPreviewImage(reader.result as string);
       reader.readAsDataURL(file);
@@ -88,37 +86,23 @@ export default function NovoEventoOnline() {
     setIsLoading(true);
 
     try {
-      const dataToSend = new FormData();
-      
-      // 1. CAMPOS OBRIGATÓRIOS NO TOPO (Fundamental para o Multer no Backend)
-      dataToSend.append('produtor_email', emailProdutor.trim());
-      dataToSend.append('nome', formData.nome.trim());
-      
-      // 2. DEMAIS CAMPOS DO FORMULÁRIO
-      dataToSend.append('tipo', 'online');
-      dataToSend.append('categoria', formData.categoria);
-      dataToSend.append('descricao', formData.descricao);
-      dataToSend.append('link_reuniao', formData.link_reuniao);
-      dataToSend.append('data_inicio', formData.data_inicio);
-      dataToSend.append('hora_inicio', formData.hora_inicio);
-      dataToSend.append('capacidade', formData.capacidade || '0');
-      dataToSend.append('cidade', 'Online');
-      dataToSend.append('estado', 'ON');
-      dataToSend.append('status', 'Ativo');
-      dataToSend.append('visibilidade', 'Publico');
-
-      // 3. ARQUIVO BINÁRIO (Para evitar que chegue como texto no banco)
-      if (selectedFile) {
-        dataToSend.append('imagem_capa', selectedFile);
-      }
+      // Enviando como JSON para garantir que produtor_email e nome cheguem sem erro 400
+      const payload = {
+        ...formData,
+        produtor_email: emailProdutor.trim(),
+        cidade: 'Online',
+        estado: 'ON',
+        capacidade: formData.capacidade ? Number(formData.capacidade) : 0,
+        imagem_capa: previewImage // Envia o Base64 que o banco de dados processa
+      };
 
       const response = await fetch(`${API_URL}/api/eventos/novo-online`, {
         method: 'POST',
         headers: { 
-            'Authorization': `Bearer ${token}`
-            // Nota: Não defina Content-Type ao usar FormData
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         },
-        body: dataToSend,
+        body: JSON.stringify(payload),
       });
 
       const result = await response.json();
@@ -126,7 +110,7 @@ export default function NovoEventoOnline() {
       if (response.ok) {
         router.push(`/dashboard/eventos/novo/ingressos/${result.id}`);
       } else {
-        alert(`Erro do Servidor: ${result.message || result.error || "Erro ao salvar"}`);
+        alert(`Erro do Servidor: ${result.message || result.error || "Verifique os dados"}`);
       }
     } catch (error) {
       console.error("Erro de Rede:", error);
@@ -145,7 +129,7 @@ export default function NovoEventoOnline() {
           </button>
           <div className="hidden sm:block">
             <div className="flex items-center gap-2 mb-0.5">
-              <span className="bg-pink-100 text-[#C22973] px-2 py-0.5 rounded-md text-[9px] font-black uppercase">Live Engine</span>
+              <span className="bg-pink-100 text-[#C22973] px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-tighter">Engine Online</span>
               <h1 className="text-slate-900 font-black text-xl tracking-tight uppercase italic flex items-center gap-2">
                 <Globe className="text-[#C22973] animate-pulse" size={20} /> Evento Online
               </h1>
@@ -216,14 +200,14 @@ export default function NovoEventoOnline() {
                 {previewImage ? (
                   <div className="relative w-full aspect-[4/5] rounded-[2.5rem] overflow-hidden group shadow-2xl">
                     <img src={previewImage} alt="Preview" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
-                    <button onClick={() => {setPreviewImage(null); setSelectedFile(null);}} className="absolute top-6 right-6 bg-white w-12 h-12 rounded-2xl text-[#C22973] shadow-lg flex items-center justify-center">
+                    <button onClick={() => setPreviewImage(null)} className="absolute top-6 right-6 bg-white w-12 h-12 rounded-2xl text-[#C22973] shadow-lg flex items-center justify-center hover:scale-110 transition-all active:scale-90">
                       <X size={20} />
                     </button>
                   </div>
                 ) : (
                   <label className="aspect-[4/5] border-2 border-dashed border-slate-100 rounded-[2.5rem] bg-slate-50/50 cursor-pointer flex flex-col items-center justify-center hover:bg-white hover:border-pink-200 transition-all group">
                     <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
-                    <div className="w-20 h-20 bg-white rounded-[2rem] flex items-center justify-center mb-6 shadow-sm border border-slate-50">
+                    <div className="w-20 h-20 bg-white rounded-[2rem] flex items-center justify-center mb-6 shadow-sm border border-slate-50 group-hover:scale-110 transition-transform">
                         <ImageIcon size={32} className="text-[#C22973]" />
                     </div>
                     <p className="text-[11px] font-black text-slate-800 uppercase tracking-widest">Upload Capa</p>
@@ -240,11 +224,11 @@ export default function NovoEventoOnline() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <label className="text-[9px] font-bold text-slate-400 uppercase ml-1">Data</label>
-                    <input name="data_inicio" value={formData.data_inicio} onChange={handleChange} type="date" className="w-full bg-slate-50 border-none p-4 rounded-2xl text-xs font-bold text-slate-700" />
+                    <input name="data_inicio" value={formData.data_inicio} onChange={handleChange} type="date" className="w-full bg-slate-50 border-none p-4 rounded-2xl text-xs font-bold text-slate-700 focus:ring-1 ring-pink-100 outline-none" />
                   </div>
                   <div className="space-y-1">
                     <label className="text-[9px] font-bold text-slate-400 uppercase ml-1">Hora</label>
-                    <input name="hora_inicio" value={formData.hora_inicio} onChange={handleChange} type="time" className="w-full bg-slate-50 border-none p-4 rounded-2xl text-xs font-bold text-slate-700" />
+                    <input name="hora_inicio" value={formData.hora_inicio} onChange={handleChange} type="time" className="w-full bg-slate-50 border-none p-4 rounded-2xl text-xs font-bold text-slate-700 focus:ring-1 ring-pink-100 outline-none" />
                   </div>
                 </div>
               </div>
