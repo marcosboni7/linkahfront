@@ -53,17 +53,32 @@ export function Navbar() {
 
   const carregarMeusIngressos = async () => {
     if (!usuario?.email) return;
+
+    // Pegando o token para evitar erro 403
+    const token = localStorage.getItem('@Linkah:Token');
+
     setIsModalOpen(true);
     setIsMenuOpen(false);
     setBuscandoTickets(true);
+
     try {
-      const response = await fetch(`${API_URL}/api/pagamentos/meus-ingressos?email=${usuario.email}`);
+      // AJUSTE NA URL: Removido o 's' de pagamentos para bater com o server.js
+      // ADICIONADO: Header de Authorization
+      const response = await fetch(`${API_URL}/api/pagamento/meus-ingressos?email=${usuario.email}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
       if (response.ok) {
         const dados = await response.json();
         setMeusIngressos(dados);
+      } else {
+        console.error("Erro na resposta da API:", response.status);
       }
     } catch (err) {
-      console.error("Erro:", err);
+      console.error("Erro ao carregar ingressos:", err);
     } finally {
       setBuscandoTickets(false);
     }
@@ -134,7 +149,6 @@ export function Navbar() {
                   className="flex items-center gap-2 p-1 pl-3 border border-gray-200 rounded-full hover:shadow-md transition-all bg-white"
                 >
                   <div className="flex flex-col items-end hidden sm:block text-right">
-                    {/* CORREÇÃO AQUI: Optional Chaining e Fallback */}
                     <span className="text-[12px] font-bold text-gray-900 leading-none block">
                       {usuario?.nome?.split(' ')?.[0] || 'Membro'}
                     </span>
