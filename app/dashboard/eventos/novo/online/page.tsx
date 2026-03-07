@@ -23,7 +23,6 @@ export default function NovoEventoOnline() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   
   const [formData, setFormData] = useState({
     nome: '', 
@@ -50,9 +49,11 @@ export default function NovoEventoOnline() {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setSelectedFile(file);
       const reader = new FileReader();
-      reader.onloadend = () => setPreviewImage(reader.result as string);
+      reader.onloadend = () => {
+        // O previewImage aqui já é a string Base64 necessária para o JSON
+        setPreviewImage(reader.result as string);
+      };
       reader.readAsDataURL(file);
     }
   };
@@ -62,6 +63,7 @@ export default function NovoEventoOnline() {
     const userRaw = localStorage.getItem('@Linkah:User');
     let emailProdutor = '';
 
+    // Extração do e-mail de forma resiliente
     try {
       if (userRaw) {
         const userObj = JSON.parse(userRaw);
@@ -71,54 +73,43 @@ export default function NovoEventoOnline() {
         emailProdutor = localStorage.getItem('userEmail') || localStorage.getItem('email') || '';
       }
     } catch (e) {
-      console.error("Erro ao processar user local:", e);
+      console.error("Erro ao recuperar e-mail:", e);
     }
 
-    // Validações imediatas
+    // Validações de segurança antes do envio
     if (!token) {
       alert("Sessão expirada. Faça login novamente.");
       router.push('/auth/login');
       return;
     }
 
-    if (!emailProdutor || !formData.nome.trim()) {
-      alert("E-mail do produtor e nome do evento são obrigatórios.");
+    if (!emailProdutor.trim() || !formData.nome.trim()) {
+      alert("Erro: E-mail do produtor e Nome do evento são obrigatórios.");
       return;
     }
 
     setIsLoading(true);
 
     try {
-      // Usando FormData para suportar o envio da imagem
-      const dataToSend = new FormData();
-      
-      // 1. Inserir campos obrigatórios primeiro (ajuda o parser do backend)
-      dataToSend.append('produtor_email', emailProdutor);
-      dataToSend.append('nome', formData.nome);
-      
-      // 2. Inserir demais campos do formulário
-      Object.entries(formData).forEach(([key, value]) => {
-        if (key !== 'nome') { // evita duplicar o nome
-           dataToSend.append(key, value);
-        }
-      });
-      
-      // 3. Campos fixos de localização para evento online
-      dataToSend.append('cidade', 'Online');
-      dataToSend.append('estado', 'ON');
-      
-      // 4. Anexar o arquivo da imagem
-      if (selectedFile) {
-        dataToSend.append('imagem_capa', selectedFile);
-      }
+      // Criamos o objeto JSON exato que o backend espera
+      const payload = {
+        ...formData,
+        produtor_email: emailProdutor.trim(),
+        cidade: 'Online',
+        estado: 'ON',
+        capacidade: formData.capacidade ? Number(formData.capacidade) : 0,
+        imagem_capa: previewImage // Enviamos como string Base64
+      };
+
+      console.log("📤 Enviando Payload:", payload);
 
       const response = await fetch(`${API_URL}/api/eventos/novo-online`, {
         method: 'POST',
         headers: { 
-            'Authorization': `Bearer ${token}`
-            // IMPORTANTE: Ao enviar FormData, não definimos o Content-Type manualmente
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json' // Definido explicitamente para JSON
         },
-        body: dataToSend,
+        body: JSON.stringify(payload),
       });
 
       const result = await response.json();
@@ -126,7 +117,9 @@ export default function NovoEventoOnline() {
       if (response.ok) {
         router.push(`/dashboard/eventos/novo/ingressos/${result.id}`);
       } else {
-        alert(`Erro do Servidor: ${result.error || result.message || "Falha ao salvar"}`);
+        // Se der erro 400, o log mostrará o motivo detalhado do backend
+        console.error("❌ Erro do Servidor:", result);
+        alert(`Erro do Servidor: ${result.error || result.message || "Dados inválidos"}`);
       }
     } catch (error) {
       console.error("🚨 Erro de Rede:", error);
@@ -241,7 +234,7 @@ export default function NovoEventoOnline() {
                 {previewImage ? (
                   <div className="relative w-full aspect-[4/5] rounded-[2.5rem] overflow-hidden group shadow-2xl">
                     <img src={previewImage} alt="Preview" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
-                    <button onClick={() => {setPreviewImage(null); setSelectedFile(null);}} className="absolute top-6 right-6 bg-white w-12 h-12 rounded-2xl text-[#C22973] shadow-lg flex items-center justify-center">
+                    <button onClick={() => setPreviewImage(null)} className="absolute top-6 right-6 bg-white w-12 h-12 rounded-2xl text-[#C22973] shadow-lg flex items-center justify-center">
                       <X size={20} />
                     </button>
                   </div>
@@ -275,7 +268,6 @@ export default function NovoEventoOnline() {
               </div>
             </div>
           </div>
-
         </div>
       </main>
     </div>
