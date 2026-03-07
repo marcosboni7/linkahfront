@@ -14,7 +14,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/app/context/LanguageContext';
 
-const API_URL = 'https://zmn9wxud4y.us-east-1.awsapprunner.com';
+const API_URL = 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
 
 export default function NovoEventoOnline() {
   const { t }: any = useLanguage();
@@ -49,7 +49,7 @@ export default function NovoEventoOnline() {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        // O result será a string Base64 que o backend espera
+        // Converte a imagem para Base64 para o backend
         setPreviewImage(reader.result as string);
       };
       reader.readAsDataURL(file);
@@ -61,47 +61,58 @@ export default function NovoEventoOnline() {
     const userRaw = localStorage.getItem('@Linkah:User');
     let emailProdutor = '';
 
-    // Extração segura do e-mail do produtor
+    // 1. Extração robusta do e-mail (Tenta várias camadas do objeto)
     try {
       if (userRaw) {
         const userObj = JSON.parse(userRaw);
-        emailProdutor = userObj.email || userObj.user?.email || userObj.data?.email || '';
+        emailProdutor = userObj.email || 
+                        userObj.user?.email || 
+                        userObj.data?.email || 
+                        userObj.attributes?.email || '';
       }
       if (!emailProdutor) {
         emailProdutor = localStorage.getItem('userEmail') || '';
       }
     } catch (e) {
-      console.error("Erro ao ler e-mail:", e);
+      console.error("Erro ao processar dados do usuário:", e);
     }
 
-    // Validações obrigatórias para bater com o Backend
+    // 2. Validação local antes de disparar para a AWS
     if (!formData.nome.trim()) {
       alert("O nome do evento é obrigatório.");
       return;
     }
 
     if (!emailProdutor) {
-      alert("Sessão expirada ou e-mail do produtor não encontrado.");
+      alert("Sessão inválida. Por favor, faça login novamente.");
       return;
     }
 
     setIsLoading(true);
 
     try {
-      // Montagem do Payload em JSON (Modo Base64)
+      // 3. Montagem do Payload exatamente como o seu backend destrutura no Node
       const payload = {
-        ...formData,
         produtor_email: emailProdutor.trim(),
-        imagem_capa: previewImage, // String Base64 enviada aqui
-        cidade: 'Online', // Campos extras que o presencial pede mas o online fixa
-        estado: 'ON'
+        nome: formData.nome.trim(),
+        categoria: formData.categoria || 'Geral',
+        link_reuniao: formData.link_reuniao,
+        descricao: formData.descricao || '',
+        data_inicio: formData.data_inicio,
+        hora_inicio: formData.hora_inicio,
+        data_termino: formData.data_termino || null,
+        hora_termino: formData.hora_termino || null,
+        status: 'Ativo',
+        tipo: 'online',
+        imagem_capa: previewImage // Envia a string Base64
       };
 
+      // 4. Chamada API usando JSON
       const response = await fetch(`${API_URL}/api/eventos/novo-online`, {
         method: 'POST',
         headers: { 
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json' // Crucial para o req.body do Node
+          'Content-Type': 'application/json' 
         },
         body: JSON.stringify(payload),
       });
@@ -109,14 +120,15 @@ export default function NovoEventoOnline() {
       const result = await response.json();
 
       if (response.ok) {
+        // Sucesso: Redireciona para a criação de ingressos
         router.push(`/dashboard/eventos/novo/ingressos/${result.id}`);
       } else {
-        // Exibe a mensagem de erro direto do backend (ex: "E-mail do produtor e nome...")
-        alert(`Erro: ${result.error || result.message || "Erro ao salvar"}`);
+        // Se cair aqui, o backend retornou 400 ou 500
+        alert(`Erro do Servidor: ${result.error || result.detalhe || "Falha ao registrar evento"}`);
       }
     } catch (error) {
       console.error("Erro de Rede:", error);
-      alert("Falha ao conectar com o servidor.");
+      alert("Erro ao conectar com o servidor da AWS. Verifique sua conexão.");
     } finally {
       setIsLoading(false);
     }
