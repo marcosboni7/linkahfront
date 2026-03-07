@@ -9,7 +9,6 @@ import {
   X, 
   Loader2, 
   Users, 
-  Link as LinkIcon, 
   Sparkles 
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -22,7 +21,7 @@ export default function NovoEventoOnline() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null); // ADICIONADO
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   
   const [formData, setFormData] = useState({
     nome: '', 
@@ -49,7 +48,7 @@ export default function NovoEventoOnline() {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setSelectedFile(file); // GUARDA O ARQUIVO ORIGINAL
+      setSelectedFile(file);
       const reader = new FileReader();
       reader.onloadend = () => setPreviewImage(reader.result as string);
       reader.readAsDataURL(file);
@@ -61,38 +60,51 @@ export default function NovoEventoOnline() {
     const userRaw = localStorage.getItem('@Linkah:User');
     let emailProdutor = '';
 
+    // Extração segura do e-mail do produtor
     try {
       if (userRaw) {
         const userObj = JSON.parse(userRaw);
-        emailProdutor = userObj.email || userObj.user?.email || userObj.data?.email;
+        emailProdutor = userObj.email || userObj.user?.email || userObj.data?.email || '';
       }
-      if (!emailProdutor) emailProdutor = localStorage.getItem('userEmail') || '';
+      if (!emailProdutor) {
+        emailProdutor = localStorage.getItem('userEmail') || '';
+      }
     } catch (e) {
       console.error("Erro ao ler e-mail:", e);
     }
 
-    if (!token || !emailProdutor) {
-      alert("Sessão expirada.");
+    // Validação de campos obrigatórios apontados pelo seu erro 400
+    if (!formData.nome.trim()) {
+      alert("O nome do evento é obrigatório.");
+      return;
+    }
+
+    if (!emailProdutor) {
+      alert("Sessão expirada ou e-mail do produtor não encontrado.");
       return;
     }
 
     setIsLoading(true);
 
     try {
-      // VOLTAMOS PARA FORMDATA (IGUAL AO PRESENCIAL)
       const dataToSend = new FormData();
       
-      // Adiciona todos os campos do formData
+      // 1. Campos principais exigidos pelo seu backend
+      dataToSend.append('nome', formData.nome.trim());
+      dataToSend.append('produtor_email', emailProdutor.trim());
+      
+      // 2. Adiciona o restante dos campos do formulário
       Object.entries(formData).forEach(([key, value]) => {
-        dataToSend.append(key, value);
+        if (key !== 'nome') { // evita duplicar o nome já anexado acima
+           dataToSend.append(key, value);
+        }
       });
 
-      // Adiciona campos extras obrigatórios
-      dataToSend.append('produtor_email', emailProdutor.trim());
+      // 3. Metadados geográficos para eventos online
       dataToSend.append('cidade', 'Online');
       dataToSend.append('estado', 'ON');
 
-      // ADICIONA O ARQUIVO SELECIONADO (A CHAVE DEVE SER 'imagem_capa')
+      // 4. Arquivo de imagem
       if (selectedFile) {
         dataToSend.append('imagem_capa', selectedFile);
       }
@@ -101,7 +113,7 @@ export default function NovoEventoOnline() {
         method: 'POST',
         headers: { 
           'Authorization': `Bearer ${token}`
-          // IMPORTANTE: NÃO definir 'Content-Type' quando usar FormData
+          // Content-Type é definido automaticamente pelo navegador ao usar FormData
         },
         body: dataToSend,
       });
@@ -111,7 +123,8 @@ export default function NovoEventoOnline() {
       if (response.ok) {
         router.push(`/dashboard/eventos/novo/ingressos/${result.id}`);
       } else {
-        alert(`Erro: ${result.message || "Erro ao salvar"}`);
+        // Exibe a mensagem exata de erro vinda do seu servidor
+        alert(`Erro: ${result.error || result.message || "Erro ao salvar"}`);
       }
     } catch (error) {
       console.error("Erro de Rede:", error);
