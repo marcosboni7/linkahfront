@@ -23,6 +23,7 @@ export default function NovoEventoOnline() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null); // ADICIONADO: Para guardar o arquivo real
   
   const [formData, setFormData] = useState({
     nome: '', 
@@ -49,6 +50,7 @@ export default function NovoEventoOnline() {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setSelectedFile(file); // Guarda o arquivo binário
       const reader = new FileReader();
       reader.onloadend = () => setPreviewImage(reader.result as string);
       reader.readAsDataURL(file);
@@ -56,9 +58,6 @@ export default function NovoEventoOnline() {
   };
 
   const handleSalvar = async () => {
-    console.log("🚀 Iniciando envio do evento ONLINE...");
-    
-    // --- BUSCA DO EMAIL (CORREÇÃO DO ERRO 400) ---
     const token = localStorage.getItem('@Linkah:Token');
     const userRaw = localStorage.getItem('@Linkah:User');
     let emailProdutor = '';
@@ -66,11 +65,8 @@ export default function NovoEventoOnline() {
     try {
       if (userRaw) {
         const userObj = JSON.parse(userRaw);
-        // Tenta pegar o email de várias estruturas possíveis para evitar o null
         emailProdutor = userObj.email || userObj.user?.email || userObj.data?.email;
       }
-      
-      // Fallbacks extras caso o objeto User não esteja completo
       if (!emailProdutor) {
         emailProdutor = localStorage.getItem('userEmail') || localStorage.getItem('email') || '';
       }
@@ -78,9 +74,6 @@ export default function NovoEventoOnline() {
       console.error("Erro ao processar user local:", e);
     }
 
-    console.log("📧 Email identificado:", emailProdutor);
-
-    // Validações antes de enviar
     if (!token) {
       alert("Sessão expirada. Faça login novamente.");
       router.push('/auth/login');
@@ -92,46 +85,46 @@ export default function NovoEventoOnline() {
       return;
     }
 
-    if (!formData.data_inicio || !formData.categoria) {
-      alert("Preencha a Data e a Categoria do evento.");
-      return;
-    }
-
     setIsLoading(true);
 
     try {
-      // Montagem do Payload JSON puro
-      const payload = {
-        ...formData,
-        produtor_email: emailProdutor,
-        cidade: 'Online',
-        estado: 'ON',
-        capacidade: formData.capacidade === '' ? 0 : Number(formData.capacidade),
-        imagem_capa: previewImage // String Base64 enviada diretamente no JSON
-      };
+      // --- MUDANÇA AQUI: USANDO FORMDATA EM VEZ DE JSON ---
+      const dataToSend = new FormData();
+      
+      // Adiciona os campos de texto
+      Object.entries(formData).forEach(([key, value]) => {
+        dataToSend.append(key, value);
+      });
+      
+      dataToSend.append('produtor_email', emailProdutor);
+      dataToSend.append('cidade', 'Online');
+      dataToSend.append('estado', 'ON');
+      
+      // Adiciona o arquivo da imagem se ele existir
+      if (selectedFile) {
+        dataToSend.append('imagem_capa', selectedFile);
+      }
 
       const response = await fetch(`${API_URL}/api/eventos/novo-online`, {
         method: 'POST',
         headers: { 
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json' // OBRIGATÓRIO para o Express ler link_reuniao
+            'Authorization': `Bearer ${token}`
+            // Nota: Não defina 'Content-Type' manualmente ao usar FormData. 
+            // O navegador fará isso automaticamente com o "boundary" correto.
         },
-        body: JSON.stringify(payload),
+        body: dataToSend,
       });
 
       const result = await response.json();
-      console.log("📡 Resposta API:", result);
 
       if (response.ok) {
-        // Redireciona para a próxima etapa com o ID gerado pelo banco
         router.push(`/dashboard/eventos/novo/ingressos/${result.id}`);
       } else {
-        // Exibe o erro exato que o backend retornou
         alert(`Erro do Servidor: ${result.error || result.message || "Falha ao salvar"}`);
       }
     } catch (error) {
       console.error("🚨 Erro de Rede:", error);
-      alert("Falha ao conectar com o servidor. Verifique sua conexão ou se o serviço está online.");
+      alert("Falha ao conectar com o servidor.");
     } finally {
       setIsLoading(false);
     }
@@ -242,7 +235,7 @@ export default function NovoEventoOnline() {
                 {previewImage ? (
                   <div className="relative w-full aspect-[4/5] rounded-[2.5rem] overflow-hidden group shadow-2xl">
                     <img src={previewImage} alt="Preview" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
-                    <button onClick={() => setPreviewImage(null)} className="absolute top-6 right-6 bg-white w-12 h-12 rounded-2xl text-[#C22973] shadow-lg flex items-center justify-center">
+                    <button onClick={() => {setPreviewImage(null); setSelectedFile(null);}} className="absolute top-6 right-6 bg-white w-12 h-12 rounded-2xl text-[#C22973] shadow-lg flex items-center justify-center">
                       <X size={20} />
                     </button>
                   </div>
