@@ -39,28 +39,55 @@ export default function NovoEventoOnline() {
     visibilidade: 'Publico'
   });
 
+  // FUNÇÃO PARA CORRIGIR O PROBLEMA DE HEADER TOO LARGE (Compressão)
+  const compressImage = (base64Str: string): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.src = base64Str;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 1080; // Redimensiona para um tamanho seguro
+        let width = img.width;
+        let height = img.height;
+
+        if (width > MAX_WIDTH) {
+          height *= MAX_WIDTH / width;
+          width = MAX_WIDTH;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+        
+        // Converte para JPEG com 0.7 de qualidade para reduzir drasticamente o tamanho da string
+        const compressed = canvas.toDataURL('image/jpeg', 0.7);
+        resolve(compressed);
+      };
+    });
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // DEBUG: LOG DE SELEÇÃO DE ARQUIVO
-      console.log("📂 [DEBUG] Arquivo selecionado:", {
-        name: file.name,
-        size: (file.size / 1024).toFixed(2) + " KB",
-        type: file.type
-      });
+      console.log("📂 [DEBUG] Arquivo selecionado:", file);
 
       const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64 = reader.result as string;
-        // DEBUG: LOG DE CONVERSÃO BASE64
-        console.log("🖼️ [DEBUG] Imagem convertida para Base64. Tamanho da string:", base64.length);
-        console.log("🖼️ [DEBUG] Início da string Base64:", base64.substring(0, 50));
-        setPreviewImage(base64);
+      reader.onloadend = async () => {
+        const originalBase64 = reader.result as string;
+        console.log("🖼️ [DEBUG] Imagem convertida para Base64 original. Tamanho:", originalBase64.length);
+        
+        // Comprime a imagem antes de setar no estado de preview
+        const compressedBase64 = await compressImage(originalBase64);
+        console.log("⚡ [DEBUG] Imagem Comprimida. Novo tamanho da string:", compressedBase64.length);
+        console.log("🖼️ [DEBUG] Início da string Base64:", compressedBase64.substring(0, 50));
+        
+        setPreviewImage(compressedBase64);
       };
       reader.readAsDataURL(file);
     }
@@ -78,14 +105,10 @@ export default function NovoEventoOnline() {
       if (userRaw) {
         const userObj = JSON.parse(userRaw);
         console.log("👤 [DEBUG] Objeto de usuário decodificado:", userObj);
-        emailProdutor = userObj.email || userObj.user?.email || userObj.data?.email || userObj.attributes?.email || '';
-      }
-      if (!emailProdutor) {
-        emailProdutor = localStorage.getItem('userEmail') || '';
-        console.log("📧 [DEBUG] Email buscado no fallback localstorage:", emailProdutor);
+        emailProdutor = userObj.email || userObj.user?.email || userObj.data?.email || '';
       }
     } catch (e) {
-      console.error("❌ [DEBUG] Erro ao processar dados do usuário:", e);
+      console.error("❌ [DEBUG] Erro ao parsear userRaw:", e);
     }
 
     if (!formData.nome.trim()) {
@@ -94,7 +117,7 @@ export default function NovoEventoOnline() {
     }
 
     if (!emailProdutor) {
-      alert("Sessão inválida. Por favor, faça login novamente.");
+      alert("Erro ao identificar produtor. Faça login novamente.");
       return;
     }
 
@@ -115,14 +138,10 @@ export default function NovoEventoOnline() {
         hora_termino: cleanValue(formData.hora_termino),
         status: 'Ativo',
         tipo: 'online',
-        imagem_capa: previewImage // A string Base64
+        imagem_capa: previewImage 
       };
 
-      // DEBUG: LOG DO PAYLOAD COMPLETO ANTES DO ENVIO
-      console.log("🚀 [DEBUG] Enviando Payload Final:", {
-        ...payload,
-        imagem_capa: payload.imagem_capa ? `(String de ${payload.imagem_capa.length} caracteres)` : "NULA/VAZIA"
-      });
+      console.log("🚀 [DEBUG] Enviando Payload Final:", { ...payload, imagem_capa: payload.imagem_capa ? "BASE64_STRING" : null });
 
       const response = await fetch(`${API_URL}/api/eventos/novo-online`, {
         method: 'POST',
@@ -139,11 +158,11 @@ export default function NovoEventoOnline() {
       if (response.ok) {
         router.push(`/dashboard/eventos/novo/ingressos/${result.id}`);
       } else {
-        alert(`Erro: ${result.error || result.detalhe || "Falha ao registrar evento"}`);
+        alert(`Erro: ${result.error || "Falha ao registrar evento"}`);
       }
     } catch (error) {
-      console.error("🚨 [DEBUG] Erro de Rede fatal:", error);
-      alert("Erro ao conectar com o servidor da AWS.");
+      console.error("🚨 [DEBUG] Erro fatal no fetch:", error);
+      alert("Erro de conexão com o servidor.");
     } finally {
       setIsLoading(false);
     }
@@ -153,26 +172,33 @@ export default function NovoEventoOnline() {
     <div className="min-h-screen bg-[#FDFDFF] font-sans antialiased pb-24 text-slate-900">
       <header className="border-b border-slate-200/60 px-6 md:px-12 py-6 flex justify-between items-center bg-white/70 backdrop-blur-xl sticky top-0 z-50">
         <div className="flex items-center gap-8">
-          <button onClick={() => router.back()} className="group flex items-center justify-center w-12 h-12 bg-white rounded-2xl transition-all shadow-sm border border-slate-100 hover:border-pink-200 active:scale-95">
+          <button 
+            onClick={() => router.back()} 
+            className="group flex items-center justify-center w-12 h-12 bg-white rounded-2xl transition-all shadow-sm border border-slate-100 hover:border-pink-200 active:scale-95"
+          >
             <ChevronLeft size={20} className="text-slate-500 group-hover:text-[#C22973]" />
           </button>
-          <div className="hidden sm:block">
-            <div className="flex items-center gap-2 mb-0.5">
-              <span className="bg-pink-100 text-[#C22973] px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-tighter">Engine Online</span>
+          
+          <div className="flex items-center gap-2">
+              <span className="bg-pink-100 text-[#C22973] px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider">Engine Online</span>
               <h1 className="text-slate-900 font-black text-xl tracking-tight uppercase italic flex items-center gap-2">
-                <Globe className="text-[#C22973] animate-pulse" size={20} /> Evento Online
+                <Globe className="text-[#C22973]" size={20} /> Criar Evento Online
               </h1>
-            </div>
           </div>
         </div>
 
         <button 
-          onClick={handleSalvar} 
+          onClick={handleSalvar}
           disabled={isLoading}
-          className="bg-slate-900 text-white px-8 md:px-12 py-4 rounded-2xl font-black uppercase text-[11px] tracking-[0.2em] hover:bg-black transition-all shadow-2xl disabled:opacity-50 flex items-center gap-3 group"
+          className="bg-slate-900 text-white px-8 py-4 rounded-2xl font-black uppercase text-[11px] tracking-[0.2em] hover:bg-black transition-all flex items-center gap-3 shadow-xl disabled:opacity-50"
         >
-          {isLoading ? <Loader2 className="animate-spin" size={16} /> : (
-            <span className="relative z-10 flex items-center gap-2">Próximo Passo <Sparkles size={14} className="text-pink-400" /></span>
+          {isLoading ? (
+            <Loader2 className="animate-spin" size={16} />
+          ) : (
+            <>
+              <span>Próximo Passo</span>
+              <Sparkles size={14} className="text-pink-400" />
+            </>
           )}
         </button>
       </header>
@@ -180,86 +206,132 @@ export default function NovoEventoOnline() {
       <main className="max-w-[1300px] mx-auto p-6 md:p-12">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
           
+          {/* Coluna Principal */}
           <div className="lg:col-span-8 space-y-12">
+            
             <section className="bg-white rounded-[2.5rem] p-10 shadow-sm border border-slate-100 space-y-8">
               <div className="space-y-3">
-                <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider ml-1">Título da Experiência</label>
-                <input name="nome" value={formData.nome} onChange={handleChange} placeholder="Nome do evento..." className="w-full bg-slate-50 border-2 border-transparent p-5 rounded-3xl outline-none font-bold text-lg text-slate-800 focus:border-pink-100 focus:bg-white transition-all shadow-inner" />
+                <label className="text-[11px] font-black text-slate-500 uppercase tracking-[0.1em] ml-2">Título da Experiência</label>
+                <input 
+                  name="nome"
+                  value={formData.nome}
+                  onChange={handleChange}
+                  placeholder="Ex: Masterclass de Design ou Live Show"
+                  className="w-full bg-slate-50 border-2 border-transparent p-5 rounded-3xl outline-none font-bold text-lg focus:border-pink-100 focus:bg-white transition-all shadow-inner"
+                />
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-3">
-                  <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider ml-1">Vibe / Categoria</label>
-                  <select name="categoria" value={formData.categoria} onChange={handleChange} className="w-full bg-slate-50 border-2 border-transparent p-5 rounded-3xl outline-none font-bold text-slate-600 focus:border-pink-100 focus:bg-white transition-all shadow-inner cursor-pointer">
-                      <option value="">Selecione...</option>
-                      <option value="Arte & Cultura">🎨 Arte & Cultura</option>
-                      <option value="Entretenimento">🍿 Entretenimento</option>
-                      <option value="Negócios">💼 Negócios</option>
-                      <option value="Educação & Desenvolvimento">🧠 Educação & Desenvolvimento</option>
-                      <option value="Esportes & Bem-estar">🏃‍♂️ Esportes & Bem-estar</option>
-                      <option value="Experiências & Lifestyle">✨ Experiências & Lifestyle</option>
-                      <option value="Família & Comunidade">👨‍👩‍👧‍👦 Família & Comunidade</option>
+                  <label className="text-[11px] font-black text-slate-500 uppercase tracking-[0.1em] ml-2">Vibe / Categoria</label>
+                  <select 
+                    name="categoria"
+                    value={formData.categoria}
+                    onChange={handleChange}
+                    className="w-full bg-slate-50 border-2 border-transparent p-5 rounded-3xl outline-none font-bold text-slate-600 focus:border-pink-100 focus:bg-white transition-all shadow-inner"
+                  >
+                    <option value="">Selecione...</option>
+                    <option value="Arte & Cultura">🎨 Arte & Cultura</option>
+                    <option value="Experiências & Lifestyle">✨ Experiências & Lifestyle</option>
+                    <option value="Tecnologia & Inovação">🚀 Tecnologia & Inovação</option>
+                    <option value="Música & Performance">🎸 Música & Performance</option>
+                    <option value="Educação & Workshops">📚 Educação & Workshops</option>
+                    <option value="Família & Comunidade">👨‍👩‍👧 Família & Comunidade</option>
                   </select>
                 </div>
+
                 <div className="space-y-3">
-                  <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider ml-1">Limitar Audiência</label>
-                  <div className="relative group">
-                    <Users size={20} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#C22973]" />
-                    <input name="capacidade" value={formData.capacidade} onChange={handleChange} type="number" placeholder="Ilimitado" className="w-full bg-slate-50 border-2 border-transparent p-5 pl-14 rounded-3xl outline-none font-bold text-slate-800 focus:border-pink-100 focus:bg-white transition-all shadow-inner" />
+                  <label className="text-[11px] font-black text-slate-500 uppercase tracking-[0.1em] ml-2">Capacidade Máxima</label>
+                  <div className="relative">
+                    <input 
+                      name="capacidade"
+                      type="number"
+                      value={formData.capacidade}
+                      onChange={handleChange}
+                      placeholder="Ilimitado"
+                      className="w-full bg-slate-50 border-2 border-transparent p-5 rounded-3xl outline-none font-bold focus:border-pink-100 focus:bg-white transition-all shadow-inner"
+                    />
+                    <Users className="absolute right-6 top-5 text-slate-300" size={20} />
                   </div>
                 </div>
               </div>
 
               <div className="space-y-3">
-                <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider ml-1">URL da Transmissão</label>
-                <input name="link_reuniao" value={formData.link_reuniao} onChange={handleChange} placeholder="https://meet.google.com/..." className="w-full bg-slate-900 text-pink-400 p-5 rounded-2xl outline-none font-mono text-sm border-2 border-slate-800 focus:border-[#C22973] transition-all" />
-              </div>
-
-              <div className="space-y-3">
-                <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider ml-1">Release / Descrição</label>
-                <textarea name="descricao" value={formData.descricao} onChange={handleChange} rows={5} placeholder="Descrição..." className="w-full bg-slate-50 border-2 border-transparent p-6 rounded-[2rem] outline-none focus:border-pink-100 focus:bg-white transition-all shadow-inner resize-none font-medium text-slate-600" />
+                <label className="text-[11px] font-black text-slate-500 uppercase tracking-[0.1em] ml-2">Link da Transmissão (Zoom, Google Meet, YouTube...)</label>
+                <input 
+                  name="link_reuniao"
+                  value={formData.link_reuniao}
+                  onChange={handleChange}
+                  placeholder="https://..."
+                  className="w-full bg-slate-900 text-pink-400 p-5 rounded-2xl outline-none font-mono text-sm border-2 border-slate-800 focus:border-[#C22973] transition-all"
+                />
               </div>
             </section>
+
+            <section className="bg-white rounded-[2.5rem] p-10 shadow-sm border border-slate-100 space-y-8 italic">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-3">
+                        <label className="text-[11px] font-black text-slate-500 uppercase tracking-[0.1em] ml-2">Data de Início</label>
+                        <input name="data_inicio" type="date" value={formData.data_inicio} onChange={handleChange} className="w-full bg-slate-50 p-5 rounded-3xl font-bold shadow-inner" />
+                    </div>
+                    <div className="space-y-3">
+                        <label className="text-[11px] font-black text-slate-500 uppercase tracking-[0.1em] ml-2">Hora de Início</label>
+                        <input name="hora_inicio" type="time" value={formData.hora_inicio} onChange={handleChange} className="w-full bg-slate-50 p-5 rounded-3xl font-bold shadow-inner" />
+                    </div>
+                </div>
+            </section>
+
           </div>
 
-          <div className="lg:col-span-4 space-y-10">
-            <div className="bg-white rounded-[3rem] p-8 shadow-sm border border-slate-100">
-              <h4 className="text-[10px] text-slate-400 font-black uppercase mb-6 tracking-[0.2em] text-center italic">Key Visual / Capa</h4>
+          {/* Coluna Lateral / Preview da Capa */}
+          <div className="lg:col-span-4">
+            <div className="bg-white rounded-[3rem] p-8 shadow-sm border border-slate-100 sticky top-32">
+              <h4 className="text-[10px] text-slate-400 font-black uppercase mb-6 text-center italic tracking-widest">Capa do Evento</h4>
+              
               <div className="relative">
                 {previewImage ? (
-                  <div className="relative w-full aspect-[4/5] rounded-[2.5rem] overflow-hidden group shadow-2xl">
-                    <img src={previewImage} alt="Preview" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
-                    <button onClick={() => {setPreviewImage(null);}} className="absolute top-6 right-6 bg-white w-12 h-12 rounded-2xl text-[#C22973] shadow-lg flex items-center justify-center hover:scale-110 transition-all active:scale-90">
-                      <X size={20} />
-                    </button>
+                  <div className="relative w-full aspect-[4/5] rounded-[2.5rem] overflow-hidden shadow-2xl group">
+                    <img 
+                      src={previewImage} 
+                      alt="Preview" 
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <button 
+                            onClick={() => setPreviewImage(null)}
+                            className="bg-white w-12 h-12 rounded-2xl text-[#C22973] flex items-center justify-center shadow-xl hover:scale-110 transition-transform"
+                        >
+                            <X size={20} />
+                        </button>
+                    </div>
                   </div>
                 ) : (
                   <label className="aspect-[4/5] border-2 border-dashed border-slate-100 rounded-[2.5rem] bg-slate-50/50 cursor-pointer flex flex-col items-center justify-center hover:bg-white hover:border-pink-200 transition-all group">
-                    <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
-                    <div className="w-20 h-20 bg-white rounded-[2rem] flex items-center justify-center mb-6 shadow-sm border border-slate-50 group-hover:scale-110 transition-transform">
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={handleImageChange}
+                      className="hidden" 
+                    />
+                    <div className="w-16 h-16 bg-white rounded-3xl flex items-center justify-center shadow-sm mb-4 group-hover:scale-110 transition-transform">
                         <ImageIcon size={32} className="text-[#C22973]" />
                     </div>
-                    <p className="text-[11px] font-black text-slate-800 uppercase tracking-widest">Upload Capa</p>
+                    <p className="text-[11px] font-black text-slate-800 uppercase tracking-tighter">Upload Thumbnail</p>
+                    <p className="text-[9px] text-slate-400 mt-2">Recomendado: 1080x1350px</p>
                   </label>
                 )}
               </div>
-            </div>
 
-            <div className="bg-white rounded-[3rem] p-8 shadow-sm border border-slate-100">
-              <h4 className="text-[10px] text-slate-400 font-black uppercase mb-6 tracking-[0.2em] italic flex items-center gap-2">
-                <Calendar size={14} className="text-[#C22973]" /> Cronograma
-              </h4>
-              <div className="space-y-6">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-bold text-slate-400 uppercase ml-1">Data</label>
-                    <input name="data_inicio" value={formData.data_inicio} onChange={handleChange} type="date" className="w-full bg-slate-50 border-none p-4 rounded-2xl text-xs font-bold text-slate-700 focus:ring-1 ring-pink-100 outline-none" />
+              <div className="mt-8 p-6 bg-slate-50 rounded-[2rem] border border-slate-100/50">
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-pink-500 shadow-sm shrink-0">
+                        <Calendar size={18} />
+                    </div>
+                    <div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Visibilidade</p>
+                        <p className="text-xs font-bold text-slate-700">Público (Listado no Marketplace)</p>
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-bold text-slate-400 uppercase ml-1">Hora</label>
-                    <input name="hora_inicio" value={formData.hora_inicio} onChange={handleChange} type="time" className="w-full bg-slate-50 border-none p-4 rounded-2xl text-xs font-bold text-slate-700 focus:ring-1 ring-pink-100 outline-none" />
-                  </div>
-                </div>
               </div>
             </div>
           </div>
