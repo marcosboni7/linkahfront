@@ -47,9 +47,20 @@ export default function NovoEventoOnline() {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // DEBUG: LOG DE SELEÇÃO DE ARQUIVO
+      console.log("📂 [DEBUG] Arquivo selecionado:", {
+        name: file.name,
+        size: (file.size / 1024).toFixed(2) + " KB",
+        type: file.type
+      });
+
       const reader = new FileReader();
       reader.onloadend = () => {
-        setPreviewImage(reader.result as string);
+        const base64 = reader.result as string;
+        // DEBUG: LOG DE CONVERSÃO BASE64
+        console.log("🖼️ [DEBUG] Imagem convertida para Base64. Tamanho da string:", base64.length);
+        console.log("🖼️ [DEBUG] Início da string Base64:", base64.substring(0, 50));
+        setPreviewImage(base64);
       };
       reader.readAsDataURL(file);
     }
@@ -60,22 +71,23 @@ export default function NovoEventoOnline() {
     const userRaw = localStorage.getItem('@Linkah:User');
     let emailProdutor = '';
 
+    console.log("🔑 [DEBUG] Token presente:", !!token);
+    console.log("👤 [DEBUG] UserRaw presente:", !!userRaw);
+
     try {
       if (userRaw) {
         const userObj = JSON.parse(userRaw);
-        emailProdutor = userObj.email || 
-                        userObj.user?.email || 
-                        userObj.data?.email || 
-                        userObj.attributes?.email || '';
+        console.log("👤 [DEBUG] Objeto de usuário decodificado:", userObj);
+        emailProdutor = userObj.email || userObj.user?.email || userObj.data?.email || userObj.attributes?.email || '';
       }
       if (!emailProdutor) {
         emailProdutor = localStorage.getItem('userEmail') || '';
+        console.log("📧 [DEBUG] Email buscado no fallback localstorage:", emailProdutor);
       }
     } catch (e) {
-      console.error("Erro ao processar dados do usuário:", e);
+      console.error("❌ [DEBUG] Erro ao processar dados do usuário:", e);
     }
 
-    // Validações básicas
     if (!formData.nome.trim()) {
       alert("O nome do evento é obrigatório.");
       return;
@@ -89,27 +101,28 @@ export default function NovoEventoOnline() {
     setIsLoading(true);
 
     try {
-      // Função para evitar erro de sintaxe do Postgres (converte "" em null)
       const cleanValue = (val: string) => (val && val.trim() !== '' ? val : null);
 
       const payload = {
         produtor_email: emailProdutor.trim(),
         nome: formData.nome.trim(),
         categoria: formData.categoria || 'Geral',
-        link_reuniao: formData.link_reuniao || null,
+        link_reuniao: formData.link_reuniao,
         descricao: formData.descricao || '',
-        
-        // Datas e Horas limpas para o banco de dados
         data_inicio: cleanValue(formData.data_inicio),
         hora_inicio: cleanValue(formData.hora_inicio),
         data_termino: cleanValue(formData.data_termino),
         hora_termino: cleanValue(formData.hora_termino),
-        
         status: 'Ativo',
         tipo: 'online',
-        capacidade: formData.capacidade ? parseInt(formData.capacidade) : null,
-        imagem_capa: previewImage 
+        imagem_capa: previewImage // A string Base64
       };
+
+      // DEBUG: LOG DO PAYLOAD COMPLETO ANTES DO ENVIO
+      console.log("🚀 [DEBUG] Enviando Payload Final:", {
+        ...payload,
+        imagem_capa: payload.imagem_capa ? `(String de ${payload.imagem_capa.length} caracteres)` : "NULA/VAZIA"
+      });
 
       const response = await fetch(`${API_URL}/api/eventos/novo-online`, {
         method: 'POST',
@@ -121,16 +134,16 @@ export default function NovoEventoOnline() {
       });
 
       const result = await response.json();
+      console.log("📥 [DEBUG] Resposta do Servidor:", result);
 
       if (response.ok) {
         router.push(`/dashboard/eventos/novo/ingressos/${result.id}`);
       } else {
-        // Exibe o erro detalhado do banco se houver
-        alert(`Erro: ${result.detalhe || result.error || "Falha ao registrar evento"}`);
+        alert(`Erro: ${result.error || result.detalhe || "Falha ao registrar evento"}`);
       }
     } catch (error) {
-      console.error("Erro de Rede:", error);
-      alert("Erro ao conectar com o servidor.");
+      console.error("🚨 [DEBUG] Erro de Rede fatal:", error);
+      alert("Erro ao conectar com o servidor da AWS.");
     } finally {
       setIsLoading(false);
     }
