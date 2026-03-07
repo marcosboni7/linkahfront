@@ -49,7 +49,6 @@ export default function NovoEventoOnline() {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        // Converte a imagem para Base64 para o backend
         setPreviewImage(reader.result as string);
       };
       reader.readAsDataURL(file);
@@ -61,7 +60,6 @@ export default function NovoEventoOnline() {
     const userRaw = localStorage.getItem('@Linkah:User');
     let emailProdutor = '';
 
-    // 1. Extração robusta do e-mail (Tenta várias camadas do objeto)
     try {
       if (userRaw) {
         const userObj = JSON.parse(userRaw);
@@ -77,7 +75,7 @@ export default function NovoEventoOnline() {
       console.error("Erro ao processar dados do usuário:", e);
     }
 
-    // 2. Validação local antes de disparar para a AWS
+    // Validações básicas
     if (!formData.nome.trim()) {
       alert("O nome do evento é obrigatório.");
       return;
@@ -91,23 +89,28 @@ export default function NovoEventoOnline() {
     setIsLoading(true);
 
     try {
-      // 3. Montagem do Payload exatamente como o seu backend destrutura no Node
+      // Função para evitar erro de sintaxe do Postgres (converte "" em null)
+      const cleanValue = (val: string) => (val && val.trim() !== '' ? val : null);
+
       const payload = {
         produtor_email: emailProdutor.trim(),
         nome: formData.nome.trim(),
         categoria: formData.categoria || 'Geral',
-        link_reuniao: formData.link_reuniao,
+        link_reuniao: formData.link_reuniao || null,
         descricao: formData.descricao || '',
-        data_inicio: formData.data_inicio,
-        hora_inicio: formData.hora_inicio,
-        data_termino: formData.data_termino || null,
-        hora_termino: formData.hora_termino || null,
+        
+        // Datas e Horas limpas para o banco de dados
+        data_inicio: cleanValue(formData.data_inicio),
+        hora_inicio: cleanValue(formData.hora_inicio),
+        data_termino: cleanValue(formData.data_termino),
+        hora_termino: cleanValue(formData.hora_termino),
+        
         status: 'Ativo',
         tipo: 'online',
-        imagem_capa: previewImage // Envia a string Base64
+        capacidade: formData.capacidade ? parseInt(formData.capacidade) : null,
+        imagem_capa: previewImage 
       };
 
-      // 4. Chamada API usando JSON
       const response = await fetch(`${API_URL}/api/eventos/novo-online`, {
         method: 'POST',
         headers: { 
@@ -120,15 +123,14 @@ export default function NovoEventoOnline() {
       const result = await response.json();
 
       if (response.ok) {
-        // Sucesso: Redireciona para a criação de ingressos
         router.push(`/dashboard/eventos/novo/ingressos/${result.id}`);
       } else {
-        // Se cair aqui, o backend retornou 400 ou 500
-        alert(`Erro do Servidor: ${result.error || result.detalhe || "Falha ao registrar evento"}`);
+        // Exibe o erro detalhado do banco se houver
+        alert(`Erro: ${result.detalhe || result.error || "Falha ao registrar evento"}`);
       }
     } catch (error) {
       console.error("Erro de Rede:", error);
-      alert("Erro ao conectar com o servidor da AWS. Verifique sua conexão.");
+      alert("Erro ao conectar com o servidor.");
     } finally {
       setIsLoading(false);
     }
