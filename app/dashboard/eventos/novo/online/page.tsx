@@ -9,7 +9,6 @@ import {
   X, 
   Loader2, 
   Users, 
-  Info, 
   Link as LinkIcon, 
   Sparkles 
 } from 'lucide-react';
@@ -23,6 +22,7 @@ export default function NovoEventoOnline() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null); // ADICIONADO
   
   const [formData, setFormData] = useState({
     nome: '', 
@@ -49,6 +49,7 @@ export default function NovoEventoOnline() {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setSelectedFile(file); // GUARDA O ARQUIVO ORIGINAL
       const reader = new FileReader();
       reader.onloadend = () => setPreviewImage(reader.result as string);
       reader.readAsDataURL(file);
@@ -65,44 +66,44 @@ export default function NovoEventoOnline() {
         const userObj = JSON.parse(userRaw);
         emailProdutor = userObj.email || userObj.user?.email || userObj.data?.email;
       }
-      if (!emailProdutor) {
-        emailProdutor = localStorage.getItem('userEmail') || localStorage.getItem('email') || '';
-      }
+      if (!emailProdutor) emailProdutor = localStorage.getItem('userEmail') || '';
     } catch (e) {
       console.error("Erro ao ler e-mail:", e);
     }
 
-    if (!token) {
-      alert("Sessão expirada. Faça login novamente.");
-      router.push('/auth/login');
-      return;
-    }
-
-    if (!emailProdutor || !formData.nome.trim()) {
-      alert("E-mail do produtor e nome do evento são obrigatórios.");
+    if (!token || !emailProdutor) {
+      alert("Sessão expirada.");
       return;
     }
 
     setIsLoading(true);
 
     try {
-      // Enviando como JSON para garantir que produtor_email e nome cheguem sem erro 400
-      const payload = {
-        ...formData,
-        produtor_email: emailProdutor.trim(),
-        cidade: 'Online',
-        estado: 'ON',
-        capacidade: formData.capacidade ? Number(formData.capacidade) : 0,
-        imagem_capa: previewImage // Envia o Base64 que o banco de dados processa
-      };
+      // VOLTAMOS PARA FORMDATA (IGUAL AO PRESENCIAL)
+      const dataToSend = new FormData();
+      
+      // Adiciona todos os campos do formData
+      Object.entries(formData).forEach(([key, value]) => {
+        dataToSend.append(key, value);
+      });
+
+      // Adiciona campos extras obrigatórios
+      dataToSend.append('produtor_email', emailProdutor.trim());
+      dataToSend.append('cidade', 'Online');
+      dataToSend.append('estado', 'ON');
+
+      // ADICIONA O ARQUIVO SELECIONADO (A CHAVE DEVE SER 'imagem_capa')
+      if (selectedFile) {
+        dataToSend.append('imagem_capa', selectedFile);
+      }
 
       const response = await fetch(`${API_URL}/api/eventos/novo-online`, {
         method: 'POST',
         headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Authorization': `Bearer ${token}`
+          // IMPORTANTE: NÃO definir 'Content-Type' quando usar FormData
         },
-        body: JSON.stringify(payload),
+        body: dataToSend,
       });
 
       const result = await response.json();
@@ -110,7 +111,7 @@ export default function NovoEventoOnline() {
       if (response.ok) {
         router.push(`/dashboard/eventos/novo/ingressos/${result.id}`);
       } else {
-        alert(`Erro do Servidor: ${result.message || result.error || "Verifique os dados"}`);
+        alert(`Erro: ${result.message || "Erro ao salvar"}`);
       }
     } catch (error) {
       console.error("Erro de Rede:", error);
@@ -200,7 +201,7 @@ export default function NovoEventoOnline() {
                 {previewImage ? (
                   <div className="relative w-full aspect-[4/5] rounded-[2.5rem] overflow-hidden group shadow-2xl">
                     <img src={previewImage} alt="Preview" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
-                    <button onClick={() => setPreviewImage(null)} className="absolute top-6 right-6 bg-white w-12 h-12 rounded-2xl text-[#C22973] shadow-lg flex items-center justify-center hover:scale-110 transition-all active:scale-90">
+                    <button onClick={() => {setPreviewImage(null); setSelectedFile(null);}} className="absolute top-6 right-6 bg-white w-12 h-12 rounded-2xl text-[#C22973] shadow-lg flex items-center justify-center hover:scale-110 transition-all active:scale-90">
                       <X size={20} />
                     </button>
                   </div>
