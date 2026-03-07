@@ -14,14 +14,13 @@ import {
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/app/context/LanguageContext';
 
-const API_URL = 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
+const API_URL = 'https://zmn9wxud4y.us-east-1.awsapprunner.com';
 
 export default function NovoEventoOnline() {
   const { t }: any = useLanguage();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   
   const [formData, setFormData] = useState({
     nome: '', 
@@ -48,9 +47,11 @@ export default function NovoEventoOnline() {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setSelectedFile(file);
       const reader = new FileReader();
-      reader.onloadend = () => setPreviewImage(reader.result as string);
+      reader.onloadend = () => {
+        // O result será a string Base64 que o backend espera
+        setPreviewImage(reader.result as string);
+      };
       reader.readAsDataURL(file);
     }
   };
@@ -73,7 +74,7 @@ export default function NovoEventoOnline() {
       console.error("Erro ao ler e-mail:", e);
     }
 
-    // Validação de campos obrigatórios apontados pelo seu erro 400
+    // Validações obrigatórias para bater com o Backend
     if (!formData.nome.trim()) {
       alert("O nome do evento é obrigatório.");
       return;
@@ -87,35 +88,22 @@ export default function NovoEventoOnline() {
     setIsLoading(true);
 
     try {
-      const dataToSend = new FormData();
-      
-      // 1. Campos principais exigidos pelo seu backend
-      dataToSend.append('nome', formData.nome.trim());
-      dataToSend.append('produtor_email', emailProdutor.trim());
-      
-      // 2. Adiciona o restante dos campos do formulário
-      Object.entries(formData).forEach(([key, value]) => {
-        if (key !== 'nome') { // evita duplicar o nome já anexado acima
-           dataToSend.append(key, value);
-        }
-      });
-
-      // 3. Metadados geográficos para eventos online
-      dataToSend.append('cidade', 'Online');
-      dataToSend.append('estado', 'ON');
-
-      // 4. Arquivo de imagem
-      if (selectedFile) {
-        dataToSend.append('imagem_capa', selectedFile);
-      }
+      // Montagem do Payload em JSON (Modo Base64)
+      const payload = {
+        ...formData,
+        produtor_email: emailProdutor.trim(),
+        imagem_capa: previewImage, // String Base64 enviada aqui
+        cidade: 'Online', // Campos extras que o presencial pede mas o online fixa
+        estado: 'ON'
+      };
 
       const response = await fetch(`${API_URL}/api/eventos/novo-online`, {
         method: 'POST',
         headers: { 
-          'Authorization': `Bearer ${token}`
-          // Content-Type é definido automaticamente pelo navegador ao usar FormData
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json' // Crucial para o req.body do Node
         },
-        body: dataToSend,
+        body: JSON.stringify(payload),
       });
 
       const result = await response.json();
@@ -123,7 +111,7 @@ export default function NovoEventoOnline() {
       if (response.ok) {
         router.push(`/dashboard/eventos/novo/ingressos/${result.id}`);
       } else {
-        // Exibe a mensagem exata de erro vinda do seu servidor
+        // Exibe a mensagem de erro direto do backend (ex: "E-mail do produtor e nome...")
         alert(`Erro: ${result.error || result.message || "Erro ao salvar"}`);
       }
     } catch (error) {
@@ -214,7 +202,7 @@ export default function NovoEventoOnline() {
                 {previewImage ? (
                   <div className="relative w-full aspect-[4/5] rounded-[2.5rem] overflow-hidden group shadow-2xl">
                     <img src={previewImage} alt="Preview" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
-                    <button onClick={() => {setPreviewImage(null); setSelectedFile(null);}} className="absolute top-6 right-6 bg-white w-12 h-12 rounded-2xl text-[#C22973] shadow-lg flex items-center justify-center hover:scale-110 transition-all active:scale-90">
+                    <button onClick={() => {setPreviewImage(null);}} className="absolute top-6 right-6 bg-white w-12 h-12 rounded-2xl text-[#C22973] shadow-lg flex items-center justify-center hover:scale-110 transition-all active:scale-90">
                       <X size={20} />
                     </button>
                   </div>
