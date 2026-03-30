@@ -16,7 +16,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
 
-  // Limpa o erro ao começar a digitar novamente
+  // Limpa o erro ao digitar
   useEffect(() => {
     if (error) setError('');
   }, [email, senha]);
@@ -50,27 +50,18 @@ export default function LoginPage() {
         throw new Error(data.message || 'E-mail ou senha incorretos');
       }
 
-      // 1. Salva o Token e os dados do Usuário
+      // 1. Salva o Token e os dados do Usuário no navegador
       if (data.token) {
         localStorage.setItem('@Linkah:Token', data.token);
         localStorage.setItem('@Linkah:User', JSON.stringify(data.user));
       }
 
-      console.log("✅ Login OK! Forçando redirecionamento para o domínio real...");
+      console.log("✅ Login OK! Redirecionando para a Página Principal...");
 
-      // 2. REDIRECIONAMENTO FORÇADO
-      // Usamos window.location.href para garantir que ele saia da tela de login
-      // e carregue a página do dashboard do zero no seu domínio linkah.eu
-      
-      const role = data.user.role;
-      
-      if (role === 'admin' || role === 'produtor') {
-        // Força o navegador a ir para https://linkah.eu/dashboard
-        window.location.href = '/dashboard';
-      } else {
-        // Vai para a home com o parâmetro de usuário antigo
-        window.location.href = '/?old=true';
-      }
+      // 2. REDIRECIONAMENTO PARA A PÁGINA PRINCIPAL
+      // Forçamos a ida para a raiz '/' para garantir que ele saia do Login
+      // e carregue a Home já reconhecendo que o usuário está logado.
+      window.location.href = '/';
 
     } catch (err: any) {
       console.error("❌ Erro no Login:", err.message);
@@ -89,7 +80,7 @@ export default function LoginPage() {
         <div className="absolute bottom-[-10%] left-[-10%] w-[300px] h-[300px] bg-white opacity-5 blur-[100px] rounded-full" />
         
         <div className="relative z-10 p-12 text-center max-w-lg">
-          <Link href="/?old=true" className="text-white text-3xl font-bold tracking-tighter mb-12 block group">
+          <Link href="/" className="text-white text-3xl font-bold tracking-tighter mb-12 block group">
             LINKAH<span className="text-[#ff4d4d] group-hover:animate-pulse">.</span>
           </Link>
           
@@ -116,7 +107,7 @@ export default function LoginPage() {
       {/* LADO DIREITO: FORMULÁRIO */}
       <div className="flex-1 flex items-center justify-center p-8 md:p-16 bg-[#FCFBFA]">
         <div className="w-full max-w-sm">
-          <Link href="/?old=true" className="inline-flex items-center gap-2 text-slate-400 hover:text-slate-900 font-bold text-xs tracking-tight mb-12 transition-all group">
+          <Link href="/" className="inline-flex items-center gap-2 text-slate-400 hover:text-slate-900 font-bold text-xs tracking-tight mb-12 transition-all group">
             <ChevronLeft size={16} className="group-hover:-translate-x-1 transition-transform" /> Voltar para o início
           </Link>
 
