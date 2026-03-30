@@ -16,7 +16,6 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
 
-  // Limpa o erro ao digitar
   useEffect(() => {
     if (error) setError('');
   }, [email, senha]);
@@ -54,14 +53,18 @@ export default function LoginPage() {
       if (data.token) {
         localStorage.setItem('@Linkah:Token', data.token);
         localStorage.setItem('@Linkah:User', JSON.stringify(data.user));
+        
+        // --- ADICIONADO: ALERTA DE SUCESSO ---
+        alert('Logado com sucesso!');
       }
 
-      console.log("✅ Login OK! Redirecionando para a Página Principal...");
+      console.log("✅ Login OK! Redirecionando em 500ms...");
 
-      // 2. REDIRECIONAMENTO PARA A PÁGINA PRINCIPAL
-      // Forçamos a ida para a raiz '/' para garantir que ele saia do Login
-      // e carregue a Home já reconhecendo que o usuário está logado.
-      window.location.href = '/';
+      // 2. REDIRECIONAMENTO COM PEQUENO DELAY
+      // O timeout garante que o alert seja visto e os dados persistidos
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 500);
 
     } catch (err: any) {
       console.error("❌ Erro no Login:", err.message);
@@ -73,7 +76,6 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-[#FCFBFA] flex flex-col md:flex-row font-sans antialiased">
-      
       {/* LADO ESQUERDO: VISUAL PREMIUM */}
       <div className="hidden lg:flex lg:w-1/2 bg-slate-950 relative items-center justify-center overflow-hidden">
         <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-[#ff4d4d] opacity-10 blur-[120px] rounded-full" />
