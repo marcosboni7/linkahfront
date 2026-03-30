@@ -6,6 +6,12 @@ import { Mail, Lock, ChevronLeft, ArrowRight, Loader2, Sparkles } from 'lucide-r
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api-linkah.onrender.com';
 
+type Usuario = {
+  nome: string;
+  email?: string;
+  role?: string;
+};
+
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -24,27 +30,47 @@ export default function LoginPage() {
 
     try {
       const url = `${API_URL}/api/auth/login`;
-      console.log('🚀 Tentando login em:', url);
+
+      console.log('='.repeat(70));
+      console.log('🚀 TENTANDO LOGIN EM:', url);
+      console.log('📨 PAYLOAD:', { email, senha: '********' });
+      console.log('🌍 ORIGIN ATUAL:', window.location.origin);
 
       const response = await fetch(url, {
         method: 'POST',
+        mode: 'cors',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json',
         },
-        credentials: 'include',
         body: JSON.stringify({ email, senha }),
       });
 
-      const data = await response.json();
-      console.log('📦 Resposta da API:', data);
+      console.log('📡 STATUS:', response.status);
+      console.log('📡 OK:', response.ok);
+      console.log('📡 TYPE:', response.type);
+      console.log('📡 CONTENT-TYPE:', response.headers.get('content-type'));
+
+      const rawText = await response.text();
+      console.log('📄 RESPOSTA BRUTA:', rawText);
+
+      let data: any = {};
+      try {
+        data = rawText ? JSON.parse(rawText) : {};
+      } catch (parseError) {
+        console.error('❌ Erro ao parsear JSON:', parseError);
+        throw new Error('A API respondeu, mas não retornou um JSON válido.');
+      }
+
+      console.log('📦 RESPOSTA DA API:', data);
 
       if (!response.ok) {
         throw new Error(
           data?.message ||
             data?.mensagem ||
             data?.error ||
-            'E-mail ou senha incorretos'
+            `Erro HTTP ${response.status}`
         );
       }
 
@@ -56,18 +82,20 @@ export default function LoginPage() {
         data?.data?.token ||
         null;
 
-      const usuarioParaSalvar =
+      const usuarioParaSalvar: Usuario =
         data?.user ||
         data?.usuario ||
         data?.data?.user ||
-        data?.data?.usuario ||
-        {
+        data?.data?.usuario || {
           nome: email.split('@')[0],
           email,
           role: 'membro',
         };
 
-      // Se existir token, salva.
+      if (!usuarioParaSalvar || (!usuarioParaSalvar.nome && !usuarioParaSalvar.email)) {
+        throw new Error('Login respondeu sem dados válidos do usuário.');
+      }
+
       if (token) {
         localStorage.setItem('@Linkah:Token', token);
         console.log('🔑 Token salvo com sucesso');
@@ -75,24 +103,39 @@ export default function LoginPage() {
         console.log('ℹ️ Login sem token. Prosseguindo com usuário/sessão.');
       }
 
-      // Se existir user, salva e considera login válido
-      if (usuarioParaSalvar) {
-        localStorage.setItem('@Linkah:User', JSON.stringify(usuarioParaSalvar));
-        console.log('✅ Usuário salvo no localStorage:', usuarioParaSalvar);
-      } else {
-        throw new Error('Login respondeu sem dados do usuário.');
+      localStorage.setItem('@Linkah:User', JSON.stringify(usuarioParaSalvar));
+
+      if (usuarioParaSalvar.email) {
+        localStorage.setItem('userEmail', usuarioParaSalvar.email);
       }
+
+      localStorage.setItem('perfil_completo', JSON.stringify(usuarioParaSalvar));
+
+      console.log('✅ Usuário salvo em @Linkah:User:', localStorage.getItem('@Linkah:User'));
+      console.log('✅ Usuário salvo em perfil_completo:', localStorage.getItem('perfil_completo'));
+      console.log('✅ Email salvo em userEmail:', localStorage.getItem('userEmail'));
+      console.log('✅ Token salvo em @Linkah:Token:', localStorage.getItem('@Linkah:Token'));
+      console.log('🧪 CHAVES NO LOCALSTORAGE:', Object.keys(localStorage));
 
       alert('Logado com sucesso!');
 
       setTimeout(() => {
+        console.log('➡️ Redirecionando para /');
         window.location.href = '/';
-      }, 300);
+      }, 600);
     } catch (err: any) {
-      console.error('❌ Erro no Login:', err.message);
-      setError(err.message || 'Erro ao conectar com o servidor');
+      console.error('❌ ERRO NO LOGIN COMPLETO:', err);
+
+      const mensagem =
+        err?.message === 'Failed to fetch'
+          ? 'Não foi possível conectar com a API. Verifique se o backend está online, se o CORS está liberado e se o Render acordou.'
+          : err?.message || 'Erro ao conectar com o servidor';
+
+      setError(mensagem);
     } finally {
       setLoading(false);
+      console.log('🏁 FIM DO LOGIN');
+      console.log('='.repeat(70));
     }
   }
 
@@ -185,6 +228,7 @@ export default function LoginPage() {
                   Esqueceu?
                 </button>
               </div>
+
               <div className="relative group">
                 <Lock
                   className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#ff4d4d] transition-colors"
