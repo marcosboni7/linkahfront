@@ -28,13 +28,16 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
 
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20000);
+
     try {
       const url = `${API_URL}/api/auth/login`;
 
       console.log('='.repeat(70));
-      console.log('🚀 TENTANDO LOGIN EM:', url);
-      console.log('📨 PAYLOAD:', { email, senha: '********' });
-      console.log('🌍 ORIGIN ATUAL:', window.location.origin);
+      console.log('🚀 Tentando login em:', url);
+      console.log('🌍 Origin atual:', window.location.origin);
+      console.log('📨 Payload:', { email, senha: '********' });
 
       const response = await fetch(url, {
         method: 'POST',
@@ -45,25 +48,26 @@ export default function LoginPage() {
           Accept: 'application/json',
         },
         body: JSON.stringify({ email, senha }),
+        signal: controller.signal,
       });
 
-      console.log('📡 STATUS:', response.status);
+      console.log('📡 Status:', response.status);
       console.log('📡 OK:', response.ok);
-      console.log('📡 TYPE:', response.type);
-      console.log('📡 CONTENT-TYPE:', response.headers.get('content-type'));
+      console.log('📡 Type:', response.type);
+      console.log('📡 Content-Type:', response.headers.get('content-type'));
 
       const rawText = await response.text();
-      console.log('📄 RESPOSTA BRUTA:', rawText);
+      console.log('📄 Resposta bruta:', rawText);
 
       let data: any = {};
       try {
         data = rawText ? JSON.parse(rawText) : {};
       } catch (parseError) {
         console.error('❌ Erro ao parsear JSON:', parseError);
-        throw new Error('A API respondeu, mas não retornou um JSON válido.');
+        throw new Error('A API respondeu, mas não retornou JSON válido.');
       }
 
-      console.log('📦 RESPOSTA DA API:', data);
+      console.log('📦 Resposta da API:', data);
 
       if (!response.ok) {
         throw new Error(
@@ -98,9 +102,9 @@ export default function LoginPage() {
 
       if (token) {
         localStorage.setItem('@Linkah:Token', token);
-        console.log('🔑 Token salvo com sucesso');
+        console.log('🔑 Token salvo');
       } else {
-        console.log('ℹ️ Login sem token. Prosseguindo com usuário/sessão.');
+        console.log('ℹ️ Login sem token. Seguindo com user/cookie.');
       }
 
       localStorage.setItem('@Linkah:User', JSON.stringify(usuarioParaSalvar));
@@ -111,30 +115,30 @@ export default function LoginPage() {
 
       localStorage.setItem('perfil_completo', JSON.stringify(usuarioParaSalvar));
 
-      console.log('✅ Usuário salvo em @Linkah:User:', localStorage.getItem('@Linkah:User'));
-      console.log('✅ Usuário salvo em perfil_completo:', localStorage.getItem('perfil_completo'));
-      console.log('✅ Email salvo em userEmail:', localStorage.getItem('userEmail'));
-      console.log('✅ Token salvo em @Linkah:Token:', localStorage.getItem('@Linkah:Token'));
-      console.log('🧪 CHAVES NO LOCALSTORAGE:', Object.keys(localStorage));
+      console.log('✅ @Linkah:User:', localStorage.getItem('@Linkah:User'));
+      console.log('✅ userEmail:', localStorage.getItem('userEmail'));
+      console.log('✅ perfil_completo:', localStorage.getItem('perfil_completo'));
+      console.log('✅ @Linkah:Token:', localStorage.getItem('@Linkah:Token'));
 
       alert('Logado com sucesso!');
 
       setTimeout(() => {
-        console.log('➡️ Redirecionando para /');
         window.location.href = '/';
-      }, 600);
+      }, 500);
     } catch (err: any) {
-      console.error('❌ ERRO NO LOGIN COMPLETO:', err);
+      console.error('❌ Erro no Login:', err);
 
-      const mensagem =
-        err?.message === 'Failed to fetch'
-          ? 'Não foi possível conectar com a API. Verifique se o backend está online, se o CORS está liberado e se o Render acordou.'
-          : err?.message || 'Erro ao conectar com o servidor';
-
-      setError(mensagem);
+      if (err?.name === 'AbortError') {
+        setError('A API demorou demais para responder. O backend pode estar dormindo ou fora do ar.');
+      } else if (err?.message === 'Failed to fetch') {
+        setError('Não foi possível conectar com a API. Normalmente isso é CORS, preflight, backend offline ou erro de certificado.');
+      } else {
+        setError(err?.message || 'Erro ao conectar com o servidor');
+      }
     } finally {
+      clearTimeout(timeout);
       setLoading(false);
-      console.log('🏁 FIM DO LOGIN');
+      console.log('🏁 Fim do login');
       console.log('='.repeat(70));
     }
   }
