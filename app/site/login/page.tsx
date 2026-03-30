@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Mail, Lock, ChevronLeft, ArrowRight, Loader2, Sparkles } from 'lucide-react';
 
-// --- CONFIGURAÇÃO DA API DA AWS ---
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'api-linkah.onrender.com';
+// --- CONFIGURAÇÃO DA API (Corrigida com HTTPS) ---
+const API_URL = 'https://api-linkah.onrender.com';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -22,32 +22,45 @@ export default function LoginPage() {
     setError('');
 
     try {
+      console.log(`🚀 Tentando conectar em: ${API_URL}/api/auth/login`);
+
       const response = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify({ email, senha }),
       });
 
-      const data = await response.json();
+      // Verifica se a resposta é JSON antes de parsear
+      const contentType = response.headers.get("content-type");
+      let data;
+      if (contentType && contentType.indexOf("application/json") !== -1) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        throw new Error("O servidor não retornou JSON. Verifique os logs do Render.");
+      }
 
       if (!response.ok) {
         throw new Error(data.message || 'E-mail ou senha incorretos');
       }
 
-      // Salvando credenciais de forma segura
+      // Salvando credenciais
       localStorage.setItem('@Linkah:Token', data.token);
       localStorage.setItem('@Linkah:User', JSON.stringify(data.user));
 
-      // Lógica de redirecionamento inteligente
-      // Admins vão para o dashboard, usuários comuns para a home com filtro
-      if (data.user.role === 'admin') {
+      // Redirecionamento
+      if (data.user.role === 'admin' || data.user.role === 'produtor') {
         router.push('/dashboard');
       } else {
         router.push('/?old=true');
       }
 
     } catch (err: any) {
-      setError(err.message);
+      console.error("❌ Erro Capturado:", err.message);
+      setError(err.message || 'Erro ao conectar com o servidor');
     } finally {
       setLoading(false);
     }
@@ -56,9 +69,8 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-[#FCFBFA] flex flex-col md:flex-row font-sans antialiased">
       
-      {/* LADO ESQUERDO: VISUAL PREMIUM (VISÍVEL EM DESKTOP) */}
+      {/* LADO ESQUERDO: VISUAL PREMIUM */}
       <div className="hidden lg:flex lg:w-1/2 bg-slate-950 relative items-center justify-center overflow-hidden">
-        {/* Efeitos de luz de fundo */}
         <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-[#ff4d4d] opacity-10 blur-[120px] rounded-full" />
         <div className="absolute bottom-[-10%] left-[-10%] w-[300px] h-[300px] bg-white opacity-5 blur-[100px] rounded-full" />
         
@@ -95,11 +107,11 @@ export default function LoginPage() {
           </Link>
 
           <div className="mb-10">
-            <h1 className="text-4xl font-black text-slate-950 tracking-tight mb-3 italic uppercase">Login</h1>
-            <p className="text-slate-500 font-medium">Bem-vindo de volta à Linkah.</p>
+            <h1 className="text-4xl font-black text-slate-950 tracking-tight mb-3 italic uppercase text-center md:text-left">Login</h1>
+            <p className="text-slate-500 font-medium text-center md:text-left">Bem-vindo de volta à Linkah.</p>
             
             {error && (
-              <div className="mt-6 bg-rose-50 text-rose-600 p-4 rounded-2xl text-sm font-semibold border border-rose-100 animate-in fade-in slide-in-from-top-2 flex items-center gap-2">
+              <div className="mt-6 bg-rose-50 text-rose-600 p-4 rounded-2xl text-sm font-semibold border border-rose-100 flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
                 {error}
               </div>

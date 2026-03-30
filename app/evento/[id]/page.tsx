@@ -23,7 +23,7 @@ import Link from 'next/link';
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
-  'api-linkah.onrender.com';
+  'https://api-linkah.onrender.com';
 
 export default function DetalhesEvento() {
   const { id } = useParams();

@@ -9,7 +9,7 @@ import {
 import Swal from 'sweetalert2';
 import { useLanguage } from '@/app/context/LanguageContext';
 
-const API_URL = 'api-linkah.onrender.com/api/usuarios';
+const API_URL = 'https://api-linkah.onrender.com/api/usuarios';
 
 export default function AdminUsuarios() {
   const { t } = useLanguage();
