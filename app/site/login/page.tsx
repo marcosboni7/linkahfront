@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Mail, Lock, ChevronLeft, ArrowRight, Loader2, Sparkles } from 'lucide-react';
 
-// --- CONFIGURAÇÃO DA API (Corrigida com HTTPS) ---
+// --- CONFIGURAÇÃO DA API ---
 const API_URL = 'https://api-linkah.onrender.com';
 
 export default function LoginPage() {
@@ -15,6 +15,11 @@ export default function LoginPage() {
   
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
+
+  // Limpa qualquer resquício de erro ao digitar
+  useEffect(() => {
+    if (error) setError('');
+  }, [email, senha]);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -33,27 +38,40 @@ export default function LoginPage() {
         body: JSON.stringify({ email, senha }),
       });
 
-      // Verifica se a resposta é JSON antes de parsear
       const contentType = response.headers.get("content-type");
       let data;
       if (contentType && contentType.indexOf("application/json") !== -1) {
         data = await response.json();
       } else {
-        const text = await response.text();
-        throw new Error("O servidor não retornou JSON. Verifique os logs do Render.");
+        throw new Error("O servidor retornou uma resposta inválida (não JSON).");
       }
 
       if (!response.ok) {
         throw new Error(data.message || 'E-mail ou senha incorretos');
       }
 
-      // Salvando credenciais
-      localStorage.setItem('@Linkah:Token', data.token);
-      localStorage.setItem('@Linkah:User', JSON.stringify(data.user));
+      // 1. Salvando credenciais com segurança
+      if (data.token) {
+        localStorage.setItem('@Linkah:Token', data.token);
+        localStorage.setItem('@Linkah:User', JSON.stringify(data.user));
+      }
 
-      // Redirecionamento
-      if (data.user.role === 'admin' || data.user.role === 'produtor') {
+      console.log("✅ Login realizado! Redirecionando...");
+
+      // 2. LÓGICA DE REDIRECIONAMENTO CORRIGIDA
+      // Usamos window.location.assign para forçar o navegador a mudar de página 
+      // e evitar que ele fique preso no domínio antigo/errado.
+      
+      const role = data.user.role;
+      
+      if (role === 'admin' || role === 'produtor') {
+        // Tenta o router do Next primeiro, se falhar em 1s, força via window
         router.push('/dashboard');
+        setTimeout(() => {
+            if (window.location.pathname !== '/dashboard') {
+                window.location.href = '/dashboard';
+            }
+        }, 1000);
       } else {
         router.push('/?old=true');
       }
@@ -111,7 +129,7 @@ export default function LoginPage() {
             <p className="text-slate-500 font-medium text-center md:text-left">Bem-vindo de volta à Linkah.</p>
             
             {error && (
-              <div className="mt-6 bg-rose-50 text-rose-600 p-4 rounded-2xl text-sm font-semibold border border-rose-100 flex items-center gap-2">
+              <div className="mt-6 bg-rose-50 text-rose-600 p-4 rounded-2xl text-sm font-semibold border border-rose-100 flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
                 {error}
               </div>
@@ -129,7 +147,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="exemplo@email.com"
-                  className="w-full bg-white border border-slate-100 rounded-[1.25rem] py-4 pl-14 pr-6 text-sm outline-none focus:ring-4 focus:ring-[#ff4d4d]/5 focus:border-[#ff4d4d] shadow-sm transition-all placeholder:text-slate-300 font-medium"
+                  className="w-full bg-white border border-slate-100 rounded-[1.25rem] py-4 pl-14 pr-6 text-sm outline-none focus:ring-4 focus:ring-[#ff4d4d]/5 focus:border-[#ff4d4d] shadow-sm transition-all placeholder:text-slate-300 font-medium text-slate-900"
                 />
               </div>
             </div>
@@ -147,7 +165,7 @@ export default function LoginPage() {
                   value={senha}
                   onChange={(e) => setSenha(e.target.value)}
                   placeholder="Sua senha"
-                  className="w-full bg-white border border-slate-100 rounded-[1.25rem] py-4 pl-14 pr-6 text-sm outline-none focus:ring-4 focus:ring-[#ff4d4d]/5 focus:border-[#ff4d4d] shadow-sm transition-all placeholder:text-slate-300 font-medium"
+                  className="w-full bg-white border border-slate-100 rounded-[1.25rem] py-4 pl-14 pr-6 text-sm outline-none focus:ring-4 focus:ring-[#ff4d4d]/5 focus:border-[#ff4d4d] shadow-sm transition-all placeholder:text-slate-300 font-medium text-slate-900"
                 />
               </div>
             </div>
