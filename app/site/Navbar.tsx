@@ -204,7 +204,7 @@ export function Navbar() {
               </div>
             ) : (
               <Link
-                href="/login"
+                href="/site/login"
                 className="bg-blue-600 text-white text-sm font-bold px-6 py-2 rounded-lg hover:bg-blue-700 transition-all active:scale-95 shadow-sm"
               >
                 {t.login || 'Entrar'}
