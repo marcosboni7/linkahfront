@@ -24,46 +24,27 @@ export default function LoginPage() {
 
     try {
       const url = `${API_URL}/api/auth/login`;
-
-      console.log('='.repeat(70));
-      console.log('🚀 INICIANDO LOGIN');
-      console.log('🌐 URL:', url);
-      console.log('📨 Payload:', { email, senha: '********' });
+      console.log('🚀 Tentando login em:', url);
 
       const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
+          Accept: 'application/json',
         },
-        credentials: 'include', // importante se o backend usa cookie/sessão
+        credentials: 'include',
         body: JSON.stringify({ email, senha }),
       });
 
-      console.log('📡 Status:', response.status);
-      console.log('📡 OK:', response.ok);
-      console.log('📡 Content-Type:', response.headers.get('content-type'));
-
-      const rawText = await response.text();
-      console.log('📄 RAW RESPONSE:', rawText);
-
-      let data: any = {};
-      try {
-        data = rawText ? JSON.parse(rawText) : {};
-      } catch (parseError) {
-        console.error('❌ Erro parseando JSON:', parseError);
-        throw new Error('A API não retornou um JSON válido.');
-      }
-
-      console.log('📦 JSON PARSEADO:', data);
-      console.log('📦 JSON STRINGIFY:', JSON.stringify(data, null, 2));
+      const data = await response.json();
+      console.log('📦 Resposta da API:', data);
 
       if (!response.ok) {
         throw new Error(
           data?.message ||
-          data?.mensagem ||
-          data?.error ||
-          'E-mail ou senha incorretos'
+            data?.mensagem ||
+            data?.error ||
+            'E-mail ou senha incorretos'
         );
       }
 
@@ -73,8 +54,6 @@ export default function LoginPage() {
         data?.access_token ||
         data?.jwt ||
         data?.data?.token ||
-        data?.data?.accessToken ||
-        data?.usuario?.token ||
         null;
 
       const usuarioParaSalvar =
@@ -82,43 +61,38 @@ export default function LoginPage() {
         data?.usuario ||
         data?.data?.user ||
         data?.data?.usuario ||
-        (data?.nome || data?.email
-          ? {
-              nome: data?.nome || email.split('@')[0],
-              email: data?.email || email,
-              role: data?.role || 'membro',
-            }
-          : {
-              nome: email.split('@')[0],
-              email,
-              role: 'membro',
-            });
+        {
+          nome: email.split('@')[0],
+          email,
+          role: 'membro',
+        };
 
-      console.log('🔑 Token encontrado:', token);
-      console.log('👤 Usuário para salvar:', usuarioParaSalvar);
-
-      // Se veio token, salva token
+      // Se existir token, salva.
       if (token) {
         localStorage.setItem('@Linkah:Token', token);
+        console.log('🔑 Token salvo com sucesso');
       } else {
-        console.warn('⚠️ Nenhum token encontrado. Pode ser login via cookie/sessão.');
+        console.log('ℹ️ Login sem token. Prosseguindo com usuário/sessão.');
       }
 
-      // Mesmo sem token, se o login foi OK, salva o usuário
-      localStorage.setItem('@Linkah:User', JSON.stringify(usuarioParaSalvar));
-
-      console.log('💾 Token salvo:', localStorage.getItem('@Linkah:Token'));
-      console.log('💾 User salvo:', localStorage.getItem('@Linkah:User'));
+      // Se existir user, salva e considera login válido
+      if (usuarioParaSalvar) {
+        localStorage.setItem('@Linkah:User', JSON.stringify(usuarioParaSalvar));
+        console.log('✅ Usuário salvo no localStorage:', usuarioParaSalvar);
+      } else {
+        throw new Error('Login respondeu sem dados do usuário.');
+      }
 
       alert('Logado com sucesso!');
-      window.location.href = '/';
+
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 300);
     } catch (err: any) {
-      console.error('❌ Erro no Login:', err);
-      setError(err?.message || 'Erro ao conectar com o servidor');
+      console.error('❌ Erro no Login:', err.message);
+      setError(err.message || 'Erro ao conectar com o servidor');
     } finally {
       setLoading(false);
-      console.log('🏁 FIM LOGIN');
-      console.log('='.repeat(70));
     }
   }
 
