@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { Mail, Lock, ChevronLeft, ArrowRight, Loader2, Sparkles } from 'lucide-react';
 
 // --- CONFIGURAÇÃO DA API DA AWS ---
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api-linkah.onrender.com';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://linkah-api.onrender.com';
 
 export default function LoginPage() {
   const router = useRouter();
