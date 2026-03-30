@@ -1,16 +1,14 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { 
   ChevronLeft, 
   ImageIcon, 
   Search, 
-  Calendar, 
   MapPin, 
   X, 
   Loader2, 
   Users, 
-  Info, 
   Ticket, 
   Sparkles, 
   Navigation,
@@ -60,65 +58,66 @@ export default function NovoEventoPresencial() {
     visibilidade: 'Publico'
   });
 
-  const initGoogleMaps = useCallback(() => {
+  const initGoogleMaps = useCallback(async () => {
     if (typeof window === 'undefined' || !window.google || !mapContainerRef.current) return;
 
-    if (!googleMap.current) {
-      googleMap.current = new window.google.maps.Map(mapContainerRef.current, {
-        center: { lat: -23.5505, lng: -46.6333 },
-        zoom: 15,
-        disableDefaultUI: true,
-        styles: [
-          { featureType: "all", elementType: "geometry", stylers: [{ color: "#f8f9fa" }] },
-          { featureType: "road", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
-          { featureType: "water", elementType: "geometry", stylers: [{ color: "#e9ecef" }] },
-          { featureType: "poi", stylers: [{ visibility: "off" }] }
-        ]
-      });
-      
-      marker.current = new window.google.maps.Marker({
-        map: googleMap.current,
-        icon: {
-          path: window.google.maps.SymbolPath.CIRCLE,
-          scale: 10,
-          fillColor: "#C22973",
-          fillOpacity: 1,
-          strokeWeight: 4,
-          strokeColor: "#ffffff",
-        }
-      });
-    }
+    try {
+      // Carregamento moderno das bibliotecas (Padrão 2026)
+      const { Map } = await window.google.maps.importLibrary("maps");
+      const { AdvancedMarkerElement } = await window.google.maps.importLibrary("marker");
+      const { Autocomplete } = await window.google.maps.importLibrary("places");
 
-    if (searchInputRef.current && !autocompleteRef.current) {
-      autocompleteRef.current = new window.google.maps.places.Autocomplete(searchInputRef.current, {
-        types: ['geocode', 'establishment'],
-        fields: ['address_components', 'formatted_address', 'name', 'geometry']
-      });
-
-      autocompleteRef.current.addListener('place_changed', () => {
-        const place = autocompleteRef.current.getPlace();
-        if (!place.geometry || !place.address_components) return;
-
-        googleMap.current.setCenter(place.geometry.location);
-        googleMap.current.setZoom(17);
-        marker.current.setPosition(place.geometry.location);
-
-        const getComp = (type: string) => 
-          place.address_components!.find((c: any) => c.types.includes(type))?.long_name || '';
+      if (!googleMap.current) {
+        googleMap.current = new Map(mapContainerRef.current, {
+          center: { lat: -23.5505, lng: -46.6333 },
+          zoom: 15,
+          mapId: "LINKAH_MAP_ID", // Recomendado para AdvancedMarkerElement
+          disableDefaultUI: true,
+          styles: [
+            { featureType: "poi", stylers: [{ visibility: "off" }] }
+          ]
+        });
         
-        const getUF = () => 
-          place.address_components!.find((c: any) => c.types.includes('administrative_area_level_1'))?.short_name || '';
+        marker.current = new AdvancedMarkerElement({
+          map: googleMap.current,
+          position: { lat: -23.5505, lng: -46.6333 },
+          title: "Local do Evento",
+        });
+      }
 
-        setFormData(prev => ({
-          ...prev,
-          local_nome: place.name || prev.local_nome,
-          endereco: getComp('route'),
-          numero: getComp('street_number'),
-          cep: getComp('postal_code').replace(/\D/g, ''),
-          cidade: getComp('administrative_area_level_2') || getComp('locality'),
-          estado: getUF(),
-        }));
-      });
+      if (searchInputRef.current && !autocompleteRef.current) {
+        autocompleteRef.current = new Autocomplete(searchInputRef.current, {
+          types: ['geocode', 'establishment'],
+          fields: ['address_components', 'formatted_address', 'name', 'geometry']
+        });
+
+        autocompleteRef.current.addListener('place_changed', () => {
+          const place = autocompleteRef.current.getPlace();
+          if (!place.geometry || !place.address_components) return;
+
+          googleMap.current.setCenter(place.geometry.location);
+          googleMap.current.setZoom(17);
+          marker.current.position = place.geometry.location;
+
+          const getComp = (type: string) => 
+            place.address_components!.find((c: any) => c.types.includes(type))?.long_name || '';
+          
+          const getUF = () => 
+            place.address_components!.find((c: any) => c.types.includes('administrative_area_level_1'))?.short_name || '';
+
+          setFormData(prev => ({
+            ...prev,
+            local_nome: place.name || prev.local_nome,
+            endereco: getComp('route'),
+            numero: getComp('street_number'),
+            cep: getComp('postal_code').replace(/\D/g, ''),
+            cidade: getComp('administrative_area_level_2') || getComp('locality'),
+            estado: getUF(),
+          }));
+        });
+      }
+    } catch (error) {
+      console.error("Erro ao carregar Google Maps:", error);
     }
   }, []);
 
@@ -181,12 +180,12 @@ export default function NovoEventoPresencial() {
   return (
     <div className="min-h-screen bg-[#F8F9FD] font-sans antialiased pb-24 text-slate-900">
       <Script 
-        src={`https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_KEY}&libraries=places`} 
+        src={`https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_KEY}&libraries=places&loading=async`} 
         strategy="afterInteractive" 
         onLoad={initGoogleMaps} 
       />
 
-      {/* HEADER PREMIUM */}
+      {/* HEADER */}
       <header className="border-b border-slate-200/50 px-6 md:px-12 py-6 flex justify-between items-center bg-white/80 backdrop-blur-2xl sticky top-0 z-50">
         <div className="flex items-center gap-6">
           <button onClick={() => router.back()} className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm border border-slate-100 hover:border-pink-200 transition-all active:scale-95">
@@ -212,7 +211,7 @@ export default function NovoEventoPresencial() {
       <main className="max-w-7xl mx-auto p-6 md:p-12">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
           
-          {/* LADO ESQUERDO: CAMPOS */}
+          {/* LADO ESQUERDO: FORMULÁRIO */}
           <div className="lg:col-span-8 space-y-10">
             <section className="bg-white rounded-[3rem] p-10 shadow-sm border border-slate-100 space-y-8">
               <div className="space-y-6">
@@ -248,7 +247,7 @@ export default function NovoEventoPresencial() {
               </div>
             </section>
 
-            {/* CRONOGRAMA */}
+            {/* DATAS */}
             <section className="bg-white rounded-[3rem] p-10 shadow-sm border border-slate-100">
                <div className="flex items-center gap-3 mb-8">
                  <div className="w-10 h-10 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400">
@@ -258,23 +257,23 @@ export default function NovoEventoPresencial() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                 <div className="space-y-4">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-2">Check-in / Início</label>
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-2">Início</label>
                   <div className="flex gap-4">
-                    <input name="data_inicio" value={formData.data_inicio} onChange={handleChange} type="date" className="flex-1 bg-slate-50 p-5 rounded-2xl font-bold outline-none border border-transparent focus:border-slate-200" />
-                    <input name="hora_inicio" value={formData.hora_inicio} onChange={handleChange} type="time" className="w-32 bg-slate-50 p-5 rounded-2xl font-bold outline-none border border-transparent focus:border-slate-200" />
+                    <input name="data_inicio" value={formData.data_inicio} onChange={handleChange} type="date" className="flex-1 bg-slate-50 p-5 rounded-2xl font-bold outline-none" />
+                    <input name="hora_inicio" value={formData.hora_inicio} onChange={handleChange} type="time" className="w-32 bg-slate-50 p-5 rounded-2xl font-bold outline-none" />
                   </div>
                 </div>
                 <div className="space-y-4">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-2">Checkout / Término</label>
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-2">Término</label>
                   <div className="flex gap-4">
-                    <input name="data_termino" value={formData.data_termino} onChange={handleChange} type="date" className="flex-1 bg-slate-50 p-5 rounded-2xl font-bold outline-none border border-transparent focus:border-slate-200" />
-                    <input name="hora_termino" value={formData.hora_termino} onChange={handleChange} type="time" className="w-32 bg-slate-50 p-5 rounded-2xl font-bold outline-none border border-transparent focus:border-slate-200" />
+                    <input name="data_termino" value={formData.data_termino} onChange={handleChange} type="date" className="flex-1 bg-slate-50 p-5 rounded-2xl font-bold outline-none" />
+                    <input name="hora_termino" value={formData.hora_termino} onChange={handleChange} type="time" className="w-32 bg-slate-50 p-5 rounded-2xl font-bold outline-none" />
                   </div>
                 </div>
               </div>
             </section>
 
-            {/* LOCALIZAÇÃO DETALHADA */}
+            {/* LOCALIZAÇÃO */}
             <section className="bg-white rounded-[3rem] p-10 shadow-sm border border-slate-100 space-y-8">
                <div className="flex items-center gap-3">
                  <div className="w-10 h-10 bg-slate-50 rounded-2xl flex items-center justify-center text-[#C22973]">
@@ -288,13 +287,13 @@ export default function NovoEventoPresencial() {
                   <Search size={18} className="absolute left-6 top-1/2 -translate-y-1/2 text-pink-400" />
                   <input 
                     ref={searchInputRef} 
-                    placeholder="Onde será o evento? Digite o endereço ou nome do local..." 
+                    placeholder="Digite o nome do local ou endereço..." 
                     className="w-full bg-slate-900 text-white p-7 pl-16 rounded-[2rem] outline-none font-bold text-sm shadow-2xl focus:ring-4 focus:ring-pink-500/10 transition-all" 
                   />
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <input name="local_nome" value={formData.local_nome} onChange={handleChange} placeholder="Nome do Local (Ex: Arena Linkah)" className="w-full bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner" />
+                  <input name="local_nome" value={formData.local_nome} onChange={handleChange} placeholder="Nome do Local" className="w-full bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner" />
                   <input name="cep" value={formData.cep} onChange={handleChange} placeholder="CEP" className="w-full bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner" />
                 </div>
 
@@ -302,7 +301,7 @@ export default function NovoEventoPresencial() {
                   <div className="md:col-span-2">
                     <input name="endereco" value={formData.endereco} onChange={handleChange} placeholder="Endereço / Rua" className="w-full bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner" />
                   </div>
-                  <input name="numero" value={formData.numero} onChange={handleChange} placeholder="Número" className="w-full bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner" />
+                  <input name="numero" value={formData.numero} onChange={handleChange} placeholder="Nº" className="w-full bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner" />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -314,7 +313,7 @@ export default function NovoEventoPresencial() {
             </section>
           </div>
 
-          {/* COLUNA LATERAL: MEDIA E MAPA */}
+          {/* COLUNA LATERAL */}
           <div className="lg:col-span-4 space-y-10">
             <div className="bg-white rounded-[3.5rem] p-8 shadow-sm border border-slate-100">
               <h4 className="text-[9px] text-slate-300 font-black uppercase mb-8 text-center tracking-[0.4em] italic">Media Center</h4>
@@ -339,7 +338,7 @@ export default function NovoEventoPresencial() {
             </div>
 
             <div className="bg-white rounded-[3.5rem] p-2 shadow-2xl border border-slate-100 h-[400px] relative overflow-hidden group">
-               <div ref={mapContainerRef} className="w-full h-full rounded-[3.2rem] grayscale-[0.5] group-hover:grayscale-0 transition-all duration-700" />
+               <div ref={mapContainerRef} className="w-full h-full rounded-[3.2rem]" />
                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur px-6 py-2 rounded-full shadow-lg border border-slate-100">
                   <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Live View no Mapa</p>
                </div>
@@ -350,7 +349,7 @@ export default function NovoEventoPresencial() {
                   <Ticket size={120} />
                </div>
                <h4 className="font-black italic text-2xl uppercase leading-tight mb-4 tracking-tighter">Financeiro</h4>
-               <p className="text-[11px] font-bold opacity-60 uppercase tracking-[0.2em]">Tickets e Lotes serão configurados no próximo estágio da engine.</p>
+               <p className="text-[11px] font-bold opacity-60 uppercase tracking-[0.2em]">Tickets e Lotes serão configurados no próximo estágio.</p>
             </div>
           </div>
 
