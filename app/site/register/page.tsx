@@ -5,8 +5,9 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Mail, Lock, User, ChevronLeft, ArrowRight, Loader2, Sparkles } from 'lucide-react';
 
-// --- CONFIGURAÇÃO DA API DA AWS ---
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://linkah-back.onrender.com';
+// --- CONFIGURAÇÃO DA API ---
+// Centralizado para evitar erros de digitação (Baseado no seu back do Render)
+const API_URL = 'https://linkah-back.onrender.com';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -22,30 +23,52 @@ export default function RegisterPage() {
     setLoading(true);
     setError('');
 
+    // Validação básica antes de enviar ao servidor
+    if (senha.length < 6) {
+      setError('A senha precisa de no mínimo 6 caracteres.');
+      setLoading(false);
+      return;
+    }
+
     try {
       const response = await fetch(`${API_URL}/api/auth/register`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nome, email, senha }),
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ 
+          nome: nome.trim(), 
+          email: email.trim().toLowerCase(), 
+          senha 
+        }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'Erro ao criar conta. Tente outro e-mail.');
+        // Se o erro for 500, provavelmente é e-mail duplicado ou erro de banco no Render
+        if (response.status === 500) {
+          throw new Error('Servidor instável ou e-mail já cadastrado. Tente outro.');
+        }
+        throw new Error(data.message || 'Erro ao criar conta. Tente novamente.');
       }
 
-      // Login automático após registro
+      // Registro bem sucedido -> Salva os dados e autentica
       if (data.token) {
         localStorage.setItem('@Linkah:Token', data.token);
         localStorage.setItem('@Linkah:User', JSON.stringify(data.user));
+        
+        // Redireciona forçando o recarregamento do estado de login
+        window.location.href = '/'; 
+      } else {
+        // Se não vier token, manda para o login manual
+        router.push('/login');
       }
 
-      // Redireciona para a Home já autenticado
-      router.push('/');
-
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || 'Não foi possível conectar ao servidor.');
+      console.error("Erro no Registro:", err);
     } finally {
       setLoading(false);
     }
@@ -93,11 +116,11 @@ export default function RegisterPage() {
 
           <div className="mb-10">
             <h1 className="text-4xl font-black text-slate-950 tracking-tight mb-3 italic uppercase">Comece agora</h1>
-            <p className="text-slate-500 font-medium">Preencha os campos para criar seu perfil Linkah.</p>
+            <p className="text-slate-500 font-medium text-sm">Preencha os campos para criar seu perfil Linkah.</p>
             
             {error && (
-              <div className="mt-6 bg-rose-50 text-rose-600 p-4 rounded-2xl text-sm font-semibold border border-rose-100 animate-in fade-in slide-in-from-top-2 flex items-center gap-2">
-                 <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
+              <div className="mt-6 bg-rose-50 text-rose-600 p-4 rounded-2xl text-xs font-bold border border-rose-100 animate-in fade-in slide-in-from-top-2 flex items-center gap-2 uppercase tracking-tighter">
+                 <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0 animate-pulse" />
                 {error}
               </div>
             )}
@@ -167,7 +190,7 @@ export default function RegisterPage() {
           <div className="mt-12 text-center">
              <p className="text-sm font-medium text-slate-400">
                Já faz parte da Linkah? 
-               <Link href="site/login" className="text-slate-900 font-black ml-2 hover:underline underline-offset-4 decoration-[#ff4d4d] decoration-2">
+               <Link href="/login" className="text-slate-900 font-black ml-2 hover:underline underline-offset-4 decoration-[#ff4d4d] decoration-2 transition-all">
                  Fazer Login
                </Link>
              </p>
