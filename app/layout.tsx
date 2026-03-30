@@ -24,20 +24,15 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
-      {/* O suppressHydrationWarning no <html> e <body> ajuda a ignorar 
-          extensões de browser que injetam código e causam erro de hidratação */}
       <body className={`${poppins.variable} font-sans antialiased`} suppressHydrationWarning>
         <LanguageProvider>
           {children}
         </LanguageProvider>
 
-        {/* MUDANÇA CRÍTICA: strategy="afterInteractive" 
-          Isso evita que o script bloqueie a hidratação do React.
-          O beforeInteractive muitas vezes causa o crash "Application Error" no App Runner.
-        */}
+        {/* CARREGAMENTO ÚNICO E GLOBAL */}
         <Script
-          src={`https://maps.googleapis.com/maps/api/js?key=AIzaSyDlGFav-T-Dig9xkdqpqfr98pJP8zmWbE8&libraries=places`}
-          strategy="lazyOnload" // Ou "afterInteractive" se você precisar do mapa instantaneamente
+          src={`https://maps.googleapis.com/maps/api/js?key=AIzaSyDlGFav-T-Dig9xkdqpqfr98pJP8zmWbE8&libraries=places&loading=async`}
+          strategy="afterInteractive" 
         />
       </body>
     </html>

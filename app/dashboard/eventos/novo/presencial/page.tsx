@@ -1,26 +1,15 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { 
-  ChevronLeft, 
-  ImageIcon, 
-  Search, 
-  MapPin, 
-  X, 
-  Loader2, 
-  Users, 
-  Ticket, 
-  Sparkles, 
-  Navigation,
-  Clock
+  ChevronLeft, ImageIcon, Search, MapPin, X, Loader2, 
+  Users, Ticket, Sparkles, Navigation, Clock
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/app/context/LanguageContext';
-import Script from 'next/script';
 import Swal from 'sweetalert2';
 
 const API_URL = 'https://api-linkah.onrender.com';
-const GOOGLE_MAPS_KEY = 'AIzaSyDlGFav-T-Dig9xkdqpqfr98pJP8zmWbE8'; 
 
 export default function NovoEventoPresencial() {
   const { t }: any = useLanguage();
@@ -37,53 +26,36 @@ export default function NovoEventoPresencial() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null); 
   
   const [formData, setFormData] = useState({
-    nome: '', 
-    categoria: '', 
-    status: 'Ativo', 
-    descricao: '',
-    data_inicio: '', 
-    hora_inicio: '', 
-    data_termino: '', 
-    hora_termino: '',
-    local_nome: '', 
-    cep: '', 
-    endereco: '', 
-    numero: '', 
-    complemento: '', 
-    cidade: '', 
-    estado: '',
-    capacidade: '',
-    tipo: 'Presencial',
-    regras: '',
-    visibilidade: 'Publico'
+    nome: '', categoria: '', status: 'Ativo', descricao: '',
+    data_inicio: '', hora_inicio: '', data_termino: '', hora_termino: '',
+    local_nome: '', cep: '', endereco: '', numero: '', complemento: '', 
+    cidade: '', estado: '', capacidade: '', tipo: 'Presencial',
+    regras: '', visibilidade: 'Publico'
   });
 
   const initGoogleMaps = useCallback(async () => {
+    // Só inicia se o Google já carregou via Layout e o container existe
     if (typeof window === 'undefined' || !window.google || !mapContainerRef.current) return;
+    if (googleMap.current) return; // Trava para não duplicar
 
     try {
-      // Carregamento moderno das bibliotecas (Padrão 2026)
-      const { Map } = await window.google.maps.importLibrary("maps");
-      const { AdvancedMarkerElement } = await window.google.maps.importLibrary("marker");
-      const { Autocomplete } = await window.google.maps.importLibrary("places");
+      const [{ Map }, { AdvancedMarkerElement }, { Autocomplete }] = await Promise.all([
+        window.google.maps.importLibrary("maps"),
+        window.google.maps.importLibrary("marker"),
+        window.google.maps.importLibrary("places"),
+      ]);
 
-      if (!googleMap.current) {
-        googleMap.current = new Map(mapContainerRef.current, {
-          center: { lat: -23.5505, lng: -46.6333 },
-          zoom: 15,
-          mapId: "LINKAH_MAP_ID", // Recomendado para AdvancedMarkerElement
-          disableDefaultUI: true,
-          styles: [
-            { featureType: "poi", stylers: [{ visibility: "off" }] }
-          ]
-        });
-        
-        marker.current = new AdvancedMarkerElement({
-          map: googleMap.current,
-          position: { lat: -23.5505, lng: -46.6333 },
-          title: "Local do Evento",
-        });
-      }
+      googleMap.current = new Map(mapContainerRef.current, {
+        center: { lat: -23.5505, lng: -46.6333 },
+        zoom: 15,
+        mapId: "LINKAH_MAP_ID", 
+        disableDefaultUI: true,
+      });
+      
+      marker.current = new AdvancedMarkerElement({
+        map: googleMap.current,
+        position: { lat: -23.5505, lng: -46.6333 },
+      });
 
       if (searchInputRef.current && !autocompleteRef.current) {
         autocompleteRef.current = new Autocomplete(searchInputRef.current, {
@@ -93,7 +65,7 @@ export default function NovoEventoPresencial() {
 
         autocompleteRef.current.addListener('place_changed', () => {
           const place = autocompleteRef.current.getPlace();
-          if (!place.geometry || !place.address_components) return;
+          if (!place.geometry) return;
 
           googleMap.current.setCenter(place.geometry.location);
           googleMap.current.setZoom(17);
@@ -101,9 +73,6 @@ export default function NovoEventoPresencial() {
 
           const getComp = (type: string) => 
             place.address_components!.find((c: any) => c.types.includes(type))?.long_name || '';
-          
-          const getUF = () => 
-            place.address_components!.find((c: any) => c.types.includes('administrative_area_level_1'))?.short_name || '';
 
           setFormData(prev => ({
             ...prev,
@@ -112,14 +81,22 @@ export default function NovoEventoPresencial() {
             numero: getComp('street_number'),
             cep: getComp('postal_code').replace(/\D/g, ''),
             cidade: getComp('administrative_area_level_2') || getComp('locality'),
-            estado: getUF(),
+            estado: place.address_components?.find((c: any) => c.types.includes('administrative_area_level_1'))?.short_name || '',
           }));
         });
       }
-    } catch (error) {
-      console.error("Erro ao carregar Google Maps:", error);
+    } catch (error: any) {
+      if (!error.message?.includes('already defined')) {
+        console.error("Erro no mapa:", error);
+      }
     }
   }, []);
+
+  // Chama a inicialização quando o componente monta
+  useEffect(() => {
+    const timer = setTimeout(initGoogleMaps, 500);
+    return () => clearTimeout(timer);
+  }, [initGoogleMaps]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -149,7 +126,7 @@ export default function NovoEventoPresencial() {
     } catch (e) { emailProdutor = ''; }
 
     if (!token) return Swal.fire('Sessão Expirada', 'Faça login novamente.', 'warning');
-    if (!formData.nome || !formData.data_inicio) return Swal.fire('Atenção', 'Nome e Data de Início são obrigatórios.', 'info');
+    if (!formData.nome || !formData.data_inicio) return Swal.fire('Atenção', 'Nome e Data são obrigatórios.', 'info');
 
     setIsLoading(true);
     const dataToSend = new FormData();
@@ -179,13 +156,6 @@ export default function NovoEventoPresencial() {
 
   return (
     <div className="min-h-screen bg-[#F8F9FD] font-sans antialiased pb-24 text-slate-900">
-      <Script 
-        src={`https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_KEY}&libraries=places&loading=async`} 
-        strategy="afterInteractive" 
-        onLoad={initGoogleMaps} 
-      />
-
-      {/* HEADER */}
       <header className="border-b border-slate-200/50 px-6 md:px-12 py-6 flex justify-between items-center bg-white/80 backdrop-blur-2xl sticky top-0 z-50">
         <div className="flex items-center gap-6">
           <button onClick={() => router.back()} className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm border border-slate-100 hover:border-pink-200 transition-all active:scale-95">
@@ -211,7 +181,6 @@ export default function NovoEventoPresencial() {
       <main className="max-w-7xl mx-auto p-6 md:p-12">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
           
-          {/* LADO ESQUERDO: FORMULÁRIO */}
           <div className="lg:col-span-8 space-y-10">
             <section className="bg-white rounded-[3rem] p-10 shadow-sm border border-slate-100 space-y-8">
               <div className="space-y-6">
@@ -287,7 +256,7 @@ export default function NovoEventoPresencial() {
                   <Search size={18} className="absolute left-6 top-1/2 -translate-y-1/2 text-pink-400" />
                   <input 
                     ref={searchInputRef} 
-                    placeholder="Digite o nome do local ou endereço..." 
+                    placeholder="Onde será o evento? Digite o endereço ou nome do local..." 
                     className="w-full bg-slate-900 text-white p-7 pl-16 rounded-[2rem] outline-none font-bold text-sm shadow-2xl focus:ring-4 focus:ring-pink-500/10 transition-all" 
                   />
                 </div>
@@ -301,7 +270,7 @@ export default function NovoEventoPresencial() {
                   <div className="md:col-span-2">
                     <input name="endereco" value={formData.endereco} onChange={handleChange} placeholder="Endereço / Rua" className="w-full bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner" />
                   </div>
-                  <input name="numero" value={formData.numero} onChange={handleChange} placeholder="Nº" className="w-full bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner" />
+                  <input name="numero" value={formData.numero} onChange={handleChange} placeholder="Número" className="w-full bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner" />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -313,7 +282,6 @@ export default function NovoEventoPresencial() {
             </section>
           </div>
 
-          {/* COLUNA LATERAL */}
           <div className="lg:col-span-4 space-y-10">
             <div className="bg-white rounded-[3.5rem] p-8 shadow-sm border border-slate-100">
               <h4 className="text-[9px] text-slate-300 font-black uppercase mb-8 text-center tracking-[0.4em] italic">Media Center</h4>
