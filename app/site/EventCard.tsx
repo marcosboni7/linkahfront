@@ -6,7 +6,7 @@ import { MapPin, Calendar, ArrowUpRight } from 'lucide-react';
 import { useLanguage } from '@/app/context/LanguageContext';
 
 const API_URL_BASE =
-  process.env.NEXT_PUBLIC_API_URL || 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
+  process.env.NEXT_PUBLIC_API_URL || 'https://linkah-back.onrender.com';
 
 export function EventCard({ evento }: { evento: any }) {
   const { language, t }: any = useLanguage();

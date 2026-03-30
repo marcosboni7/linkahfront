@@ -9,15 +9,16 @@ import {
   Loader2, 
   Info, 
   Ticket, 
-  Globe 
+  Globe,
+  Coins,
+  Layers
 } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
 import Swal from 'sweetalert2';
 import { useLanguage } from '@/app/context/LanguageContext';
 
-const API_URL = 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
+const API_URL = 'https://linkah-back.onrender.com';
 
-// Mapeamento de símbolos para a interface
 const currencyMap: Record<string, string> = {
   'BRL': 'R$',
   'EUR': '€',
@@ -31,7 +32,6 @@ export default function CadastroIngressos() {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Estado inicial com o campo 'moeda' incluído
   const [ingressos, setIngressos] = useState([
     { nome: '', preco: '', quantidade: '', tipo: 'Pago', moeda: 'BRL' }
   ]);
@@ -50,8 +50,8 @@ export default function CadastroIngressos() {
     const novos = [...ingressos];
     novos[index] = { ...novos[index], [field]: value };
     setIngressos(novos);
-    // Limpa erro ao digitar
-    if (value) {
+    
+    if (value && errors[`${index}-${field}`]) {
       setErrors(prev => {
         const newErrors = { ...prev };
         delete newErrors[`${index}-${field}`];
@@ -67,16 +67,15 @@ export default function CadastroIngressos() {
   };
 
   const handleFinalizar = async () => {
-    // Validação básica
     const hasEmpty = ingressos.some(ing => !ing.nome || !ing.preco || !ing.quantidade);
     
     if (hasEmpty) {
       Swal.fire({
-        title: t.errorIncomplete || 'Campos incompletos',
-        text: t.errorIncompleteText || 'Por favor, preencha todos os dados dos ingressos.',
+        title: `<span style="font-family: sans-serif; font-weight: 900; font-style: italic; text-transform: uppercase;">${t.errorIncomplete || 'DADOS PENDENTES'}</span>`,
+        text: t.errorIncompleteText || 'Certifique-se de que todos os lotes possuem nome, preço e quantidade.',
         icon: 'warning',
         confirmButtonColor: '#C22973',
-        customClass: { popup: 'rounded-[2rem]' }
+        customClass: { popup: 'rounded-[2.5rem]' }
       });
       return;
     }
@@ -84,11 +83,9 @@ export default function CadastroIngressos() {
     setLoading(true);
     try {
       const token = localStorage.getItem('@Linkah:Token');
-      
-      // Enviamos os ingressos e também a moeda do primeiro ingresso como "moeda global" do evento
       const payload = { 
         ingressos,
-        moeda_evento: ingressos[0].moeda 
+        moeda_global: ingressos[0].moeda 
       };
 
       const response = await fetch(`${API_URL}/api/eventos/${id}/ingressos`, {
@@ -102,11 +99,11 @@ export default function CadastroIngressos() {
 
       if (response.ok) {
         Swal.fire({
-          title: `<span style="color: #C22973; font-family: sans-serif; font-weight: 900; font-style: italic;">${t.publishSuccess || 'Sucesso!'}</span>`,
-          text: t.publishSuccessText || 'Seu evento foi publicado com sucesso.',
+          title: `<span style="color: #C22973; font-family: sans-serif; font-weight: 900; font-style: italic; text-transform: uppercase;">🚀 EVENTO ONLINE</span>`,
+          text: t.publishSuccessText || 'Seu evento foi configurado e as vendas podem começar.',
           icon: 'success',
-          confirmButtonColor: '#C22973',
-          confirmButtonText: t.btnViewEvents || 'Ver Meus Eventos',
+          confirmButtonColor: '#000',
+          confirmButtonText: t.btnViewEvents || 'Ir para o Dashboard',
           customClass: { popup: 'rounded-[3rem]' }
         }).then((result) => {
           if (result.isConfirmed) router.push('/dashboard/eventos');
@@ -116,137 +113,172 @@ export default function CadastroIngressos() {
         throw new Error(errData.message);
       }
     } catch (error: any) {
-      Swal.fire('Erro', error.message || 'Falha na conexão com AWS', 'error');
+      Swal.fire('Erro de Sincronização', error.message || 'Falha na conexão com AWS Linkah-Node', 'error');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#FAFBFF] font-sans antialiased pb-20">
-      <header className="border-b border-slate-100 px-6 md:px-10 py-5 flex justify-between items-center bg-white/90 backdrop-blur-md sticky top-0 z-50">
-        <div className="flex items-center gap-4">
-          <button onClick={() => router.back()} className="p-2 hover:bg-pink-50 rounded-full text-slate-400 transition-colors">
-            <ChevronLeft size={22} />
+    <div className="min-h-screen bg-[#FCFBFA] font-sans antialiased pb-24">
+      
+      {/* HEADER DINÂMICO */}
+      <header className="border-b border-slate-100 px-6 md:px-12 py-6 flex justify-between items-center bg-white/80 backdrop-blur-xl sticky top-0 z-50">
+        <div className="flex items-center gap-5">
+          <button onClick={() => router.back()} className="p-3 hover:bg-slate-50 rounded-2xl text-slate-400 hover:text-black transition-all active:scale-90 border border-transparent hover:border-slate-100">
+            <ChevronLeft size={20} />
           </button>
           <div>
-            <h1 className="text-slate-800 font-black text-lg tracking-tight uppercase italic">{t.setupTickets || 'Configurar Ingressos'}</h1>
-            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em]">{t.finalStep || 'Último Passo'}</p>
+            <h1 className="text-black font-black text-xl tracking-tighter uppercase italic leading-none">{t.setupTickets || 'Configurar Ingressos'}</h1>
+            <p className="text-[#C22973] text-[9px] font-black uppercase tracking-[0.3em] mt-1 italic animate-pulse">{t.finalStep || 'Provisionamento Final'}</p>
           </div>
         </div>
+        
         <button 
           onClick={handleFinalizar}
           disabled={loading}
-          className="bg-[#C22973] text-white px-6 md:px-10 py-3 rounded-2xl font-black uppercase text-[11px] tracking-widest hover:bg-[#a62262] transition-all shadow-xl shadow-pink-100 disabled:opacity-50 flex items-center gap-2 active:scale-95"
+          className="bg-black text-white px-8 md:px-12 py-4 rounded-[1.5rem] font-black uppercase text-[10px] tracking-[0.2em] hover:bg-[#C22973] transition-all shadow-2xl shadow-slate-200 disabled:opacity-50 flex items-center gap-3 active:scale-95 group"
         >
-          {loading ? <Loader2 className="animate-spin" size={16} /> : (t.btnPublish || 'Publicar Evento')}
+          {loading ? <Loader2 className="animate-spin" size={16} /> : (
+            <>
+              {t.btnPublish || 'Publicar Evento'}
+              <CheckCircle2 size={16} className="text-[#C22973] group-hover:text-white transition-colors" />
+            </>
+          )}
         </button>
       </header>
 
-      <main className="max-w-[1100px] mx-auto p-6 md:p-10">
-        {/* INDICADOR DE PROGRESSO */}
-        <div className="flex justify-center items-center mb-12 md:mb-16">
-          <div className="flex items-center gap-3 opacity-40">
-            <div className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center">
-              <CheckCircle2 size={16} />
+      <main className="max-w-5xl mx-auto p-6 md:p-12">
+        
+        {/* STEPS INDICATOR */}
+        <div className="flex justify-center items-center mb-20">
+          <div className="flex flex-col items-center gap-3 group">
+            <div className="w-12 h-12 rounded-3xl bg-emerald-50 text-emerald-500 flex items-center justify-center border border-emerald-100 transition-transform group-hover:scale-110">
+              <CheckCircle2 size={20} />
             </div>
-            <span className="text-xs font-black text-slate-800 uppercase tracking-widest italic">{t.stepInfo || 'Informações'}</span>
+            <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest italic">{t.stepInfo || 'Informações'}</span>
           </div>
-          <div className="w-20 h-[2px] bg-emerald-100 mx-4"></div>
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-[#C22973] text-white flex items-center justify-center shadow-lg shadow-pink-200 font-black text-xs italic">2</div>
-            <span className="text-xs font-black text-slate-800 uppercase tracking-widest italic">{t.stepTickets || 'Ingressos'}</span>
+          
+          <div className="w-24 h-[2px] bg-slate-100 mx-6 rounded-full" />
+          
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-12 h-12 rounded-3xl bg-black text-white flex items-center justify-center shadow-2xl shadow-pink-200 font-black text-sm italic border-4 border-white">2</div>
+            <span className="text-[9px] font-black text-black uppercase tracking-widest italic">{t.stepTickets || 'Ingressos'}</span>
           </div>
         </div>
 
-        <div className="max-w-[900px] mx-auto space-y-6">
-           <div className="bg-blue-50 border border-blue-100 p-6 rounded-[2rem] flex gap-4 text-blue-700 text-sm font-bold mb-8 items-start">
-             <Info className="shrink-0 mt-0.5" size={20} />
-             <p className="leading-relaxed uppercase text-[10px] tracking-wider">{t.ticketAlert || 'Defina os preços e quantidades. Você poderá editar estes valores mais tarde no painel de controle.'}</p>
+        <div className="space-y-8">
+           <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm flex gap-5 items-start">
+             <div className="p-3 bg-blue-50 rounded-2xl text-blue-500">
+               <Info size={24} />
+             </div>
+             <div>
+               <h4 className="text-xs font-black text-slate-800 uppercase tracking-widest mb-1 italic">Gestão de Inventário</h4>
+               <p className="text-slate-400 text-sm font-medium leading-relaxed max-w-2xl">
+                 {t.ticketAlert || 'Defina os preços e quantidades. Estes valores alimentam o Checkout da Linkah em tempo real.'}
+               </p>
+             </div>
            </div>
 
-           {ingressos.map((ing, index) => (
-             <div key={index} className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100 flex flex-col md:flex-row items-end gap-6 relative group animate-in fade-in slide-in-from-bottom-4 transition-all">
-               
-               {/* NOME DO INGRESSO */}
-               <div className="flex-1 w-full space-y-2">
-                 <label className="text-[10px] text-slate-400 font-black uppercase ml-2 tracking-widest italic">{t.labelTicketName || 'Nome do Ingresso'}</label>
-                 <input 
-                   value={ing.nome} 
-                   onBlur={(e) => validateField(index, 'nome', e.target.value)}
-                   onChange={(e) => handleChange(index, 'nome', e.target.value)}
-                   className={`w-full bg-slate-50 border ${errors[`${index}-nome`] ? 'border-red-400 ring-4 ring-red-50' : 'border-slate-100'} p-4 rounded-2xl outline-none focus:border-[#C22973] font-bold text-slate-700 transition-all placeholder:text-slate-200`} 
-                   placeholder={t.placeholderTicket || 'Ex: Lote Promocional'}
-                 />
-                 {errors[`${index}-nome`] && <span className="text-[9px] text-red-500 font-black uppercase italic ml-2">{errors[`${index}-nome`]}</span>}
-               </div>
-
-               {/* SELETOR DE MOEDA + PREÇO */}
-               <div className="w-full md:w-64 space-y-2">
-                 <label className="text-[10px] text-slate-400 font-black uppercase ml-2 tracking-widest italic">Moeda & Preço</label>
-                 <div className="flex gap-2">
-                    <select 
-                      value={ing.moeda}
-                      onChange={(e) => handleChange(index, 'moeda', e.target.value)}
-                      className="bg-slate-100 border-none px-3 py-4 rounded-2xl font-black text-[10px] text-slate-600 outline-none focus:ring-2 focus:ring-pink-100 transition-all cursor-pointer"
-                    >
-                      <option value="BRL">BRL (R$)</option>
-                      <option value="EUR">EUR (€)</option>
-                      <option value="USD">USD ($)</option>
-                    </select>
-
-                    <div className="relative flex-1">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">
-                        {currencyMap[ing.moeda]}
-                      </span>
-                      <input 
-                        type="number" 
-                        value={ing.preco} 
-                        onBlur={(e) => validateField(index, 'preco', e.target.value)}
-                        onChange={(e) => handleChange(index, 'preco', e.target.value)}
-                        className={`w-full pl-10 pr-4 py-4 bg-slate-50 border ${errors[`${index}-preco`] ? 'border-red-400 ring-4 ring-red-50' : 'border-slate-100'} rounded-2xl outline-none focus:border-[#C22973] font-bold text-slate-700 transition-all placeholder:text-slate-200`} 
-                        placeholder="0.00"
-                        step="0.01"
-                      />
-                    </div>
+           {/* LISTA DE LOTES/INGRESSOS */}
+           <div className="space-y-6">
+             {ingressos.map((ing, index) => (
+               <div key={index} className="bg-white rounded-[3rem] p-10 border border-slate-100 hover:border-[#C22973]/20 shadow-sm hover:shadow-xl transition-all duration-500 flex flex-col lg:flex-row items-start lg:items-end gap-8 relative group animate-in slide-in-from-bottom-8">
+                 
+                 {/* BADGE DE ÍNDICE */}
+                 <div className="absolute -left-3 top-10 w-8 h-8 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-center text-[10px] font-black text-slate-300 italic uppercase">
+                   #{index + 1}
                  </div>
-                 {errors[`${index}-preco`] && <span className="text-[9px] text-red-500 font-black uppercase italic ml-2">{errors[`${index}-preco`]}</span>}
+
+                 {/* NOME DO INGRESSO */}
+                 <div className="flex-1 w-full space-y-3">
+                   <div className="flex items-center gap-2 ml-2">
+                     <Ticket size={14} className="text-slate-300" />
+                     <label className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] italic">{t.labelTicketName || 'Nome do Lote'}</label>
+                   </div>
+                   <input 
+                     value={ing.nome} 
+                     onBlur={(e) => validateField(index, 'nome', e.target.value)}
+                     onChange={(e) => handleChange(index, 'nome', e.target.value)}
+                     className={`w-full bg-slate-50/50 border ${errors[`${index}-nome`] ? 'border-red-400' : 'border-slate-100'} px-6 py-5 rounded-[1.5rem] outline-none focus:bg-white focus:border-black font-bold text-black transition-all placeholder:text-slate-200`} 
+                     placeholder={t.placeholderTicket || 'Ex: VIP Experience'}
+                   />
+                 </div>
+
+                 {/* MOEDA E PREÇO */}
+                 <div className="w-full lg:w-72 space-y-3">
+                   <div className="flex items-center gap-2 ml-2">
+                     <Coins size={14} className="text-slate-300" />
+                     <label className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] italic">Preço de Venda</label>
+                   </div>
+                   <div className="flex gap-3">
+                      <select 
+                        value={ing.moeda}
+                        onChange={(e) => handleChange(index, 'moeda', e.target.value)}
+                        className="bg-white border border-slate-100 px-4 py-5 rounded-[1.5rem] font-black text-[10px] text-black outline-none focus:border-black shadow-sm cursor-pointer hover:bg-slate-50 transition-all"
+                      >
+                        <option value="BRL">BRL</option>
+                        <option value="EUR">EUR</option>
+                        <option value="USD">USD</option>
+                      </select>
+
+                      <div className="relative flex-1 group/input">
+                        <span className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 font-black text-xs transition-colors group-focus-within/input:text-black">
+                          {currencyMap[ing.moeda]}
+                        </span>
+                        <input 
+                          type="number" 
+                          value={ing.preco} 
+                          onBlur={(e) => validateField(index, 'preco', e.target.value)}
+                          onChange={(e) => handleChange(index, 'preco', e.target.value)}
+                          className={`w-full pl-14 pr-6 py-5 bg-slate-50/50 border ${errors[`${index}-preco`] ? 'border-red-400' : 'border-slate-100'} rounded-[1.5rem] outline-none focus:bg-white focus:border-black font-black text-black transition-all`} 
+                          placeholder="0.00"
+                        />
+                      </div>
+                   </div>
+                 </div>
+
+                 {/* QUANTIDADE */}
+                 <div className="w-full lg:w-36 space-y-3">
+                   <div className="flex items-center gap-2 ml-2">
+                     <Layers size={14} className="text-slate-300" />
+                     <label className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] italic">Capacidade</label>
+                   </div>
+                   <input 
+                     type="number" 
+                     value={ing.quantidade} 
+                     onBlur={(e) => validateField(index, 'quantidade', e.target.value)}
+                     onChange={(e) => handleChange(index, 'quantidade', e.target.value)}
+                     className={`w-full bg-slate-50/50 border ${errors[`${index}-quantidade`] ? 'border-red-400' : 'border-slate-100'} px-6 py-5 rounded-[1.5rem] outline-none focus:bg-white focus:border-black font-bold text-black text-center transition-all`} 
+                     placeholder="100"
+                   />
+                 </div>
+
+                 {/* REMOVER */}
+                 {ingressos.length > 1 && (
+                   <button 
+                    onClick={() => removeIngresso(index)} 
+                    className="p-5 text-slate-300 hover:text-[#C22973] hover:bg-red-50 rounded-[1.5rem] transition-all mb-1 active:scale-90 border border-transparent hover:border-red-100"
+                   >
+                     <Trash2 size={22} />
+                   </button>
+                 )}
                </div>
+             ))}
 
-               {/* QUANTIDADE */}
-               <div className="w-full md:w-32 space-y-2">
-                 <label className="text-[10px] text-slate-400 font-black uppercase ml-2 tracking-widest italic">{t.labelStock || 'Qtd'}</label>
-                 <input 
-                   type="number" 
-                   value={ing.quantidade} 
-                   onBlur={(e) => validateField(index, 'quantidade', e.target.value)}
-                   onChange={(e) => handleChange(index, 'quantidade', e.target.value)}
-                   className={`w-full bg-slate-50 border ${errors[`${index}-quantidade`] ? 'border-red-400 ring-4 ring-red-50' : 'border-slate-100'} p-4 rounded-2xl outline-none focus:border-[#C22973] font-bold text-slate-700 transition-all placeholder:text-slate-200`} 
-                   placeholder="100"
-                 />
-                 {errors[`${index}-quantidade`] && <span className="text-[9px] text-red-500 font-black uppercase italic ml-2">{errors[`${index}-quantidade`]}</span>}
-               </div>
-
-               {/* REMOVER */}
-               {ingressos.length > 1 && (
-                 <button onClick={() => removeIngresso(index)} className="p-4 text-slate-200 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all mb-1 active:scale-90">
-                   <Trash2 size={20} />
-                 </button>
-               )}
-             </div>
-           ))}
-
-           <button 
-             onClick={addIngresso}
-             className="w-full py-8 border-2 border-dashed border-slate-200 rounded-[2.5rem] text-slate-400 font-black uppercase text-[10px] tracking-[0.3em] hover:border-[#C22973]/40 hover:text-[#C22973] hover:bg-pink-50/30 transition-all bg-white/50 flex items-center justify-center gap-3"
-           >
-             <Plus size={18} /> {t.btnAddCategory || 'Adicionar Mais Ingressos'}
-           </button>
+             <button 
+               onClick={addIngresso}
+               className="w-full py-10 border-2 border-dashed border-slate-200 rounded-[3rem] text-slate-300 font-black uppercase text-[10px] tracking-[0.4em] hover:border-black hover:text-black hover:bg-slate-50 transition-all bg-white flex items-center justify-center gap-4 group italic"
+             >
+               <Plus size={20} className="group-hover:rotate-90 transition-transform duration-500" /> 
+               {t.btnAddCategory || 'Gerar Nova Categoria de Ingresso'}
+             </button>
+           </div>
         </div>
       </main>
 
-      <footer className="mt-20 py-10 text-center border-t border-slate-100">
-          <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic">Linkah AWS Producer Cloud &copy; 2026</p>
+      <footer className="mt-20 py-12 text-center border-t border-slate-50">
+          <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.5em] italic">Linkah Cloud Nodes &copy; 2026</p>
       </footer>
     </div>
   );

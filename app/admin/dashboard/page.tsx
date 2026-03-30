@@ -4,46 +4,56 @@ import { useState, useEffect } from 'react';
 import { 
   Users, Ticket, MessageCircle, 
   ArrowUpRight, Clock, CheckCircle2, Loader2,
-  Activity, ShieldCheck
+  Activity, ShieldCheck, AlertCircle
 } from 'lucide-react';
-import { useLanguage } from '@/app/context/LanguageContext'; // Importando o hook
+import { useLanguage } from '@/app/context/LanguageContext';
 
 const API_URL_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
 
 export default function AdminDashboard() {
-  const { t } = useLanguage(); // Ativando as traduções
+  const { t } = useLanguage();
   const [stats, setStats] = useState({
     usuarios: 0,
     eventos: 0,
-    comunidades: 0
+    comunidades: 12 
   });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [lastSync, setLastSync] = useState(new Date());
 
   useEffect(() => {
     const fetchStats = async () => {
+      setLoading(true);
+      setError(false);
       try {
         const [resUsers, resEvents] = await Promise.all([
           fetch(`${API_URL_BASE}/api/usuarios`),
           fetch(`${API_URL_BASE}/api/eventos`)
         ]);
 
-        if (!resUsers.ok || !resEvents.ok) throw new Error("Falha na resposta");
+        if (!resUsers.ok || !resEvents.ok) throw new Error("Falha na resposta da API");
 
         const usersData = await resUsers.json();
         const eventsData = await resEvents.json();
 
-        setStats({
+        setStats(prev => ({
+          ...prev,
           usuarios: Array.isArray(usersData) ? usersData.length : 0,
           eventos: Array.isArray(eventsData) ? eventsData.length : 0,
-          comunidades: 12 
-        });
-      } catch (error) {
-        console.error("Erro ao sincronizar:", error);
+        }));
+        setLastSync(new Date());
+      } catch (err) {
+        console.error("Erro ao sincronizar dados:", err);
+        setError(true);
       } finally {
         setLoading(false);
       }
     };
+
     fetchStats();
+    // Opcional: Atualização automática a cada 5 minutos
+    const interval = setInterval(fetchStats, 300000);
+    return () => clearInterval(interval);
   }, []);
 
   return (
@@ -64,9 +74,12 @@ export default function AdminDashboard() {
 
         <div className="flex items-center gap-4">
           <div className="bg-white px-6 py-3 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3">
-            <div className={`w-2.5 h-2.5 rounded-full ${loading ? 'bg-amber-400 animate-pulse' : 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]'}`} />
+            <div className={`w-2.5 h-2.5 rounded-full ${
+              loading ? 'bg-amber-400 animate-pulse' : 
+              error ? 'bg-red-500' : 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]'
+            }`} />
             <span className="text-[11px] font-black text-slate-700 uppercase tracking-widest">
-              {loading ? t.syncing : t.systemStable}
+              {loading ? t.syncing : error ? 'System Error' : t.systemStable}
             </span>
           </div>
         </div>
@@ -133,14 +146,22 @@ export default function AdminDashboard() {
             </h3>
             <div className="space-y-8">
                <div className="flex items-center gap-5 group">
-                  <div className="w-12 h-12 bg-slate-50 text-slate-400 group-hover:bg-[#C22973] group-hover:text-white rounded-2xl flex items-center justify-center shrink-0 transition-all duration-300">
-                    <CheckCircle2 size={20} />
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-all duration-300 ${
+                    error ? 'bg-red-50 text-red-500' : 'bg-slate-50 text-slate-400 group-hover:bg-[#C22973] group-hover:text-white'
+                  }`}>
+                    {error ? <AlertCircle size={20} /> : <CheckCircle2 size={20} />}
                   </div>
                   <div className="flex-1 border-b border-slate-50 pb-4">
-                    <p className="text-sm font-black text-slate-800 uppercase tracking-tight">{t.syncSuccess}</p>
+                    <p className="text-sm font-black text-slate-800 uppercase tracking-tight">
+                      {error ? 'API Connection Failed' : t.syncSuccess}
+                    </p>
                     <div className="flex items-center gap-3 mt-1">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1"><Clock size={12}/> {new Date().toLocaleTimeString()}</span>
-                        <span className="text-[10px] font-bold text-emerald-500 uppercase">Success</span>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1">
+                          <Clock size={12}/> {lastSync.toLocaleTimeString()}
+                        </span>
+                        <span className={`text-[10px] font-bold uppercase ${error ? 'text-red-500' : 'text-emerald-500'}`}>
+                          {error ? 'Critical' : 'Success'}
+                        </span>
                     </div>
                   </div>
                </div>

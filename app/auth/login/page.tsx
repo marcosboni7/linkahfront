@@ -3,9 +3,9 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Mail, Lock, ChevronLeft, ArrowRight, Loader2 } from 'lucide-react';
+import { Mail, Lock, ChevronLeft, ArrowRight, Loader2, ShieldCheck } from 'lucide-react';
 
-const API_URL_BASE = 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
+const API_URL_BASE = 'https://linkah-back.onrender.com';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -16,46 +16,51 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (errors.email || !email || !senha) return;
+    setErrors({});
     setIsLoading(true);
+
+    const emailFormatado = email.trim().toLowerCase();
 
     try {
       const response = await fetch(`${API_URL_BASE}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim().toLowerCase(), senha }),
+        body: JSON.stringify({ email: emailFormatado, senha }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        // --- SALVAMENTO DE DADOS (CRUCIAL PARA A TABELA FUNCIONAR) ---
+        // --- PERSISTÊNCIA DE DADOS (Protocolo Linkah) ---
         
-        // 1. Salva o Token de autenticação
+        // 1. Token de Sessão
         window.localStorage.setItem('@Linkah:Token', data.token);
         
-        // 2. Salva o e-mail no LocalStorage (para a Tabela e Novo Evento lerem)
-        const emailFormatado = email.trim().toLowerCase();
+        // 2. Email para referência rápida (usado nos filtros das tabelas)
         window.localStorage.setItem('userEmail', emailFormatado);
         
-        // 3. Salva o objeto do usuário completo (boa prática)
+        // 3. Objeto de Usuário Completo
         const userData = {
            email: emailFormatado,
            id: data.user?.id,
-           perfil: 'produtor'
+           perfil: data.user?.perfil || 'produtor',
+           nome: data.user?.nome
         };
         window.localStorage.setItem('@Linkah:User', JSON.stringify(userData));
 
-        // 4. Mantém o cookie para compatibilidade de servidor (SSR)
+        // 4. Cookie para Middleware/SSR
         document.cookie = `userEmail=${emailFormatado}; path=/; max-age=86400; SameSite=Lax`;
 
-        // Redirecionamento baseado no perfil
-        window.location.href = data.user?.perfil_completo ? '/dashboard/eventos' : '/dashboard/perfil';
+        // Redirecionamento Inteligente
+        // Se o perfil não estiver completo, manda para o perfil, senão, para o dashboard de eventos
+        const targetPath = data.user?.perfil_completo ? '/dashboard/eventos' : '/dashboard/perfil';
+        
+        router.push(targetPath);
       } else {
-        setErrors({ senha: data.message || "Credenciais inválidas" });
+        setErrors({ senha: data.message || "Credenciais não autorizadas pelo sistema." });
       }
     } catch (error) {
-      setErrors({ senha: 'Erro de conexão com o servidor.' });
+      setErrors({ senha: 'Falha crítica na conexão com o servidor.' });
     } finally {
       setIsLoading(false);
     }
@@ -64,104 +69,112 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen bg-white font-sans antialiased text-[#1D1D1F]">
       
-      {/* LADO ESQUERDO: BACKGROUND IMERSIVO */}
-      <div className="hidden lg:flex w-[50%] relative overflow-hidden bg-black">
+      {/* LADO ESQUERDO: VISUAL IDENTITY */}
+      <div className="hidden lg:flex w-[55%] relative overflow-hidden bg-black">
         <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-60 scale-105"
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-50 scale-110 animate-pulse duration-[10s]"
           style={{ backgroundImage: `url('https://images.unsplash.com/photo-1492684223066-81342ee5ff30?q=80&w=2070&auto=format&fit=crop')` }}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/80" />
+        <div className="absolute inset-0 bg-gradient-to-tr from-black via-black/40 to-transparent" />
 
-        <div className="relative z-10 flex flex-col justify-between p-16 w-full">
+        <div className="relative z-10 flex flex-col justify-between p-20 w-full">
           <div className="flex items-center gap-2">
-             <span className="text-2xl font-black tracking-tighter text-white italic">LINKAH.</span>
+             <span className="text-3xl font-black tracking-tighter text-white italic">LINKAH<span className="text-[#FF4D4D]">.</span></span>
           </div>
 
-          <div className="max-w-md">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 mb-6">
-               <span className="w-1.5 h-1.5 bg-[#FF4D4D] rounded-full animate-ping" />
-               <span className="text-[10px] font-bold text-white uppercase tracking-widest">Acesso Produtor</span>
+          <div className="max-w-xl">
+            <div className="inline-flex items-center gap-3 px-4 py-2 rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 mb-8">
+               <span className="w-2 h-2 bg-[#FF4D4D] rounded-full animate-ping" />
+               <span className="text-[10px] font-black text-white uppercase tracking-[0.3em]">Ambiente de Produção v2.6</span>
             </div>
-            <h1 className="text-7xl font-bold text-white leading-[1.05] tracking-tight mb-6">
-              Sua jornada para o <span className="text-[#FF4D4D]">extraordinário.</span>
+            <h1 className="text-8xl font-black text-white leading-[0.95] tracking-tighter mb-8 italic uppercase">
+              Transforme <br/>o <span className="text-[#FF4D4D]">Agora.</span>
             </h1>
-            <p className="text-gray-300 text-lg font-medium leading-relaxed">
-              Gerencie seus eventos e acompanhe suas vendas em tempo real.
+            <p className="text-gray-400 text-xl font-medium leading-relaxed max-w-md">
+              Acesse sua central de inteligência para gestão de eventos, vendas e audiência.
             </p>
           </div>
 
-          <div className="text-white/30 text-[10px] font-bold uppercase tracking-[0.4em]">
-            Linkah Ecosystem © 2026
+          <div className="flex items-center gap-8 text-white/20 text-[10px] font-black uppercase tracking-[0.4em]">
+            <span>Linkah Ecosystem © 2026</span>
+            <div className="h-px w-12 bg-white/10" />
+            <span>Secure Access</span>
           </div>
         </div>
       </div>
 
-      {/* LADO DIREITO: FORMULÁRIO */}
-      <div className="flex-1 flex flex-col justify-center items-center px-8 lg:px-20 bg-white">
-        <div className="w-full max-w-[420px]">
+      {/* LADO DIREITO: LOGIN ENGINE */}
+      <div className="flex-1 flex flex-col justify-center items-center px-8 lg:px-24 bg-white">
+        <div className="w-full max-w-[400px] animate-in fade-in slide-in-from-right-8 duration-700">
           
-          <Link href="/" className="flex items-center gap-1 text-gray-400 hover:text-black transition-colors text-[11px] font-bold uppercase tracking-widest mb-12">
-            <ChevronLeft size={16} /> Voltar para o início
+          <Link href="/" className="group flex items-center gap-2 text-gray-400 hover:text-black transition-all text-[10px] font-black uppercase tracking-[0.2em] mb-16">
+            <ChevronLeft size={16} className="group-hover:-translate-x-1 transition-transform" /> Voltar ao Início
           </Link>
 
-          <header className="mb-10">
-            <h2 className="text-4xl font-black text-black italic uppercase tracking-tighter mb-2">Login</h2>
-            <p className="text-gray-500 font-medium">Bem-vindo de volta, Produtor.</p>
+          <header className="mb-12">
+            <h2 className="text-5xl font-black text-black italic uppercase tracking-tighter mb-3">Login</h2>
+            <div className="flex items-center gap-2 text-gray-400">
+              <ShieldCheck size={16} className="text-emerald-500" />
+              <p className="font-bold text-sm uppercase tracking-tight">Portal do Produtor Autorizado</p>
+            </div>
           </header>
 
-          <form onSubmit={handleLogin} className="space-y-6">
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-[0.15em] text-gray-400 ml-1">E-mail</label>
-              <div className="relative">
-                <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-300" size={18} />
+          <form onSubmit={handleLogin} className="space-y-7">
+            <div className="space-y-3">
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 ml-1">Credencial de E-mail</label>
+              <div className="relative group">
+                <Mail className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-black transition-colors" size={20} />
                 <input
                   required
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="exemplo@email.com"
-                  className="w-full pl-14 pr-6 py-5 bg-white border border-gray-100 rounded-2xl outline-none focus:border-black focus:ring-4 focus:ring-gray-50 transition-all font-semibold text-black shadow-sm"
+                  placeholder="name@linkah.com"
+                  className="w-full pl-16 pr-8 py-6 bg-gray-50/50 border border-gray-100 rounded-[2rem] outline-none focus:bg-white focus:border-black focus:ring-8 focus:ring-gray-50 transition-all font-bold text-black"
                 />
               </div>
             </div>
 
-            <div className="space-y-2">
-              <div className="flex justify-between items-center px-1">
-                <label className="text-[10px] font-black uppercase tracking-[0.15em] text-gray-400">Senha</label>
-                <button type="button" className="text-[10px] font-bold text-gray-400 hover:text-black uppercase tracking-widest">Esqueceu?</button>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center px-2">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Chave de Acesso</label>
+                <button type="button" className="text-[10px] font-black text-gray-300 hover:text-[#FF4D4D] uppercase tracking-widest transition-colors">Esqueceu?</button>
               </div>
-              <div className="relative">
-                <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-300" size={18} />
+              <div className="relative group">
+                <Lock className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-black transition-colors" size={20} />
                 <input
                   required
                   type="password"
                   value={senha}
                   onChange={(e) => setSenha(e.target.value)}
-                  placeholder="Sua senha"
-                  className="w-full pl-14 pr-6 py-5 bg-white border border-gray-100 rounded-2xl outline-none focus:border-black focus:ring-4 focus:ring-gray-50 transition-all font-semibold text-black shadow-sm"
+                  placeholder="••••••••"
+                  className="w-full pl-16 pr-8 py-6 bg-gray-50/50 border border-gray-100 rounded-[2rem] outline-none focus:bg-white focus:border-black focus:ring-8 focus:ring-gray-50 transition-all font-bold text-black"
                 />
               </div>
             </div>
 
             {errors.senha && (
-              <p className="text-[11px] text-[#FF4D4D] font-bold uppercase text-center italic">{errors.senha}</p>
+              <div className="bg-red-50 border border-red-100 p-4 rounded-2xl flex items-center gap-3">
+                <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
+                <p className="text-[10px] text-red-500 font-black uppercase tracking-widest italic">{errors.senha}</p>
+              </div>
             )}
 
             <button
               disabled={isLoading}
-              className="w-full bg-[#030712] text-white py-6 rounded-2xl font-black uppercase text-xs tracking-[0.2em] shadow-xl hover:bg-black transition-all flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-70"
+              className="w-full bg-[#030712] text-white py-7 rounded-[2rem] font-black uppercase text-xs tracking-[0.3em] shadow-2xl shadow-gray-200 hover:bg-black hover:-translate-y-1 transition-all flex items-center justify-center gap-4 active:scale-[0.98] disabled:opacity-70 disabled:hover:translate-y-0"
             >
               {isLoading ? (
                 <Loader2 className="animate-spin" />
               ) : (
-                <>Acessar Painel <ArrowRight size={18} className="text-[#FF4D4D]" /></>
+                <>Entrar no Sistema <ArrowRight size={20} className="text-[#FF4D4D]" /></>
               )}
             </button>
           </form>
 
-          <footer className="mt-12 text-center">
-            <p className="text-[12px] font-bold text-gray-400">
-              Novo por aqui? <Link href="/auth/registro" className="text-black hover:underline ml-1">Criar conta de produtor</Link>
+          <footer className="mt-16 pt-8 border-t border-gray-50 text-center">
+            <p className="text-[11px] font-black uppercase tracking-widest text-gray-400">
+              Não possui acesso? <Link href="/auth/registro" className="text-black hover:text-[#FF4D4D] transition-colors ml-2 underline decoration-gray-200 underline-offset-4">Solicitar Conta</Link>
             </p>
           </footer>
         </div>

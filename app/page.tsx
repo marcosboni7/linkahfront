@@ -33,7 +33,7 @@ const CategoryFilter = dynamic(() => import('./site/CategoryFilter').then(mod =>
   ssr: false 
 });
 
-const API_URL_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
+const API_URL_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://linkah-back.onrender.com';
 
 const iconMap: { [key: string]: any } = {
   Todos: Ticket,

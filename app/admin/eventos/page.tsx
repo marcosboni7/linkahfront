@@ -3,12 +3,14 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Search, Trash2, RefreshCcw, MapPin, 
-  Save, X, Edit3, Loader2, AlertCircle, Image as ImageIcon
+  Save, X, Edit3, Loader2, AlertCircle, Image as ImageIcon,
+  DollarSign, Calendar
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { useLanguage } from '@/app/context/LanguageContext';
 
-const API_URL = 'https://zmn9xuwd4y.us-east-1.awsapprunner.com/api/eventos';
+// --- API ATUALIZADA PARA O RENDER ---
+const API_URL = 'https://linkah-back.onrender.com/api/eventos';
 
 export default function AdminEventos() {
   const { t } = useLanguage();
@@ -25,17 +27,23 @@ export default function AdminEventos() {
   const carregarDados = async () => {
     setLoading(true);
     try {
+      // Rota de vitrine no backend do Render
       const res = await fetch(`${API_URL}/vitrine`);
       if (res.ok) {
         const data = await res.json();
-        const formatados = Array.isArray(data) ? data.filter((ev: any) => ev.status !== 'Excluído').map((ev: any) => ({
+        
+        // Filtra deletados e formata a data para o padrão de input HTML (yyyy-MM-dd)
+        const formatados = Array.isArray(data) ? data
+          .filter((ev: any) => ev.status !== 'Excluído')
+          .map((ev: any) => ({
             ...ev,
             data: ev.data_inicio ? ev.data_inicio.split('T')[0] : (ev.data ? ev.data.split('T')[0] : '') 
-        })) : [];
+          })) : [];
+          
         setEventos(formatados);
       }
     } catch (err) {
-      console.error("❌ Erro ao carregar dados:", err);
+      console.error("❌ Erro ao conectar com o Render:", err);
     } finally {
       setLoading(false);
     }
@@ -78,16 +86,16 @@ export default function AdminEventos() {
       if (res.ok) {
         setIsModalOpen(false);
         Swal.fire({
-            icon: 'success',
-            title: t.done,
-            showConfirmButton: false,
-            timer: 1500,
-            customClass: { popup: 'rounded-[2rem]' }
+          icon: 'success',
+          title: 'Sincronizado!',
+          showConfirmButton: false,
+          timer: 1500,
+          customClass: { popup: 'rounded-[3rem]' }
         });
         await carregarDados();
       }
     } catch (err) {
-      Swal.fire('Error', 'Connection failed', 'error');
+      Swal.fire('Erro', 'Falha ao salvar no Render', 'error');
     } finally {
       setIsProcessing(null);
     }
@@ -95,12 +103,15 @@ export default function AdminEventos() {
 
   const handleExcluir = async (evento: any) => {
     const result = await Swal.fire({
-        title: 'Confirm?',
-        text: evento.nome,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#ff4d4d',
-        customClass: { popup: 'rounded-[2rem]' }
+      title: 'Remover da Vitrine?',
+      text: `O evento "${evento.nome}" será ocultado.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#0f172a',
+      cancelButtonColor: '#f43f5e',
+      confirmButtonText: 'Sim, remover',
+      cancelButtonText: 'Cancelar',
+      customClass: { popup: 'rounded-[3rem]' }
     });
 
     if (!result.isConfirmed) return;
@@ -112,21 +123,28 @@ export default function AdminEventos() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...evento, status: 'Excluído' })
       });
+
       if (res.ok) {
         setEventos(prev => prev.filter(ev => ev.id !== evento.id));
+        Swal.fire({ title: 'Removido!', icon: 'success', timer: 1000, showConfirmButton: false });
       }
     } catch (err) {
-      console.error("❌ Erro:", err);
+      console.error("❌ Erro na exclusão:", err);
     } finally { setIsProcessing(null); }
   };
 
   return (
     <div className="p-6 lg:p-12 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-700">
       
+      {/* HEADER */}
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-5xl font-black tracking-tighter text-slate-900 uppercase italic">{t.eventsTitle}</h1>
-          <p className="text-slate-400 font-bold text-xs uppercase tracking-[0.2em] mt-2">{t.eventsSub}</p>
+          <h1 className="text-5xl font-black tracking-tighter text-slate-900 uppercase italic">
+            {t.eventsTitle || 'Eventos'}
+          </h1>
+          <p className="text-slate-400 font-bold text-xs uppercase tracking-[0.2em] mt-2">
+            Console de Administração • Render Host Ativo
+          </p>
         </div>
         
         <div className="flex items-center gap-4">
@@ -134,10 +152,10 @@ export default function AdminEventos() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
             <input 
               type="text" 
-              placeholder={t.searchPlaceholder}
+              placeholder="Buscar na vitrine..."
               value={filtroBusca}
               onChange={(e) => setFiltroBusca(e.target.value)}
-              className="pl-12 pr-6 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:ring-4 ring-rose-500/5 font-bold shadow-sm w-full md:w-80 transition-all text-sm"
+              className="pl-12 pr-6 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:ring-4 ring-rose-500/5 font-bold shadow-sm w-full md:w-80 transition-all text-sm text-slate-900"
             />
           </div>
           <button 
@@ -149,15 +167,16 @@ export default function AdminEventos() {
         </div>
       </header>
 
+      {/* TABELA DE DADOS */}
       <div className="bg-white rounded-[3.5rem] border border-slate-100 shadow-2xl shadow-slate-200/40 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/50 text-slate-400 text-[10px] uppercase font-black tracking-[0.2em] border-b border-slate-100">
-                <th className="px-10 py-8">{t.thThumbnail}</th>
-                <th className="px-10 py-8 text-center">{t.thDateTime}</th>
-                <th className="px-10 py-8 text-center">{t.thStatus}</th>
-                <th className="px-10 py-8 text-right">{t.thActions}</th>
+                <th className="px-10 py-8">Evento</th>
+                <th className="px-10 py-8 text-center">Data e Hora</th>
+                <th className="px-10 py-8 text-center">Status</th>
+                <th className="px-10 py-8 text-right">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
@@ -165,15 +184,7 @@ export default function AdminEventos() {
                 <tr>
                   <td colSpan={4} className="px-10 py-20 text-center">
                     <Loader2 className="animate-spin mx-auto text-slate-200" size={40} />
-                    <p className="text-slate-300 font-black uppercase text-[10px] mt-4 tracking-widest">{t.syncingShowcase}</p>
                   </td>
-                </tr>
-              ) : eventos.length === 0 ? (
-                <tr>
-                    <td colSpan={4} className="px-10 py-20 text-center">
-                      <AlertCircle className="mx-auto text-slate-100" size={48} />
-                      <p className="text-slate-300 font-black uppercase text-[10px] mt-4 tracking-widest">{t.noEvents}</p>
-                    </td>
                 </tr>
               ) : (
                 eventos
@@ -204,7 +215,7 @@ export default function AdminEventos() {
                         </div>
                       </td>
                       <td className="px-10 py-6 text-center">
-                          <span className="px-3 py-1 bg-emerald-50 text-emerald-500 rounded-lg text-[9px] font-black uppercase tracking-widest border border-emerald-100">Ativo</span>
+                        <span className="px-3 py-1 bg-emerald-50 text-emerald-500 rounded-lg text-[9px] font-black uppercase tracking-widest border border-emerald-100 italic">Publicado</span>
                       </td>
                       <td className="px-10 py-6 text-right">
                         <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all">
@@ -222,36 +233,42 @@ export default function AdminEventos() {
         </div>
       </div>
 
+      {/* MODAL EDIÇÃO */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[100] flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-2xl rounded-[4rem] p-10 lg:p-14 shadow-2xl overflow-y-auto max-h-[90vh] relative border border-white/20">
-            <button onClick={() => setIsModalOpen(false)} className="absolute top-8 right-8 text-slate-300 hover:text-slate-900"><X size={28} /></button>
-            <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic mb-10">{t.editEventTitle}</h2>
+          <div className="bg-white w-full max-w-2xl rounded-[4rem] p-10 lg:p-14 shadow-2xl overflow-y-auto max-h-[90vh] relative border border-white/20 animate-in zoom-in-95 duration-300">
+            <button onClick={() => setIsModalOpen(false)} className="absolute top-8 right-8 text-slate-300 hover:text-slate-900 transition-colors"><X size={28} /></button>
+            <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic mb-10">Editar Evento</h2>
             
             <form onSubmit={salvarEdicao} className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="col-span-2 space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t.labelEventTitle}</label>
-                <input className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl font-black italic uppercase text-slate-900 outline-none focus:bg-white transition-all" value={eventoParaEditar.nome} onChange={(e) => setEventoParaEditar({...eventoParaEditar, nome: e.target.value})} />
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Título do Evento</label>
+                <input className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl font-black italic uppercase text-slate-900 outline-none focus:bg-white transition-all" value={eventoParaEditar.nome} onChange={(e) => setEventoParaEditar({...eventoParaEditar, nome: e.target.value})} required />
               </div>
               
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t.labelDate}</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1"><Calendar size={12}/> Data</label>
                 <input type="date" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none focus:bg-white text-slate-800" value={eventoParaEditar.data} onChange={(e) => setEventoParaEditar({...eventoParaEditar, data: e.target.value})} />
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t.labelTime}</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Horário</label>
                 <input type="time" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none focus:bg-white text-slate-800" value={eventoParaEditar.horario} onChange={(e) => setEventoParaEditar({...eventoParaEditar, horario: e.target.value})} />
               </div>
 
               <div className="col-span-2 space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t.labelLocation}</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Localização</label>
                 <input className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none focus:bg-white text-slate-800" value={eventoParaEditar.local} onChange={(e) => setEventoParaEditar({...eventoParaEditar, local: e.target.value})} />
               </div>
 
-              <button type="submit" disabled={isProcessing === 'salvando'} className="col-span-2 bg-slate-900 text-white py-6 rounded-3xl font-black uppercase tracking-[0.3em] hover:bg-rose-500 transition-all flex items-center justify-center gap-3 text-xs shadow-xl active:scale-95">
+              <div className="col-span-2 space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1"><DollarSign size={12}/> Preço</label>
+                <input type="number" step="0.01" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none focus:bg-white text-slate-800" value={eventoParaEditar.preco} onChange={(e) => setEventoParaEditar({...eventoParaEditar, preco: e.target.value})} />
+              </div>
+
+              <button type="submit" disabled={isProcessing === 'salvando'} className="col-span-2 bg-slate-900 text-white py-6 rounded-3xl font-black uppercase tracking-[0.3em] hover:bg-rose-500 transition-all flex items-center justify-center gap-3 text-xs shadow-xl active:scale-95 disabled:opacity-50">
                 {isProcessing === 'salvando' ? <Loader2 className="animate-spin" /> : <Save size={20} />}
-                {t.btnSyncChanges}
+                Sincronizar no Render
               </button>
             </form>
           </div>

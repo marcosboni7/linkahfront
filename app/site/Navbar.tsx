@@ -9,7 +9,7 @@ import {
   User, ChevronDown, MapPin
 } from 'lucide-react';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zmn9xuwd4y.us-east-1.awsapprunner.com';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://linkah-back.onrender.com';
 
 export function Navbar() {
   const [usuario, setUsuario] = useState<{ nome: string; email?: string; role?: string } | null>(null);
