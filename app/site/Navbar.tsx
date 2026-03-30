@@ -1,237 +1,275 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useLanguage } from '@/app/context/LanguageContext';
-import { 
-  Ticket, LogOut, X, Calendar, 
-  Loader2, MessagesSquare, ChevronRight,
-  User, ChevronDown, MapPin
-} from 'lucide-react';
+import { Mail, Lock, ChevronLeft, ArrowRight, Loader2, Sparkles } from 'lucide-react';
 
+// --- CONFIGURAÇÃO DA API ---
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api-linkah.onrender.com';
 
-export function Navbar() {
-  const [usuario, setUsuario] = useState<{ nome: string; email?: string; role?: string } | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [buscandoTickets, setBuscandoTickets] = useState(false);
-  const [meusIngressos, setMeusIngressos] = useState<any[]>([]);
-  
-  const { language, setLanguage, t, isMounted } = useLanguage();
-  const menuRef = useRef<HTMLDivElement>(null);
+export default function LoginPage() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  // --- BUSCA USUÁRIO NO STORAGE ---
+  const [email, setEmail] = useState('');
+  const [senha, setSenha] = useState('');
+
   useEffect(() => {
-    const checkUser = () => {
-      const savedUser = localStorage.getItem('@Linkah:User');
-      console.log("🔍 Navbar verificando Storage:", savedUser);
+    if (error) setError('');
+  }, [email, senha]);
 
-      if (savedUser) {
-        try { 
-          const parsed = JSON.parse(savedUser);
-          if (parsed && (parsed.nome || parsed.email)) {
-            console.log("✅ Usuário carregado na Navbar:", parsed.nome);
-            setUsuario(parsed);
-          }
-        } catch (e) { 
-          console.error("❌ Erro ao parsear usuário do localStorage", e); 
-        }
-      } else {
-        console.log("ℹ️ Nenhum usuário encontrado no LocalStorage.");
-        setUsuario(null);
-      }
-    };
-
-    checkUser();
-
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setIsMenuOpen(false);
-      }
-    };
-
-    window.addEventListener('mousedown', handleClickOutside);
-    return () => window.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const handleLogout = () => {
-    console.log("🚪 Realizando logout...");
-    localStorage.removeItem('@Linkah:Token');
-    localStorage.removeItem('@Linkah:User');
-    setUsuario(null);
-    window.location.href = '/';
-  };
-
-  const carregarMeusIngressos = async () => {
-    if (!usuario?.email) return;
-    const token = localStorage.getItem('@Linkah:Token');
-
-    setIsModalOpen(true);
-    setIsMenuOpen(false);
-    setBuscandoTickets(true);
+  async function handleLogin(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
 
     try {
-      const response = await fetch(`${API_URL}/api/pagamento/meus-ingressos?email=${usuario.email}`, {
+      const url = `${API_URL}/api/auth/login`;
+      console.log('='.repeat(60));
+      console.log('🚀 INICIANDO LOGIN');
+      console.log('🌐 URL:', url);
+      console.log('📨 Payload enviado:', { email, senha: '********' });
+
+      const response = await fetch(url, {
+        method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({ email, senha }),
       });
 
-      if (response.ok) {
-        const dados = await response.json();
-        setMeusIngressos(dados);
-      } else {
-        console.error("Erro na resposta da API:", response.status);
-      }
-    } catch (err) {
-      console.error("Erro ao carregar ingressos:", err);
-    } finally {
-      setBuscandoTickets(false);
-    }
-  };
+      console.log('📡 Status HTTP:', response.status);
+      console.log('📡 OK?:', response.ok);
+      console.log('📡 Content-Type:', response.headers.get('content-type'));
 
-  // Previne erros de hidratação
-  if (!isMounted) return <div className="h-16 bg-white border-b border-gray-200" />;
+      const rawText = await response.text();
+      console.log('📄 Resposta bruta da API:', rawText);
+
+      let data: any = {};
+
+      try {
+        data = rawText ? JSON.parse(rawText) : {};
+      } catch (parseError) {
+        console.error('❌ Erro ao parsear JSON:', parseError);
+        throw new Error('A API respondeu em formato inválido. Não veio um JSON válido.');
+      }
+
+      console.log('📦 JSON parseado:', data);
+
+      if (!response.ok) {
+        throw new Error(
+          data?.message ||
+          data?.error ||
+          data?.mensagem ||
+          'E-mail ou senha incorretos'
+        );
+      }
+
+      // Aceita vários formatos possíveis de token
+      const token =
+        data?.token ||
+        data?.accessToken ||
+        data?.access_token ||
+        data?.jwt ||
+        data?.data?.token ||
+        data?.data?.accessToken ||
+        data?.usuario?.token ||
+        null;
+
+      // Aceita vários formatos possíveis de usuário
+      const usuarioParaSalvar =
+        data?.user ||
+        data?.usuario ||
+        data?.data?.user ||
+        data?.data?.usuario ||
+        (data?.nome || data?.email
+          ? {
+              nome: data?.nome || email.split('@')[0],
+              email: data?.email || email,
+              role: data?.role || 'membro',
+            }
+          : {
+              nome: email.split('@')[0],
+              email,
+              role: 'membro',
+            });
+
+      console.log('🔑 Token encontrado:', token);
+      console.log('👤 Usuário montado para salvar:', usuarioParaSalvar);
+
+      if (!token) {
+        console.error('❌ Login respondeu sem token.');
+        throw new Error(
+          'Login respondeu com sucesso, mas nenhum token foi encontrado na resposta da API.'
+        );
+      }
+
+      // Salva no storage
+      localStorage.setItem('@Linkah:Token', token);
+      localStorage.setItem('@Linkah:User', JSON.stringify(usuarioParaSalvar));
+
+      // Confirma se salvou mesmo
+      const tokenSalvo = localStorage.getItem('@Linkah:Token');
+      const userSalvo = localStorage.getItem('@Linkah:User');
+
+      console.log('💾 Token salvo no localStorage:', tokenSalvo);
+      console.log('💾 Usuário salvo no localStorage:', userSalvo);
+
+      if (!tokenSalvo || !userSalvo) {
+        throw new Error('Falha ao salvar sessão no navegador.');
+      }
+
+      console.log('✅ Login realizado com sucesso!');
+      alert('Logado com sucesso!');
+
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 300);
+    } catch (err: any) {
+      console.error('❌ Erro no Login:', err);
+      setError(err?.message || 'Erro ao conectar com o servidor');
+    } finally {
+      setLoading(false);
+      console.log('🏁 FIM DO LOGIN');
+      console.log('='.repeat(60));
+    }
+  }
 
   return (
-    <>
-      <nav className="fixed top-0 left-0 right-0 z-[60] bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
-          
-          {/* ESQUERDA: LOGO */}
-          <div className="flex items-center gap-8">
-            <Link href="/" className="flex items-center">
-              <span className="text-2xl font-black tracking-tighter text-blue-600">
-                LINKAH
-              </span>
-            </Link>
+    <div className="min-h-screen bg-[#FCFBFA] flex flex-col lg:flex-row font-sans antialiased">
+      {/* LADO ESQUERDO: VISUAL */}
+      <div className="hidden lg:flex lg:w-1/2 bg-slate-950 relative items-center justify-center overflow-hidden">
+        <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-[#ff4d4d] opacity-10 blur-[120px] rounded-full" />
+        <div className="absolute bottom-[-10%] left-[-10%] w-[300px] h-[300px] bg-white opacity-5 blur-[100px] rounded-full" />
 
-            <div className="hidden lg:flex items-center gap-6">
-              <Link 
-                href="/comunidades" 
-                className="flex items-center gap-2 text-gray-600 hover:text-blue-600 transition-colors text-sm font-medium"
-              >
-                <MessagesSquare size={18} strokeWidth={2} />
-                {t.community || 'Comunidade'}
-              </Link>
+        <div className="relative z-10 p-12 text-center max-w-lg">
+          <Link href="/" className="text-white text-3xl font-bold tracking-tighter mb-12 block group">
+            LINKAH<span className="text-[#ff4d4d] group-hover:animate-pulse">.</span>
+          </Link>
+
+          <div className="space-y-6">
+            <div className="inline-flex items-center gap-2 bg-white/5 border border-white/10 px-4 py-2 rounded-full text-white/60 text-[10px] font-bold tracking-[0.2em] uppercase mb-4">
+              <Sparkles size={14} className="text-[#ff4d4d]" /> Acesso Exclusivo
             </div>
+            <h2 className="text-white text-6xl font-bold leading-[1.1] tracking-tight">
+              Sua jornada <br /> para o <span className="text-[#ff4d4d]">extraordinário</span>.
+            </h2>
+            <p className="text-slate-400 text-lg font-light leading-relaxed">
+              Entre para gerenciar seus ingressos e explorar novas experiências.
+            </p>
           </div>
+        </div>
 
-          {/* DIREITA: ACTIONS */}
-          <div className="flex items-center gap-4">
-            
-            {/* SELETOR DE IDIOMA */}
-            <div className="hidden sm:flex bg-gray-100 p-1 rounded-lg mr-2">
-              {['PT', 'EN'].map((lang) => (
-                <button
-                  key={lang}
-                  onClick={() => setLanguage(lang as any)}
-                  className={`px-2 py-1 text-[10px] font-bold rounded-md transition-all ${
-                    language === lang 
-                    ? 'bg-white text-gray-900 shadow-sm' 
-                    : 'text-gray-400 hover:text-gray-600'
-                  }`}
-                >
-                  {lang}
-                </button>
-              ))}
-            </div>
+        <img
+          src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?q=80&w=2070"
+          className="absolute inset-0 w-full h-full object-cover opacity-20"
+          alt="Evento"
+        />
+      </div>
 
-            {usuario ? (
-              <div className="relative flex items-center gap-4" ref={menuRef}>
-                <button 
-                  onClick={carregarMeusIngressos}
-                  className="hidden md:flex items-center gap-2 text-gray-600 hover:text-blue-600 transition-colors text-sm font-medium"
-                >
-                  <Ticket size={18} />
-                  {t.myTickets || 'Meus Ingressos'}
-                </button>
+      {/* LADO DIREITO: FORMULÁRIO */}
+      <div className="flex-1 flex items-center justify-center p-8 md:p-16 bg-[#FCFBFA]">
+        <div className="w-full max-w-sm">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-slate-400 hover:text-slate-900 font-bold text-xs tracking-tight mb-12 transition-all group"
+          >
+            <ChevronLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
+            Voltar para o início
+          </Link>
 
-                <div className="w-[1px] h-6 bg-gray-200 hidden md:block" />
+          <div className="mb-10 text-center lg:text-left">
+            <h1 className="text-4xl font-black text-slate-950 tracking-tight mb-3 italic uppercase">
+              Login
+            </h1>
+            <p className="text-slate-500 font-medium">Bem-vindo de volta à Linkah.</p>
 
-                <button 
-                  onClick={() => setIsMenuOpen(!isMenuOpen)}
-                  className="flex items-center gap-2 p-1 pl-3 border border-gray-200 rounded-full hover:shadow-md transition-all bg-white"
-                >
-                  <div className="flex flex-col items-end hidden sm:block text-right">
-                    <span className="text-[12px] font-bold text-gray-900 leading-none block">
-                      {usuario.nome?.split(' ')[0] || 'Membro'}
-                    </span>
-                    <span className="text-[10px] text-blue-500 font-medium">{t.member || 'Membro'}</span>
-                  </div>
-                  <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center border border-blue-200">
-                    <span className="text-white text-xs font-bold">{usuario.nome?.charAt(0).toUpperCase()}</span>
-                  </div>
-                  <ChevronDown size={14} className={`text-gray-400 transition-transform ${isMenuOpen ? 'rotate-180' : ''}`} />
-                </button>
-
-                {/* DROPDOWN MENU */}
-                {isMenuOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-56 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-                    <div className="p-4 border-b border-gray-50 bg-gray-50/50">
-                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Conta</p>
-                      <p className="text-xs font-bold text-gray-900 truncate mt-1">{usuario.email}</p>
-                    </div>
-                    
-                    <div className="p-1">
-                      <button 
-                        onClick={carregarMeusIngressos}
-                        className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors group"
-                      >
-                        <Ticket size={16} className="text-gray-400 group-hover:text-blue-600" />
-                        {t.myTickets || 'Meus Ingressos'}
-                      </button>
-                      
-                      <Link href="/perfil" className="flex items-center gap-3 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors group">
-                        <User size={16} className="text-gray-400 group-hover:text-blue-600" />
-                        Perfil
-                      </Link>
-                    </div>
-
-                    <div className="p-1 border-t border-gray-100">
-                      <button 
-                        onClick={handleLogout}
-                        className="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      >
-                        <LogOut size={16} />
-                        {t.logout || 'Sair'}
-                      </button>
-                    </div>
-                  </div>
-                )}
+            {error && (
+              <div className="mt-6 bg-rose-50 text-rose-600 p-4 rounded-2xl text-sm font-semibold border border-rose-100 flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
+                {error}
               </div>
-            ) : (
-              <Link
-                href="/site/login"
-                className="bg-blue-600 text-white text-sm font-bold px-6 py-2 rounded-lg hover:bg-blue-700 transition-all active:scale-95 shadow-sm"
-              >
-                {t.login || 'Entrar'}
-              </Link>
             )}
           </div>
-        </div>
-      </nav>
 
-      {/* MODAL DE INGRESSOS */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setIsModalOpen(false)} />
-          <div className="relative bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
-             {/* Conteúdo do modal omitido para brevidade, mas mantido no seu código original */}
-             <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-white">
-               <h2 className="text-xl font-bold">Meus Ingressos</h2>
-               <button onClick={() => setIsModalOpen(false)}><X size={20} /></button>
-             </div>
-             <div className="p-10 text-center">
-                {buscandoTickets ? <Loader2 className="animate-spin mx-auto" /> : <p>Lista de ingressos aqui...</p>}
-             </div>
+          <form onSubmit={handleLogin} className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                E-mail
+              </label>
+              <div className="relative group">
+                <Mail
+                  className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#ff4d4d] transition-colors"
+                  size={18}
+                />
+                <input
+                  required
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="exemplo@email.com"
+                  className="w-full bg-white border border-slate-100 rounded-[1.25rem] py-4 pl-14 pr-6 text-sm outline-none focus:ring-4 focus:ring-[#ff4d4d]/5 focus:border-[#ff4d4d] shadow-sm transition-all placeholder:text-slate-300 font-medium text-slate-900"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex justify-between items-center ml-1">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  Senha
+                </label>
+                <button
+                  type="button"
+                  className="text-[11px] font-bold text-slate-400 hover:text-[#ff4d4d] transition-colors"
+                >
+                  Esqueceu?
+                </button>
+              </div>
+              <div className="relative group">
+                <Lock
+                  className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#ff4d4d] transition-colors"
+                  size={18}
+                />
+                <input
+                  required
+                  type="password"
+                  value={senha}
+                  onChange={(e) => setSenha(e.target.value)}
+                  placeholder="Sua senha"
+                  className="w-full bg-white border border-slate-100 rounded-[1.25rem] py-4 pl-14 pr-6 text-sm outline-none focus:ring-4 focus:ring-[#ff4d4d]/5 focus:border-[#ff4d4d] shadow-sm transition-all placeholder:text-slate-300 font-medium text-slate-900"
+                />
+              </div>
+            </div>
+
+            <button
+              disabled={loading}
+              type="submit"
+              className="w-full bg-slate-950 text-white py-5 mt-4 rounded-[1.25rem] font-black uppercase text-xs tracking-[0.2em] shadow-xl shadow-slate-200 hover:bg-black transition-all active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50"
+            >
+              {loading ? (
+                <Loader2 className="animate-spin" size={20} />
+              ) : (
+                <>
+                  Acessar Conta <ArrowRight size={18} className="text-[#ff4d4d]" />
+                </>
+              )}
+            </button>
+          </form>
+
+          <div className="mt-12 text-center">
+            <p className="text-sm font-medium text-slate-400">
+              Ainda não faz parte?
+              <Link
+                href="/site/cadastro"
+                className="text-slate-900 font-black ml-2 hover:underline underline-offset-4 decoration-[#ff4d4d] decoration-2"
+              >
+                Criar conta
+              </Link>
+            </p>
           </div>
         </div>
-      )}
-      
-      <div className="h-16" />
-    </>
+      </div>
+    </div>
   );
 }
