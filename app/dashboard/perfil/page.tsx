@@ -11,7 +11,7 @@ import Swal from 'sweetalert2';
 import Link from 'next/link';
 import { useLanguage } from '@/app/context/LanguageContext';
 
-const API_URL = 'https://linkah-back.onrender.com';
+const API_URL = 'https://api-linkah.onrender.com';
 
 interface StripeDetails {
   charges_enabled: boolean;

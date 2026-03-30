@@ -11,7 +11,7 @@ import { useRouter } from 'next/navigation';
 import Swal from 'sweetalert2';
 import { useLanguage } from '@/app/context/LanguageContext';
 
-const API_URL = 'https://linkah-back.onrender.com';
+const API_URL = 'https://api-linkah.onrender.com';
 
 const CATEGORIAS = [
   { id: 'Arte & Cultura', icon: <Music size={14}/> },

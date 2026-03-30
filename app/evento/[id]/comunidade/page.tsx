@@ -8,7 +8,7 @@ import {
 import { useLanguage } from '@/app/context/LanguageContext';
 import Link from 'next/link';
 
-const API_URL = 'https://linkah-back.onrender.com';
+const API_URL = 'https://api-linkah.onrender.com';
 
 export default function SalaLinkahSkype() {
   const { t } = useLanguage();

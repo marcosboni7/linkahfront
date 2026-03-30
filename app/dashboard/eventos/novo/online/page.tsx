@@ -18,7 +18,7 @@ import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/app/context/LanguageContext';
 import Swal from 'sweetalert2';
 
-const API_URL = 'https://linkah-back.onrender.com';
+const API_URL = 'https://api-linkah.onrender.com';
 
 export default function NovoEventoOnline() {
   const { t }: any = useLanguage();

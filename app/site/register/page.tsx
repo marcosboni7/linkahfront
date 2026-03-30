@@ -7,7 +7,7 @@ import { Mail, Lock, User, ChevronLeft, ArrowRight, Loader2, Sparkles } from 'lu
 
 // --- CONFIGURAÇÃO DA API ---
 // Centralizado para evitar erros de digitação (Baseado no seu back do Render)
-const API_URL = 'https://linkah-back.onrender.com';
+const API_URL = 'https://api-linkah.onrender.com';
 
 export default function RegisterPage() {
   const router = useRouter();
