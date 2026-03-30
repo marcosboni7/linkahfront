@@ -107,7 +107,6 @@ export default function NovoEventoOnline() {
       emailProdutor = localStorage.getItem('userEmail') || '';
     }
 
-    // Validações básicas com SweetAlert para manter o estilo
     if (!formData.nome || !formData.categoria || !formData.data_inicio) {
         Swal.fire({
             title: 'CAMPOS OBRIGATÓRIOS',
@@ -195,10 +194,8 @@ export default function NovoEventoOnline() {
       <main className="max-w-7xl mx-auto p-6 md:p-12">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
           
-          {/* COLUNA DE FORMULÁRIO */}
           <div className="lg:col-span-8 space-y-10">
             
-            {/* CARD: INFORMAÇÕES BÁSICAS */}
             <section className="bg-white rounded-[3rem] p-10 shadow-sm border border-slate-100 space-y-8 transition-all hover:shadow-md">
               <div className="flex items-center gap-3 mb-4">
                  <div className="w-10 h-10 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400">
@@ -231,9 +228,12 @@ export default function NovoEventoOnline() {
                   >
                     <option value="">Defina o estilo...</option>
                     <option value="Arte & Cultura">🎨 Arte & Cultura</option>
-                    <option value="Tecnologia & Inovação">🚀 Tecnologia & Inovação</option>
-                    <option value="Música & Performance">🎸 Música & Performance</option>
-                    <option value="Educação & Workshops">📚 Educação & Workshops</option>
+                    <option value="Entretenimento">🎭 Entretenimento</option>
+                    <option value="Negócios">💼 Negócios</option>
+                    <option value="Educação & Desenvolvimento">🎓 Educação & Desenvolvimento</option>
+                    <option value="Esportes & Bem-estar">💙 Esportes & Bem-estar</option>
+                    <option value="Experiências & Lifestyle">✨ Experiências & Lifestyle</option>
+                    <option value="Família & Comunidade">👥 Família & Comunidade</option>
                   </select>
                 </div>
 
@@ -281,7 +281,6 @@ export default function NovoEventoOnline() {
               </div>
             </section>
 
-            {/* CARD: CRONOGRAMA */}
             <section className="bg-white rounded-[3rem] p-10 shadow-sm border border-slate-100 space-y-8">
                <div className="flex items-center gap-3 mb-4">
                  <div className="w-10 h-10 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400">
@@ -310,7 +309,6 @@ export default function NovoEventoOnline() {
             </section>
           </div>
 
-          {/* COLUNA LATERAL: PREVIEW DA CAPA */}
           <div className="lg:col-span-4">
             <div className="bg-white rounded-[3.5rem] p-8 shadow-sm border border-slate-100 sticky top-32">
               <h4 className="text-[9px] text-slate-300 font-black uppercase mb-8 text-center tracking-[0.4em] italic">

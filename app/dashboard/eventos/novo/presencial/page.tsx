@@ -34,9 +34,8 @@ export default function NovoEventoPresencial() {
   });
 
   const initGoogleMaps = useCallback(async () => {
-    // Só inicia se o Google já carregou via Layout e o container existe
     if (typeof window === 'undefined' || !window.google || !mapContainerRef.current) return;
-    if (googleMap.current) return; // Trava para não duplicar
+    if (googleMap.current) return;
 
     try {
       const [{ Map }, { AdvancedMarkerElement }, { Autocomplete }] = await Promise.all([
@@ -92,7 +91,6 @@ export default function NovoEventoPresencial() {
     }
   }, []);
 
-  // Chama a inicialização quando o componente monta
   useEffect(() => {
     const timer = setTimeout(initGoogleMaps, 500);
     return () => clearTimeout(timer);
@@ -126,7 +124,9 @@ export default function NovoEventoPresencial() {
     } catch (e) { emailProdutor = ''; }
 
     if (!token) return Swal.fire('Sessão Expirada', 'Faça login novamente.', 'warning');
-    if (!formData.nome || !formData.data_inicio) return Swal.fire('Atenção', 'Nome e Data são obrigatórios.', 'info');
+    if (!formData.nome || !formData.categoria || !formData.data_inicio) {
+        return Swal.fire('Atenção', 'Nome, Categoria e Data são obrigatórios.', 'info');
+    }
 
     setIsLoading(true);
     const dataToSend = new FormData();
@@ -195,9 +195,12 @@ export default function NovoEventoPresencial() {
                     <select name="categoria" value={formData.categoria} onChange={handleChange} className="w-full bg-slate-50 p-6 rounded-[2rem] outline-none font-bold text-slate-600 focus:bg-white border-2 border-transparent focus:border-pink-100 transition-all shadow-inner appearance-none">
                         <option value="">Selecione...</option>
                         <option value="Arte & Cultura">🎨 Arte & Cultura</option>
-                        <option value="Entretenimento">🍿 Entretenimento</option>
+                        <option value="Entretenimento">🎭 Entretenimento</option>
                         <option value="Negócios">💼 Negócios</option>
-                        <option value="Esportes">🏃‍♂️ Esportes</option>
+                        <option value="Educação & Desenvolvimento">🎓 Educação & Desenvolvimento</option>
+                        <option value="Esportes & Bem-estar">💙 Esportes & Bem-estar</option>
+                        <option value="Experiências & Lifestyle">✨ Experiências & Lifestyle</option>
+                        <option value="Família & Comunidade">👥 Família & Comunidade</option>
                     </select>
                   </div>
                   <div className="space-y-3">
@@ -216,7 +219,6 @@ export default function NovoEventoPresencial() {
               </div>
             </section>
 
-            {/* DATAS */}
             <section className="bg-white rounded-[3rem] p-10 shadow-sm border border-slate-100">
                <div className="flex items-center gap-3 mb-8">
                  <div className="w-10 h-10 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400">
@@ -242,7 +244,6 @@ export default function NovoEventoPresencial() {
               </div>
             </section>
 
-            {/* LOCALIZAÇÃO */}
             <section className="bg-white rounded-[3rem] p-10 shadow-sm border border-slate-100 space-y-8">
                <div className="flex items-center gap-3">
                  <div className="w-10 h-10 bg-slate-50 rounded-2xl flex items-center justify-center text-[#C22973]">
