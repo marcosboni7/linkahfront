@@ -21,7 +21,7 @@ import { useLanguage } from '@/app/context/LanguageContext';
 import Script from 'next/script';
 import Swal from 'sweetalert2';
 
-const API_URL = 'https://api-linkah.onrender.com';
+const API_URL = 'https://linkah-api.onrender.com';
 const GOOGLE_MAPS_KEY = 'AIzaSyDlGFav-T-Dig9xkdqpqfr98pJP8zmWbE8'; 
 
 export default function NovoEventoPresencial() {

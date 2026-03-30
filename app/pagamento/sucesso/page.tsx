@@ -10,7 +10,7 @@ import {
 import Link from 'next/link';
 import { useLanguage } from '@/app/context/LanguageContext';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api-linkah.onrender.com';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://linkah-api.onrender.com';
 
 function TicketVisual() {
   const searchParams = useSearchParams();

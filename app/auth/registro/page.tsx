@@ -10,7 +10,7 @@ import {
   MapPin, Phone, Calendar, Hash
 } from 'lucide-react';
 
-const API_URL_BASE = 'https://api-linkah.onrender.com';
+const API_URL_BASE = 'https://linkah-api.onrender.com';
 
 export default function RegisterPage() {
   const router = useRouter();
