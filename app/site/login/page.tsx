@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { Mail, Lock, ChevronLeft, ArrowRight, Loader2, Sparkles } from 'lucide-react';
 
 // --- CONFIGURAÇÃO DA API ---
-const API_URL = 'https://api-linkah.onrender.com';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api-linkah.onrender.com';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -16,6 +16,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
 
+  // Limpa o erro ao começar a digitar novamente
   useEffect(() => {
     if (error) setError('');
   }, [email, senha]);
@@ -37,34 +38,42 @@ export default function LoginPage() {
         body: JSON.stringify({ email, senha }),
       });
 
-      const contentType = response.headers.get("content-type");
-      let data;
-      if (contentType && contentType.indexOf("application/json") !== -1) {
-        data = await response.json();
-      } else {
-        throw new Error("O servidor não retornou um JSON válido.");
-      }
+      // Captura a resposta
+      const data = await response.json();
+      console.log("📦 Resposta da API:", data);
 
       if (!response.ok) {
         throw new Error(data.message || 'E-mail ou senha incorretos');
       }
 
-      // 1. Salva o Token e os dados do Usuário no navegador
+      // Verificação de sucesso baseada no Token
       if (data.token) {
+        // 1. Salva o Token para requisições futuras
         localStorage.setItem('@Linkah:Token', data.token);
-        localStorage.setItem('@Linkah:User', JSON.stringify(data.user));
         
-        // --- ADICIONADO: ALERTA DE SUCESSO ---
+        // 2. Extrai os dados do usuário. 
+        // Se a API não mandar 'user', pegamos o que estiver disponível ou criamos um perfil básico
+        const usuarioParaSalvar = data.user || data.usuario || { 
+          nome: email.split('@')[0], 
+          email: email,
+          role: 'membro' 
+        };
+
+        localStorage.setItem('@Linkah:User', JSON.stringify(usuarioParaSalvar));
+        
+        console.log("✅ Login realizado e Storage atualizado!");
+        
+        // 3. Alerta visual para o usuário
         alert('Logado com sucesso!');
+
+        // 4. Redirecionamento forçado para a Home
+        // Usamos window.location para garantir que o Next.js recarregue a Navbar
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 300);
+      } else {
+        throw new Error("Token não recebido do servidor.");
       }
-
-      console.log("✅ Login OK! Redirecionando em 500ms...");
-
-      // 2. REDIRECIONAMENTO COM PEQUENO DELAY
-      // O timeout garante que o alert seja visto e os dados persistidos
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 500);
 
     } catch (err: any) {
       console.error("❌ Erro no Login:", err.message);
@@ -75,8 +84,9 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FCFBFA] flex flex-col md:flex-row font-sans antialiased">
-      {/* LADO ESQUERDO: VISUAL PREMIUM */}
+    <div className="min-h-screen bg-[#FCFBFA] flex flex-col lg:flex-row font-sans antialiased">
+      
+      {/* LADO ESQUERDO: VISUAL (Escondido no Mobile) */}
       <div className="hidden lg:flex lg:w-1/2 bg-slate-950 relative items-center justify-center overflow-hidden">
         <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-[#ff4d4d] opacity-10 blur-[120px] rounded-full" />
         <div className="absolute bottom-[-10%] left-[-10%] w-[300px] h-[300px] bg-white opacity-5 blur-[100px] rounded-full" />
@@ -102,7 +112,7 @@ export default function LoginPage() {
         <img 
           src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?q=80&w=2070" 
           className="absolute inset-0 w-full h-full object-cover opacity-20"
-          alt="Evento Contextual"
+          alt="Evento"
         />
       </div>
 
@@ -113,9 +123,9 @@ export default function LoginPage() {
             <ChevronLeft size={16} className="group-hover:-translate-x-1 transition-transform" /> Voltar para o início
           </Link>
 
-          <div className="mb-10">
-            <h1 className="text-4xl font-black text-slate-950 tracking-tight mb-3 italic uppercase text-center md:text-left">Login</h1>
-            <p className="text-slate-500 font-medium text-center md:text-left">Bem-vindo de volta à Linkah.</p>
+          <div className="mb-10 text-center lg:text-left">
+            <h1 className="text-4xl font-black text-slate-950 tracking-tight mb-3 italic uppercase">Login</h1>
+            <p className="text-slate-500 font-medium">Bem-vindo de volta à Linkah.</p>
             
             {error && (
               <div className="mt-6 bg-rose-50 text-rose-600 p-4 rounded-2xl text-sm font-semibold border border-rose-100 flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
@@ -173,7 +183,7 @@ export default function LoginPage() {
           <div className="mt-12 text-center">
              <p className="text-sm font-medium text-slate-400">
                Ainda não faz parte?
-               <Link href="/register" className="text-slate-900 font-black ml-2 hover:underline underline-offset-4 decoration-[#ff4d4d] decoration-2">
+               <Link href="/site/cadastro" className="text-slate-900 font-black ml-2 hover:underline underline-offset-4 decoration-[#ff4d4d] decoration-2">
                  Criar conta
                </Link>
              </p>
