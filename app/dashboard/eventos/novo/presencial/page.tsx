@@ -235,8 +235,8 @@ export default function NovoEventoPresencial() {
                   <div className="space-y-3">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 italic">Capacidade Estimada</label>
                     <div className="relative">
-                       <input name="capacidade" value={formData.capacidade} onChange={handleChange} type="number" placeholder="0" className="w-full bg-slate-50 p-6 rounded-[2rem] outline-none font-bold text-slate-800 shadow-inner" />
-                       <Users className="absolute right-8 top-6 text-slate-300" size={20} />
+                        <input name="capacidade" value={formData.capacidade} onChange={handleChange} type="number" placeholder="0" className="w-full bg-slate-50 p-6 rounded-[2rem] outline-none font-bold text-slate-800 shadow-inner" />
+                        <Users className="absolute right-8 top-6 text-slate-300" size={20} />
                     </div>
                   </div>
                 </div>
@@ -274,7 +274,7 @@ export default function NovoEventoPresencial() {
               </div>
             </section>
 
-            {/* LOCALIZAÇÃO DARK SEARCH */}
+            {/* LOCALIZAÇÃO DETALHADA */}
             <section className="bg-white rounded-[3rem] p-10 shadow-sm border border-slate-100 space-y-8">
                <div className="flex items-center gap-3">
                  <div className="w-10 h-10 bg-slate-50 rounded-2xl flex items-center justify-center text-[#C22973]">
@@ -294,11 +294,21 @@ export default function NovoEventoPresencial() {
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <input name="local_nome" value={formData.local_nome} onChange={handleChange} placeholder="Ex: Arena Linkah" className="w-full bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner" />
-                  <div className="grid grid-cols-2 gap-4">
-                    <input name="cidade" value={formData.cidade} onChange={handleChange} placeholder="Cidade" className="bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner" />
-                    <input name="estado" value={formData.estado} onChange={handleChange} placeholder="UF" className="bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner text-center" />
+                  <input name="local_nome" value={formData.local_nome} onChange={handleChange} placeholder="Nome do Local (Ex: Arena Linkah)" className="w-full bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner" />
+                  <input name="cep" value={formData.cep} onChange={handleChange} placeholder="CEP" className="w-full bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner" />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="md:col-span-2">
+                    <input name="endereco" value={formData.endereco} onChange={handleChange} placeholder="Endereço / Rua" className="w-full bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner" />
                   </div>
+                  <input name="numero" value={formData.numero} onChange={handleChange} placeholder="Número" className="w-full bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner" />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <input name="cidade" value={formData.cidade} onChange={handleChange} placeholder="Cidade" className="bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner" />
+                  <input name="estado" value={formData.estado} onChange={handleChange} placeholder="UF" className="bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner text-center" />
+                  <input name="complemento" value={formData.complemento} onChange={handleChange} placeholder="Complemento" className="bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner" />
                 </div>
               </div>
             </section>
@@ -331,7 +341,7 @@ export default function NovoEventoPresencial() {
             <div className="bg-white rounded-[3.5rem] p-2 shadow-2xl border border-slate-100 h-[400px] relative overflow-hidden group">
                <div ref={mapContainerRef} className="w-full h-full rounded-[3.2rem] grayscale-[0.5] group-hover:grayscale-0 transition-all duration-700" />
                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur px-6 py-2 rounded-full shadow-lg border border-slate-100">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Localização no Mapa</p>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Live View no Mapa</p>
                </div>
             </div>
 
