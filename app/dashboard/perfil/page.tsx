@@ -57,7 +57,7 @@ function PerfilContent() {
     cep: '',
     rua: '',
     numero: '',
-    bairro',
+    bairro:'',
   });
 
   const getUsuarioLogado = () => {
