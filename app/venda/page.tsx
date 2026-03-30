@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://linkah-api.onrender.com';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'api-linkah.onrender.com';
 
 function CheckoutContent() {
   const searchParams = useSearchParams();

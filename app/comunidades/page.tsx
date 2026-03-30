@@ -8,7 +8,7 @@ import { Navbar } from '../site/Navbar';
 import { Footer } from '../site/Footer';
 import { useLanguage } from '@/app/context/LanguageContext';
 
-const API_URL = 'https://linkah-api.onrender.com';
+const API_URL = 'api-linkah.onrender.com';
 
 interface Evento {
   id: string;

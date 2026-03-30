@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '@/app/context/LanguageContext';
 
-const API_URL_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://linkah-api.onrender.com';
+const API_URL_BASE = process.env.NEXT_PUBLIC_API_URL || 'api-linkah.onrender.com';
 
 export default function AdminDashboard() {
   const { t } = useLanguage();

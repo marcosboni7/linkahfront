@@ -10,7 +10,7 @@ import Swal from 'sweetalert2';
 import { useLanguage } from '@/app/context/LanguageContext';
 
 // --- API ATUALIZADA PARA O RENDER ---
-const API_URL = 'https://linkah-api.onrender.com/api/eventos';
+const API_URL = 'api-linkah.onrender.com/api/eventos';
 
 export default function AdminEventos() {
   const { t } = useLanguage();

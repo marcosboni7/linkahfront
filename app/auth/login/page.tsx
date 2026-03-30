@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Mail, Lock, ChevronLeft, ArrowRight, Loader2, ShieldCheck } from 'lucide-react';
 
-const API_URL_BASE = 'https://linkah-api.onrender.com';
+const API_URL_BASE = 'api-linkah.onrender.com';
 
 export default function LoginPage() {
   const router = useRouter();
