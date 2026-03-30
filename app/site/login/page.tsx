@@ -16,7 +16,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
 
-  // Limpa qualquer resquício de erro ao digitar
+  // Limpa o erro ao começar a digitar novamente
   useEffect(() => {
     if (error) setError('');
   }, [email, senha]);
@@ -27,7 +27,7 @@ export default function LoginPage() {
     setError('');
 
     try {
-      console.log(`🚀 Tentando conectar em: ${API_URL}/api/auth/login`);
+      console.log(`🚀 Tentando login em: ${API_URL}/api/auth/login`);
 
       const response = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
@@ -43,41 +43,37 @@ export default function LoginPage() {
       if (contentType && contentType.indexOf("application/json") !== -1) {
         data = await response.json();
       } else {
-        throw new Error("O servidor retornou uma resposta inválida (não JSON).");
+        throw new Error("O servidor não retornou um JSON válido.");
       }
 
       if (!response.ok) {
         throw new Error(data.message || 'E-mail ou senha incorretos');
       }
 
-      // 1. Salvando credenciais com segurança
+      // 1. Salva o Token e os dados do Usuário
       if (data.token) {
         localStorage.setItem('@Linkah:Token', data.token);
         localStorage.setItem('@Linkah:User', JSON.stringify(data.user));
       }
 
-      console.log("✅ Login realizado! Redirecionando...");
+      console.log("✅ Login OK! Forçando redirecionamento para o domínio real...");
 
-      // 2. LÓGICA DE REDIRECIONAMENTO CORRIGIDA
-      // Usamos window.location.assign para forçar o navegador a mudar de página 
-      // e evitar que ele fique preso no domínio antigo/errado.
+      // 2. REDIRECIONAMENTO FORÇADO
+      // Usamos window.location.href para garantir que ele saia da tela de login
+      // e carregue a página do dashboard do zero no seu domínio linkah.eu
       
       const role = data.user.role;
       
       if (role === 'admin' || role === 'produtor') {
-        // Tenta o router do Next primeiro, se falhar em 1s, força via window
-        router.push('/dashboard');
-        setTimeout(() => {
-            if (window.location.pathname !== '/dashboard') {
-                window.location.href = '/dashboard';
-            }
-        }, 1000);
+        // Força o navegador a ir para https://linkah.eu/dashboard
+        window.location.href = '/dashboard';
       } else {
-        router.push('/?old=true');
+        // Vai para a home com o parâmetro de usuário antigo
+        window.location.href = '/?old=true';
       }
 
     } catch (err: any) {
-      console.error("❌ Erro Capturado:", err.message);
+      console.error("❌ Erro no Login:", err.message);
       setError(err.message || 'Erro ao conectar com o servidor');
     } finally {
       setLoading(false);
