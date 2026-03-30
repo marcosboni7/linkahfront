@@ -41,61 +41,68 @@ export function Navbar() {
 
         const savedUser = localStorage.getItem('@Linkah:User');
         const savedToken = localStorage.getItem('@Linkah:Token');
+        const perfilCompleto = localStorage.getItem('perfil_completo');
+        const userEmail = localStorage.getItem('userEmail');
 
         console.log('🔍 Navbar verificando @Linkah:User:', savedUser);
         console.log('🔍 Navbar verificando @Linkah:Token:', savedToken);
+        console.log('🔍 Navbar verificando perfil_completo:', perfilCompleto);
+        console.log('🔍 Navbar verificando userEmail:', userEmail);
 
-        if (!savedUser) {
-          console.log('ℹ️ Nenhum usuário encontrado no LocalStorage.');
-          setUsuario(null);
-          return;
+        let usuarioEncontrado: any = null;
+
+        if (savedUser) {
+          usuarioEncontrado = JSON.parse(savedUser);
+        } else if (perfilCompleto) {
+          usuarioEncontrado = JSON.parse(perfilCompleto);
         }
 
-        const parsed = JSON.parse(savedUser);
-        console.log('✅ JSON parseado da Navbar:', parsed);
+        if (!usuarioEncontrado && userEmail) {
+          usuarioEncontrado = {
+            nome: userEmail.split('@')[0],
+            email: userEmail,
+            role: 'membro',
+          };
+        }
 
-        if (parsed && (parsed.nome || parsed.email)) {
+        if (usuarioEncontrado && (usuarioEncontrado.nome || usuarioEncontrado.email)) {
           const usuarioNormalizado: Usuario = {
-            nome: parsed.nome || parsed.name || 'Membro',
-            email: parsed.email || '',
-            role: parsed.role || 'membro',
+            nome:
+              usuarioEncontrado.nome ||
+              usuarioEncontrado.name ||
+              (usuarioEncontrado.email ? usuarioEncontrado.email.split('@')[0] : 'Membro'),
+            email: usuarioEncontrado.email || userEmail || '',
+            role: usuarioEncontrado.role || 'membro',
           };
 
           console.log('✅ Usuário carregado na Navbar:', usuarioNormalizado);
           setUsuario(usuarioNormalizado);
-        } else {
-          console.warn('⚠️ Objeto de usuário inválido no localStorage.');
-          setUsuario(null);
+
+          // padroniza para a chave nova
+          localStorage.setItem('@Linkah:User', JSON.stringify(usuarioNormalizado));
+          return;
         }
+
+        console.log('ℹ️ Nenhum usuário encontrado no LocalStorage.');
+        setUsuario(null);
       } catch (e) {
-        console.error('❌ Erro ao ler/parsear @Linkah:User', e);
+        console.error('❌ Erro ao ler/parsear usuário', e);
         setUsuario(null);
       }
     };
 
     const handleStorage = (event: StorageEvent) => {
-      console.log('📦 Evento storage detectado:', {
-        key: event.key,
-        oldValue: event.oldValue,
-        newValue: event.newValue,
-      });
-
-      if (event.key === '@Linkah:User' || event.key === '@Linkah:Token') {
+      if (
+        event.key === '@Linkah:User' ||
+        event.key === '@Linkah:Token' ||
+        event.key === 'perfil_completo' ||
+        event.key === 'userEmail'
+      ) {
         checkUser();
       }
     };
 
-    const handleFocus = () => {
-      console.log('👀 Window focus detectado, revalidando usuário...');
-      checkUser();
-    };
-
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        console.log('👁️ Página voltou a ficar visível, revalidando usuário...');
-        checkUser();
-      }
-    };
+    const handleFocus = () => checkUser();
 
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -105,50 +112,36 @@ export function Navbar() {
 
     checkUser();
 
-    // pequena rechecagem após mount para pegar casos de redirect/login
-    const timeout = setTimeout(() => {
-      console.log('⏱️ Rechecagem atrasada da Navbar...');
-      checkUser();
-    }, 800);
+    const timeout = setTimeout(checkUser, 800);
 
     window.addEventListener('focus', handleFocus);
     window.addEventListener('storage', handleStorage);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('mousedown', handleClickOutside);
 
     return () => {
       clearTimeout(timeout);
       window.removeEventListener('focus', handleFocus);
       window.removeEventListener('storage', handleStorage);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
 
   const handleLogout = () => {
     console.log('🚪 Realizando logout...');
-    console.log('🗑️ Removendo @Linkah:Token e @Linkah:User');
 
     localStorage.removeItem('@Linkah:Token');
     localStorage.removeItem('@Linkah:User');
-
-    console.log('✅ localStorage após logout:', Object.keys(localStorage));
+    localStorage.removeItem('userEmail');
+    localStorage.removeItem('perfil_completo');
 
     setUsuario(null);
     window.location.href = '/';
   };
 
   const carregarMeusIngressos = async () => {
-    if (!usuario?.email) {
-      console.warn('⚠️ Usuário sem email, não dá para buscar ingressos.');
-      return;
-    }
+    if (!usuario?.email) return;
 
     const token = localStorage.getItem('@Linkah:Token');
-
-    console.log('🎫 Carregando ingressos...');
-    console.log('👤 Usuário atual:', usuario);
-    console.log('🔑 Token atual:', token);
 
     setIsModalOpen(true);
     setIsMenuOpen(false);
@@ -161,8 +154,6 @@ export function Navbar() {
 
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
-      } else {
-        console.warn('⚠️ Sem token. Tentando requisição sem Authorization.');
       }
 
       const response = await fetch(
@@ -174,28 +165,22 @@ export function Navbar() {
         }
       );
 
-      console.log('📡 Status meus-ingressos:', response.status);
-
       if (response.ok) {
         const dados = await response.json();
-        console.log('✅ Ingressos carregados:', dados);
         setMeusIngressos(Array.isArray(dados) ? dados : []);
       } else {
-        const textoErro = await response.text();
-        console.error('❌ Erro na resposta da API:', response.status, textoErro);
+        console.error('Erro na resposta da API:', response.status);
         setMeusIngressos([]);
       }
     } catch (err) {
-      console.error('❌ Erro ao carregar ingressos:', err);
+      console.error('Erro ao carregar ingressos:', err);
       setMeusIngressos([]);
     } finally {
       setBuscandoTickets(false);
     }
   };
 
-  if (!isMounted) {
-    return <div className="h-16 bg-white border-b border-gray-200" />;
-  }
+  if (!isMounted) return <div className="h-16 bg-white border-b border-gray-200" />;
 
   return (
     <>
