@@ -105,8 +105,6 @@ export default function TabelaEventos() {
     e.preventDefault();
     setSaving(true);
     
-    console.group("🚀 DEBUG: Enviando Atualização");
-    
     try {
       const rawToken = localStorage.getItem('@Linkah:Token');
       const token = rawToken?.replace(/['"]+/g, '').trim() || '';
@@ -117,19 +115,15 @@ export default function TabelaEventos() {
       formData.append('descricao', eventoParaEditar.descricao || '');
       formData.append('local_nome', eventoParaEditar.local_nome || '');
 
-      // FIX CRÍTICO DA DATA: Garante formato YYYY-MM-DD
+      // --- FIX DATA ULTRA SEGURO ---
       if (eventoParaEditar.data_inicio) {
-        const dataString = String(eventoParaEditar.data_inicio).split('T')[0];
-        const regexData = /^\d{4}-\d{2}-\d{2}$/;
-        
-        if (regexData.test(dataString)) {
-          formData.append('data_inicio', dataString);
-        } else {
-          const d = new Date(eventoParaEditar.data_inicio);
-          if (!isNaN(d.getTime())) {
-            const formatada = d.toISOString().split('T')[0];
-            formData.append('data_inicio', formatada);
-          }
+        const d = new Date(eventoParaEditar.data_inicio);
+        if (!isNaN(d.getTime())) {
+          // Garante formato YYYY-MM-DD ignorando fuso horário
+          const ano = d.getFullYear();
+          const mes = String(d.getMonth() + 1).padStart(2, '0');
+          const dia = String(d.getDate()).padStart(2, '0');
+          formData.append('data_inicio', `${ano}-${mes}-${dia}`);
         }
       }
 
@@ -156,7 +150,6 @@ export default function TabelaEventos() {
       console.error("🚨 Erro no salvamento:", err);
       Swal.fire('Erro', err.message, 'error');
     } finally {
-      console.groupEnd();
       setSaving(false);
     }
   };
