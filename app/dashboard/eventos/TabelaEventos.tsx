@@ -36,17 +36,14 @@ const CATEGORIAS = [
 function formatDateToInput(dateValue: any): string {
   if (!dateValue) return '';
 
-  // Se já estiver no formato YYYY-MM-DD
   if (typeof dateValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
     return dateValue;
   }
 
-  // Se vier ISO string
   if (typeof dateValue === 'string' && dateValue.includes('T')) {
     return dateValue.split('T')[0];
   }
 
-  // Se vier tipo "Wed Apr 01 2026..."
   const d = new Date(dateValue);
   if (!isNaN(d.getTime())) {
     const ano = d.getFullYear();
@@ -61,7 +58,6 @@ function formatDateToInput(dateValue: any): string {
 function formatDateToBackend(dateValue: any): string {
   if (!dateValue) return '';
 
-  // input type="date" já manda YYYY-MM-DD
   if (typeof dateValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
     return dateValue;
   }
@@ -185,6 +181,7 @@ export default function TabelaEventos() {
       descricao: evento.descricao || '',
       local_nome: evento.local_nome || evento.localizacao || '',
       data_inicio: formatDateToInput(evento.data_inicio),
+      imagem_capa: evento.imagem_capa || '',
     });
 
     setPreviewUrl(validarImagem(evento.imagem_capa));
@@ -206,17 +203,23 @@ export default function TabelaEventos() {
       formData.append('descricao', eventoParaEditar.descricao || '');
       formData.append('local_nome', eventoParaEditar.local_nome || '');
 
-      // DATA 100% NO FORMATO YYYY-MM-DD
       const dataInicioFormatada = formatDateToBackend(eventoParaEditar.data_inicio);
       if (dataInicioFormatada) {
         formData.append('data_inicio', dataInicioFormatada);
       }
 
+      // PRESERVA IMAGEM ATUAL SE NÃO ESCOLHER NOVA
       if (selectedFile) {
         formData.append('imagem_capa', selectedFile);
+      } else if (eventoParaEditar.imagem_capa) {
+        formData.append('imagem_capa', eventoParaEditar.imagem_capa);
       }
 
       console.log('📤 Enviando data_inicio:', dataInicioFormatada);
+      console.log(
+        '🖼️ Enviando imagem_capa:',
+        selectedFile ? '[ARQUIVO NOVO]' : eventoParaEditar.imagem_capa
+      );
 
       const res = await fetch(`${API_URL}/api/eventos/${eventoParaEditar.id}`, {
         method: 'PUT',
