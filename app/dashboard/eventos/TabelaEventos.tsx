@@ -104,7 +104,6 @@ export default function TabelaEventos() {
   useEffect(() => { carregarEventos(); }, []);
 
   const abrirModalEdicao = (evento: any) => {
-    // Garante que o estado tenha os valores mínimos para não dar erro de undefined no formulário
     setEventoParaEditar({ 
         ...evento,
         categoria: evento.categoria || CATEGORIAS[0].id,
@@ -128,7 +127,16 @@ export default function TabelaEventos() {
       formData.append('categoria', eventoParaEditar.categoria);
       formData.append('descricao', eventoParaEditar.descricao || '');
       formData.append('local_nome', eventoParaEditar.local_nome || '');
-      formData.append('data_inicio', eventoParaEditar.data_inicio || '');
+
+      // CORREÇÃO CRITICAL: Formatação de data para evitar Erro 500 no Banco
+      if (eventoParaEditar.data_inicio) {
+        const dataParsed = new Date(eventoParaEditar.data_inicio);
+        if (!isNaN(dataParsed.getTime())) {
+          // Envia apenas YYYY-MM-DD para o PostgreSQL
+          const dataAjustada = dataParsed.toISOString().split('T')[0];
+          formData.append('data_inicio', dataAjustada);
+        }
+      }
 
       if (selectedFile) formData.append('imagem_capa', selectedFile);
 
@@ -142,9 +150,12 @@ export default function TabelaEventos() {
         setIsEditModalOpen(false);
         Swal.fire({ title: "Sucesso!", text: "Evento atualizado.", icon: 'success', timer: 2000, showConfirmButton: false });
         carregarEventos();
+      } else {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Erro ao salvar");
       }
-    } catch (err) {
-      Swal.fire('Erro', 'Conexão falhou', 'error');
+    } catch (err: any) {
+      Swal.fire('Erro no Servidor', err.message || 'Ocorreu um erro interno', 'error');
     } finally {
       setSaving(false);
     }
@@ -153,7 +164,7 @@ export default function TabelaEventos() {
   return (
     <div className="bg-white rounded-[3rem] shadow-sm border border-slate-100 overflow-hidden">
       
-      {/* HEADER DA TABELA */}
+      {/* HEADER */}
       <div className="p-10 border-b border-slate-50 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
         <div>
           <h2 className="text-[#C22973] font-black uppercase text-[10px] tracking-[0.3em] mb-1 italic">Gestão de Experiências</h2>
@@ -265,7 +276,7 @@ export default function TabelaEventos() {
         </table>
       </div>
 
-      {/* MODAL DE EDIÇÃO - PROTEGIDO CONTRA CRASH */}
+      {/* MODAL DE EDIÇÃO */}
       {isEditModalOpen && eventoParaEditar && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 bg-slate-950/40 backdrop-blur-md animate-in fade-in duration-300">
           <div className="bg-white w-full max-w-2xl rounded-[3.5rem] p-10 shadow-2xl overflow-y-auto max-h-[90vh] border border-white/20">
@@ -313,7 +324,6 @@ export default function TabelaEventos() {
                     <input 
                         type="date" 
                         className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none" 
-                        // Proteção contra crash no split
                         value={eventoParaEditar.data_inicio ? String(eventoParaEditar.data_inicio).split('T')[0] : ""} 
                         onChange={(e) => setEventoParaEditar({...eventoParaEditar, data_inicio: e.target.value})} 
                     />
