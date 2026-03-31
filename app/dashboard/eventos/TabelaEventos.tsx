@@ -105,7 +105,7 @@ export default function TabelaEventos() {
     e.preventDefault();
     setSaving(true);
     
-    console.group("🚀 DEBUG: Iniciando Salvamento de Evento");
+    console.group("🚀 DEBUG: Enviando Atualização");
     
     try {
       const rawToken = localStorage.getItem('@Linkah:Token');
@@ -117,30 +117,25 @@ export default function TabelaEventos() {
       formData.append('descricao', eventoParaEditar.descricao || '');
       formData.append('local_nome', eventoParaEditar.local_nome || '');
 
-      // DEBUG DA DATA
+      // FIX CRÍTICO DA DATA: Garante formato YYYY-MM-DD
       if (eventoParaEditar.data_inicio) {
-        console.log("📅 DEBUG: Data Raw no Estado:", eventoParaEditar.data_inicio);
-        const d = new Date(eventoParaEditar.data_inicio);
+        const dataString = String(eventoParaEditar.data_inicio).split('T')[0];
+        const regexData = /^\d{4}-\d{2}-\d{2}$/;
         
-        if (!isNaN(d.getTime())) {
-          const ano = d.getFullYear();
-          const mes = String(d.getMonth() + 1).padStart(2, '0');
-          const dia = String(d.getDate()).padStart(2, '0');
-          const dataFormatada = `${ano}-${mes}-${dia}`;
-          
-          formData.append('data_inicio', dataFormatada);
-          console.log("✅ DEBUG: Data Formatada para o Backend:", dataFormatada);
+        if (regexData.test(dataString)) {
+          formData.append('data_inicio', dataString);
         } else {
-          console.error("❌ DEBUG: Data Inválida detectada!");
+          const d = new Date(eventoParaEditar.data_inicio);
+          if (!isNaN(d.getTime())) {
+            const formatada = d.toISOString().split('T')[0];
+            formData.append('data_inicio', formatada);
+          }
         }
       }
 
       if (selectedFile) {
-        console.log("🖼️ DEBUG: Nova imagem selecionada:", selectedFile.name);
         formData.append('imagem_capa', selectedFile);
       }
-
-      console.log("📡 Enviando PUT para:", `${API_URL}/api/eventos/${eventoParaEditar.id}`);
 
       const res = await fetch(`${API_URL}/api/eventos/${eventoParaEditar.id}`, {
         method: 'PUT',
@@ -151,17 +146,15 @@ export default function TabelaEventos() {
       const responseData = await res.json();
 
       if (res.ok) {
-        console.log("🎉 DEBUG: Sucesso na API:", responseData);
         setIsEditModalOpen(false);
         Swal.fire({ title: "Sucesso!", text: "Alterações salvas.", icon: 'success', timer: 1500, showConfirmButton: false });
         carregarEventos();
       } else {
-        console.error("❌ DEBUG: Erro Retornado pela API:", responseData);
-        throw new Error(responseData.error || responseData.message || "Erro desconhecido no servidor");
+        throw new Error(responseData.error || "Erro ao salvar");
       }
     } catch (err: any) {
-      console.error("🚨 DEBUG: Catch de erro profundo:", err);
-      Swal.fire('Erro Crítico', err.message || 'Erro ao processar requisição', 'error');
+      console.error("🚨 Erro no salvamento:", err);
+      Swal.fire('Erro', err.message, 'error');
     } finally {
       console.groupEnd();
       setSaving(false);
@@ -198,7 +191,25 @@ export default function TabelaEventos() {
               Criar Evento
               <ChevronDown size={14} className={showDropdown ? 'rotate-180' : ''} />
             </button>
-            {/* ... restante do menu de criação omitido para brevidade, mas mantido no seu código local ... */}
+            {showDropdown && (
+                <div className="absolute right-0 mt-4 w-64 bg-white rounded-[2rem] shadow-2xl border border-slate-50 p-4 z-50 animate-in fade-in zoom-in duration-200">
+                    {CATEGORIAS.map((cat) => (
+                        <button
+                            key={cat.id}
+                            onClick={() => {
+                                router.push(`/dashboard/eventos/novo?categoria=${encodeURIComponent(cat.id)}`);
+                                setShowDropdown(false);
+                            }}
+                            className="w-full flex items-center gap-4 p-4 hover:bg-slate-50 rounded-xl transition-all group"
+                        >
+                            <div className="w-8 h-8 bg-slate-50 text-slate-400 rounded-lg flex items-center justify-center group-hover:bg-[#C22973] group-hover:text-white transition-all">
+                                {cat.icon}
+                            </div>
+                            <span className="text-[10px] font-black uppercase tracking-wider text-slate-600">{cat.id}</span>
+                        </button>
+                    ))}
+                </div>
+            )}
           </div>
         </div>
       </div>
