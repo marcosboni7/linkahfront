@@ -128,13 +128,16 @@ export default function TabelaEventos() {
       formData.append('descricao', eventoParaEditar.descricao || '');
       formData.append('local_nome', eventoParaEditar.local_nome || '');
 
-      // CORREÇÃO CRITICAL: Formatação de data para evitar Erro 500 no Banco
+      // FIX DEFINITIVO PARA O ERRO 500 / INVALID INPUT SYNTAX
       if (eventoParaEditar.data_inicio) {
-        const dataParsed = new Date(eventoParaEditar.data_inicio);
-        if (!isNaN(dataParsed.getTime())) {
-          // Envia apenas YYYY-MM-DD para o PostgreSQL
-          const dataAjustada = dataParsed.toISOString().split('T')[0];
-          formData.append('data_inicio', dataAjustada);
+        const d = new Date(eventoParaEditar.data_inicio);
+        if (!isNaN(d.getTime())) {
+          // Extrai os componentes da data local para evitar fuso horário do toISOString
+          const ano = d.getFullYear();
+          const mes = String(d.getMonth() + 1).padStart(2, '0');
+          const dia = String(d.getDate()).padStart(2, '0');
+          const dataFinal = `${ano}-${mes}-${dia}`;
+          formData.append('data_inicio', dataFinal);
         }
       }
 
@@ -148,14 +151,14 @@ export default function TabelaEventos() {
 
       if (res.ok) {
         setIsEditModalOpen(false);
-        Swal.fire({ title: "Sucesso!", text: "Evento atualizado.", icon: 'success', timer: 2000, showConfirmButton: false });
+        Swal.fire({ title: "Sucesso!", text: "Experiência atualizada.", icon: 'success', timer: 2000, showConfirmButton: false });
         carregarEventos();
       } else {
         const errorData = await res.json();
-        throw new Error(errorData.message || "Erro ao salvar");
+        throw new Error(errorData.error || "Erro ao salvar");
       }
     } catch (err: any) {
-      Swal.fire('Erro no Servidor', err.message || 'Ocorreu um erro interno', 'error');
+      Swal.fire('Erro no Banco', err.message || 'Verifique os dados enviados', 'error');
     } finally {
       setSaving(false);
     }
