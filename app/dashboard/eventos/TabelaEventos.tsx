@@ -3,9 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { 
   Edit3, X, Loader2, Ticket, Upload, Trash2, ChevronDown, 
-  MapPin, Monitor, Search, Lock, Calendar, AlignLeft, Tag, Link as LinkIcon,
-  Music, Theater, Briefcase, GraduationCap, Heart, Sparkles, Users, MoreHorizontal,
-  ExternalLink
+  MapPin, Monitor, Search, Sparkles, Music, Theater, 
+  Briefcase, GraduationCap, Heart, Users, ExternalLink
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Swal from 'sweetalert2';
@@ -105,7 +104,13 @@ export default function TabelaEventos() {
   useEffect(() => { carregarEventos(); }, []);
 
   const abrirModalEdicao = (evento: any) => {
-    setEventoParaEditar({ ...evento });
+    // Garante que o estado tenha os valores mínimos para não dar erro de undefined no formulário
+    setEventoParaEditar({ 
+        ...evento,
+        categoria: evento.categoria || CATEGORIAS[0].id,
+        nome: evento.nome || "",
+        local_nome: evento.local_nome || evento.localizacao || ""
+    });
     setPreviewUrl(validarImagem(evento.imagem_capa));
     setSelectedFile(null);
     setIsEditModalOpen(true);
@@ -122,7 +127,7 @@ export default function TabelaEventos() {
       formData.append('nome', eventoParaEditar.nome);
       formData.append('categoria', eventoParaEditar.categoria);
       formData.append('descricao', eventoParaEditar.descricao || '');
-      formData.append('local_nome', eventoParaEditar.local_nome || eventoParaEditar.localizacao || '');
+      formData.append('local_nome', eventoParaEditar.local_nome || '');
       formData.append('data_inicio', eventoParaEditar.data_inicio || '');
 
       if (selectedFile) formData.append('imagem_capa', selectedFile);
@@ -178,7 +183,7 @@ export default function TabelaEventos() {
             </button>
 
             {showDropdown && (
-              <div className="absolute right-0 mt-4 w-72 bg-white rounded-[2rem] shadow-2xl border border-slate-100 z-50 py-4 animate-in fade-in zoom-in-95 duration-200">
+              <div className="absolute right-0 mt-4 w-72 bg-white rounded-[2rem] shadow-2xl border border-slate-100 z-[100] py-4 animate-in fade-in zoom-in-95 duration-200">
                 <button onClick={() => router.push('/dashboard/eventos/novo/presencial')} className="w-full px-6 py-4 text-left hover:bg-slate-50 flex items-center gap-4 transition-colors group">
                   <div className="w-10 h-10 bg-orange-50 text-orange-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform"><MapPin size={20} /></div>
                   <div className="flex flex-col">
@@ -231,7 +236,7 @@ export default function TabelaEventos() {
                         <span className="text-[9px] text-[#C22973] font-black uppercase tracking-widest">{evento.categoria}</span>
                         <span className="w-1 h-1 bg-slate-200 rounded-full"></span>
                         <span className="text-[9px] text-slate-400 font-bold uppercase italic">
-                          {new Date(evento.data_inicio).toLocaleDateString('pt-BR')}
+                          {evento.data_inicio ? new Date(evento.data_inicio).toLocaleDateString('pt-BR') : 'A definir'}
                         </span>
                       </div>
                     </div>
@@ -260,14 +265,14 @@ export default function TabelaEventos() {
         </table>
       </div>
 
-      {/* MODAL DE EDIÇÃO PREMIUM */}
+      {/* MODAL DE EDIÇÃO - PROTEGIDO CONTRA CRASH */}
       {isEditModalOpen && eventoParaEditar && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-950/40 backdrop-blur-md animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 bg-slate-950/40 backdrop-blur-md animate-in fade-in duration-300">
           <div className="bg-white w-full max-w-2xl rounded-[3.5rem] p-10 shadow-2xl overflow-y-auto max-h-[90vh] border border-white/20">
             <div className="flex justify-between items-center mb-10">
               <div>
                 <h3 className="font-black text-2xl tracking-tighter uppercase italic text-slate-900">Editar Experiência</h3>
-                <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">ID: #{eventoParaEditar.id?.substring(0,8)}</p>
+                <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">ID: #{eventoParaEditar.id?.toString().substring(0,8)}</p>
               </div>
               <button onClick={() => setIsEditModalOpen(false)} className="w-12 h-12 bg-slate-50 text-slate-400 rounded-2xl flex items-center justify-center hover:bg-slate-100 transition-all"><X size={20}/></button>
             </div>
@@ -305,7 +310,13 @@ export default function TabelaEventos() {
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 italic">Início</label>
-                    <input type="date" className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none" value={eventoParaEditar.data_inicio?.split('T')[0] || ""} onChange={(e) => setEventoParaEditar({...eventoParaEditar, data_inicio: e.target.value})} />
+                    <input 
+                        type="date" 
+                        className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none" 
+                        // Proteção contra crash no split
+                        value={eventoParaEditar.data_inicio ? String(eventoParaEditar.data_inicio).split('T')[0] : ""} 
+                        onChange={(e) => setEventoParaEditar({...eventoParaEditar, data_inicio: e.target.value})} 
+                    />
                   </div>
                 </div>
               </div>
@@ -314,7 +325,7 @@ export default function TabelaEventos() {
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 italic">
                   {eventoParaEditar.tipo?.toLowerCase() === 'online' ? 'Link da Transmissão' : 'Nome do Local / Arena'}
                 </label>
-                <input className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none" value={eventoParaEditar.local_nome || eventoParaEditar.localizacao || ""} onChange={(e) => setEventoParaEditar({...eventoParaEditar, local_nome: e.target.value})} />
+                <input className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none" value={eventoParaEditar.local_nome || ""} onChange={(e) => setEventoParaEditar({...eventoParaEditar, local_nome: e.target.value})} />
               </div>
 
               <button type="submit" disabled={saving} className="w-full bg-slate-950 text-white p-6 rounded-[1.8rem] font-black uppercase text-xs tracking-[0.3em] hover:bg-[#C22973] transition-all shadow-2xl flex items-center justify-center gap-4 disabled:opacity-50 active:scale-[0.98]">
