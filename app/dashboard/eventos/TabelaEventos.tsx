@@ -21,7 +21,6 @@ import { useLanguage } from '@/app/context/LanguageContext';
 
 const API_URL = 'https://api-linkah.onrender.com';
 
-// Categorias agora são usadas apenas para exibição/filtro na tabela ou dentro do modal
 const CATEGORIAS_VALIDAS = [
   'Arte & Cultura',
   'Entretenimento',
@@ -190,7 +189,7 @@ export default function TabelaEventos() {
             />
           </div>
 
-          {/* DROPDOWN DE CRIAÇÃO (PRESENCIAL VS ONLINE) */}
+          {/* DROPDOWN DE CRIAÇÃO */}
           <div className="relative w-full sm:w-auto" ref={dropdownRef}>
             <button
               onClick={() => setShowDropdown(!showDropdown)}
@@ -206,7 +205,7 @@ export default function TabelaEventos() {
                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4 ml-2 italic">Selecione o Formato</p>
                 <div className="grid gap-3">
                   <button
-                    onClick={() => router.push(`/dashboard/eventos/novo?tipo=Presencial`)}
+                    onClick={() => router.push(`/eventos/novo/presencial`)}
                     className="w-full flex items-center gap-4 p-4 bg-slate-50 hover:bg-[#C22973] hover:text-white rounded-2xl transition-all group text-left"
                   >
                     <div className="w-10 h-10 bg-white text-[#C22973] rounded-xl flex items-center justify-center shadow-sm group-hover:bg-pink-100"><MapPin size={18} /></div>
@@ -216,7 +215,7 @@ export default function TabelaEventos() {
                     </div>
                   </button>
                   <button
-                    onClick={() => router.push(`/dashboard/eventos/novo?tipo=Online`)}
+                    onClick={() => router.push(`/eventos/novo/online`)}
                     className="w-full flex items-center gap-4 p-4 bg-slate-50 hover:bg-blue-600 hover:text-white rounded-2xl transition-all group text-left"
                   >
                     <div className="w-10 h-10 bg-white text-blue-600 rounded-xl flex items-center justify-center shadow-sm group-hover:bg-blue-100"><Globe size={18} /></div>
