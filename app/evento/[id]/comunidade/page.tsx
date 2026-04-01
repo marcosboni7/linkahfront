@@ -11,7 +11,6 @@ import Link from 'next/link';
 
 const API_URL = 'https://api-linkah.onrender.com';
 
-// Função para garantir que src de <img> nunca seja null
 const getImagemUrl = (foto: string | null | undefined) => foto || undefined;
 
 export default function SalaLinkahSkype() {
@@ -25,23 +24,19 @@ export default function SalaLinkahSkype() {
   const [dadosUsuario, setDadosUsuario] = useState<any>(null);
   const [carregando, setCarregando] = useState(true);
 
-  // Estados para Call
   const [chamadaAtiva, setChamadaAtiva] = useState(false);
   const [nomeSalaCall, setNomeSalaCall] = useState('');
   const [conviteRecebido, setConviteRecebido] = useState<any>(null);
 
-  // Estados para Chat
   const [novoTexto, setNovoTexto] = useState('');
   const [imagemAnexada, setImagemAnexada] = useState<string | null>(null);
 
-  // ESTADOS PARA PERFIL
   const [usuarioSelecionado, setUsuarioSelecionado] = useState<any>(null);
   const [carregandoPerfil, setCarregandoPerfil] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // 1. Autenticação e Carregamento de Dados Locais
   useEffect(() => {
     const savedUser = localStorage.getItem('@Linkah:User');
     if (savedUser) {
@@ -51,7 +46,6 @@ export default function SalaLinkahSkype() {
     }
   }, [router]);
 
-  // 2. Sync Loop (Eventos, Mensagens e Presença com Foto)
   useEffect(() => {
     if (!id || !dadosUsuario?.nome) return;
 
@@ -193,7 +187,6 @@ export default function SalaLinkahSkype() {
   return (
     <div className="flex h-screen bg-[#FCFBFA] overflow-hidden text-slate-900 font-sans">
 
-      {/* MODAL CONVITE RECEBIDO */}
       {conviteRecebido && (
         <div className="fixed inset-0 z-[999] bg-slate-950/40 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-white p-8 rounded-[2.5rem] text-center max-w-sm w-full shadow-2xl border border-slate-100">
@@ -212,7 +205,6 @@ export default function SalaLinkahSkype() {
         </div>
       )}
 
-      {/* MODAL DE PERFIL */}
       {usuarioSelecionado && (
         <div className="fixed inset-0 z-[1000] bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setUsuarioSelecionado(null)}>
           <div className="bg-white w-full max-w-md rounded-[3.5rem] overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
@@ -240,7 +232,6 @@ export default function SalaLinkahSkype() {
         </div>
       )}
 
-      {/* SIDEBAR ONLINE */}
       <aside className="w-80 border-r border-slate-100 hidden lg:flex flex-col bg-white">
         <div className="p-6">
           <Link href="/" className="inline-flex items-center gap-2 text-slate-400 hover:text-slate-950 mb-8 transition-colors"><ChevronLeft size={18} /><span className="font-bold text-xs">Voltar</span></Link>
@@ -269,7 +260,6 @@ export default function SalaLinkahSkype() {
         </div>
       </aside>
 
-      {/* CHAT PRINCIPAL */}
       <main className="flex-1 flex flex-col relative bg-white lg:rounded-l-[3rem] shadow-2xl border-l border-slate-100">
         {chamadaAtiva && (
           <div className="absolute inset-0 z-50 bg-slate-950 flex flex-col lg:rounded-l-[3rem] overflow-hidden">
@@ -322,7 +312,18 @@ export default function SalaLinkahSkype() {
         </div>
 
         <form onSubmit={enviarMensagem} className="p-6 border-t border-slate-100 bg-white flex items-center gap-4 sticky bottom-0 z-10">
-          <input type="file" ref={fileInputRef} className="hidden" onChange={e => setImagemAnexada(URL.createObjectURL(e.target.files?.[0] || null))} />
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            className="hidden" 
+            onChange={e => {
+              const file = e.target.files?.[0];
+              if (file) {
+                if (imagemAnexada) URL.revokeObjectURL(imagemAnexada);
+                setImagemAnexada(URL.createObjectURL(file));
+              }
+            }} 
+          />
           <button type="button" onClick={() => fileInputRef.current?.click()} className="p-3 rounded-2xl bg-slate-50 hover:bg-slate-100 transition-all"><Paperclip size={18} /></button>
           <input type="text" placeholder="Digite sua mensagem..." value={novoTexto} onChange={e => setNovoTexto(e.target.value)} className="flex-1 bg-slate-50 p-4 rounded-2xl text-sm outline-none" />
           <button type="submit" className="p-3 rounded-2xl bg-[#ff4d4d] text-white hover:brightness-110 transition-all"><Send size={18} /></button>
