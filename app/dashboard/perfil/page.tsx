@@ -1,67 +1,35 @@
-'use client';
+'use client'
 
-import { useEffect, useState, useCallback, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import {
-  UserCircle,
-  Save,
-  Loader2,
-  ArrowLeft,
-  MapPin,
-  CreditCard,
-  ExternalLink,
-  CheckCircle2,
-  AlertCircle,
-  Mail,
-  ShieldCheck,
-  Zap,
-  Instagram,
-  Linkedin,
-  AlignLeft,
-  Camera
-} from 'lucide-react';
-import Swal from 'sweetalert2';
-import Link from 'next/link';
-import { useLanguage } from '@/app/context/LanguageContext';
+import { useEffect, useState, Suspense } from 'react'
+import { useRouter } from 'next/navigation'
+import { Loader2, Save, ArrowLeft, Camera, UserCircle } from 'lucide-react'
+import Swal from 'sweetalert2'
+import Link from 'next/link'
 
-const API_URL = 'https://api-linkah.onrender.com';
-
-interface StripeDetails {
-  charges_enabled: boolean;
-  payout_enabled: boolean;
-  business_name: string;
-  email_stripe: string;
-  status_banco: string;
-}
+const API_URL = 'https://api-linkah.onrender.com'
 
 interface FormDataState {
-  nome: string;
-  cpf_cnpj: string;
-  cep: string;
-  rua: string;
-  numero: string;
-  bairro: string;
-  linkedin: string;
-  instagram: string;
-  bio: string;
-  foto_perfil?: string;
+  nome: string
+  cpf_cnpj: string
+  cep: string
+  rua: string
+  numero: string
+  bairro: string
+  linkedin: string
+  instagram: string
+  bio: string
+  foto_perfil?: string
 }
 
 function PerfilContent() {
 
-  const { t }: any = useLanguage();
-  const router = useRouter();
-  const searchParams = useSearchParams();
+  const router = useRouter()
 
-  const [isSaving, setIsSaving] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
 
-  const [stripeAccountId, setStripeAccountId] = useState<string | null>(null);
-  const [stripeAtivo, setStripeAtivo] = useState(false);
-  const [stripeDetails, setStripeDetails] = useState<StripeDetails | null>(null);
-
-  const [fotoPreview, setFotoPreview] = useState<string | null>(null);
-  const [fotoFile, setFotoFile] = useState<File | null>(null);
+  const [fotoPreview, setFotoPreview] = useState<string | null>(null)
+  const [fotoFile, setFotoFile] = useState<File | null>(null)
 
   const [formData, setFormData] = useState<FormDataState>({
     nome: '',
@@ -72,307 +40,293 @@ function PerfilContent() {
     bairro: '',
     linkedin: '',
     instagram: '',
-    bio: '',
-  });
+    bio: ''
+  })
 
-  const getUsuarioLogado = useCallback(() => {
+  function getUsuario() {
 
-    const userStorage = localStorage.getItem('@Linkah:User');
-    const parsedUser = userStorage ? JSON.parse(userStorage) : null;
+    const user = localStorage.getItem('@Linkah:User')
+    const parsed = user ? JSON.parse(user) : null
 
-    const emailLogado =
-      parsedUser?.email ||
+    const email =
+      parsed?.email ||
       localStorage.getItem('userEmail') ||
-      '';
+      ''
 
     const token =
       localStorage
         .getItem('@Linkah:Token')
-        ?.replace(/['"]+/g, '') || '';
+        ?.replace(/['"]+/g, '') || ''
 
-    return {
-      emailLogado,
-      token,
-      parsedUser,
-      userStorage
-    };
+    return { email, token }
 
-  }, []);
+  }
 
-  const handleFotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // carregar perfil
 
-    const file = e.target.files?.[0];
+  useEffect(() => {
 
-    if (!file) return;
+    const carregarPerfil = async () => {
 
-    setFotoFile(file);
+      const { email, token } = getUsuario()
 
-    const preview = URL.createObjectURL(file);
-    setFotoPreview(preview);
+      if (!email) {
+        router.push('/site/login')
+        return
+      }
 
-  };
+      try {
 
-  const aplicarMascara = (name: string, value: string) => {
+        const res = await fetch(
+          `${API_URL}/api/auth/perfil?email=${encodeURIComponent(email)}`,
+          {
+            headers: {
+              Accept: 'application/json',
+              Authorization: `Bearer ${token}`
+            }
+          }
+        )
 
-    let v = value.replace(/\D/g, '');
+        const data = await res.json()
 
-    if (name === 'cpf_cnpj') {
+        setFormData({
+          nome: data.nome || '',
+          cpf_cnpj: data.cpf_cnpj || '',
+          cep: data.cep || '',
+          rua: data.rua || '',
+          numero: data.numero || '',
+          bairro: data.bairro || '',
+          linkedin: data.linkedin || '',
+          instagram: data.instagram || '',
+          bio: data.bio || '',
+          foto_perfil: data.foto_perfil || ''
+        })
 
-      if (v.length <= 11) {
-        return v.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/g, '$1.$2.$3-$4');
-      } else {
-        return v.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/g, '$1.$2.$3/$4-$5');
+        if (data.foto_perfil) {
+          setFotoPreview(data.foto_perfil)
+        }
+
+      } catch (error) {
+
+        console.error('Erro carregar perfil', error)
+
+      } finally {
+
+        setIsLoading(false)
+
       }
 
     }
 
-    if (name === 'cep') {
-      return v.replace(/(\d{5})(\d{3})/g, '$1-$2');
-    }
+    carregarPerfil()
 
-    return value;
+  }, [router])
 
-  };
-
-  const handleChange = (
+  function handleChange(
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
+  ) {
 
-    const { name, value } = e.target;
-
-    const valueFinal =
-      name === 'cpf_cnpj' || name === 'cep'
-        ? aplicarMascara(name, value)
-        : value;
+    const { name, value } = e.target
 
     setFormData((prev) => ({
       ...prev,
-      [name]: valueFinal
-    }));
+      [name]: value
+    }))
 
-  };
+  }
 
-  const handleSalvar = async (e: React.FormEvent) => {
+  function handleFotoChange(
+    e: React.ChangeEvent<HTMLInputElement>
+  ) {
 
-    e.preventDefault();
+    const file = e.target.files?.[0]
 
-    setIsSaving(true);
+    if (!file) return
 
-    const { emailLogado, token } = getUsuarioLogado();
+    setFotoFile(file)
+
+    const preview = URL.createObjectURL(file)
+    setFotoPreview(preview)
+
+  }
+
+  async function handleSalvar(e: React.FormEvent) {
+
+    e.preventDefault()
+
+    setIsSaving(true)
+
+    const { email, token } = getUsuario()
 
     try {
 
-      const payload = new FormData();
+      const payload = new FormData()
 
       Object.entries(formData).forEach(([key, value]) => {
-        if (value) payload.append(key, value);
-      });
+        payload.append(key, value)
+      })
 
-      payload.append('email_original', emailLogado);
+      payload.append('email_original', email)
 
       if (fotoFile) {
-        payload.append('foto_perfil', fotoFile);
+        payload.append('foto_perfil', fotoFile)
       }
 
-      const response = await fetch(`${API_URL}/api/auth/perfil`, {
+      const res = await fetch(`${API_URL}/api/auth/perfil`, {
         method: 'PUT',
-        headers: token
-          ? { Authorization: `Bearer ${token}` }
-          : undefined,
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
         body: payload
-      });
+      })
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Erro ao salvar');
+      if (!res.ok) {
+        throw new Error('Erro salvar perfil')
       }
 
       Swal.fire({
-        title: 'SUCESSO!',
-        text: 'Perfil atualizado',
         icon: 'success',
-        confirmButtonColor: '#FF4D4D'
-      });
-
-      router.replace('/dashboard/eventos');
+        title: 'Perfil atualizado'
+      })
 
     } catch (error: any) {
 
-      Swal.fire(
-        'Erro',
-        error.message,
-        'error'
-      );
+      Swal.fire({
+        icon: 'error',
+        title: error.message
+      })
 
     } finally {
 
-      setIsSaving(false);
+      setIsSaving(false)
 
     }
 
-  };
+  }
 
   if (isLoading) {
 
     return (
+
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="animate-spin text-red-500" />
       </div>
-    );
+
+    )
 
   }
 
   return (
 
-    <div className="min-h-screen bg-[#FDFDFF] p-6 md:p-12">
+    <div className="min-h-screen bg-gray-50 p-10">
 
-      <div className="max-w-[850px] mx-auto">
+      <div className="max-w-xl mx-auto bg-white p-10 rounded-3xl shadow">
 
         <Link
           href="/dashboard/eventos"
-          className="flex items-center gap-2 mb-8"
+          className="flex items-center gap-2 mb-6"
         >
           <ArrowLeft size={18} />
           Voltar
         </Link>
 
-        <div className="bg-white rounded-[3rem] shadow-xl p-10">
+        <div className="flex items-center gap-6 mb-8">
 
-          {/* FOTO PERFIL */}
+          <label className="cursor-pointer relative">
 
-          <div className="flex items-center gap-6 mb-12">
+            {fotoPreview ? (
 
-            <label className="cursor-pointer relative group">
-
-              {fotoPreview ? (
-
-                <img
-                  src={fotoPreview}
-                  className="w-24 h-24 rounded-3xl object-cover"
-                />
-
-              ) : (
-
-                <div className="w-24 h-24 bg-black rounded-3xl flex items-center justify-center">
-                  <UserCircle size={40} className="text-white" />
-                </div>
-
-              )}
-
-              <input
-                type="file"
-                className="hidden"
-                accept="image/*"
-                onChange={handleFotoChange}
+              <img
+                src={fotoPreview}
+                className="w-24 h-24 rounded-2xl object-cover"
               />
 
-              <div className="absolute -bottom-2 -right-2 bg-red-500 p-2 rounded-xl">
-                <Camera size={16} color="white" />
+            ) : (
+
+              <div className="w-24 h-24 bg-black rounded-2xl flex items-center justify-center">
+                <UserCircle size={40} color="white"/>
               </div>
 
-            </label>
+            )}
 
-            <div>
+            <input
+              type="file"
+              className="hidden"
+              accept="image/*"
+              onChange={handleFotoChange}
+            />
 
-              <h1 className="text-3xl font-bold">
-                Meu Perfil
-              </h1>
-
-              <p className="text-slate-400">
-                Gerencie suas informações
-              </p>
-
+            <div className="absolute bottom-0 right-0 bg-red-500 p-2 rounded-xl">
+              <Camera size={16} color="white"/>
             </div>
+
+          </label>
+
+          <div>
+
+            <h1 className="text-2xl font-bold">
+              Meu Perfil
+            </h1>
+
+            <p className="text-gray-400">
+              Edite suas informações
+            </p>
 
           </div>
 
-          <form onSubmit={handleSalvar} className="space-y-8">
-
-            <input
-              name="nome"
-              placeholder="Nome"
-              value={formData.nome}
-              onChange={handleChange}
-              className="input"
-            />
-
-            <input
-              name="cpf_cnpj"
-              placeholder="CPF/CNPJ"
-              value={formData.cpf_cnpj}
-              onChange={handleChange}
-              className="input"
-            />
-
-            <textarea
-              name="bio"
-              placeholder="Bio"
-              value={formData.bio}
-              onChange={handleChange}
-              className="input"
-            />
-
-            {/* STRIPE NÃO FOI ALTERADO */}
-
-            <div className="pt-12 border-t">
-
-              <h3 className="font-bold mb-4 flex items-center gap-2">
-                <CreditCard size={18}/>
-                Stripe
-              </h3>
-
-              {stripeAtivo && stripeDetails ? (
-
-                <div className="bg-green-50 p-6 rounded-2xl">
-
-                  <p className="font-bold">
-                    {stripeDetails.business_name}
-                  </p>
-
-                  <p className="text-sm">
-                    {stripeDetails.email_stripe}
-                  </p>
-
-                </div>
-
-              ) : (
-
-                <button
-                  type="button"
-                  className="bg-black text-white px-6 py-3 rounded-xl"
-                >
-                  Conectar Stripe
-                </button>
-
-              )}
-
-            </div>
-
-            <button
-              type="submit"
-              disabled={isSaving}
-              className="w-full bg-red-500 text-white py-4 rounded-2xl flex justify-center items-center gap-2"
-            >
-
-              {isSaving
-                ? <Loader2 className="animate-spin"/>
-                : <Save size={18}/>
-              }
-
-              Salvar Perfil
-
-            </button>
-
-          </form>
-
         </div>
+
+        <form
+          onSubmit={handleSalvar}
+          className="space-y-4"
+        >
+
+          <input
+            name="nome"
+            value={formData.nome}
+            onChange={handleChange}
+            placeholder="Nome"
+            className="w-full border p-3 rounded-xl"
+          />
+
+          <input
+            name="cpf_cnpj"
+            value={formData.cpf_cnpj}
+            onChange={handleChange}
+            placeholder="CPF ou CNPJ"
+            className="w-full border p-3 rounded-xl"
+          />
+
+          <textarea
+            name="bio"
+            value={formData.bio}
+            onChange={handleChange}
+            placeholder="Bio"
+            className="w-full border p-3 rounded-xl"
+          />
+
+          <button
+            type="submit"
+            disabled={isSaving}
+            className="w-full bg-red-500 text-white p-4 rounded-xl flex justify-center items-center gap-2"
+          >
+
+            {isSaving
+              ? <Loader2 className="animate-spin"/>
+              : <Save size={18}/>
+            }
+
+            Salvar Perfil
+
+          </button>
+
+        </form>
 
       </div>
 
     </div>
 
-  );
+  )
 
 }
 
@@ -381,11 +335,9 @@ export default function PerfilPage() {
   return (
 
     <Suspense fallback={<Loader2 className="animate-spin"/>}>
-
-      <PerfilContent/>
-
+      <PerfilContent />
     </Suspense>
 
-  );
+  )
 
 }
