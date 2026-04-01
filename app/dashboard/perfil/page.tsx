@@ -235,6 +235,7 @@ function PerfilContent() {
     setIsSaving(true);
     try {
       const { emailLogado, token } = getUsuarioLogado();
+
       if (!emailLogado) {
         Swal.fire('Erro', 'Nenhum email encontrado.', 'error');
         return;
@@ -283,8 +284,11 @@ function PerfilContent() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    const valueFinal = (name === 'cpf_cnpj' || name === 'cep') ? aplicarMascara(name, value) : value;
-    
+    const valueFinal =
+      name === 'cpf_cnpj' || name === 'cep'
+        ? aplicarMascara(name, value)
+        : value;
+
     setFormData((prev) => ({ ...prev, [name]: valueFinal }));
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: '' }));
@@ -294,7 +298,8 @@ function PerfilContent() {
   const handleSalvar = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
-    const { emailLogado, token } = getUsuarioLogado();
+
+    const { emailLogado, token, userStorage, parsedUser } = getUsuarioLogado();
 
     try {
       const headers: Record<string, string> = {
@@ -309,9 +314,46 @@ function PerfilContent() {
         body: JSON.stringify({ email_original: emailLogado, ...formData }),
       });
 
-      if (!response.ok) throw new Error('Erro ao salvar');
+      const data = await response.json();
 
+      if (!response.ok) {
+        throw new Error(data.message || 'Erro ao salvar');
+      }
+
+      // ✅ marca perfil completo
       localStorage.setItem('perfil_completo', 'true');
+
+      // ✅ atualiza o localStorage do usuário com os dados novos
+      if (data.user) {
+        const userAtual = userStorage ? parsedUser || {} : {};
+
+        const userAtualizado = {
+          ...userAtual,
+          ...data.user,
+          nome: data.user.nome ?? formData.nome,
+          bio: data.user.bio ?? formData.bio,
+          instagram: data.user.instagram ?? formData.instagram,
+          linkedin: data.user.linkedin ?? formData.linkedin,
+          email: data.user.email ?? emailLogado,
+        };
+
+        localStorage.setItem('@Linkah:User', JSON.stringify(userAtualizado));
+      } else {
+        // fallback caso backend não devolva user
+        const userAtual = userStorage ? parsedUser || {} : {};
+        localStorage.setItem(
+          '@Linkah:User',
+          JSON.stringify({
+            ...userAtual,
+            nome: formData.nome,
+            bio: formData.bio,
+            instagram: formData.instagram,
+            linkedin: formData.linkedin,
+            email: emailLogado,
+          })
+        );
+      }
+
       Swal.fire({
         title: 'SUCESSO!',
         text: 'Perfil sincronizado.',
@@ -373,7 +415,6 @@ function PerfilContent() {
           </div>
 
           <form onSubmit={handleSalvar} className="space-y-16 relative z-10">
-            {/* DADOS BÁSICOS */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
               <div className="space-y-4">
                 <label className="text-[11px] font-black uppercase tracking-[0.2em] block ml-2 text-slate-400">
@@ -403,7 +444,6 @@ function PerfilContent() {
               </div>
             </div>
 
-            {/* BIO E SOCIAL - NOVO */}
             <div className="pt-16 border-t border-slate-100">
               <div className="flex items-center gap-3 mb-10">
                 <div className="w-10 h-10 bg-purple-50 text-purple-500 rounded-xl flex items-center justify-center">
@@ -416,7 +456,9 @@ function PerfilContent() {
 
               <div className="space-y-10">
                 <div className="space-y-4">
-                  <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest ml-2">Mini Bio / Descrição</label>
+                  <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest ml-2">
+                    Mini Bio / Descrição
+                  </label>
                   <textarea
                     name="bio"
                     value={formData.bio}
@@ -452,7 +494,6 @@ function PerfilContent() {
               </div>
             </div>
 
-            {/* ENDEREÇO */}
             <div className="pt-16 border-t border-slate-100">
               <div className="flex items-center gap-3 mb-10">
                 <div className="w-10 h-10 bg-red-50 text-[#FF4D4D] rounded-xl flex items-center justify-center">
@@ -496,7 +537,6 @@ function PerfilContent() {
               </div>
             </div>
 
-            {/* STRIPE */}
             <div className="pt-16 border-t border-slate-100">
               <div className="flex items-center gap-3 mb-10">
                 <div className="w-10 h-10 bg-emerald-50 text-emerald-500 rounded-xl flex items-center justify-center">
