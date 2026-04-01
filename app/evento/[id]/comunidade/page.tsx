@@ -3,7 +3,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { 
   Search, Paperclip, Send, Video, Phone, 
-  MoreVertical, Smile, X, Loader2, Users, Sparkles, ChevronLeft
+  MoreVertical, Smile, X, Loader2, Users, Sparkles, ChevronLeft,
+  Instagram, Linkedin, UserCircle, ShieldCheck
 } from 'lucide-react';
 import { useLanguage } from '@/app/context/LanguageContext';
 import Link from 'next/link';
@@ -11,7 +12,7 @@ import Link from 'next/link';
 const API_URL = 'https://api-linkah.onrender.com';
 
 export default function SalaLinkahSkype() {
-  const { t } = useLanguage();
+  const { t }: any = useLanguage();
   const { id } = useParams();
   const router = useRouter();
   
@@ -21,17 +22,23 @@ export default function SalaLinkahSkype() {
   const [dadosUsuario, setDadosUsuario] = useState<any>(null);
   const [carregando, setCarregando] = useState(true);
 
+  // Estados para Call
   const [chamadaAtiva, setChamadaAtiva] = useState(false);
   const [nomeSalaCall, setNomeSalaCall] = useState(''); 
   const [conviteRecebido, setConviteRecebido] = useState<any>(null);
 
+  // Estados para Chat
   const [novoTexto, setNovoTexto] = useState('');
   const [imagemAnexada, setImagemAnexada] = useState<string | null>(null);
+
+  // ESTADOS PARA PERFIL (NOVO)
+  const [usuarioSelecionado, setUsuarioSelecionado] = useState<any>(null);
+  const [carregandoPerfil, setCarregandoPerfil] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // 1. Autenticação (Mantida lógica original)
+  // 1. Autenticação
   useEffect(() => {
     const savedUser = localStorage.getItem('@Linkah:User');
     if (savedUser) {
@@ -41,7 +48,7 @@ export default function SalaLinkahSkype() {
     }
   }, [router]);
 
-  // 2. Sync Loop (Mantida lógica original)
+  // 2. Sync Loop
   useEffect(() => {
     if (!id || !dadosUsuario?.nome) return;
 
@@ -102,6 +109,26 @@ export default function SalaLinkahSkype() {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [mensagens]);
 
+  // FUNÇÃO ABRIR PERFIL (NOVO)
+  const abrirPerfil = async (nome: string) => {
+    setCarregandoPerfil(true);
+    try {
+      const res = await fetch(`${API_URL}/api/auth/perfil-publico?nome=${encodeURIComponent(nome)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setUsuarioSelecionado(data);
+      } else {
+        // Fallback caso não tenha perfil completo ainda
+        setUsuarioSelecionado({ nome, bio: null });
+      }
+    } catch (err) {
+      console.error(err);
+      setUsuarioSelecionado({ nome, bio: null });
+    } finally {
+      setCarregandoPerfil(false);
+    }
+  };
+
   const enviarMensagem = async (e: any) => {
     e.preventDefault();
     if (!novoTexto.trim() && !imagemAnexada) return;
@@ -160,7 +187,7 @@ export default function SalaLinkahSkype() {
   return (
     <div className="flex h-screen bg-[#FCFBFA] overflow-hidden text-slate-900 font-sans">
       
-      {/* MODAL CONVITE RECEBIDO (UI REFORMULADA) */}
+      {/* MODAL CONVITE RECEBIDO */}
       {conviteRecebido && (
         <div className="fixed inset-0 z-[999] bg-slate-950/40 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-white p-8 rounded-[2.5rem] text-center max-w-sm w-full shadow-2xl border border-slate-100 animate-in zoom-in-95">
@@ -190,7 +217,71 @@ export default function SalaLinkahSkype() {
         </div>
       )}
 
-      {/* SIDEBAR ONLINE (MODERNA) */}
+      {/* MODAL DE PERFIL DO USUÁRIO (NOVO) */}
+      {usuarioSelecionado && (
+        <div className="fixed inset-0 z-[1000] bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setUsuarioSelecionado(null)}>
+          <div className="bg-white w-full max-w-md rounded-[3.5rem] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300 border border-white/20" onClick={e => e.stopPropagation()}>
+            <div className="h-32 bg-slate-950 relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#ff4d4d]/20 to-transparent"></div>
+              <button onClick={() => setUsuarioSelecionado(null)} className="absolute top-6 right-6 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors z-10">
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="px-10 pb-12 -mt-16 text-center relative z-10">
+              <div className="w-32 h-32 bg-white rounded-[2.5rem] mx-auto p-2 shadow-2xl relative">
+                <div className="w-full h-full bg-slate-900 rounded-[2rem] flex items-center justify-center text-white text-4xl font-black italic">
+                  {usuarioSelecionado.nome?.charAt(0)}
+                </div>
+                <div className="absolute -bottom-1 -right-1 w-10 h-10 bg-[#ff4d4d] rounded-2xl flex items-center justify-center border-4 border-white shadow-lg">
+                  <ShieldCheck className="text-white" size={18} />
+                </div>
+              </div>
+
+              <h3 className="mt-6 text-3xl font-black text-slate-950 tracking-tighter italic uppercase">{usuarioSelecionado.nome}</h3>
+              <p className="text-slate-400 text-[10px] font-black tracking-[0.4em] uppercase mb-8 italic flex items-center justify-center gap-2">
+                <Sparkles size={12} className="text-[#ff4d4d]" /> Linkah Producer
+              </p>
+
+              <div className="bg-slate-50/80 rounded-[2rem] p-6 mb-8 border border-slate-100">
+                {usuarioSelecionado.bio ? (
+                  <p className="text-slate-600 text-sm font-bold leading-relaxed italic">
+                    "{usuarioSelecionado.bio}"
+                  </p>
+                ) : (
+                  <p className="text-slate-300 text-xs font-bold uppercase tracking-widest">Sem bio disponível</p>
+                )}
+              </div>
+
+              <div className="flex justify-center gap-4 mb-10">
+                {usuarioSelecionado.instagram && (
+                  <a href={`https://instagram.com/${usuarioSelecionado.instagram.replace('@','')}`} target="_blank" rel="noreferrer" className="w-14 h-14 flex items-center justify-center bg-pink-50 text-pink-500 rounded-2xl hover:scale-110 hover:bg-pink-500 hover:text-white transition-all shadow-sm">
+                    <Instagram size={22} />
+                  </a>
+                )}
+                {usuarioSelecionado.linkedin && (
+                  <a href={usuarioSelecionado.linkedin} target="_blank" rel="noreferrer" className="w-14 h-14 flex items-center justify-center bg-blue-50 text-blue-600 rounded-2xl hover:scale-110 hover:bg-blue-600 hover:text-white transition-all shadow-sm">
+                    <Linkedin size={22} />
+                  </a>
+                )}
+                <div className="w-14 h-14 flex items-center justify-center bg-slate-50 text-slate-400 rounded-2xl">
+                  <UserCircle size={22} />
+                </div>
+              </div>
+
+              <button 
+                onClick={() => { iniciarCall(usuarioSelecionado.nome); setUsuarioSelecionado(null); }}
+                className="w-full bg-slate-950 text-white py-6 rounded-3xl font-black text-[11px] uppercase tracking-[0.3em] shadow-2xl shadow-slate-200 hover:bg-[#ff4d4d] active:scale-95 transition-all flex items-center justify-center gap-4"
+              >
+                <Video size={18} />
+                Iniciar Vídeo Chamada
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SIDEBAR ONLINE */}
       <aside className="w-80 border-r border-slate-100 hidden lg:flex flex-col bg-white">
         <div className="p-6">
           <Link href="/" className="inline-flex items-center gap-2 text-slate-400 hover:text-slate-950 mb-8 transition-colors">
@@ -218,7 +309,7 @@ export default function SalaLinkahSkype() {
           ) : usuariosOnline.map((u, i) => (
             <div 
               key={i} 
-              onClick={() => iniciarCall(u.usuario_nome)} 
+              onClick={() => abrirPerfil(u.usuario_nome)} // MUDOU AQUI
               className="flex items-center gap-3 p-3 hover:bg-[#FCFBFA] rounded-2xl cursor-pointer transition-all border border-transparent hover:border-slate-100 group"
             >
               <div className="relative">
@@ -232,7 +323,7 @@ export default function SalaLinkahSkype() {
                 <p className="text-[10px] font-medium text-emerald-500 uppercase tracking-widest">Disponível</p>
               </div>
               <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white p-2 rounded-lg shadow-sm">
-                <Video size={16} className="text-[#ff4d4d]" />
+                <UserCircle size={16} className="text-slate-400" />
               </div>
             </div>
           ))}
@@ -242,7 +333,7 @@ export default function SalaLinkahSkype() {
       {/* CHAT PRINCIPAL */}
       <main className="flex-1 flex flex-col relative bg-white lg:rounded-l-[3rem] shadow-2xl border-l border-slate-100">
         
-        {/* TELA DE CHAMADA JITSI (REFRESH) */}
+        {/* TELA DE CHAMADA JITSI */}
         {chamadaAtiva && (
           <div className="absolute inset-0 z-50 bg-slate-950 flex flex-col lg:rounded-l-[3rem] overflow-hidden">
             <div className="p-4 flex justify-between items-center bg-slate-950/80 backdrop-blur-md border-b border-white/5">
@@ -261,6 +352,7 @@ export default function SalaLinkahSkype() {
               src={`https://meet.jit.si/${nomeSalaCall}#userInfo.displayName="${dadosUsuario?.nome}"&config.prejoinPageEnabled=false`} 
               className="flex-1 border-none bg-black" 
               allow="camera; microphone; display-capture; autoplay; clipboard-write" 
+              title="Chamada de Vídeo"
             />
           </div>
         )}
@@ -270,7 +362,7 @@ export default function SalaLinkahSkype() {
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-2xl bg-slate-50 border border-slate-100 text-slate-950 flex items-center justify-center font-black text-2xl shadow-sm overflow-hidden">
                {dadosEvento?.capa ? (
-                   <img src={dadosEvento.capa} className="w-full h-full object-cover" />
+                   <img src={dadosEvento.capa} className="w-full h-full object-cover" alt="Capa" />
                ) : dadosEvento?.nome?.charAt(0)}
             </div>
             <div>
@@ -299,7 +391,7 @@ export default function SalaLinkahSkype() {
           </div>
         </header>
 
-        {/* MENSAGENS (ESTILO SLACK PREMIUM) */}
+        {/* MENSAGENS */}
         <div className="flex-1 overflow-y-auto p-6 space-y-8 bg-[#FCFBFA]/50">
           {mensagens.map((m, i) => {
             if(m.tipo === 'status' || m.texto?.includes("CALL_INVITE|")) return null;
@@ -309,7 +401,10 @@ export default function SalaLinkahSkype() {
               <div key={i} className={`flex ${souEu ? 'justify-end' : 'justify-start'} group animate-in slide-in-from-bottom-2 duration-300`}>
                 <div className={`flex gap-3 max-w-[80%] ${souEu ? 'flex-row-reverse' : 'flex-row'}`}>
                   {!souEu && (
-                    <div className="w-10 h-10 rounded-xl bg-white border border-slate-100 flex-shrink-0 flex items-center justify-center text-xs font-bold text-slate-400 shadow-sm">
+                    <div 
+                      onClick={() => abrirPerfil(m.usuario_nome)} // MUDOU AQUI
+                      className="w-10 h-10 rounded-xl bg-white border border-slate-100 flex-shrink-0 flex items-center justify-center text-xs font-bold text-slate-400 shadow-sm cursor-pointer hover:border-[#ff4d4d] transition-all"
+                    >
                       {m.usuario_nome.charAt(0)}
                     </div>
                   )}
@@ -332,7 +427,7 @@ export default function SalaLinkahSkype() {
                            <img src={m.imagem} className="max-h-80 w-full object-cover hover:scale-105 transition-transform duration-500 cursor-zoom-in" alt="Anexo" />
                         </div>
                       )}
-                      {m.texto && <p className="text-sm font-medium leading-relaxed leading-snug tracking-tight">{m.texto}</p>}
+                      {m.texto && <p className="text-sm font-medium leading-snug tracking-tight">{m.texto}</p>}
                     </div>
                   </div>
                 </div>
@@ -342,7 +437,7 @@ export default function SalaLinkahSkype() {
           <div ref={scrollRef} />
         </div>
 
-        {/* INPUT (UI REDONDA & CLEAN) */}
+        {/* INPUT */}
         <footer className="p-6 bg-white border-t border-slate-50">
           <form onSubmit={enviarMensagem} className="max-w-4xl mx-auto">
             <div className="bg-slate-50 rounded-[1.5rem] p-2 flex flex-col focus-within:bg-white border border-transparent focus-within:border-slate-100 focus-within:ring-4 focus-within:ring-[#ff4d4d]/5 transition-all">
