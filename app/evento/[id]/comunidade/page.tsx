@@ -11,12 +11,8 @@ import Link from 'next/link';
 
 const API_URL = 'https://api-linkah.onrender.com';
 
-// Função auxiliar para garantir que a URL da imagem seja válida
-const getImagemUrl = (img: string | null | undefined) => {
-  if (!img) return null;
-  if (img.startsWith('http') || img.startsWith('data:')) return img;
-  return `${API_URL}/uploads/${img}`;
-};
+// Função para garantir que src de <img> nunca seja null
+const getImagemUrl = (foto: string | null | undefined) => foto || undefined;
 
 export default function SalaLinkahSkype() {
   const { t }: any = useLanguage();
@@ -61,7 +57,7 @@ export default function SalaLinkahSkype() {
 
     const atualizar = async () => {
       try {
-        const minhaFoto = getImagemUrl(dadosUsuario.foto || dadosUsuario.usuario_foto);
+        const minhaFoto = dadosUsuario.foto || dadosUsuario.usuario_foto || '';
 
         const [resEv, resMsg, resOn] = await Promise.all([
           fetch(`${API_URL}/api/eventos/${id}`),
@@ -101,7 +97,7 @@ export default function SalaLinkahSkype() {
                 setConviteRecebido({
                   de: msg.usuario_nome,
                   sala: salaSugerida,
-                  foto: getImagemUrl(msg.usuario_foto || msg.foto || msg.avatar)
+                  foto: msg.usuario_foto || msg.foto || msg.avatar
                 });
               }
             }
@@ -143,7 +139,7 @@ export default function SalaLinkahSkype() {
     e.preventDefault();
     if (!novoTexto.trim() && !imagemAnexada) return;
 
-    const fotoParaEnviar = getImagemUrl(dadosUsuario?.foto || dadosUsuario?.usuario_foto);
+    const fotoParaEnviar = dadosUsuario?.foto || dadosUsuario?.usuario_foto || null;
 
     const payload = {
       evento_id: Number(id),
@@ -169,7 +165,7 @@ export default function SalaLinkahSkype() {
   const iniciarCall = async (destino: string) => {
     if (!dadosUsuario) return;
     const sala = `Call_${id}_${Date.now()}`;
-    const fotoCall = getImagemUrl(dadosUsuario.foto || dadosUsuario.usuario_foto);
+    const fotoCall = dadosUsuario.foto || dadosUsuario.usuario_foto || null;
 
     await fetch(`${API_URL}/api/comunidades/enviar`, {
       method: 'POST',
@@ -202,8 +198,8 @@ export default function SalaLinkahSkype() {
         <div className="fixed inset-0 z-[999] bg-slate-950/40 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-white p-8 rounded-[2.5rem] text-center max-w-sm w-full shadow-2xl border border-slate-100">
             <div className="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 relative overflow-hidden bg-slate-100">
-              {conviteRecebido.foto ? (
-                <img src={conviteRecebido.foto} className="w-full h-full object-cover" alt="Avatar" />
+              {(conviteRecebido.foto) ? (
+                <img src={getImagemUrl(conviteRecebido.foto)} className="w-full h-full object-cover" alt="Avatar" />
               ) : <Phone size={40} className="text-[#ff4d4d] animate-pulse" />}
             </div>
             <h3 className="font-bold text-xl text-slate-900 mb-2">{conviteRecebido.de}</h3>
@@ -230,7 +226,9 @@ export default function SalaLinkahSkype() {
                     <img src={getImagemUrl(usuarioSelecionado.foto || usuarioSelecionado.usuario_foto)} className="w-full h-full object-cover" alt="Avatar" />
                   ) : usuarioSelecionado.nome?.charAt(0)}
                 </div>
-                <div className="absolute -bottom-1 -right-1 w-10 h-10 bg-[#ff4d4d] rounded-2xl flex items-center justify-center border-4 border-white"><ShieldCheck className="text-white" size={18} /></div>
+                <div className="absolute -bottom-1 -right-1 w-10 h-10 bg-[#ff4d4d] rounded-2xl flex items-center justify-center border-4 border-white">
+                  <ShieldCheck className="text-white" size={18} />
+                </div>
               </div>
               <h3 className="mt-6 text-3xl font-black text-slate-950 uppercase">{usuarioSelecionado.nome}</h3>
               <p className="text-slate-400 text-[10px] font-black tracking-[0.4em] uppercase mb-8"><Sparkles size={12} className="inline text-[#ff4d4d] mr-1" /> Linkah Member</p>
@@ -310,8 +308,11 @@ export default function SalaLinkahSkype() {
                     ) : m.usuario_nome.charAt(0)}
                   </div>
                   <div className={`space-y-1 ${souEu ? 'items-end' : 'items-start'}`}>
-                    <p className={`text-xs ${souEu ? 'text-white bg-[#ff4d4d]' : 'text-slate-900 bg-white'} px-4 py-2 rounded-3xl shadow`}>{m.texto}</p>
-                    {m.imagem && <img src={getImagemUrl(m.imagem)} className="w-40 h-40 rounded-2xl object-cover" alt="Anexo" />}
+                    <span className="text-[11px] font-bold text-slate-900 px-1">{souEu ? 'Você' : m.usuario_nome}</span>
+                    <div className={`p-4 rounded-[1.5rem] shadow-sm ${souEu ? 'bg-[#ff4d4d] text-white rounded-tr-none' : 'bg-white text-slate-900 rounded-tl-none'}`}>
+                      {m.imagem && <img src={getImagemUrl(m.imagem)} alt="Anexo" className="rounded-2xl mb-2 max-h-52 object-cover" />}
+                      <p className="text-[13px] font-medium">{m.texto}</p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -320,9 +321,11 @@ export default function SalaLinkahSkype() {
           <div ref={scrollRef}></div>
         </div>
 
-        <form onSubmit={enviarMensagem} className="p-6 border-t border-slate-50 flex items-center gap-4 bg-white/80 backdrop-blur-xl sticky bottom-0">
-          <input type="text" value={novoTexto} onChange={e => setNovoTexto(e.target.value)} placeholder="Digite uma mensagem..." className="flex-1 bg-slate-50 rounded-3xl px-6 py-3 text-sm outline-none border border-slate-100" />
-          <button type="submit" className="bg-[#ff4d4d] text-white rounded-3xl px-6 py-3 hover:brightness-110 transition-all"><Send size={18} /></button>
+        <form onSubmit={enviarMensagem} className="p-6 border-t border-slate-100 bg-white flex items-center gap-4 sticky bottom-0 z-10">
+          <input type="file" ref={fileInputRef} className="hidden" onChange={e => setImagemAnexada(URL.createObjectURL(e.target.files?.[0] || null))} />
+          <button type="button" onClick={() => fileInputRef.current?.click()} className="p-3 rounded-2xl bg-slate-50 hover:bg-slate-100 transition-all"><Paperclip size={18} /></button>
+          <input type="text" placeholder="Digite sua mensagem..." value={novoTexto} onChange={e => setNovoTexto(e.target.value)} className="flex-1 bg-slate-50 p-4 rounded-2xl text-sm outline-none" />
+          <button type="submit" className="p-3 rounded-2xl bg-[#ff4d4d] text-white hover:brightness-110 transition-all"><Send size={18} /></button>
         </form>
       </main>
     </div>
