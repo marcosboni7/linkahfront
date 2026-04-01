@@ -44,6 +44,7 @@ interface FormDataState {
   linkedin: string;
   instagram: string;
   bio: string;
+  foto_perfil?: string;
 }
 
 function PerfilContent() {
@@ -52,14 +53,15 @@ function PerfilContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [fotoPerfil,setFotoPerfil] = useState<string | null>(null);
-
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+
   const [stripeAccountId, setStripeAccountId] = useState<string | null>(null);
   const [stripeAtivo, setStripeAtivo] = useState(false);
   const [stripeDetails, setStripeDetails] = useState<StripeDetails | null>(null);
+
+  const [fotoPreview, setFotoPreview] = useState<string | null>(null);
+  const [fotoFile, setFotoFile] = useState<File | null>(null);
 
   const [formData, setFormData] = useState<FormDataState>({
     nome: '',
@@ -74,74 +76,54 @@ function PerfilContent() {
   });
 
   const getUsuarioLogado = useCallback(() => {
-    try {
-      const userStorage = localStorage.getItem('@Linkah:User');
-      const parsedUser = userStorage ? JSON.parse(userStorage) : null;
-      const emailLogado = parsedUser?.email || localStorage.getItem('userEmail') || '';
-      const token = localStorage.getItem('@Linkah:Token')?.replace(/['"]+/g, '') || '';
 
-      return { userStorage, parsedUser, emailLogado, token };
+    const userStorage = localStorage.getItem('@Linkah:User');
+    const parsedUser = userStorage ? JSON.parse(userStorage) : null;
 
-    } catch {
-      return { userStorage:null, parsedUser:null, emailLogado:'', token:'' };
-    }
-  }, []);
+    const emailLogado =
+      parsedUser?.email ||
+      localStorage.getItem('userEmail') ||
+      '';
 
-  const handleFotoChange = async (e:any)=>{
+    const token =
+      localStorage
+        .getItem('@Linkah:Token')
+        ?.replace(/['"]+/g, '') || '';
 
-    const file = e.target.files[0];
-    if(!file) return;
-
-    const reader = new FileReader();
-
-    reader.onloadend = async ()=>{
-
-      const base64 = reader.result;
-      const { emailLogado } = getUsuarioLogado();
-
-      try{
-
-        const res = await fetch(`${API_URL}/api/auth/upload-foto`,{
-          method:"POST",
-          headers:{ "Content-Type":"application/json" },
-          body: JSON.stringify({
-            email: emailLogado,
-            imagem: base64
-          })
-        });
-
-        const data = await res.json();
-
-        if(data.foto_url){
-
-          setFotoPerfil(data.foto_url);
-
-          Swal.fire({
-            icon:'success',
-            title:'Foto atualizada!'
-          });
-
-        }
-
-      }catch(err){
-        console.log(err);
-      }
-
+    return {
+      emailLogado,
+      token,
+      parsedUser,
+      userStorage
     };
 
-    reader.readAsDataURL(file);
+  }, []);
 
-  }
+  const handleFotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+
+    const file = e.target.files?.[0];
+
+    if (!file) return;
+
+    setFotoFile(file);
+
+    const preview = URL.createObjectURL(file);
+    setFotoPreview(preview);
+
+  };
 
   const aplicarMascara = (name: string, value: string) => {
+
     let v = value.replace(/\D/g, '');
 
     if (name === 'cpf_cnpj') {
+
       if (v.length <= 11) {
         return v.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/g, '$1.$2.$3-$4');
       } else {
         return v.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/g, '$1.$2.$3/$4-$5');
       }
+
     }
 
     if (name === 'cep') {
@@ -149,272 +131,261 @@ function PerfilContent() {
     }
 
     return value;
+
   };
 
-  useEffect(()=>{
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
 
-    const carregarPerfil = async ()=>{
+    const { name, value } = e.target;
 
-      const { emailLogado } = getUsuarioLogado();
-
-      if(!emailLogado){
-        router.push('/site/login');
-        return;
-      }
-
-      try{
-
-        const res = await fetch(`${API_URL}/api/auth/perfil?email=${emailLogado}`);
-        const data = await res.json();
-
-        setFormData({
-          nome:data.nome || '',
-          cpf_cnpj:data.cpf_cnpj || '',
-          cep:data.cep || '',
-          rua:data.rua || '',
-          numero:data.numero || '',
-          bairro:data.bairro || '',
-          linkedin:data.linkedin || '',
-          instagram:data.instagram || '',
-          bio:data.bio || '',
-        });
-
-        setFotoPerfil(data.foto_url || null);
-
-      }catch(err){
-        console.log(err);
-      }
-
-      setIsLoading(false);
-
-    }
-
-    carregarPerfil();
-
-  },[])
-
-  const handleChange = (e:any)=>{
-
-    const {name,value} = e.target;
-
-    const finalValue =
+    const valueFinal =
       name === 'cpf_cnpj' || name === 'cep'
-      ? aplicarMascara(name,value)
-      : value;
+        ? aplicarMascara(name, value)
+        : value;
 
-    setFormData(prev=>({
+    setFormData((prev) => ({
       ...prev,
-      [name]:finalValue
-    }))
+      [name]: valueFinal
+    }));
 
-  }
+  };
 
-  const handleSalvar = async(e:any)=>{
+  const handleSalvar = async (e: React.FormEvent) => {
 
     e.preventDefault();
+
     setIsSaving(true);
 
-    const { emailLogado } = getUsuarioLogado();
+    const { emailLogado, token } = getUsuarioLogado();
 
-    try{
+    try {
 
-      const res = await fetch(`${API_URL}/api/auth/perfil`,{
-        method:'PUT',
-        headers:{ 'Content-Type':'application/json' },
-        body: JSON.stringify({
-          email_original: emailLogado,
-          ...formData
-        })
+      const payload = new FormData();
+
+      Object.entries(formData).forEach(([key, value]) => {
+        if (value) payload.append(key, value);
       });
 
-      const data = await res.json();
+      payload.append('email_original', emailLogado);
 
-      if(res.ok){
-
-        Swal.fire({
-          icon:'success',
-          title:'Perfil atualizado'
-        });
-
+      if (fotoFile) {
+        payload.append('foto_perfil', fotoFile);
       }
 
-    }catch(err){
-      console.log(err);
+      const response = await fetch(`${API_URL}/api/auth/perfil`, {
+        method: 'PUT',
+        headers: token
+          ? { Authorization: `Bearer ${token}` }
+          : undefined,
+        body: payload
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Erro ao salvar');
+      }
+
+      Swal.fire({
+        title: 'SUCESSO!',
+        text: 'Perfil atualizado',
+        icon: 'success',
+        confirmButtonColor: '#FF4D4D'
+      });
+
+      router.replace('/dashboard/eventos');
+
+    } catch (error: any) {
+
+      Swal.fire(
+        'Erro',
+        error.message,
+        'error'
+      );
+
+    } finally {
+
+      setIsSaving(false);
+
     }
 
-    setIsSaving(false);
+  };
 
-  }
+  if (isLoading) {
 
-  if(isLoading){
-
-    return(
-      <div className="flex h-screen w-screen items-center justify-center">
-        <Loader2 className="animate-spin text-[#FF4D4D]" size={48}/>
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="animate-spin text-red-500" />
       </div>
-    )
+    );
 
   }
 
   return (
 
-<div className="min-h-screen bg-[#FDFDFF] p-6 md:p-12">
+    <div className="min-h-screen bg-[#FDFDFF] p-6 md:p-12">
 
-<div className="max-w-[850px] mx-auto">
+      <div className="max-w-[850px] mx-auto">
 
-<Link
-href="/dashboard/eventos"
-className="inline-flex items-center gap-3 text-slate-400 hover:text-[#FF4D4D] mb-10"
->
-<ArrowLeft size={18}/>
-Voltar
-</Link>
+        <Link
+          href="/dashboard/eventos"
+          className="flex items-center gap-2 mb-8"
+        >
+          <ArrowLeft size={18} />
+          Voltar
+        </Link>
 
-<div className="bg-white rounded-[4rem] shadow-xl p-10">
+        <div className="bg-white rounded-[3rem] shadow-xl p-10">
 
-{/* FOTO PERFIL */}
+          {/* FOTO PERFIL */}
 
-<div className="flex flex-col items-center mb-16">
+          <div className="flex items-center gap-6 mb-12">
 
-<div className="relative">
+            <label className="cursor-pointer relative group">
 
-{fotoPerfil ? (
+              {fotoPreview ? (
 
-<img
-src={fotoPerfil}
-className="w-32 h-32 rounded-full object-cover"
-/>
+                <img
+                  src={fotoPreview}
+                  className="w-24 h-24 rounded-3xl object-cover"
+                />
 
-):(
+              ) : (
 
-<div className="w-32 h-32 bg-slate-200 rounded-full flex items-center justify-center">
-<UserCircle size={60}/>
-</div>
+                <div className="w-24 h-24 bg-black rounded-3xl flex items-center justify-center">
+                  <UserCircle size={40} className="text-white" />
+                </div>
 
-)}
+              )}
 
-<label className="absolute bottom-0 right-0 bg-[#FF4D4D] p-3 rounded-full cursor-pointer text-white">
+              <input
+                type="file"
+                className="hidden"
+                accept="image/*"
+                onChange={handleFotoChange}
+              />
 
-<Camera size={18}/>
+              <div className="absolute -bottom-2 -right-2 bg-red-500 p-2 rounded-xl">
+                <Camera size={16} color="white" />
+              </div>
 
-<input
-type="file"
-accept="image/*"
-className="hidden"
-onChange={handleFotoChange}
-/>
+            </label>
 
-</label>
+            <div>
 
-</div>
+              <h1 className="text-3xl font-bold">
+                Meu Perfil
+              </h1>
 
-</div>
+              <p className="text-slate-400">
+                Gerencie suas informações
+              </p>
 
-<form onSubmit={handleSalvar} className="space-y-8">
+            </div>
 
-<input
-name="nome"
-value={formData.nome}
-onChange={handleChange}
-placeholder="Nome"
-className="w-full border p-4 rounded-xl"
-/>
+          </div>
 
-<input
-name="cpf_cnpj"
-value={formData.cpf_cnpj}
-onChange={handleChange}
-placeholder="CPF/CNPJ"
-className="w-full border p-4 rounded-xl"
-/>
+          <form onSubmit={handleSalvar} className="space-y-8">
 
-<input
-name="cep"
-value={formData.cep}
-onChange={handleChange}
-placeholder="CEP"
-className="w-full border p-4 rounded-xl"
-/>
+            <input
+              name="nome"
+              placeholder="Nome"
+              value={formData.nome}
+              onChange={handleChange}
+              className="input"
+            />
 
-<input
-name="rua"
-value={formData.rua}
-onChange={handleChange}
-placeholder="Rua"
-className="w-full border p-4 rounded-xl"
-/>
+            <input
+              name="cpf_cnpj"
+              placeholder="CPF/CNPJ"
+              value={formData.cpf_cnpj}
+              onChange={handleChange}
+              className="input"
+            />
 
-<input
-name="numero"
-value={formData.numero}
-onChange={handleChange}
-placeholder="Número"
-className="w-full border p-4 rounded-xl"
-/>
+            <textarea
+              name="bio"
+              placeholder="Bio"
+              value={formData.bio}
+              onChange={handleChange}
+              className="input"
+            />
 
-<input
-name="bairro"
-value={formData.bairro}
-onChange={handleChange}
-placeholder="Bairro"
-className="w-full border p-4 rounded-xl"
-/>
+            {/* STRIPE NÃO FOI ALTERADO */}
 
-<input
-name="instagram"
-value={formData.instagram}
-onChange={handleChange}
-placeholder="Instagram"
-className="w-full border p-4 rounded-xl"
-/>
+            <div className="pt-12 border-t">
 
-<input
-name="linkedin"
-value={formData.linkedin}
-onChange={handleChange}
-placeholder="Linkedin"
-className="w-full border p-4 rounded-xl"
-/>
+              <h3 className="font-bold mb-4 flex items-center gap-2">
+                <CreditCard size={18}/>
+                Stripe
+              </h3>
 
-<textarea
-name="bio"
-value={formData.bio}
-onChange={handleChange}
-placeholder="Bio"
-className="w-full border p-4 rounded-xl"
-/>
+              {stripeAtivo && stripeDetails ? (
 
-<button
-type="submit"
-className="w-full bg-[#FF4D4D] text-white py-4 rounded-xl flex items-center justify-center gap-3"
->
+                <div className="bg-green-50 p-6 rounded-2xl">
 
-{isSaving
-? <Loader2 className="animate-spin"/>
-: <>
-<Save size={18}/>
-Salvar Perfil
-</>
-}
+                  <p className="font-bold">
+                    {stripeDetails.business_name}
+                  </p>
 
-</button>
+                  <p className="text-sm">
+                    {stripeDetails.email_stripe}
+                  </p>
 
-</form>
+                </div>
 
-</div>
+              ) : (
 
-</div>
+                <button
+                  type="button"
+                  className="bg-black text-white px-6 py-3 rounded-xl"
+                >
+                  Conectar Stripe
+                </button>
 
-</div>
+              )}
 
-  )
+            </div>
+
+            <button
+              type="submit"
+              disabled={isSaving}
+              className="w-full bg-red-500 text-white py-4 rounded-2xl flex justify-center items-center gap-2"
+            >
+
+              {isSaving
+                ? <Loader2 className="animate-spin"/>
+                : <Save size={18}/>
+              }
+
+              Salvar Perfil
+
+            </button>
+
+          </form>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  );
 
 }
 
 export default function PerfilPage() {
+
   return (
-    <Suspense fallback={<div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin"/></div>}>
-      <PerfilContent />
+
+    <Suspense fallback={<Loader2 className="animate-spin"/>}>
+
+      <PerfilContent/>
+
     </Suspense>
+
   );
+
 }
