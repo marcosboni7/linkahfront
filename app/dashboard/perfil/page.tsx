@@ -24,7 +24,7 @@ const API_URL = 'https://api-linkah.onrender.com';
 
 interface StripeDetails {
   charges_enabled: boolean;
-  payouts_enabled: boolean;
+  payout_enabled: boolean;
   business_name: string;
   email_stripe: string;
   status_banco: string;
@@ -114,16 +114,20 @@ function PerfilContent() {
         console.log('📦 Status Stripe atualizado:', data);
 
         if (data.conectado) {
-          setStripeAtivo(Boolean(data.charges_enabled));
+          // Só consideramos ATIVO se o banco retornar 'Ativo' E o Stripe permitir cobranças
+          const estaRealmenteAtivo = data.status_banco === 'Ativo' && Boolean(data.charges_enabled);
+          
+          setStripeAtivo(estaRealmenteAtivo);
           setStripeDetails({
             charges_enabled: Boolean(data.charges_enabled),
-            payouts_enabled: Boolean(data.payouts_enabled),
-            business_name: data.business_name || 'Conta Vinculada',
-            email_stripe: data.email_stripe || '',
+            payout_enabled: Boolean(data.payout_enabled),
+            business_name: data.business_name || 'Conta em Verificação',
+            email_stripe: data.email_stripe || email,
             status_banco: data.status_banco || 'Pendente',
           });
 
-          if (searchParams.get('stripe_callback') === 'true' && data.charges_enabled) {
+          // Alerta de sucesso apenas se acabou de voltar do onboarding e deu tudo certo
+          if (searchParams.get('stripe_callback') === 'true' && estaRealmenteAtivo) {
             Swal.fire({
               title: 'CONTA ATIVADA!',
               text: 'Sua conta Stripe foi vinculada e está pronta para faturar.',
@@ -200,7 +204,6 @@ function PerfilContent() {
       };
       if (token) headers.Authorization = `Bearer ${token}`;
 
-      // ESSA CHAMADA É O QUE FAZ O "NULL" SUMIR DO SEU BANCO AUTOMATICAMENTE
       const response = await fetch(`${API_URL}/api/pagamento/conectar-stripe`, {
         method: 'POST',
         headers,
@@ -400,7 +403,6 @@ function PerfilContent() {
               </div>
             </div>
 
-            {/* SEÇÃO DO STRIPE - ONDE A MÁGICA ACONTECE */}
             <div className="pt-16 border-t border-slate-100">
               <div className="flex items-center gap-3 mb-10">
                 <div className="w-10 h-10 bg-emerald-50 text-emerald-500 rounded-xl flex items-center justify-center">
@@ -415,7 +417,7 @@ function PerfilContent() {
                 <div className="bg-emerald-50/30 border-2 border-emerald-100 p-10 rounded-[3rem] relative group hover:bg-emerald-50/50 transition-all">
                   <div className="flex flex-col md:flex-row items-center justify-between gap-8">
                     <div className="flex items-center gap-6">
-                      <div className="w-16 h-16 bg-emerald-500 rounded-[1.5rem] flex items-center justify-center text-white shadow-xl shadow-emerald-200 animate-pulse">
+                      <div className="w-16 h-16 bg-emerald-500 rounded-[1.5rem] flex items-center justify-center text-white shadow-xl shadow-emerald-200">
                         <CheckCircle2 size={32} />
                       </div>
                       <div>
@@ -428,16 +430,16 @@ function PerfilContent() {
                       </div>
                     </div>
                     <span className="px-5 py-2 bg-white text-emerald-600 rounded-full text-[10px] font-black uppercase border border-emerald-100 shadow-sm tracking-widest flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping" />
+                      <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
                       CONTA ATIVA
                     </span>
                   </div>
                 </div>
               ) : (
-                <div className="bg-slate-50 p-10 rounded-[3rem] border-2 border-dashed border-slate-200 flex flex-col lg:flex-row items-center justify-between gap-10">
+                <div className={`p-10 rounded-[3rem] border-2 border-dashed flex flex-col lg:flex-row items-center justify-between gap-10 transition-all ${stripeAccountId ? 'bg-amber-50/30 border-amber-200' : 'bg-slate-50 border-slate-200'}`}>
                   <div className="flex gap-6 items-start">
-                    <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-slate-300 shrink-0 shadow-sm">
-                      {stripeAccountId ? <AlertCircle className="text-amber-500" size={28} /> : <Zap size={28} />}
+                    <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shrink-0 shadow-sm">
+                      {stripeAccountId ? <AlertCircle className="text-amber-500" size={28} /> : <Zap className="text-slate-300" size={28} />}
                     </div>
                     <div>
                       <p className="text-slate-900 font-black text-base italic uppercase tracking-tight">
@@ -445,7 +447,7 @@ function PerfilContent() {
                       </p>
                       <p className="text-slate-400 font-bold text-[11px] leading-relaxed uppercase tracking-tight mt-1 max-w-sm">
                         {stripeAccountId
-                          ? 'Faltam documentos ou dados bancários no painel do Stripe para liberar suas vendas.'
+                          ? 'Sua conta está vinculada, mas o Stripe precisa de mais dados ou documentos para liberar suas vendas.'
                           : 'Conecte sua conta para aceitar Pix e Cartão. Taxa fixa de 5% por ticket vendido.'}
                       </p>
                     </div>
