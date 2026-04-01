@@ -25,7 +25,7 @@ interface UserProfile {
 interface UserProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
-  userId: string | null;
+  userId: string | null; // Aqui passaremos o NOME do usuário vindo do chat
 }
 
 const API_URL = 'https://api-linkah.onrender.com';
@@ -35,12 +35,15 @@ export function UserProfileModal({ isOpen, onClose, userId }: UserProfileModalPr
   const [userData, setUserData] = useState<UserProfile | null>(null);
 
   useEffect(() => {
+    // Se o modal abrir e tivermos o nome (userId aqui representa o nome no contexto do seu chat)
     if (isOpen && userId) {
       const fetchUserProfile = async () => {
         setLoading(true);
+        setUserData(null); // Limpa dados antigos antes de carregar novos
         try {
-          // Rota que busca os dados públicos do produtor/usuário
-          const res = await fetch(`${API_URL}/api/auth/perfil-publico/${userId}`);
+          // CORREÇÃO: Usando Query String (?nome=) conforme configuramos no Back-end
+          const res = await fetch(`${API_URL}/api/auth/perfil-publico?nome=${encodeURIComponent(userId)}`);
+          
           if (res.ok) {
             const data = await res.json();
             setUserData(data);
@@ -78,9 +81,11 @@ export function UserProfileModal({ isOpen, onClose, userId }: UserProfileModalPr
         </div>
 
         <div className="px-10 pb-12 -mt-14 relative">
-          {/* FOTO DE PERFIL COM ESTILO LINKAH */}
+          {/* FOTO DE PERFIL */}
           <div className="w-28 h-28 bg-slate-950 rounded-[3rem] border-[6px] border-white flex items-center justify-center shadow-2xl mb-6 relative group overflow-hidden">
-            <UserCircle className="text-white group-hover:scale-110 transition-transform" size={56} />
+            <div className="w-full h-full flex items-center justify-center text-white text-4xl font-black italic">
+               {userId?.charAt(0).toUpperCase()}
+            </div>
             <div className="absolute bottom-0 right-0 w-8 h-8 bg-emerald-500 rounded-full border-4 border-white flex items-center justify-center">
               <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
             </div>
@@ -95,41 +100,36 @@ export function UserProfileModal({ isOpen, onClose, userId }: UserProfileModalPr
             </div>
           ) : userData ? (
             <div className="animate-in fade-in slide-in-from-bottom-6 duration-700">
-              {/* NOME E VERIFICADO */}
               <div className="flex items-center gap-3 mb-2">
                 <h3 className="text-3xl font-black text-slate-900 italic uppercase tracking-tighter leading-none">
-                  {userData.nome || 'Usuário'}
+                  {userData.nome}
                 </h3>
                 <ShieldCheck size={22} className="text-blue-500 fill-blue-50" />
               </div>
               
               <p className="text-slate-400 text-[11px] font-black uppercase tracking-[0.2em] flex items-center gap-2 mb-8 italic">
-                <Mail size={14} className="text-[#FF4D4D]" /> 
-                {userData.email}
+                <Zap size={14} className="text-[#FF4D4D]" /> 
+                Linkah Certified Member
               </p>
 
               {/* BIO BOX */}
               <div className="bg-slate-50 p-8 rounded-[3rem] mb-8 border border-slate-100 relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-4 opacity-5">
-                  <Zap size={40} className="text-slate-900" />
-                </div>
                 <p className="text-slate-600 font-bold text-sm leading-relaxed relative z-10">
                   {userData.bio ? `"${userData.bio}"` : "Este produtor ainda não definiu uma bio profissional."}
                 </p>
               </div>
 
-              {/* REDES SOCIAIS GRID */}
+              {/* REDES SOCIAIS */}
               <div className="grid grid-cols-1 gap-4">
                 {userData.instagram && (
                   <a 
                     href={`https://instagram.com/${userData.instagram.replace('@', '')}`} 
                     target="_blank"
+                    rel="noreferrer"
                     className="flex items-center justify-between p-5 bg-gradient-to-r from-pink-50 to-white hover:from-pink-100 rounded-[2rem] transition-all group border border-pink-100/50"
                   >
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm text-pink-600">
-                        <Instagram size={20} />
-                      </div>
+                      <Instagram size={20} className="text-pink-600" />
                       <span className="text-pink-600 font-black text-[11px] uppercase tracking-widest italic">Instagram</span>
                     </div>
                     <ExternalLink size={16} className="text-pink-300 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
@@ -140,12 +140,11 @@ export function UserProfileModal({ isOpen, onClose, userId }: UserProfileModalPr
                   <a 
                     href={userData.linkedin.startsWith('http') ? userData.linkedin : `https://${userData.linkedin}`} 
                     target="_blank"
+                    rel="noreferrer"
                     className="flex items-center justify-between p-5 bg-gradient-to-r from-blue-50 to-white hover:from-blue-100 rounded-[2rem] transition-all group border border-blue-100/50"
                   >
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm text-blue-600">
-                        <Linkedin size={20} />
-                      </div>
+                      <Linkedin size={20} className="text-blue-600" />
                       <span className="text-blue-600 font-black text-[11px] uppercase tracking-widest italic">LinkedIn</span>
                     </div>
                     <ExternalLink size={16} className="text-blue-300 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
