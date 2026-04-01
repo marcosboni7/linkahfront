@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, Suspense } from 'react';
+import { useEffect, useState, useCallback, Suspense, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   UserCircle,
@@ -18,6 +18,7 @@ import {
   Instagram,
   Linkedin,
   AlignLeft,
+  Camera,
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import Link from 'next/link';
@@ -43,19 +44,25 @@ interface FormDataState {
   linkedin: string;
   instagram: string;
   bio: string;
+  avatar?: string;
 }
 
 function PerfilContent() {
   const { t }: any = useLanguage();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [stripeAccountId, setStripeAccountId] = useState<string | null>(null);
   const [stripeAtivo, setStripeAtivo] = useState(false);
   const [stripeDetails, setStripeDetails] = useState<StripeDetails | null>(null);
+  
+  // Preview da imagem selecionada
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<FormDataState>({
     nome: '',
@@ -204,9 +211,11 @@ function PerfilContent() {
             linkedin: data.linkedin || '',
             instagram: data.instagram || '',
             bio: data.bio || '',
+            avatar: data.avatar || '',
           };
 
           setFormData(dadosPerfil);
+          if (data.avatar) setAvatarPreview(data.avatar);
 
           if (perfilJaCompleto(dadosPerfil)) {
             localStorage.setItem('perfil_completo', 'true');
@@ -230,6 +239,63 @@ function PerfilContent() {
 
     carregarDados();
   }, [router, checarStatusStripe, getUsuarioLogado, perfilJaCompleto, searchParams]);
+
+  // Lógica de Seleção e Upload de Avatar
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Preview local imediato
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setAvatarPreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    // Upload para o servidor
+    setIsUploadingAvatar(true);
+    const { emailLogado, token, userStorage, parsedUser } = getUsuarioLogado();
+
+    try {
+      const dataTransfer = new FormData();
+      dataTransfer.append('avatar', file);
+      dataTransfer.append('email', emailLogado);
+
+      const headers: Record<string, string> = { Accept: 'application/json' };
+      if (token) headers.Authorization = `Bearer ${token}`;
+
+      const res = await fetch(`${API_URL}/api/auth/upload-avatar`, {
+        method: 'POST',
+        headers,
+        body: dataTransfer,
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.message || 'Erro no upload');
+
+      // Atualiza localStorage para manter sincronizado
+      const userAtual = userStorage ? parsedUser || {} : {};
+      localStorage.setItem('@Linkah:User', JSON.stringify({
+        ...userAtual,
+        avatar: data.avatar
+      }));
+
+      Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'success',
+        title: 'Foto atualizada!',
+        showConfirmButton: false,
+        timer: 2000
+      });
+
+    } catch (error: any) {
+      Swal.fire('Erro', error.message, 'error');
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
 
   const handleConectarStripe = async () => {
     setIsSaving(true);
@@ -320,10 +386,8 @@ function PerfilContent() {
         throw new Error(data.message || 'Erro ao salvar');
       }
 
-      // ✅ marca perfil completo
       localStorage.setItem('perfil_completo', 'true');
 
-      // ✅ atualiza o localStorage do usuário com os dados novos
       if (data.user) {
         const userAtual = userStorage ? parsedUser || {} : {};
 
@@ -339,7 +403,6 @@ function PerfilContent() {
 
         localStorage.setItem('@Linkah:User', JSON.stringify(userAtualizado));
       } else {
-        // fallback caso backend não devolva user
         const userAtual = userStorage ? parsedUser || {} : {};
         localStorage.setItem(
           '@Linkah:User',
@@ -396,8 +459,31 @@ function PerfilContent() {
           <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-red-50/50 to-transparent rounded-bl-[8rem] -z-0" />
 
           <div className="flex items-center gap-8 mb-20 relative z-10">
-            <div className="w-24 h-24 bg-slate-950 rounded-[2.5rem] flex items-center justify-center shadow-2xl shadow-slate-300 relative group">
-              <UserCircle className="text-white group-hover:scale-110 transition-transform" size={48} />
+            {/* AVATAR COM UPLOAD */}
+            <div 
+              onClick={() => fileInputRef.current?.click()}
+              className="w-24 h-24 bg-slate-950 rounded-[2.5rem] flex items-center justify-center shadow-2xl shadow-slate-300 relative group cursor-pointer overflow-hidden"
+            >
+              {isUploadingAvatar ? (
+                <Loader2 className="animate-spin text-white" size={32} />
+              ) : avatarPreview ? (
+                <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+              ) : (
+                <UserCircle className="text-white group-hover:scale-110 transition-transform" size={48} />
+              )}
+              
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <Camera className="text-white" size={24} />
+              </div>
+
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                className="hidden" 
+                accept="image/*" 
+                onChange={handleAvatarChange} 
+              />
+              
               <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-[#FF4D4D] rounded-2xl flex items-center justify-center border-4 border-white">
                 <ShieldCheck className="text-white" size={18} />
               </div>
