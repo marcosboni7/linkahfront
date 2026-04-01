@@ -25,6 +25,8 @@ const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   'https://api-linkah.onrender.com';
 
+const CLOUDINARY_CLOUD_NAME = 'dj32txsol';
+
 export default function DetalhesEvento() {
   const { id } = useParams();
   const router = useRouter();
@@ -111,13 +113,19 @@ export default function DetalhesEvento() {
     'https://images.unsplash.com/photo-1492684223066-81342ee5ff30';
 
   if (rawImage && rawImage !== 'null' && rawImage !== 'undefined') {
-    if (
-      typeof rawImage === 'string' &&
-      (rawImage.startsWith('http://') || rawImage.startsWith('https://'))
-    ) {
-      urlFinalImagem = rawImage;
+    const valor = String(rawImage).trim();
+
+    // URL completa
+    if (valor.startsWith('http://') || valor.startsWith('https://')) {
+      urlFinalImagem = valor;
+
+    // Public ID da Cloudinary
+    } else if (valor.startsWith('linkah/eventos/')) {
+      urlFinalImagem = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${valor}`;
+
+    // Imagens antigas locais
     } else {
-      urlFinalImagem = `${API_URL}/uploads/${String(rawImage).replace(/^\/+/, '')}`;
+      urlFinalImagem = `${API_URL}/uploads/${valor.replace(/^\/+/, '')}`;
     }
   }
 
