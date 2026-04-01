@@ -67,20 +67,10 @@ function PerfilContent() {
       const emailLogado = parsedUser?.email || localStorage.getItem('userEmail') || '';
       const token = localStorage.getItem('@Linkah:Token')?.replace(/['"]+/g, '') || '';
 
-      return {
-        userStorage,
-        parsedUser,
-        emailLogado,
-        token,
-      };
+      return { userStorage, parsedUser, emailLogado, token };
     } catch (error) {
       console.error('❌ Erro ao ler usuário do localStorage:', error);
-      return {
-        userStorage: null,
-        parsedUser: null,
-        emailLogado: '',
-        token: '',
-      };
+      return { userStorage: null, parsedUser: null, emailLogado: '', token: '' };
     }
   }, []);
 
@@ -102,7 +92,6 @@ function PerfilContent() {
   const checarStatusStripe = useCallback(
     async (email: string) => {
       try {
-        console.log('🔎 Checando status Stripe para:', email);
         const res = await fetch(`${API_URL}/api/pagamento/status-stripe?email=${encodeURIComponent(email)}`, {
           method: 'GET',
           headers: { Accept: 'application/json' },
@@ -111,10 +100,8 @@ function PerfilContent() {
         if (!res.ok) return;
 
         const data = await res.json();
-        console.log('📦 Status Stripe atualizado:', data);
 
         if (data.conectado) {
-          // Só consideramos ATIVO se o banco retornar 'Ativo' E o Stripe permitir cobranças
           const estaRealmenteAtivo = data.status_banco === 'Ativo' && Boolean(data.charges_enabled);
           
           setStripeAtivo(estaRealmenteAtivo);
@@ -126,7 +113,7 @@ function PerfilContent() {
             status_banco: data.status_banco || 'Pendente',
           });
 
-          // Alerta de sucesso apenas se acabou de voltar do onboarding e deu tudo certo
+          // ✅ CORREÇÃO: Alerta de sucesso com limpeza de URL para não repetir no F5
           if (searchParams.get('stripe_callback') === 'true' && estaRealmenteAtivo) {
             Swal.fire({
               title: 'CONTA ATIVADA!',
@@ -134,6 +121,10 @@ function PerfilContent() {
               icon: 'success',
               confirmButtonColor: '#FF4D4D',
               customClass: { popup: 'rounded-[2.5rem]' },
+            }).then(() => {
+              // Limpa os parâmetros da URL sem recarregar a página
+              const newUrl = window.location.pathname;
+              window.history.replaceState({}, '', newUrl);
             });
           }
         }
@@ -192,11 +183,7 @@ function PerfilContent() {
     setIsSaving(true);
     try {
       const { emailLogado, token } = getUsuarioLogado();
-
-      if (!emailLogado) {
-        Swal.fire('Erro', 'Nenhum email encontrado.', 'error');
-        return;
-      }
+      if (!emailLogado) return;
 
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
@@ -211,12 +198,9 @@ function PerfilContent() {
       });
 
       const data = await response.json();
-
       if (!response.ok) throw new Error(data.error || 'Erro ao conectar Stripe');
 
-      if (data.url) {
-        window.location.href = data.url;
-      }
+      if (data.url) window.location.href = data.url;
     } catch (error: any) {
       Swal.fire('Erro', error.message, 'error');
     } finally {
@@ -271,11 +255,12 @@ function PerfilContent() {
 
       Swal.fire({
         title: 'SUCESSO!',
-        text: 'Perfil sincronizado.',
+        text: 'Perfil atualizado com sucesso.',
         icon: 'success',
         confirmButtonColor: '#FF4D4D',
         customClass: { popup: 'rounded-[2rem]' },
       });
+      
       router.push('/dashboard/eventos');
     } catch (error: any) {
       Swal.fire('Erro', error.message, 'error');
