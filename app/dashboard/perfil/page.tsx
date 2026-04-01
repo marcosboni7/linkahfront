@@ -166,9 +166,11 @@ function PerfilContent() {
       }
 
       try {
-        // se já marcou como completo, nem mostra a tela
+        const autoRedirect = searchParams.get('auto') === '1';
         const perfilCompletoLocal = localStorage.getItem('perfil_completo');
-        if (perfilCompletoLocal === 'true') {
+
+        // ✅ só redireciona automático se entrou pelo fluxo automático
+        if (autoRedirect && perfilCompletoLocal === 'true') {
           router.replace('/dashboard/eventos');
           return;
         }
@@ -195,11 +197,15 @@ function PerfilContent() {
 
           setFormData(dadosPerfil);
 
-          // se já veio completo do banco, marca e redireciona
+          // ✅ se já estiver completo no banco, marca no localStorage
           if (perfilJaCompleto(dadosPerfil)) {
             localStorage.setItem('perfil_completo', 'true');
-            router.replace('/dashboard/eventos');
-            return;
+
+            // ✅ só sai da tela se for fluxo automático
+            if (autoRedirect) {
+              router.replace('/dashboard/eventos');
+              return;
+            }
           }
 
           setStripeAccountId(data.stripe_account_id || null);
@@ -215,7 +221,7 @@ function PerfilContent() {
     };
 
     carregarDados();
-  }, [router, checarStatusStripe, getUsuarioLogado, perfilJaCompleto]);
+  }, [router, checarStatusStripe, getUsuarioLogado, perfilJaCompleto, searchParams]);
 
   const handleConectarStripe = async () => {
     setIsSaving(true);
@@ -304,7 +310,7 @@ function PerfilContent() {
 
       if (!response.ok) throw new Error('Erro ao salvar');
 
-      // ✅ marcou uma vez, nunca mais mostra
+      // ✅ marcou que já completou
       localStorage.setItem('perfil_completo', 'true');
 
       Swal.fire({
@@ -409,7 +415,9 @@ function PerfilContent() {
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                 <div className="col-span-1 space-y-4">
-                  <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest ml-2">CEP</label>
+                  <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest ml-2">
+                    CEP
+                  </label>
                   <input
                     name="cep"
                     value={formData.cep}
@@ -421,7 +429,9 @@ function PerfilContent() {
                 </div>
 
                 <div className="col-span-2 space-y-4">
-                  <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest ml-2">Rua / Avenida</label>
+                  <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest ml-2">
+                    Rua / Avenida
+                  </label>
                   <input
                     name="rua"
                     value={formData.rua}
@@ -431,7 +441,9 @@ function PerfilContent() {
                 </div>
 
                 <div className="col-span-1 space-y-4">
-                  <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest ml-2">Nº</label>
+                  <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest ml-2">
+                    Nº
+                  </label>
                   <input
                     name="numero"
                     value={formData.numero}
@@ -478,7 +490,11 @@ function PerfilContent() {
                 <div className={`p-10 rounded-[3rem] border-2 border-dashed flex flex-col lg:flex-row items-center justify-between gap-10 transition-all ${stripeAccountId ? 'bg-amber-50/30 border-amber-200' : 'bg-slate-50 border-slate-200'}`}>
                   <div className="flex gap-6 items-start">
                     <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shrink-0 shadow-sm">
-                      {stripeAccountId ? <AlertCircle className="text-amber-500" size={28} /> : <Zap className="text-slate-300" size={28} />}
+                      {stripeAccountId ? (
+                        <AlertCircle className="text-amber-500" size={28} />
+                      ) : (
+                        <Zap className="text-slate-300" size={28} />
+                      )}
                     </div>
                     <div>
                       <p className="text-slate-900 font-black text-base italic uppercase tracking-tight">
@@ -508,7 +524,11 @@ function PerfilContent() {
               disabled={isSaving}
               className="w-full bg-[#FF4D4D] text-white py-8 rounded-[2.5rem] font-black uppercase tracking-[0.5em] italic flex items-center justify-center gap-5 hover:bg-slate-950 transition-all shadow-2xl shadow-red-200 disabled:opacity-50 active:scale-[0.98] group"
             >
-              {isSaving ? <Loader2 className="animate-spin" size={24} /> : <Save size={24} className="group-hover:rotate-12 transition-transform" />}
+              {isSaving ? (
+                <Loader2 className="animate-spin" size={24} />
+              ) : (
+                <Save size={24} className="group-hover:rotate-12 transition-transform" />
+              )}
               Atualizar Perfil
             </button>
           </form>
@@ -520,7 +540,13 @@ function PerfilContent() {
 
 export default function PerfilPage() {
   return (
-    <Suspense fallback={<div className="flex h-screen w-screen items-center justify-center bg-white"><Loader2 className="animate-spin text-[#FF4D4D]" size={48} /></div>}>
+    <Suspense
+      fallback={
+        <div className="flex h-screen w-screen items-center justify-center bg-white">
+          <Loader2 className="animate-spin text-[#FF4D4D]" size={48} />
+        </div>
+      }
+    >
       <PerfilContent />
     </Suspense>
   );
