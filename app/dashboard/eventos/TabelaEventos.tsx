@@ -89,7 +89,6 @@ export default function TabelaEventos() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
-  // Estados de Edição
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [eventoParaEditar, setEventoParaEditar] = useState<any>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -156,7 +155,11 @@ export default function TabelaEventos() {
       );
 
       const data = await res.json();
-      if (res.ok) setEventos(Array.isArray(data) ? data : []);
+      if (res.ok) {
+        setEventos(Array.isArray(data) ? data : []);
+      } else {
+        console.error('Erro ao listar eventos:', data);
+      }
     } catch (err) {
       console.error('Erro ao carregar:', err);
     } finally {
@@ -164,7 +167,9 @@ export default function TabelaEventos() {
     }
   };
 
-  useEffect(() => { carregarEventos(); }, []);
+  useEffect(() => {
+    carregarEventos();
+  }, []);
 
   const abrirModalEdicao = (evento: any) => {
     setEventoParaEditar({
@@ -201,7 +206,6 @@ export default function TabelaEventos() {
         formData.append('data_inicio', dataInicioFormatada);
       }
 
-      // mantém imagem atual se não escolher uma nova
       if (selectedFile) {
         formData.append('imagem_capa', selectedFile);
       } else if (eventoParaEditar.imagem_capa) {
@@ -242,7 +246,6 @@ export default function TabelaEventos() {
 
   return (
     <div className="bg-white rounded-[3rem] shadow-sm border border-slate-100 overflow-hidden">
-      {/* HEADER */}
       <div className="p-10 border-b border-slate-50 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
         <div>
           <h2 className="text-[#C22973] font-black uppercase text-[10px] tracking-[0.3em] mb-1 italic">
@@ -265,7 +268,6 @@ export default function TabelaEventos() {
             />
           </div>
 
-          {/* DROPDOWN DE CRIAÇÃO */}
           <div className="relative w-full sm:w-auto" ref={dropdownRef}>
             <button
               onClick={() => setShowDropdown(!showDropdown)}
@@ -278,13 +280,17 @@ export default function TabelaEventos() {
 
             {showDropdown && (
               <div className="absolute right-0 mt-4 w-72 bg-white rounded-[2.5rem] shadow-2xl border border-slate-50 p-6 z-50 animate-in fade-in zoom-in duration-200">
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4 ml-2 italic">Selecione o Formato</p>
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4 ml-2 italic">
+                  Selecione o Formato
+                </p>
                 <div className="grid gap-3">
                   <button
                     onClick={() => router.push(`/dashboard/eventos/novo/presencial`)}
                     className="w-full flex items-center gap-4 p-4 bg-slate-50 hover:bg-[#C22973] hover:text-white rounded-2xl transition-all group text-left"
                   >
-                    <div className="w-10 h-10 bg-white text-[#C22973] rounded-xl flex items-center justify-center shadow-sm group-hover:bg-pink-100"><MapPin size={18} /></div>
+                    <div className="w-10 h-10 bg-white text-[#C22973] rounded-xl flex items-center justify-center shadow-sm group-hover:bg-pink-100">
+                      <MapPin size={18} />
+                    </div>
                     <div>
                       <span className="block text-[10px] font-black uppercase tracking-wider">Presencial</span>
                       <span className="block text-[8px] opacity-60 font-bold italic">Encontro Físico</span>
@@ -294,7 +300,9 @@ export default function TabelaEventos() {
                     onClick={() => router.push(`/dashboard/eventos/novo/online`)}
                     className="w-full flex items-center gap-4 p-4 bg-slate-50 hover:bg-blue-600 hover:text-white rounded-2xl transition-all group text-left"
                   >
-                    <div className="w-10 h-10 bg-white text-blue-600 rounded-xl flex items-center justify-center shadow-sm group-hover:bg-blue-100"><Globe size={18} /></div>
+                    <div className="w-10 h-10 bg-white text-blue-600 rounded-xl flex items-center justify-center shadow-sm group-hover:bg-blue-100">
+                      <Globe size={18} />
+                    </div>
                     <div>
                       <span className="block text-[10px] font-black uppercase tracking-wider">Online</span>
                       <span className="block text-[8px] opacity-60 font-bold italic">Live / Digital</span>
@@ -307,7 +315,6 @@ export default function TabelaEventos() {
         </div>
       </div>
 
-      {/* TABELA */}
       <div className="overflow-x-auto">
         <table className="w-full text-left">
           <thead className="bg-slate-50/50 text-slate-400 text-[9px] font-black uppercase tracking-[0.2em]">
@@ -320,36 +327,64 @@ export default function TabelaEventos() {
           </thead>
           <tbody className="divide-y divide-slate-50">
             {loading ? (
-              <tr><td colSpan={4} className="py-32 text-center"><Loader2 className="animate-spin mx-auto text-[#C22973]" size={40} /></td></tr>
+              <tr>
+                <td colSpan={4} className="py-32 text-center">
+                  <Loader2 className="animate-spin mx-auto text-[#C22973]" size={40} />
+                </td>
+              </tr>
             ) : (
               eventosFiltrados.map((evento) => (
                 <tr key={evento.id} className="hover:bg-slate-50/30 transition-colors">
                   <td className="px-10 py-8">
                     <div className="flex items-center gap-6">
-                      <img src={validarImagem(evento.imagem_capa)} className="w-16 h-16 rounded-[1.3rem] object-cover shadow-md" alt="" />
+                      <img
+                        src={validarImagem(evento.imagem_capa)}
+                        className="w-16 h-16 rounded-[1.3rem] object-cover shadow-md"
+                        alt=""
+                      />
                       <div>
                         <p className="font-black text-slate-900 text-lg tracking-tight mb-1">{evento.nome}</p>
                         <div className="flex items-center gap-2">
-                          <span className={`px-2 py-0.5 rounded-md text-[7px] font-black uppercase tracking-tighter ${evento.tipo === 'Online' ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-600'}`}>
+                          <span
+                            className={`px-2 py-0.5 rounded-md text-[7px] font-black uppercase tracking-tighter ${
+                              evento.tipo === 'Online' ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-600'
+                            }`}
+                          >
                             {evento.tipo || 'Presencial'}
                           </span>
-                          <span className="text-[9px] text-[#C22973] font-black uppercase tracking-widest">{evento.categoria}</span>
+                          <span className="text-[9px] text-[#C22973] font-black uppercase tracking-widest">
+                            {evento.categoria}
+                          </span>
                         </div>
                         <div className="flex items-center gap-1 mt-1 text-slate-400">
                           <Calendar size={10} />
-                          <span className="text-[9px] font-bold uppercase italic">{formatDateToBR(evento.data_inicio)}</span>
+                          <span className="text-[9px] font-bold uppercase italic">
+                            {formatDateToBR(evento.data_inicio)}
+                          </span>
                         </div>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-8 text-center font-black text-xl">{evento.vendas_count || 0}</td>
                   <td className="px-6 py-8 text-center">
-                    <span className="px-4 py-1.5 bg-green-50 text-green-600 rounded-full text-[8px] font-black uppercase">Ativo</span>
+                    <span className="px-4 py-1.5 bg-green-50 text-green-600 rounded-full text-[8px] font-black uppercase">
+                      Ativo
+                    </span>
                   </td>
                   <td className="px-10 py-8 text-right">
                     <div className="flex justify-end gap-3">
-                      <button onClick={() => abrirModalEdicao(evento)} className="w-11 h-11 bg-white border border-slate-100 text-slate-400 rounded-2xl flex items-center justify-center hover:text-black transition-all shadow-sm"><Edit3 size={18} /></button>
-                      <button onClick={() => router.push(`/dashboard/eventos/novo/ingressos/${evento.id}`)} className="w-11 h-11 bg-white border border-slate-100 text-slate-400 rounded-2xl flex items-center justify-center hover:text-blue-600 transition-all shadow-sm"><Ticket size={18} /></button>
+                      <button
+                        onClick={() => abrirModalEdicao(evento)}
+                        className="w-11 h-11 bg-white border border-slate-100 text-slate-400 rounded-2xl flex items-center justify-center hover:text-black transition-all shadow-sm"
+                      >
+                        <Edit3 size={18} />
+                      </button>
+                      <button
+                        onClick={() => router.push(`/dashboard/eventos/novo/ingressos/${evento.id}`)}
+                        className="w-11 h-11 bg-white border border-slate-100 text-slate-400 rounded-2xl flex items-center justify-center hover:text-blue-600 transition-all shadow-sm"
+                      >
+                        <Ticket size={18} />
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -359,22 +394,37 @@ export default function TabelaEventos() {
         </table>
       </div>
 
-      {/* MODAL DE EDIÇÃO */}
       {isEditModalOpen && eventoParaEditar && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 bg-slate-950/40 backdrop-blur-md animate-in fade-in duration-300">
           <div className="bg-white w-full max-w-2xl rounded-[3.5rem] p-10 shadow-2xl overflow-y-auto max-h-[90vh]">
             <div className="flex justify-between items-center mb-10">
               <h3 className="font-black text-2xl uppercase italic text-slate-900">Editar Experiência</h3>
-              <button onClick={() => setIsEditModalOpen(false)} className="w-12 h-12 bg-slate-50 text-slate-400 rounded-2xl flex items-center justify-center"><X size={20} /></button>
+              <button
+                onClick={() => setIsEditModalOpen(false)}
+                className="w-12 h-12 bg-slate-50 text-slate-400 rounded-2xl flex items-center justify-center"
+              >
+                <X size={20} />
+              </button>
             </div>
 
             <form onSubmit={handleSalvarEdicao} className="space-y-8">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase italic ml-2">Capa Visual</label>
-                  <div onClick={() => fileInputRef.current?.click()} className="aspect-square bg-slate-50 border-2 border-dashed border-slate-100 rounded-[2.5rem] flex items-center justify-center cursor-pointer overflow-hidden relative group">
-                    {previewUrl ? <img src={previewUrl} className="w-full h-full object-cover group-hover:opacity-50 transition-opacity" alt="" /> : <Upload size={40} className="text-slate-200" />}
-                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><Upload className="text-white" /></div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase italic ml-2">
+                    Capa Visual
+                  </label>
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className="aspect-square bg-slate-50 border-2 border-dashed border-slate-100 rounded-[2.5rem] flex items-center justify-center cursor-pointer overflow-hidden relative group"
+                  >
+                    {previewUrl ? (
+                      <img src={previewUrl} className="w-full h-full object-cover group-hover:opacity-50 transition-opacity" alt="" />
+                    ) : (
+                      <Upload size={40} className="text-slate-200" />
+                    )}
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Upload className="text-white" />
+                    </div>
                   </div>
                   <input
                     type="file"
@@ -393,7 +443,9 @@ export default function TabelaEventos() {
 
                 <div className="space-y-4">
                   <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase italic ml-2">Nome do Evento</label>
+                    <label className="text-[10px] font-black text-slate-400 uppercase italic ml-2">
+                      Nome do Evento
+                    </label>
                     <input
                       className="w-full p-4 bg-slate-50 rounded-xl font-bold outline-none border border-transparent focus:border-pink-200"
                       value={eventoParaEditar.nome || ''}
@@ -401,17 +453,23 @@ export default function TabelaEventos() {
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase italic ml-2">Categoria</label>
+                    <label className="text-[10px] font-black text-slate-400 uppercase italic ml-2">
+                      Categoria
+                    </label>
                     <select
                       className="w-full p-4 bg-slate-50 rounded-xl font-bold outline-none border border-transparent focus:border-pink-200"
                       value={eventoParaEditar.categoria}
                       onChange={(e) => setEventoParaEditar({ ...eventoParaEditar, categoria: e.target.value })}
                     >
-                      {CATEGORIAS_VALIDAS.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                      {CATEGORIAS_VALIDAS.map((cat) => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
                     </select>
                   </div>
                   <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase italic ml-2">Data de Início</label>
+                    <label className="text-[10px] font-black text-slate-400 uppercase italic ml-2">
+                      Data de Início
+                    </label>
                     <input
                       type="date"
                       className="w-full p-4 bg-slate-50 rounded-xl font-bold outline-none border border-transparent focus:border-pink-200"
@@ -433,7 +491,9 @@ export default function TabelaEventos() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase italic ml-2">Descrição da Experiência</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase italic ml-2">
+                  Descrição da Experiência
+                </label>
                 <textarea
                   className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none min-h-[100px] resize-none border border-transparent focus:border-pink-200"
                   value={eventoParaEditar.descricao || ''}
@@ -441,7 +501,11 @@ export default function TabelaEventos() {
                 />
               </div>
 
-              <button type="submit" disabled={saving} className="w-full bg-slate-950 text-white p-6 rounded-[1.8rem] font-black uppercase text-xs tracking-[0.3em] hover:bg-[#C22973] transition-all shadow-2xl flex items-center justify-center gap-4 disabled:opacity-50">
+              <button
+                type="submit"
+                disabled={saving}
+                className="w-full bg-slate-950 text-white p-6 rounded-[1.8rem] font-black uppercase text-xs tracking-[0.3em] hover:bg-[#C22973] transition-all shadow-2xl flex items-center justify-center gap-4 disabled:opacity-50"
+              >
                 {saving ? <Loader2 className="animate-spin" size={20} /> : 'Confirmar Alterações'}
               </button>
             </form>
