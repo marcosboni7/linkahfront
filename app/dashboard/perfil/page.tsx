@@ -67,15 +67,26 @@ function PerfilContent() {
       const emailLogado = parsedUser?.email || localStorage.getItem('userEmail') || '';
       const token = localStorage.getItem('@Linkah:Token')?.replace(/['"]+/g, '') || '';
 
-      return { userStorage, parsedUser, emailLogado, token };
+      return {
+        userStorage,
+        parsedUser,
+        emailLogado,
+        token,
+      };
     } catch (error) {
       console.error('❌ Erro ao ler usuário do localStorage:', error);
-      return { userStorage: null, parsedUser: null, emailLogado: '', token: '' };
+      return {
+        userStorage: null,
+        parsedUser: null,
+        emailLogado: '',
+        token: '',
+      };
     }
   }, []);
 
   const aplicarMascara = (name: string, value: string) => {
     let v = value.replace(/\D/g, '');
+
     if (name === 'cpf_cnpj') {
       if (v.length <= 11) {
         return v.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/g, '$1.$2.$3-$4');
@@ -83,15 +94,28 @@ function PerfilContent() {
         return v.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/g, '$1.$2.$3/$4-$5');
       }
     }
+
     if (name === 'cep') {
       return v.replace(/(\d{5})(\d{3})/g, '$1-$2');
     }
+
     return value;
   };
+
+  const perfilJaCompleto = useCallback((data: Partial<FormDataState>) => {
+    return Boolean(
+      data?.nome?.trim() &&
+      data?.cpf_cnpj?.trim() &&
+      data?.cep?.trim() &&
+      data?.rua?.trim() &&
+      data?.numero?.trim()
+    );
+  }, []);
 
   const checarStatusStripe = useCallback(
     async (email: string) => {
       try {
+        console.log('🔎 Checando status Stripe para:', email);
         const res = await fetch(`${API_URL}/api/pagamento/status-stripe?email=${encodeURIComponent(email)}`, {
           method: 'GET',
           headers: { Accept: 'application/json' },
@@ -100,10 +124,12 @@ function PerfilContent() {
         if (!res.ok) return;
 
         const data = await res.json();
+        console.log('📦 Status Stripe atualizado:', data);
 
         if (data.conectado) {
-          const estaRealmenteAtivo = data.status_banco === 'Ativo' && Boolean(data.charges_enabled);
-          
+          const estaRealmenteAtivo =
+            data.status_banco === 'Ativo' && Boolean(data.charges_enabled);
+
           setStripeAtivo(estaRealmenteAtivo);
           setStripeDetails({
             charges_enabled: Boolean(data.charges_enabled),
@@ -113,7 +139,6 @@ function PerfilContent() {
             status_banco: data.status_banco || 'Pendente',
           });
 
-          // ✅ CORREÇÃO: Alerta de sucesso com limpeza de URL para não repetir no F5
           if (searchParams.get('stripe_callback') === 'true' && estaRealmenteAtivo) {
             Swal.fire({
               title: 'CONTA ATIVADA!',
@@ -121,10 +146,6 @@ function PerfilContent() {
               icon: 'success',
               confirmButtonColor: '#FF4D4D',
               customClass: { popup: 'rounded-[2.5rem]' },
-            }).then(() => {
-              // Limpa os parâmetros da URL sem recarregar a página
-              const newUrl = window.location.pathname;
-              window.history.replaceState({}, '', newUrl);
             });
           }
         }
@@ -145,6 +166,13 @@ function PerfilContent() {
       }
 
       try {
+        // se já marcou como completo, nem mostra a tela
+        const perfilCompletoLocal = localStorage.getItem('perfil_completo');
+        if (perfilCompletoLocal === 'true') {
+          router.replace('/dashboard/eventos');
+          return;
+        }
+
         const headers: Record<string, string> = { Accept: 'application/json' };
         if (token) headers.Authorization = `Bearer ${token}`;
 
@@ -155,14 +183,24 @@ function PerfilContent() {
 
         if (response.ok) {
           const data = await response.json();
-          setFormData({
+
+          const dadosPerfil = {
             nome: data.nome || '',
             cpf_cnpj: data.cpf_cnpj || '',
             cep: data.cep || '',
             rua: data.rua || '',
             numero: data.numero || '',
             bairro: data.bairro || '',
-          });
+          };
+
+          setFormData(dadosPerfil);
+
+          // se já veio completo do banco, marca e redireciona
+          if (perfilJaCompleto(dadosPerfil)) {
+            localStorage.setItem('perfil_completo', 'true');
+            router.replace('/dashboard/eventos');
+            return;
+          }
 
           setStripeAccountId(data.stripe_account_id || null);
           if (data.stripe_account_id) {
@@ -177,13 +215,18 @@ function PerfilContent() {
     };
 
     carregarDados();
-  }, [router, checarStatusStripe, getUsuarioLogado]);
+  }, [router, checarStatusStripe, getUsuarioLogado, perfilJaCompleto]);
 
   const handleConectarStripe = async () => {
     setIsSaving(true);
+
     try {
       const { emailLogado, token } = getUsuarioLogado();
-      if (!emailLogado) return;
+
+      if (!emailLogado) {
+        Swal.fire('Erro', 'Nenhum email encontrado.', 'error');
+        return;
+      }
 
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
@@ -198,9 +241,12 @@ function PerfilContent() {
       });
 
       const data = await response.json();
+
       if (!response.ok) throw new Error(data.error || 'Erro ao conectar Stripe');
 
-      if (data.url) window.location.href = data.url;
+      if (data.url) {
+        window.location.href = data.url;
+      }
     } catch (error: any) {
       Swal.fire('Erro', error.message, 'error');
     } finally {
@@ -210,10 +256,12 @@ function PerfilContent() {
 
   const handleCepBlur = async (e: React.FocusEvent<HTMLInputElement>) => {
     const cep = e.target.value.replace(/\D/g, '');
+
     if (cep.length === 8) {
       try {
         const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
         const data = await res.json();
+
         if (!data.erro) {
           setFormData((prev) => ({
             ...prev,
@@ -230,12 +278,15 @@ function PerfilContent() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: aplicarMascara(name, value) }));
-    if (errors[name]) setErrors((prev) => ({ ...prev, [name]: '' }));
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: '' }));
+    }
   };
 
   const handleSalvar = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
+
     const { emailLogado, token } = getUsuarioLogado();
 
     try {
@@ -253,15 +304,18 @@ function PerfilContent() {
 
       if (!response.ok) throw new Error('Erro ao salvar');
 
+      // ✅ marcou uma vez, nunca mais mostra
+      localStorage.setItem('perfil_completo', 'true');
+
       Swal.fire({
         title: 'SUCESSO!',
-        text: 'Perfil atualizado com sucesso.',
+        text: 'Perfil sincronizado.',
         icon: 'success',
         confirmButtonColor: '#FF4D4D',
         customClass: { popup: 'rounded-[2rem]' },
       });
-      
-      router.push('/dashboard/eventos');
+
+      router.replace('/dashboard/eventos');
     } catch (error: any) {
       Swal.fire('Erro', error.message, 'error');
     } finally {
