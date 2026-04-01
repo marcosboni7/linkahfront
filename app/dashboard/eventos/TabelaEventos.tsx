@@ -10,7 +10,6 @@ import {
   ChevronDown,
   Search,
   Sparkles,
-  Users,
   Globe,
   MapPin,
   Calendar
@@ -20,6 +19,7 @@ import Swal from 'sweetalert2';
 import { useLanguage } from '@/app/context/LanguageContext';
 
 const API_URL = 'https://api-linkah.onrender.com';
+const CLOUDINARY_CLOUD_NAME = 'dj32txsol';
 
 const CATEGORIAS_VALIDAS = [
   'Arte & Cultura',
@@ -34,10 +34,23 @@ const CATEGORIAS_VALIDAS = [
 // Helpers de Formatação
 function formatDateToInput(dateValue: any): string {
   if (!dateValue) return '';
+
+  if (typeof dateValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+    return dateValue;
+  }
+
+  if (typeof dateValue === 'string' && dateValue.includes('T')) {
+    return dateValue.split('T')[0];
+  }
+
   const d = new Date(dateValue);
   if (!isNaN(d.getTime())) {
-    return d.toISOString().split('T')[0];
+    const ano = d.getFullYear();
+    const mes = String(d.getMonth() + 1).padStart(2, '0');
+    const dia = String(d.getDate()).padStart(2, '0');
+    return `${ano}-${mes}-${dia}`;
   }
+
   return '';
 }
 
@@ -47,6 +60,24 @@ function formatDateToBR(dateValue: any): string {
   if (!data) return 'A definir';
   const [ano, mes, dia] = data.split('-');
   return `${dia}/${mes}/${ano}`;
+}
+
+function formatDateToBackend(dateValue: any): string {
+  if (!dateValue) return '';
+
+  if (typeof dateValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+    return dateValue;
+  }
+
+  const d = new Date(dateValue);
+  if (!isNaN(d.getTime())) {
+    const ano = d.getFullYear();
+    const mes = String(d.getMonth() + 1).padStart(2, '0');
+    const dia = String(d.getDate()).padStart(2, '0');
+    return `${ano}-${mes}-${dia}`;
+  }
+
+  return '';
 }
 
 export default function TabelaEventos() {
@@ -85,8 +116,21 @@ export default function TabelaEventos() {
     if (!url || url === 'null' || url === 'undefined' || String(url).includes('[object Object]')) {
       return 'https://placehold.co/600x400/f1f5f9/94a3b8?text=Sem+Capa';
     }
-    if (typeof url === 'string' && url.startsWith('http')) return url;
-    return `${API_URL}/uploads/${url}`;
+
+    const valor = String(url).trim();
+
+    // URL completa
+    if (valor.startsWith('http://') || valor.startsWith('https://')) {
+      return valor;
+    }
+
+    // Public ID da Cloudinary
+    if (valor.startsWith('linkah/eventos/')) {
+      return `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${valor}`;
+    }
+
+    // Compatibilidade com imagens antigas locais
+    return `${API_URL}/uploads/${valor}`;
   };
 
   const carregarEventos = async () => {
@@ -100,6 +144,10 @@ export default function TabelaEventos() {
       if (userRaw) {
         const userObj = JSON.parse(userRaw);
         emailProdutor = userObj.email || userObj.user?.email || '';
+      }
+
+      if (!emailProdutor) {
+        emailProdutor = localStorage.getItem('userEmail') || '';
       }
 
       const res = await fetch(
@@ -121,8 +169,14 @@ export default function TabelaEventos() {
   const abrirModalEdicao = (evento: any) => {
     setEventoParaEditar({
       ...evento,
+      categoria: evento.categoria || CATEGORIAS_VALIDAS[0],
+      nome: evento.nome || '',
+      descricao: evento.descricao || '',
+      local_nome: evento.local_nome || '',
       data_inicio: formatDateToInput(evento.data_inicio),
+      imagem_capa: evento.imagem_capa || '',
     });
+
     setPreviewUrl(validarImagem(evento.imagem_capa));
     setSelectedFile(null);
     setIsEditModalOpen(true);
@@ -131,18 +185,26 @@ export default function TabelaEventos() {
   const handleSalvarEdicao = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
+
     try {
       const rawToken = localStorage.getItem('@Linkah:Token');
       const token = rawToken?.replace(/['"]+/g, '').trim() || '';
       const formData = new FormData();
 
-      Object.keys(eventoParaEditar).forEach(key => {
-        if (key !== 'imagem_capa') formData.append(key, eventoParaEditar[key]);
-      });
+      formData.append('nome', eventoParaEditar.nome || '');
+      formData.append('categoria', eventoParaEditar.categoria || '');
+      formData.append('descricao', eventoParaEditar.descricao || '');
+      formData.append('local_nome', eventoParaEditar.local_nome || '');
 
+      const dataInicioFormatada = formatDateToBackend(eventoParaEditar.data_inicio);
+      if (dataInicioFormatada) {
+        formData.append('data_inicio', dataInicioFormatada);
+      }
+
+      // mantém imagem atual se não escolher uma nova
       if (selectedFile) {
         formData.append('imagem_capa', selectedFile);
-      } else {
+      } else if (eventoParaEditar.imagem_capa) {
         formData.append('imagem_capa', eventoParaEditar.imagem_capa);
       }
 
@@ -152,13 +214,27 @@ export default function TabelaEventos() {
         body: formData,
       });
 
+      const responseData = await res.json();
+
       if (res.ok) {
         setIsEditModalOpen(false);
-        Swal.fire({ title: 'Sucesso!', icon: 'success', timer: 1500, showConfirmButton: false });
+        Swal.fire({
+          title: 'Sucesso!',
+          icon: 'success',
+          timer: 1500,
+          showConfirmButton: false
+        });
         carregarEventos();
+      } else {
+        throw new Error(responseData.error || 'Erro ao salvar alterações');
       }
-    } catch (err) {
-      Swal.fire({ title: 'Erro', icon: 'error' });
+    } catch (err: any) {
+      console.error('Erro ao salvar:', err);
+      Swal.fire({
+        title: 'Erro',
+        text: err.message || 'Erro ao salvar',
+        icon: 'error'
+      });
     } finally {
       setSaving(false);
     }
@@ -300,37 +376,69 @@ export default function TabelaEventos() {
                     {previewUrl ? <img src={previewUrl} className="w-full h-full object-cover group-hover:opacity-50 transition-opacity" alt="" /> : <Upload size={40} className="text-slate-200" />}
                     <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><Upload className="text-white" /></div>
                   </div>
-                  <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e: any) => {
-                    const file = e.target.files?.[0];
-                    if (file) { setSelectedFile(file); setPreviewUrl(URL.createObjectURL(file)); }
-                  }} />
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    className="hidden"
+                    accept="image/*"
+                    onChange={(e: any) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setSelectedFile(file);
+                        setPreviewUrl(URL.createObjectURL(file));
+                      }
+                    }}
+                  />
                 </div>
 
                 <div className="space-y-4">
                   <div>
                     <label className="text-[10px] font-black text-slate-400 uppercase italic ml-2">Nome do Evento</label>
-                    <input className="w-full p-4 bg-slate-50 rounded-xl font-bold outline-none border border-transparent focus:border-pink-200" value={eventoParaEditar.nome || ''} onChange={(e) => setEventoParaEditar({ ...eventoParaEditar, nome: e.target.value })} />
+                    <input
+                      className="w-full p-4 bg-slate-50 rounded-xl font-bold outline-none border border-transparent focus:border-pink-200"
+                      value={eventoParaEditar.nome || ''}
+                      onChange={(e) => setEventoParaEditar({ ...eventoParaEditar, nome: e.target.value })}
+                    />
                   </div>
                   <div>
                     <label className="text-[10px] font-black text-slate-400 uppercase italic ml-2">Categoria</label>
-                    <select className="w-full p-4 bg-slate-50 rounded-xl font-bold outline-none border border-transparent focus:border-pink-200" value={eventoParaEditar.categoria} onChange={(e) => setEventoParaEditar({ ...eventoParaEditar, categoria: e.target.value })}>
+                    <select
+                      className="w-full p-4 bg-slate-50 rounded-xl font-bold outline-none border border-transparent focus:border-pink-200"
+                      value={eventoParaEditar.categoria}
+                      onChange={(e) => setEventoParaEditar({ ...eventoParaEditar, categoria: e.target.value })}
+                    >
                       {CATEGORIAS_VALIDAS.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                     </select>
                   </div>
                   <div>
                     <label className="text-[10px] font-black text-slate-400 uppercase italic ml-2">Data de Início</label>
-                    <input type="date" className="w-full p-4 bg-slate-50 rounded-xl font-bold outline-none border border-transparent focus:border-pink-200" value={eventoParaEditar.data_inicio || ''} onChange={(e) => setEventoParaEditar({ ...eventoParaEditar, data_inicio: e.target.value })} />
+                    <input
+                      type="date"
+                      className="w-full p-4 bg-slate-50 rounded-xl font-bold outline-none border border-transparent focus:border-pink-200"
+                      value={eventoParaEditar.data_inicio || ''}
+                      onChange={(e) => setEventoParaEditar({ ...eventoParaEditar, data_inicio: e.target.value })}
+                    />
                   </div>
                   <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase italic ml-2">{eventoParaEditar.tipo === 'Online' ? 'Link da Reunião' : 'Local do Evento'}</label>
-                    <input className="w-full p-4 bg-slate-50 rounded-xl font-bold outline-none border border-transparent focus:border-pink-200" value={eventoParaEditar.local_nome || ''} onChange={(e) => setEventoParaEditar({ ...eventoParaEditar, local_nome: e.target.value })} />
+                    <label className="text-[10px] font-black text-slate-400 uppercase italic ml-2">
+                      {eventoParaEditar.tipo === 'Online' ? 'Link da Reunião' : 'Local do Evento'}
+                    </label>
+                    <input
+                      className="w-full p-4 bg-slate-50 rounded-xl font-bold outline-none border border-transparent focus:border-pink-200"
+                      value={eventoParaEditar.local_nome || ''}
+                      onChange={(e) => setEventoParaEditar({ ...eventoParaEditar, local_nome: e.target.value })}
+                    />
                   </div>
                 </div>
               </div>
 
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase italic ml-2">Descrição da Experiência</label>
-                <textarea className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none min-h-[100px] resize-none border border-transparent focus:border-pink-200" value={eventoParaEditar.descricao || ''} onChange={(e) => setEventoParaEditar({ ...eventoParaEditar, descricao: e.target.value })} />
+                <textarea
+                  className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none min-h-[100px] resize-none border border-transparent focus:border-pink-200"
+                  value={eventoParaEditar.descricao || ''}
+                  onChange={(e) => setEventoParaEditar({ ...eventoParaEditar, descricao: e.target.value })}
+                />
               </div>
 
               <button type="submit" disabled={saving} className="w-full bg-slate-950 text-white p-6 rounded-[1.8rem] font-black uppercase text-xs tracking-[0.3em] hover:bg-[#C22973] transition-all shadow-2xl flex items-center justify-center gap-4 disabled:opacity-50">
