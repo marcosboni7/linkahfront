@@ -1,312 +1,401 @@
 'use client';
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { 
-  Send, Loader2, LogOut, Users, 
-  MessageSquare, Crown, Zap, Star
+
+import { useEffect, useState, useCallback, Suspense, useRef } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import {
+  UserCircle,
+  Save,
+  Loader2,
+  ArrowLeft,
+  MapPin,
+  CreditCard,
+  ExternalLink,
+  CheckCircle2,
+  AlertCircle,
+  Mail,
+  ShieldCheck,
+  Zap,
+  Instagram,
+  Linkedin,
+  AlignLeft,
+  Camera,
 } from 'lucide-react';
+import Swal from 'sweetalert2';
+import Link from 'next/link';
 import { useLanguage } from '@/app/context/LanguageContext';
-import { UserProfileModal } from '@/app/dashboard/UserProfileModal'; 
 
 const API_URL = 'https://api-linkah.onrender.com';
-const DEFAULT_FOTO = 'https://i.pinimg.com/originals/ec/a5/a7/eca5a7c991e8fa52554e953593faba2d.gif';
 
-const EMOJIS_STATUS = ['✨', '🔥', '🚀', '😴', '💡', '🎮', '🍕', '💎'];
+interface StripeDetails {
+  charges_enabled: boolean;
+  payout_enabled: boolean;
+  business_name: string;
+  email_stripe: string;
+  status_banco: string;
+}
 
-// --- HELPERS BLINDADOS PARA FOTO ---
-const getUserPhotoUrl = (data: any) => {
-  if (!data) return DEFAULT_FOTO;
+interface FormDataState {
+  nome: string;
+  cpf_cnpj: string;
+  cep: string;
+  rua: string;
+  numero: string;
+  bairro: string;
+  linkedin: string;
+  instagram: string;
+  bio: string;
+  avatar?: string;
+}
 
-  // Se o dado já é uma string e parece uma URL válida, retorna-o diretamente
-  if (typeof data === 'string' && data.length > 5 && data !== 'null' && !data.includes('undefined')) {
-    return data;
-  }
-
-  // Se o dado é um objeto, tenta encontrar a foto dentro dele
-  if (typeof data === 'object') {
-    // Lista exaustiva de possíveis campos de imagem que o backend pode enviar
-    // Priorizando 'avatar' que é o que o PerfilContent usa
-    const campos = ['avatar', 'foto', 'foto_perfil', 'usuario_foto', 'image', 'profile_photo', 'url_foto', 'foto_url'];
-    
-    // 1. Tenta buscar no objeto raiz
-    for (const c of campos) {
-      if (data[c] && typeof data[c] === 'string' && data[c].length > 5 && data[c] !== 'null' && !data[c].includes('undefined')) return data[c];
-    }
-
-    // 2. Tenta buscar dentro de sub-objetos comuns (data ou user)
-    const subObjetos = ['data', 'user', 'usuario'];
-    for (const sub of subObjetos) {
-      if (data[sub] && typeof data[sub] === 'object') {
-        for (const c of campos) {
-          if (data[sub][c] && typeof data[sub][c] === 'string' && data[sub][c].length > 5 && data[sub][c] !== 'null' && !data[sub][c].includes('undefined')) {
-            return data[sub][c];
-          }
-        }
-      }
-    }
-  }
-  
-  return DEFAULT_FOTO;
-};
-
-const getImagemUrl = (foto?: string | null) => {
-  if (!foto || foto === 'null' || foto.trim() === '' || foto === undefined || foto.includes('undefined')) return DEFAULT_FOTO;
-  
-  // Se já for uma URL completa (http, data:image, blob), retorna ela mesma
-  if (/^(https?:\/\/|blob:|data:)/.test(foto)) return foto;
-  
-  // Se for um caminho relativo, limpa as barras e concatena com a API
-  const baseUrl = API_URL.replace(/\/$/, '');
-  const cleanPath = foto.replace(/^\//, '');
-  
-  return `${baseUrl}/${cleanPath}`;
-};
-
-export default function ComunidadePage() {
+function PerfilContent() {
   const { t }: any = useLanguage();
-  const { id } = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Estados de Dados
-  const [mensagens, setMensagens] = useState<any[]>([]);
-  const [usuariosOnline, setUsuariosOnline] = useState<any[]>([]);
-  const [dadosUsuario, setDadosUsuario] = useState<any>(null);
-  const [carregando, setCarregando] = useState(true);
-  const [novoTexto, setNovoTexto] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [stripeAccountId, setStripeAccountId] = useState<string | null>(null);
+  const [stripeAtivo, setStripeAtivo] = useState(false);
+  const [stripeDetails, setStripeDetails] = useState<StripeDetails | null>(null);
   
-  // Estados de Personalização
-  const [meuStatus, setMeuStatus] = useState('✨');
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const [formData, setFormData] = useState<FormDataState>({
+    nome: '',
+    cpf_cnpj: '',
+    cep: '',
+    rua: '',
+    numero: '',
+    bairro: '',
+    linkedin: '',
+    instagram: '',
+    bio: '',
+  });
 
-  // 1. Autenticação
-  useEffect(() => {
-    const user = localStorage.getItem('@Linkah:User');
-    if (!user) return router.push('/site/login');
+  const getUsuarioLogado = useCallback(() => {
     try {
-        setDadosUsuario(JSON.parse(user));
-    } catch (e) {
-        router.push('/site/login');
+      const userStorage = localStorage.getItem('@Linkah:User');
+      const parsedUser = userStorage ? JSON.parse(userStorage) : null;
+      const emailLogado = parsedUser?.email || localStorage.getItem('userEmail') || '';
+      const token = localStorage.getItem('@Linkah:Token')?.replace(/['"]+/g, '') || '';
+
+      return { userStorage, parsedUser, emailLogado, token };
+    } catch (error) {
+      return { userStorage: null, parsedUser: null, emailLogado: '', token: '' };
     }
-    setCarregando(false);
-  }, [router]);
+  }, []);
 
-  // 2. Sync de Dados (Polling)
+  const aplicarMascara = (name: string, value: string) => {
+    let v = value.replace(/\D/g, '');
+    if (name === 'cpf_cnpj') {
+      return v.length <= 11 
+        ? v.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/g, '$1.$2.$3-$4')
+        : v.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/g, '$1.$2.$3/$4-$5');
+    }
+    if (name === 'cep') return v.replace(/(\d{5})(\d{3})/g, '$1-$2');
+    return value;
+  };
+
+  const perfilJaCompleto = useCallback((data: Partial<FormDataState>) => {
+    return Boolean(data?.nome?.trim() && data?.cpf_cnpj?.trim() && data?.cep?.trim());
+  }, []);
+
+  const checarStatusStripe = useCallback(async (email: string) => {
+    try {
+      const res = await fetch(`${API_URL}/api/pagamento/status-stripe?email=${encodeURIComponent(email)}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.conectado) {
+        setStripeAtivo(data.status_banco === 'Ativo' && Boolean(data.charges_enabled));
+        setStripeDetails({
+          charges_enabled: Boolean(data.charges_enabled),
+          payout_enabled: Boolean(data.payout_enabled),
+          business_name: data.business_name || 'Conta em Verificação',
+          email_stripe: data.email_stripe || email,
+          status_banco: data.status_banco || 'Pendente',
+        });
+      }
+    } catch (error) {
+      console.error('❌ Erro Stripe Status:', error);
+    }
+  }, []);
+
   useEffect(() => {
-    if (!id || !dadosUsuario?.nome) return;
-    const sync = async () => {
+    const carregarDados = async () => {
+      const { emailLogado, token } = getUsuarioLogado();
+      if (!emailLogado) { router.push('/site/login'); return; }
+
       try {
-        const minhaFoto = getUserPhotoUrl(dadosUsuario);
-        const [resMsg, resOn] = await Promise.all([
-          fetch(`${API_URL}/api/comunidades/${id}?t=${Date.now()}`),
-          fetch(`${API_URL}/api/comunidades/presenca/${id}?usuario_nome=${dadosUsuario.nome}&foto=${minhaFoto}&status=${meuStatus}`)
-        ]);
-        if (resOn.ok) {
-            const onlineData = await resOn.json();
-            setUsuariosOnline(onlineData.filter((u: any) => (u.usuario_nome || u.nome) !== dadosUsuario.nome));
+        const headers: Record<string, string> = { Accept: 'application/json' };
+        if (token) headers.Authorization = `Bearer ${token}`;
+
+        const response = await fetch(`${API_URL}/api/auth/perfil?email=${encodeURIComponent(emailLogado)}`, {
+          method: 'GET',
+          headers,
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          
+          // Tratativa da Foto (Avatar)
+          const fotoPath = data.avatar || data.foto_perfil || '';
+          if (fotoPath) {
+            const fullUrl = fotoPath.startsWith('http') ? fotoPath : `${API_URL}/${fotoPath.replace(/^\//, '')}`;
+            setAvatarPreview(fullUrl);
+          }
+
+          const dadosPerfil = {
+            nome: data.nome || '',
+            cpf_cnpj: data.cpf_cnpj || '',
+            cep: data.cep || '',
+            rua: data.rua || '',
+            numero: data.numero || '',
+            bairro: data.bairro || '',
+            linkedin: data.linkedin || '',
+            instagram: data.instagram || '',
+            bio: data.bio || '',
+            avatar: fotoPath,
+          };
+
+          setFormData(dadosPerfil);
+
+          // Atualiza LocalStorage para sincronizar com o Chat
+          const userStorage = localStorage.getItem('@Linkah:User');
+          if (userStorage) {
+            const userAtual = JSON.parse(userStorage);
+            localStorage.setItem('@Linkah:User', JSON.stringify({ ...userAtual, ...dadosPerfil }));
+          }
+
+          setStripeAccountId(data.stripe_account_id || null);
+          if (data.stripe_account_id) await checarStatusStripe(emailLogado);
         }
-        if (resMsg.ok) setMensagens(await resMsg.json());
-      } catch (e) { console.error("Erro no Sync:", e); }
+      } catch (error) {
+        console.error('❌ Erro carregar perfil:', error);
+      } finally {
+        setIsLoading(false);
+      }
     };
-    sync();
-    const interval = setInterval(sync, 4000);
-    return () => clearInterval(interval);
-  }, [id, dadosUsuario, meuStatus]);
+    carregarDados();
+  }, [router, checarStatusStripe, getUsuarioLogado]);
 
-  useEffect(() => { scrollRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [mensagens]);
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  // --- AÇÕES ---
-  const handleOpenProfile = (userName: string) => {
-    setSelectedUserId(userName);
-    setIsModalOpen(true);
+    const reader = new FileReader();
+    reader.onloadend = () => setAvatarPreview(reader.result as string);
+    reader.readAsDataURL(file);
+
+    setIsUploadingAvatar(true);
+    const { emailLogado, token } = getUsuarioLogado();
+
+    try {
+      const dataTransfer = new FormData();
+      dataTransfer.append('avatar', file);
+      dataTransfer.append('email', emailLogado);
+
+      const res = await fetch(`${API_URL}/api/auth/upload-avatar`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: dataTransfer,
+      });
+
+      if (!res.ok) throw new Error('Erro no upload');
+      const data = await res.json();
+      
+      // Atualiza avatar no LocalStorage para o Chat pegar na hora
+      const userStorage = localStorage.getItem('@Linkah:User');
+      if (userStorage) {
+        const userParsed = JSON.parse(userStorage);
+        localStorage.setItem('@Linkah:User', JSON.stringify({ ...userParsed, avatar: data.avatar }));
+      }
+
+      Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Foto atualizada!', showConfirmButton: false, timer: 2000 });
+    } catch (error: any) {
+      Swal.fire('Erro', error.message, 'error');
+    } finally {
+      setIsUploadingAvatar(false);
+    }
   };
 
-  const enviarMensagem = async (e: any) => {
+  const handleSalvar = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!novoTexto.trim()) return;
-    const payload = {
-      evento_id: Number(id),
-      usuario_nome: dadosUsuario.nome,
-      usuario_foto: getUserPhotoUrl(dadosUsuario),
-      texto: novoTexto,
-      status: meuStatus,
-      tipo: 'chat'
-    };
-    setNovoTexto('');
-    await fetch(`${API_URL}/api/comunidades/enviar`, { 
-        method: 'POST', 
-        headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify(payload) 
-    });
+    setIsSaving(true);
+    const { emailLogado, token } = getUsuarioLogado();
+
+    try {
+      const response = await fetch(`${API_URL}/api/auth/perfil`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ email_original: emailLogado, ...formData }),
+      });
+
+      if (!response.ok) throw new Error('Erro ao salvar');
+      
+      // Sincroniza o localStorage ao salvar o perfil completo
+      const userStorage = localStorage.getItem('@Linkah:User');
+      if (userStorage) {
+        const userAtual = JSON.parse(userStorage);
+        localStorage.setItem('@Linkah:User', JSON.stringify({ ...userAtual, ...formData }));
+      }
+
+      localStorage.setItem('perfil_completo', 'true');
+      Swal.fire({ title: 'SUCESSO!', text: 'Perfil sincronizado.', icon: 'success', confirmButtonColor: '#FF4D4D', customClass: { popup: 'rounded-[2rem]' } });
+      router.replace('/dashboard/eventos');
+    } catch (error: any) {
+      Swal.fire('Erro', error.message, 'error');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  if (carregando) return <div className="h-screen flex items-center justify-center bg-white"><Loader2 className="animate-spin text-red-500" size={48} /></div>;
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: (name === 'cpf_cnpj' || name === 'cep') ? aplicarMascara(name, value) : value }));
+  };
+
+  const handleConectarStripe = async () => {
+    const { emailLogado, token } = getUsuarioLogado();
+    try {
+      const response = await fetch(`${API_URL}/api/pagamento/conectar-stripe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ email: emailLogado }),
+      });
+      const data = await response.json();
+      if (data.url) window.location.href = data.url;
+    } catch (error) {
+      Swal.fire('Erro', 'Falha ao conectar Stripe', 'error');
+    }
+  };
+
+  if (isLoading) return (
+    <div className="flex h-screen w-screen flex-col items-center justify-center bg-white gap-4">
+      <Loader2 className="animate-spin text-[#FF4D4D]" size={48} />
+      <span className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 italic">Sincronizando...</span>
+    </div>
+  );
 
   return (
-    <div className="flex h-screen bg-[#F8F9FD] overflow-hidden font-sans">
-      {isModalOpen && <UserProfileModal {...({ isOpen: isModalOpen, onClose: () => setIsModalOpen(false), userId: selectedUserId } as any)} />}
+    <div className="min-h-screen bg-[#FDFDFF] p-6 md:p-12 font-sans">
+      <div className="max-w-[850px] mx-auto">
+        <Link href="/dashboard/eventos" className="inline-flex items-center gap-3 text-slate-400 hover:text-[#FF4D4D] transition-all mb-10 font-black text-[10px] tracking-[0.2em] uppercase group">
+          <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" /> Voltar ao Painel
+        </Link>
 
-      {/* SIDEBAR COM SELETOR DE STATUS */}
-      <aside className="w-80 border-r border-slate-100 hidden lg:flex flex-col bg-white shadow-sm z-30">
-        <div className="p-8 border-b border-slate-50 flex items-center justify-between">
-          <h2 className="text-slate-900 font-black uppercase text-[11px] tracking-widest italic flex items-center gap-2">
-            <Users size={16} className="text-red-500" /> {t?.members || 'Membros'}
-          </h2>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {/* CARD DO MEU PERFIL */}
-          <div className="relative p-5 bg-slate-900 rounded-[2.5rem] shadow-2xl overflow-hidden">
-            <div className="flex items-center gap-4 relative z-10">
-              <div className="relative cursor-pointer hover:scale-105 transition-transform" onClick={() => setShowEmojiPicker(!showEmojiPicker)}>
-                <img 
-                  src={getImagemUrl(getUserPhotoUrl(dadosUsuario))} 
-                  className="w-14 h-14 rounded-[1.4rem] object-cover border-2 border-red-500/50"
-                  alt="Minha Foto"
-                />
-                <div className="absolute -bottom-1 -right-1 bg-white shadow-xl w-7 h-7 rounded-full flex items-center justify-center text-sm border-2 border-slate-900">
-                  {meuStatus}
-                </div>
-              </div>
-              <div className="flex flex-col">
-                <span className="font-black text-white text-sm italic tracking-tight">{dadosUsuario?.nome}</span>
-                <span className="text-[9px] text-red-400 font-black uppercase tracking-widest flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" /> Online
-                </span>
-              </div>
+        <div className="bg-white rounded-[4rem] shadow-2xl p-8 md:p-20 border border-slate-50 relative overflow-hidden">
+          <div className="flex items-center gap-8 mb-20 relative z-10">
+            {/* AVATAR COM UPLOAD */}
+            <div onClick={() => fileInputRef.current?.click()} className="w-24 h-24 bg-slate-950 rounded-[2.5rem] flex items-center justify-center shadow-2xl relative group cursor-pointer overflow-hidden">
+              {isUploadingAvatar ? <Loader2 className="animate-spin text-white" size={32} /> : 
+                avatarPreview ? <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" /> : 
+                <UserCircle className="text-white" size={48} />
+              }
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"><Camera className="text-white" size={24} /></div>
+              <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleAvatarChange} />
             </div>
 
-            {showEmojiPicker && (
-              <div className="absolute inset-0 bg-slate-900/98 backdrop-blur-md z-20 flex flex-wrap items-center justify-center gap-3 p-4 animate-in fade-in zoom-in duration-200">
-                {EMOJIS_STATUS.map(emoji => (
-                  <button 
-                    key={emoji} 
-                    onClick={() => { setMeuStatus(emoji); setShowEmojiPicker(false); }}
-                    className="text-2xl hover:scale-125 hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.5)] transition-all"
-                  >
-                    {emoji}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="h-px bg-slate-100 my-2 mx-4" />
-
-          {/* LISTA DE OUTROS MEMBROS */}
-          {usuariosOnline.map((u, i) => (
-            <div key={i} onClick={() => handleOpenProfile(u.usuario_nome || u.nome)} className="flex items-center gap-4 p-4 hover:bg-slate-50 rounded-[1.8rem] cursor-pointer group transition-all relative">
-              <div className="relative">
-                <img src={getImagemUrl(getUserPhotoUrl(u))} className="w-11 h-11 rounded-[1.1rem] object-cover shadow-sm group-hover:rotate-2 transition-transform" alt="User" />
-                <span className="absolute -top-1 -right-1 text-xs drop-shadow-sm">{u.status || '✨'}</span>
-              </div>
-              <div className="flex flex-col">
-                <span className="font-bold text-slate-700 text-sm">{u.usuario_nome || u.nome}</span>
-                {u.is_host && <span className="text-[8px] text-amber-500 font-black uppercase tracking-tighter flex items-center gap-1"><Crown size={10} /> Organizador</span>}
-              </div>
-            </div>
-          ))}
-        </div>
-      </aside>
-
-      {/* CHAT PRINCIPAL */}
-      <main className="flex-1 flex flex-col bg-white">
-        <header className="p-6 border-b border-slate-50 flex justify-between items-center bg-white/90 backdrop-blur-md sticky top-0 z-20">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center shadow-inner">
-              <Zap size={22} fill="currentColor" />
-            </div>
             <div>
-               <h1 className="font-black uppercase tracking-widest text-[11px] text-slate-400 italic leading-none">Chat Público</h1>
-               <p className="text-[10px] font-bold text-slate-800 mt-1 uppercase tracking-tight">Evento Ativo</p>
+              <h2 className="text-5xl font-black text-slate-900 leading-none tracking-tighter italic uppercase">Meu Perfil</h2>
+              <p className="text-slate-400 mt-3 font-bold uppercase text-[11px] tracking-[0.25em] italic flex items-center gap-2">
+                <ShieldCheck size={14} className="text-[#FF4D4D]" /> Conta Verificada
+              </p>
             </div>
           </div>
-          <button onClick={() => router.back()} className="p-3 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-all">
-            <LogOut size={20} />
-          </button>
-        </header>
 
-        {/* ÁREA DE MENSAGENS */}
-        <div className="flex-1 overflow-y-auto p-8 space-y-6 bg-[#FDFDFF] scrollbar-thin scrollbar-thumb-slate-200">
-          {mensagens.map((m, i) => {
-            const souEu = m.usuario_nome === dadosUsuario?.nome;
-            const isHost = m.usuario_nome === "Marcos Boni" || m.is_host; 
+          <form onSubmit={handleSalvar} className="space-y-12 relative z-10">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+              <div className="space-y-4">
+                <label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 italic ml-2">Nome Completo</label>
+                <div className="relative group">
+                  <UserCircle className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#FF4D4D] transition-colors" size={20} />
+                  <input name="nome" value={formData.nome} onChange={handleChange} placeholder="Seu nome" className="w-full bg-slate-50 border-none rounded-3xl py-6 pl-16 pr-8 text-slate-900 font-bold placeholder:text-slate-300 focus:ring-4 focus:ring-[#FF4D4D]/10 transition-all" />
+                </div>
+              </div>
 
-            return (
-              <div key={i} className={`flex ${souEu ? 'justify-end' : 'justify-start'} gap-4 items-end animate-in fade-in slide-in-from-bottom-4 duration-300`}>
-                {!souEu && (
-                  <div className="relative group">
-                    <img 
-                      src={getImagemUrl(getUserPhotoUrl(m.usuario_foto || m))} 
-                      onClick={() => handleOpenProfile(m.usuario_nome)} 
-                      className={`w-10 h-10 rounded-[1.2rem] object-cover cursor-pointer group-hover:scale-110 shadow-md transition-all ${isHost ? 'ring-2 ring-amber-400 ring-offset-2' : ''}`} 
-                      alt="Msg User"
-                    />
-                    <span className="absolute -top-2 -right-2 text-xs drop-shadow-sm">{m.status || '✨'}</span>
+              <div className="space-y-4">
+                <label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 italic ml-2">CPF ou CNPJ</label>
+                <div className="relative group">
+                  <CreditCard className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#FF4D4D] transition-colors" size={20} />
+                  <input name="cpf_cnpj" value={formData.cpf_cnpj} onChange={handleChange} placeholder="000.000.000-00" className="w-full bg-slate-50 border-none rounded-3xl py-6 pl-16 pr-8 text-slate-900 font-bold placeholder:text-slate-300 focus:ring-4 focus:ring-[#FF4D4D]/10 transition-all" />
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+              <div className="space-y-4">
+                <label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 italic ml-2">CEP</label>
+                <div className="relative group">
+                  <MapPin className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#FF4D4D] transition-colors" size={20} />
+                  <input name="cep" value={formData.cep} onChange={handleChange} placeholder="00000-000" className="w-full bg-slate-50 border-none rounded-3xl py-6 pl-16 pr-8 text-slate-900 font-bold placeholder:text-slate-300 focus:ring-4 focus:ring-[#FF4D4D]/10 transition-all" />
+                </div>
+              </div>
+              <div className="md:col-span-2 space-y-4">
+                <label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 italic ml-2">Bio / Descrição</label>
+                <div className="relative group">
+                  <AlignLeft className="absolute left-6 top-8 text-slate-300 group-focus-within:text-[#FF4D4D] transition-colors" size={20} />
+                  <textarea name="bio" value={formData.bio} onChange={handleChange} placeholder="Conte um pouco sobre você..." rows={3} className="w-full bg-slate-50 border-none rounded-3xl py-6 pl-16 pr-8 text-slate-900 font-bold placeholder:text-slate-300 focus:ring-4 focus:ring-[#FF4D4D]/10 transition-all resize-none" />
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+              <div className="space-y-4">
+                <label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 italic ml-2">LinkedIn</label>
+                <div className="relative group">
+                  <Linkedin className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#FF4D4D] transition-colors" size={20} />
+                  <input name="linkedin" value={formData.linkedin} onChange={handleChange} placeholder="url do seu perfil" className="w-full bg-slate-50 border-none rounded-3xl py-6 pl-16 pr-8 text-slate-900 font-bold placeholder:text-slate-300 focus:ring-4 focus:ring-[#FF4D4D]/10 transition-all" />
+                </div>
+              </div>
+              <div className="space-y-4">
+                <label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 italic ml-2">Instagram</label>
+                <div className="relative group">
+                  <Instagram className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#FF4D4D] transition-colors" size={20} />
+                  <input name="instagram" value={formData.instagram} onChange={handleChange} placeholder="@seuusuario" className="w-full bg-slate-50 border-none rounded-3xl py-6 pl-16 pr-8 text-slate-900 font-bold placeholder:text-slate-300 focus:ring-4 focus:ring-[#FF4D4D]/10 transition-all" />
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-10 flex flex-col md:flex-row gap-6">
+              <button type="submit" disabled={isSaving} className="flex-1 bg-[#FF4D4D] text-white rounded-[2rem] py-8 font-black uppercase tracking-[0.4em] italic text-xs shadow-2xl shadow-[#FF4D4D]/40 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-4 disabled:opacity-50">
+                {isSaving ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
+                {isSaving ? 'Salvando...' : 'Salvar Alterações'}
+              </button>
+              
+              {!stripeAtivo ? (
+                <button type="button" onClick={handleConectarStripe} className="flex-1 bg-slate-950 text-white rounded-[2rem] py-8 font-black uppercase tracking-[0.4em] italic text-xs shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-4">
+                  <Zap size={20} className="text-yellow-400" /> Conectar Pagamentos
+                </button>
+              ) : (
+                <div className="flex-1 bg-emerald-50 border-2 border-emerald-100 rounded-[2rem] p-6 flex items-center gap-6">
+                  <div className="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-200">
+                    <CheckCircle2 className="text-white" size={24} />
                   </div>
-                )}
-                
-                <div className={`flex flex-col ${souEu ? 'items-end' : 'items-start'} max-w-[75%]`}>
-                  <div className="flex items-center gap-2 mb-1.5 px-1">
-                    {!souEu && <span className="text-[9px] font-black uppercase text-slate-400 italic tracking-tighter">{m.usuario_nome}</span>}
-                    {isHost && (
-                      <span className="bg-gradient-to-r from-amber-400 to-yellow-600 text-white text-[8px] font-black px-2 py-0.5 rounded-full flex items-center gap-1 uppercase tracking-tighter shadow-lg border border-amber-300">
-                        <Crown size={8} fill="currentColor" /> HOST
-                      </span>
-                    )}
-                  </div>
-
-                  {/* BALÃO DE MENSAGEM */}
-                  <div className={`p-4 rounded-[1.8rem] shadow-sm relative transition-all ${
-                    isHost 
-                      ? 'bg-white border-2 border-amber-400 shadow-[0_4px_15px_rgba(251,191,36,0.15)] ring-1 ring-amber-100' 
-                      : souEu 
-                        ? 'bg-red-500 text-white rounded-br-none shadow-xl shadow-red-500/20' 
-                        : 'bg-white text-slate-700 border border-slate-100 rounded-bl-none'
-                  }`}>
-                    {isHost && <Star size={8} className="absolute -top-2 -right-1 text-amber-500 animate-bounce" fill="currentColor" />}
-                    <p className="text-[13.5px] font-medium leading-relaxed">
-                      {m.texto}
-                    </p>
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600 italic">Stripe Ativo</p>
+                    <p className="text-slate-900 font-bold text-sm">{stripeDetails?.business_name}</p>
                   </div>
                 </div>
-
-                {souEu && (
-                  <div className="relative">
-                    <img 
-                      src={getImagemUrl(getUserPhotoUrl(dadosUsuario))} 
-                      className={`w-10 h-10 rounded-[1.2rem] object-cover shadow-md ${isHost ? 'ring-2 ring-amber-400 ring-offset-2' : ''}`} 
-                      alt="Me"
-                    />
-                    <span className="absolute -top-2 -left-2 text-xs drop-shadow-sm">{meuStatus}</span>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-          <div ref={scrollRef}></div>
-        </div>
-
-        {/* INPUT FIXO EMBAIXO */}
-        <div className="p-6 bg-white border-t border-slate-50">
-          <form onSubmit={enviarMensagem} className="max-w-4xl mx-auto flex items-center gap-4 bg-slate-100/50 p-2 rounded-[2.2rem] border border-slate-100 focus-within:border-red-200 focus-within:bg-white transition-all shadow-inner">
-            <div className="pl-4 text-xl select-none">{meuStatus}</div>
-            <input 
-              type="text" 
-              value={novoTexto} 
-              onChange={e => setNovoTexto(e.target.value)} 
-              placeholder="Escreva algo para a galera..." 
-              className="flex-1 bg-transparent p-4 outline-none text-sm font-bold text-slate-700 placeholder:text-slate-400" 
-            />
-            <button type="submit" className="w-12 h-12 bg-red-500 text-white rounded-full flex items-center justify-center hover:scale-105 hover:bg-red-600 shadow-lg shadow-red-200 active:scale-95 transition-all">
-              <Send size={18} />
-            </button>
+              )}
+            </div>
           </form>
         </div>
-      </main>
+      </div>
     </div>
+  );
+}
+
+export default function PerfilPage() {
+  return (
+    <Suspense fallback={<div className="h-screen w-screen flex items-center justify-center"><Loader2 className="animate-spin text-[#FF4D4D]" size={48} /></div>}>
+      <PerfilContent />
+    </Suspense>
   );
 }
