@@ -17,7 +17,8 @@ import {
   CheckCircle2,
   Heart,
   Users,
-  Verified
+  Verified,
+  Building2
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -105,7 +106,7 @@ export default function DetalhesEvento() {
     );
   }
 
-  // --- IMAGEM ---
+  // --- LOGICA DE IMAGEM DE CAPA ---
   const rawImage =
     evento.imagem_capa || evento.capa_url || evento.imagem_url || evento.imagem;
 
@@ -114,41 +115,43 @@ export default function DetalhesEvento() {
 
   if (rawImage && rawImage !== 'null' && rawImage !== 'undefined') {
     const valor = String(rawImage).trim();
-
-    // URL completa
     if (valor.startsWith('http://') || valor.startsWith('https://')) {
       urlFinalImagem = valor;
-
-    // Public ID da Cloudinary
-    } else if (valor.startsWith('linkah/eventos/')) {
+    } else if (valor.startsWith('linkah/')) {
       urlFinalImagem = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${valor}`;
-
-    // Imagens antigas locais
     } else {
       urlFinalImagem = `${API_URL}/uploads/${valor.replace(/^\/+/, '')}`;
+    }
+  }
+
+  // --- LOGICA DE BANNER DE PATROCINIO (NOVO) ---
+  const rawBanner = evento.banner_patrocinio;
+  let urlFinalBanner = null;
+
+  if (rawBanner && rawBanner !== 'null' && rawBanner !== 'undefined') {
+    const valorBanner = String(rawBanner).trim();
+    if (valorBanner.startsWith('http')) {
+      urlFinalBanner = valorBanner;
+    } else if (valorBanner.startsWith('linkah/')) {
+      urlFinalBanner = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${valorBanner}`;
+    } else {
+      urlFinalBanner = `${API_URL}/uploads/${valorBanner.replace(/^\/+/, '')}`;
     }
   }
 
   const moedaFinal = (evento.moeda || 'BRL').toUpperCase();
   const locale = language === 'PT' ? 'pt-BR' : 'en-US';
 
-  // --- CORREÇÃO DA DATA (SEM BUG DE FUSO) ---
   const formatarDataSegura = (data: string) => {
     if (!data) return '---';
-
     const apenasData = String(data).split('T')[0];
     const partes = apenasData.split('-');
-
     if (partes.length !== 3) return '---';
-
     const ano = Number(partes[0]);
     const mes = Number(partes[1]);
     const dia = Number(partes[2]);
-
     if (!ano || !mes || !dia) return '---';
-
     const dataLocal = new Date(ano, mes - 1, dia);
-
     return dataLocal.toLocaleDateString(locale, {
       day: '2-digit',
       month: 'long'
@@ -203,6 +206,7 @@ export default function DetalhesEvento() {
           </div>
         </div>
 
+        {/* IMAGEM DE CAPA */}
         <div className="relative w-full aspect-[21/9] rounded-[3rem] md:rounded-[4rem] overflow-hidden shadow-2xl mb-16 bg-slate-100 group">
           <img
             src={urlFinalImagem}
@@ -237,21 +241,17 @@ export default function DetalhesEvento() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
           <div className="lg:col-span-8 space-y-16">
+            
+            {/* INFORMAÇÕES RÁPIDAS */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div className="flex items-center gap-5">
                 <div className="w-16 h-16 rounded-[1.5rem] bg-pink-50 flex items-center justify-center text-[#C22973]">
                   <Calendar size={28} />
                 </div>
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
-                    DATA
-                  </p>
-                  <p className="font-bold text-slate-800 text-lg">
-                    {formatarDataSegura(evento.data_inicio)}
-                  </p>
-                  <p className="text-sm text-slate-500 font-medium">
-                    {formatarHoraSegura(evento.hora_inicio || evento.horario)}
-                  </p>
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">DATA</p>
+                  <p className="font-bold text-slate-800 text-lg">{formatarDataSegura(evento.data_inicio)}</p>
+                  <p className="text-sm text-slate-500 font-medium">{formatarHoraSegura(evento.hora_inicio || evento.horario)}</p>
                 </div>
               </div>
 
@@ -260,18 +260,14 @@ export default function DetalhesEvento() {
                   <MapPin size={28} />
                 </div>
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
-                    LOCAL
-                  </p>
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">LOCAL</p>
                   <p className="font-bold text-slate-800 text-lg line-clamp-1">
                     {String(evento.tipo || '').toLowerCase() === 'online'
                       ? 'Linkah Digital'
                       : evento.local_nome || evento.local || 'Local a definir'}
                   </p>
                   <p className="text-sm text-slate-500 font-medium line-clamp-1">
-                    {String(evento.tipo || '').toLowerCase() === 'online'
-                      ? 'Digital'
-                      : evento.cidade || 'Cidade a definir'}
+                    {String(evento.tipo || '').toLowerCase() === 'online' ? 'Digital' : evento.cidade || 'Cidade a definir'}
                   </p>
                 </div>
               </div>
@@ -281,32 +277,47 @@ export default function DetalhesEvento() {
                   <Users size={28} />
                 </div>
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
-                    ORGANIZADOR
-                  </p>
-                  <p className="font-bold text-slate-800 text-lg line-clamp-1">
-                    {evento.produtor_nome || 'Linkah Produtora'}
-                  </p>
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">ORGANIZADOR</p>
+                  <p className="font-bold text-slate-800 text-lg line-clamp-1">{evento.produtor_nome || 'Linkah Produtora'}</p>
                 </div>
               </div>
             </div>
 
+            {/* DESCRIÇÃO */}
             <div className="space-y-8">
-              <h3 className="text-2xl font-bold text-slate-900 tracking-tight italic uppercase">
-                Sobre o Evento
-              </h3>
+              <h3 className="text-2xl font-bold text-slate-900 tracking-tight italic uppercase">Sobre o Evento</h3>
               <div className="text-slate-600 leading-relaxed text-xl font-light whitespace-pre-line max-w-3xl">
                 {evento.descricao}
               </div>
             </div>
+
+            {/* --- BANNER DE PATROCÍNIO --- */}
+            {urlFinalBanner && (
+              <div className="pt-8">
+                 <div className="group relative w-full aspect-[21/6] rounded-[2.5rem] overflow-hidden border border-slate-100 shadow-xl transition-all hover:shadow-2xl bg-slate-50">
+                    <div className="absolute top-4 left-6 z-10 flex items-center gap-2">
+                       <div className="bg-white/90 backdrop-blur px-3 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
+                          <Building2 size={10} className="text-blue-500" />
+                          <span className="text-[9px] font-black uppercase tracking-tighter text-slate-600">
+                             Patrocinador Oficial
+                          </span>
+                       </div>
+                    </div>
+                    <img 
+                       src={urlFinalBanner} 
+                       alt="Banner Patrocinador" 
+                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    />
+                 </div>
+              </div>
+            )}
           </div>
 
+          {/* SIDEBAR DE INGRESSOS */}
           <div className="lg:col-span-4">
             <div className="sticky top-28 bg-white rounded-[3.5rem] border border-slate-100 shadow-2xl p-8 md:p-10 space-y-8">
               <div className="flex justify-between items-center">
-                <h4 className="font-bold text-slate-900 text-xl italic uppercase">
-                  Ingressos
-                </h4>
+                <h4 className="font-bold text-slate-900 text-xl italic uppercase">Ingressos</h4>
                 <CheckCircle2 size={20} className="text-emerald-500" />
               </div>
 
@@ -315,38 +326,20 @@ export default function DetalhesEvento() {
                   <div
                     key={ing.id}
                     className={`p-5 rounded-[2.5rem] border transition-all ${
-                      quantidades[ing.id] > 0
-                        ? 'bg-pink-50/30 border-[#C22973]/20'
-                        : 'bg-slate-50 border-slate-100'
+                      quantidades[ing.id] > 0 ? 'bg-pink-50/30 border-[#C22973]/20' : 'bg-slate-50 border-slate-100'
                     }`}
                   >
-                    <p className="font-bold text-slate-800 uppercase text-sm">
-                      {ing.nome || 'Individual'}
-                    </p>
-
+                    <p className="font-bold text-slate-800 uppercase text-sm">{ing.nome || 'Individual'}</p>
                     <p className="text-[#C22973] font-black text-lg italic mb-3">
-                      {Number(ing.preco).toLocaleString(locale, {
-                        style: 'currency',
-                        currency: moedaFinal
-                      })}
+                      {Number(ing.preco).toLocaleString(locale, { style: 'currency', currency: moedaFinal })}
                     </p>
 
                     <div className="flex items-center justify-between bg-white p-1 rounded-2xl shadow-sm border border-slate-100">
-                      <button
-                        onClick={() => handleMudarQuantidade(ing.id, 'sub')}
-                        className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-[#C22973]"
-                      >
+                      <button onClick={() => handleMudarQuantidade(ing.id, 'sub')} className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-[#C22973]">
                         <Minus size={16} />
                       </button>
-
-                      <span className="font-black text-lg italic">
-                        {quantidades[ing.id] || 0}
-                      </span>
-
-                      <button
-                        onClick={() => handleMudarQuantidade(ing.id, 'soma')}
-                        className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-[#C22973]"
-                      >
+                      <span className="font-black text-lg italic">{quantidades[ing.id] || 0}</span>
+                      <button onClick={() => handleMudarQuantidade(ing.id, 'soma')} className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-[#C22973]">
                         <Plus size={16} />
                       </button>
                     </div>
@@ -356,29 +349,16 @@ export default function DetalhesEvento() {
 
               <div className="pt-6 border-t border-slate-100 space-y-6">
                 <div className="flex justify-between items-end">
-                  <p className="text-[10px] font-black text-slate-400 uppercase italic">
-                    Total Geral
-                  </p>
+                  <p className="text-[10px] font-black text-slate-400 uppercase italic">Total Geral</p>
                   <p className="text-3xl font-black text-slate-900 italic">
-                    {totalGeral.toLocaleString(locale, {
-                      style: 'currency',
-                      currency: moedaFinal
-                    })}
+                    {totalGeral.toLocaleString(locale, { style: 'currency', currency: moedaFinal })}
                   </p>
                 </div>
 
                 <Link
-                  href={
-                    temIngressoSelecionado
-                      ? `/venda?eventoId=${id}&payload=${encodeURIComponent(
-                          JSON.stringify(quantidades)
-                        )}`
-                      : '#'
-                  }
+                  href={temIngressoSelecionado ? `/venda?eventoId=${id}&payload=${encodeURIComponent(JSON.stringify(quantidades))}` : '#'}
                   className={`flex items-center justify-center w-full py-7 rounded-[2.5rem] font-black text-white shadow-xl italic uppercase transition-all ${
-                    temIngressoSelecionado
-                      ? 'bg-gradient-to-r from-[#C22973] to-[#ff8c42] hover:scale-105 active:scale-95'
-                      : 'bg-slate-200 cursor-not-allowed text-slate-400'
+                    temIngressoSelecionado ? 'bg-gradient-to-r from-[#C22973] to-[#ff8c42] hover:scale-105 active:scale-95' : 'bg-slate-200 cursor-not-allowed text-slate-400'
                   }`}
                 >
                   <Ticket size={24} className="mr-2" />
