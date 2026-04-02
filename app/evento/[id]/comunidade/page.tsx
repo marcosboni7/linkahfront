@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Send, Video, Loader2 } from 'lucide-react';
+import { Send, Video, Loader2, X } from 'lucide-react';
 import { useLanguage } from '@/app/context/LanguageContext';
 
 const API_URL = 'https://api-linkah.onrender.com';
@@ -33,14 +33,9 @@ export default function SalaLinkahSkype() {
   const [imagemAnexada, setImagemAnexada] = useState<string | null>(null);
   const [chamadaAtiva, setChamadaAtiva] = useState(false);
   const [nomeSalaCall, setNomeSalaCall] = useState('');
-  const [conviteRecebido, setConviteRecebido] = useState<any>(null);
+  const [perfilAberto, setPerfilAberto] = useState<any>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
-
-  // Map de avatars já com getImagemUrl
-  const avatarMap = Object.fromEntries(
-    usuariosOnline.map(u => [u.usuario_nome, getImagemUrl(u.foto_perfil || u.avatar || u.usuario_foto || u.foto)])
-  );
 
   useEffect(() => {
     const savedUser = localStorage.getItem('@Linkah:User');
@@ -133,13 +128,32 @@ export default function SalaLinkahSkype() {
   );
 
   return (
-    <div className="flex h-screen bg-[#FCFBFA] overflow-hidden">
+    <div className="flex h-screen bg-[#FCFBFA] overflow-hidden relative">
+      {/* Modal de perfil */}
+      {perfilAberto && (
+        <div className="absolute inset-0 bg-black/50 flex justify-center items-center z-50">
+          <div className="bg-white p-6 rounded-xl w-80 relative">
+            <button className="absolute top-3 right-3" onClick={() => setPerfilAberto(null)}><X /></button>
+            <img src={getImagemUrl(perfilAberto.foto_perfil || perfilAberto.avatar)} className="w-20 h-20 rounded-full object-cover mx-auto" />
+            <h2 className="text-center mt-3 font-bold">{perfilAberto.usuario_nome}</h2>
+            {perfilAberto.bio && <p className="mt-2 text-center">{perfilAberto.bio}</p>}
+            {perfilAberto.linkedin && (
+              <a href={perfilAberto.linkedin} target="_blank" className="block mt-3 text-center text-blue-600 underline">LinkedIn</a>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Sidebar */}
       <aside className="w-80 border-r border-slate-100 hidden lg:flex flex-col bg-white">
         <div className="p-6"><h2>Membros</h2></div>
         <div className="flex-1 overflow-y-auto px-4 space-y-1">
           {usuariosOnline.map((u, i) => (
-            <div key={i} className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-2xl cursor-pointer">
+            <div
+              key={i}
+              className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-2xl cursor-pointer"
+              onClick={() => setPerfilAberto(u)}
+            >
               <img
                 src={getImagemUrl(u.foto_perfil || u.avatar || u.usuario_foto || u.foto)}
                 className="w-10 h-10 rounded-xl object-cover"
@@ -162,21 +176,40 @@ export default function SalaLinkahSkype() {
         <div className="flex-1 overflow-y-auto p-6 space-y-8">
           {mensagens.map((m, i) => {
             const souEu = m.usuario_nome === dadosUsuario.nome;
-            const avatarMsg = souEu
-              ? getImagemUrl(dadosUsuario.foto_perfil || dadosUsuario.avatar)
-              : avatarMap[m.usuario_nome] || DEFAULT_FOTO;
 
-            const imgLink = getImagemUrl(avatarMsg);
-            console.log(`💬 Mensagem #${i}:`, m.usuario_nome, imgLink);
+            const imgLink = souEu
+              ? getImagemUrl(dadosUsuario.foto_perfil || dadosUsuario.avatar)
+              : getImagemUrl(
+                  usuariosOnline.find(u => u.usuario_nome === m.usuario_nome)?.foto_perfil ||
+                  usuariosOnline.find(u => u.usuario_nome === m.usuario_nome)?.avatar ||
+                  m.usuario_foto ||
+                  m.foto
+                );
 
             return (
               <div key={i} className={`flex ${souEu ? 'justify-end' : 'justify-start'} gap-3 items-end`}>
-                {!souEu && <img src={imgLink} className="w-10 h-10 rounded-xl object-cover" onError={handleImageError} alt={m.usuario_nome} />}
+                {!souEu && (
+                  <img
+                    src={imgLink}
+                    className="w-10 h-10 rounded-xl object-cover cursor-pointer"
+                    onError={handleImageError}
+                    alt={m.usuario_nome}
+                    onClick={() => setPerfilAberto(m)}
+                  />
+                )}
                 <div className={`p-3 rounded-xl max-w-xs ${souEu ? 'bg-red-100' : 'bg-gray-100'}`}>
                   {m.texto && <p>{m.texto}</p>}
                   {m.imagem && <img src={getImagemUrl(m.imagem)} className="w-48 h-48 object-cover mt-2" onError={handleImageError} />}
                 </div>
-                {souEu && <img src={imgLink} className="w-10 h-10 rounded-xl object-cover" onError={handleImageError} alt={m.usuario_nome} />}
+                {souEu && (
+                  <img
+                    src={imgLink}
+                    className="w-10 h-10 rounded-xl object-cover cursor-pointer"
+                    onError={handleImageError}
+                    alt={m.usuario_nome}
+                    onClick={() => setPerfilAberto(m)}
+                  />
+                )}
               </div>
             );
           })}
