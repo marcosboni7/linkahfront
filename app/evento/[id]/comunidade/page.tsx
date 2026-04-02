@@ -6,7 +6,7 @@ import {
   PhoneOff, Maximize2, Radio, Camera, ImageIcon 
 } from 'lucide-react';
 import { useLanguage } from '@/app/context/LanguageContext';
-import {UserProfileModal} from '@/app/dashboard/UserProfileModal'; 
+import UserProfileModal from '@/app/dashboard/UserProfileModal'; 
 
 const API_URL = 'https://api-linkah.onrender.com';
 const DEFAULT_FOTO = 'https://i.pinimg.com/originals/ec/a5/a7/eca5a7c991e8fa52554e953593faba2d.gif';
@@ -14,7 +14,7 @@ const DEFAULT_FOTO = 'https://i.pinimg.com/originals/ec/a5/a7/eca5a7c991e8fa5255
 // --- HELPERS ---
 const getUserPhotoUrl = (user: any) => {
   if (!user) return DEFAULT_FOTO;
-  const campos = ['avatar', 'foto_perfil', 'usuario_foto', 'foto', 'profile_photo', 'image'];
+  const campos = ['avatar', 'foto_perfil', 'usuario_foto', 'foto', 'image', 'profile_photo'];
   for (const c of campos) {
     if (user[c] && typeof user[c] === 'string' && user[c].trim() !== '' && user[c] !== 'null') return user[c];
   }
@@ -137,17 +137,19 @@ export default function ComunidadePage() {
         </header>
 
         <div className="flex-1 relative overflow-hidden flex flex-col bg-[#FDFDFF]">
+          
+          {/* TENTATIVA COM SERVIDOR MENOS RESTRITIVO */}
           {chamadaAtivaLocal && (
             <div className="absolute inset-0 z-40 bg-slate-900 flex flex-col">
               <iframe 
-                /* NOVA TENTATIVA: Servidor vpaas com bypass de prejoin */
-                src={`https://8x8.vc/vpaas-magic-cookie-86111f19f1824d55b05809794d01099e/Linkah_Sala_${id}#userInfo.displayName="${dadosUsuario?.nome}"&config.prejoinPageEnabled=false&config.disableModeratorIndicator=true&config.makeJsonRpcRequests=false`}
+                /* Servidor do Element (Matrix) ou Jitsi Rocks que costumam ser mais abertos */
+                src={`https://jitsi.rocks/Linkah_Priv_${id}_${Math.floor(Math.random()*1000)}#userInfo.displayName="${dadosUsuario?.nome}"&config.prejoinPageEnabled=false`}
                 allow="camera; microphone; display-capture; autoplay"
                 className="flex-1 w-full border-none"
               />
               <div className="p-6 bg-slate-950 flex items-center justify-center">
                 <button onClick={() => setChamadaAtivaLocal(false)} className="bg-red-500 text-white px-8 py-3 rounded-full font-black uppercase text-[10px] tracking-widest flex items-center gap-2">
-                  <PhoneOff size={18} /> Encerrar Call
+                  <PhoneOff size={18} /> Sair
                 </button>
               </div>
             </div>
@@ -162,8 +164,7 @@ export default function ComunidadePage() {
                   <div className={`flex flex-col ${souEu ? 'items-end' : 'items-start'} max-w-[70%]`}>
                     {!souEu && <span className="text-[9px] font-black uppercase text-slate-300 ml-1 mb-1 italic">{m.usuario_nome}</span>}
                     <div className={`p-4 rounded-[1.5rem] shadow-sm ${souEu ? 'bg-red-500 text-white rounded-br-none' : 'bg-white text-slate-700 border border-slate-100 rounded-bl-none'}`}>
-                      <p className="text-sm font-medium">{m.texto}</p>
-                      {m.imagem && <img src={getImagemUrl(m.imagem)} className="w-full max-w-[250px] rounded-xl mt-3 border border-black/5" />}
+                      <p className="text-sm font-medium leading-relaxed">{m.texto}</p>
                     </div>
                   </div>
                   {souEu && <img src={getImagemUrl(getUserPhotoUrl(dadosUsuario))} className="w-10 h-10 rounded-[1.2rem] object-cover shadow-md" onError={(e:any) => e.target.src = DEFAULT_FOTO} />}
