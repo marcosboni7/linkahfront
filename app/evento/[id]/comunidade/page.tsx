@@ -6,7 +6,7 @@ import {
   PhoneOff, Maximize2, Radio, Camera, ImageIcon
 } from 'lucide-react';
 import { useLanguage } from '@/app/context/LanguageContext';
-import UserProfileModal from '@/app/dashboard/UserProfileModal'; 
+import {UserProfileModal} from '@/app/dashboard/UserProfileModal'; 
 
 const API_URL = 'https://api-linkah.onrender.com';
 const DEFAULT_FOTO = 'https://i.pinimg.com/originals/ec/a5/a7/eca5a7c991e8fa52554e953593faba2d.gif';
