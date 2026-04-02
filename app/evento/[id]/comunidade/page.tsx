@@ -8,8 +8,13 @@ const API_URL = 'https://api-linkah.onrender.com';
 const DEFAULT_FOTO = 'https://i.pinimg.com/originals/ec/a5/a7/eca5a7c991e8fa52554e953593faba2d.gif';
 
 const getImagemUrl = (foto?: string | null) => {
-  if (!foto || foto === 'null' || foto === 'undefined' || foto.trim() === '') return DEFAULT_FOTO;
-  if (/^(https?:|blob:|data:)/.test(foto)) return foto; // URL absoluta
+  if (!foto || foto === 'null' || foto === 'undefined' || foto.trim() === '') {
+    return DEFAULT_FOTO;
+  }
+
+  foto = foto.trim();
+  if (/^(https?:\/\/|blob:|data:)/.test(foto)) return foto;
+
   const cleanBase = API_URL.replace(/\/$/, '');
   const cleanPath = foto.replace(/^\//, '');
   return `${cleanBase}/${cleanPath}`;
@@ -32,8 +37,9 @@ export default function SalaLinkahSkype() {
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Map de avatars já com getImagemUrl
   const avatarMap = Object.fromEntries(
-    usuariosOnline.map(u => [u.usuario_nome, u.foto_perfil || u.avatar || u.usuario_foto || u.foto])
+    usuariosOnline.map(u => [u.usuario_nome, getImagemUrl(u.foto_perfil || u.avatar || u.usuario_foto || u.foto)])
   );
 
   useEffect(() => {
@@ -120,7 +126,11 @@ export default function SalaLinkahSkype() {
     console.log(`📞 Iniciando call para ${destino} na sala ${sala}`);
   };
 
-  if (carregando) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin text-red-500" size={48} /></div>;
+  if (carregando) return (
+    <div className="h-screen flex items-center justify-center">
+      <Loader2 className="animate-spin text-red-500" size={48} />
+    </div>
+  );
 
   return (
     <div className="flex h-screen bg-[#FCFBFA] overflow-hidden">
@@ -130,7 +140,12 @@ export default function SalaLinkahSkype() {
         <div className="flex-1 overflow-y-auto px-4 space-y-1">
           {usuariosOnline.map((u, i) => (
             <div key={i} className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-2xl cursor-pointer">
-              <img src={getImagemUrl(u.foto_perfil || u.avatar || u.usuario_foto || u.foto)} className="w-10 h-10 rounded-xl object-cover" onError={handleImageError} alt={u.usuario_nome} />
+              <img
+                src={getImagemUrl(u.foto_perfil || u.avatar || u.usuario_foto || u.foto)}
+                className="w-10 h-10 rounded-xl object-cover"
+                onError={handleImageError}
+                alt={u.usuario_nome}
+              />
               <span>{u.usuario_nome}</span>
             </div>
           ))}
@@ -147,17 +162,21 @@ export default function SalaLinkahSkype() {
         <div className="flex-1 overflow-y-auto p-6 space-y-8">
           {mensagens.map((m, i) => {
             const souEu = m.usuario_nome === dadosUsuario.nome;
-            const avatarMsg = m.usuario_foto || m.foto || m.avatar || avatarMap[m.usuario_nome] || (souEu ? dadosUsuario.foto_perfil || dadosUsuario.avatar : null);
+            const avatarMsg = souEu
+              ? getImagemUrl(dadosUsuario.foto_perfil || dadosUsuario.avatar)
+              : avatarMap[m.usuario_nome] || DEFAULT_FOTO;
+
             const imgLink = getImagemUrl(avatarMsg);
             console.log(`💬 Mensagem #${i}:`, m.usuario_nome, imgLink);
 
             return (
-              <div key={i} className={`flex ${souEu ? 'justify-end' : 'justify-start'}`}>
-                <img src={imgLink} className="w-10 h-10 rounded-xl object-cover" onError={handleImageError} alt={m.usuario_nome} />
-                <div className={`p-3 rounded-xl ${souEu ? 'bg-red-100' : 'bg-gray-100'}`}>
+              <div key={i} className={`flex ${souEu ? 'justify-end' : 'justify-start'} gap-3 items-end`}>
+                {!souEu && <img src={imgLink} className="w-10 h-10 rounded-xl object-cover" onError={handleImageError} alt={m.usuario_nome} />}
+                <div className={`p-3 rounded-xl max-w-xs ${souEu ? 'bg-red-100' : 'bg-gray-100'}`}>
                   {m.texto && <p>{m.texto}</p>}
                   {m.imagem && <img src={getImagemUrl(m.imagem)} className="w-48 h-48 object-cover mt-2" onError={handleImageError} />}
                 </div>
+                {souEu && <img src={imgLink} className="w-10 h-10 rounded-xl object-cover" onError={handleImageError} alt={m.usuario_nome} />}
               </div>
             );
           })}
@@ -165,7 +184,13 @@ export default function SalaLinkahSkype() {
         </div>
 
         <form onSubmit={enviarMensagem} className="p-6 flex items-center gap-4 border-t border-slate-50">
-          <input type="text" value={novoTexto} onChange={e => setNovoTexto(e.target.value)} placeholder="Escreva aqui..." className="flex-1 p-3 border rounded-xl" />
+          <input
+            type="text"
+            value={novoTexto}
+            onChange={e => setNovoTexto(e.target.value)}
+            placeholder="Escreva aqui..."
+            className="flex-1 p-3 border rounded-xl"
+          />
           <button type="submit"><Send /></button>
         </form>
       </main>
