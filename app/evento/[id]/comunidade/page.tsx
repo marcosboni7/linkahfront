@@ -6,25 +6,23 @@ import {
   PhoneOff, Maximize2, Radio, Camera, ImageIcon
 } from 'lucide-react';
 import { useLanguage } from '@/app/context/LanguageContext';
-import {UserProfileModal} from '@/app/dashboard/UserProfileModal'; 
+import UserProfileModal from '@/app/dashboard/UserProfileModal'; 
 
 const API_URL = 'https://api-linkah.onrender.com';
 const DEFAULT_FOTO = 'https://i.pinimg.com/originals/ec/a5/a7/eca5a7c991e8fa52554e953593faba2d.gif';
 
-// --- HELPERS DE IMAGEM (AQUELES QUE A GENTE TINHA BLINDADO) ---
+// --- HELPERS DE IMAGEM ---
 const getUserPhotoUrl = (user: any) => {
   if (!user) return DEFAULT_FOTO;
-  const campos = ['avatar', 'foto_perfil', 'usuario_foto', 'foto', 'profile_photo', 'user_photo', 'image', 'img', 'url_foto'];
+  const campos = ['avatar', 'foto_perfil', 'usuario_foto', 'foto', 'image', 'img'];
   for (const c of campos) {
     if (user[c] && typeof user[c] === 'string' && user[c].trim() !== '' && user[c] !== 'null') return user[c];
   }
-  if (user.usuario && typeof user.usuario === 'object') return getUserPhotoUrl(user.usuario);
   return DEFAULT_FOTO;
 };
 
 const getImagemUrl = (foto?: string | null) => {
-  if (!foto || foto === 'null' || foto === 'undefined' || foto.trim() === '' || foto === DEFAULT_FOTO) return DEFAULT_FOTO;
-  foto = foto.trim();
+  if (!foto || foto === 'null' || foto.trim() === '' || foto === DEFAULT_FOTO) return DEFAULT_FOTO;
   if (/^(https?:\/\/|blob:|data:)/.test(foto)) return foto;
   return `${API_URL.replace(/\/$/, '')}/${foto.replace(/^\//, '')}`;
 };
@@ -33,7 +31,6 @@ export default function SalaLinkahSkype() {
   const { t }: any = useLanguage();
   const { id } = useParams();
   const router = useRouter();
-  const jitsiContainerRef = useRef<HTMLDivElement>(null);
 
   // Estados de Dados
   const [mensagens, setMensagens] = useState<any[]>([]);
@@ -47,85 +44,24 @@ export default function SalaLinkahSkype() {
   const [chamadaAtivaLocal, setChamadaAtivaLocal] = useState(false);
   const [chamadaNoServidor, setChamadaNoServidor] = useState(false);
   
-  // Estados do Modal de Perfil
+  // Perfil
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // 1. Autenticação e Perfil (Mantendo sua lógica de background)
-  const getUsuarioLogado = useCallback(() => {
-    try {
-      const userStorage = localStorage.getItem('@Linkah:User');
-      const parsedUser = userStorage ? JSON.parse(userStorage) : null;
-      const emailLogado = parsedUser?.email || localStorage.getItem('userEmail') || '';
-      const token = localStorage.getItem('@Linkah:Token')?.replace(/['"]+/g, '') || '';
-      return { userStorage, parsedUser, emailLogado, token };
-    } catch (error) {
-      return { userStorage: null, parsedUser: null, emailLogado: '', token: '' };
-    }
-  }, []);
-
+  // Autenticação
   useEffect(() => {
-    const { parsedUser, emailLogado, token } = getUsuarioLogado();
-    if (!emailLogado) { router.push('/site/login'); return; }
-    if (parsedUser) { setDadosUsuario(parsedUser); setCarregando(false); }
+    const user = localStorage.getItem('@Linkah:User');
+    if (!user) return router.push('/site/login');
+    setDadosUsuario(JSON.parse(user));
+    setCarregando(false);
+  }, [router]);
 
-    const atualizarPerfil = async () => {
-      try {
-        const headers: Record<string, string> = { Accept: 'application/json' };
-        if (token) headers.Authorization = `Bearer ${token}`;
-        const response = await fetch(`${API_URL}/api/auth/perfil?email=${encodeURIComponent(emailLogado)}`, { method: 'GET', headers });
-        if (response.ok) {
-          const data = await response.json();
-          const userUpdated = { ...data, email: emailLogado };
-          setDadosUsuario(userUpdated);
-          localStorage.setItem('@Linkah:User', JSON.stringify(userUpdated));
-          setCarregando(false);
-        }
-      } catch (error) { console.error(error); }
-    };
-    atualizarPerfil();
-  }, [router, getUsuarioLogado]);
-
-  // 2. Lógica da API do Jitsi (O que resolve o erro de moderador)
-  useEffect(() => {
-    if (chamadaAtivaLocal && dadosUsuario && typeof window !== 'undefined') {
-      const initJitsi = () => {
-        const domain = "meet.jit.si";
-        const options = {
-          roomName: `Linkah_Room_Secure_${id}`,
-          width: '100%',
-          height: '100%',
-          parentNode: jitsiContainerRef.current,
-          userInfo: { displayName: dadosUsuario.nome },
-          configOverwrite: {
-            prejoinPageEnabled: false,
-            disableDeepLinking: true,
-            startWithAudioMuted: false,
-            startWithVideoMuted: false,
-          }
-        };
-        // @ts-ignore
-        new window.JitsiMeetExternalAPI(domain, options);
-      };
-
-      if (!(window as any).JitsiMeetExternalAPI) {
-        const script = document.createElement('script');
-        script.src = "https://meet.jit.si/external_api.js";
-        script.async = true;
-        script.onload = initJitsi;
-        document.body.appendChild(script);
-      } else {
-        initJitsi();
-      }
-    }
-  }, [chamadaAtivaLocal, id, dadosUsuario]);
-
-  // 3. Polling Completo
+  // Polling (Mensagens + Presença + Call Status)
   useEffect(() => {
     if (!id || !dadosUsuario?.nome) return;
-    const sync = async () => {
+    const atualizar = async () => {
       try {
         const minhaFoto = getUserPhotoUrl(dadosUsuario);
         const [resMsg, resOn, resCall] = await Promise.all([
@@ -135,17 +71,20 @@ export default function SalaLinkahSkype() {
         ]);
         if (resOn.ok) setUsuariosOnline((await resOn.json()).filter((u: any) => u.usuario_nome !== dadosUsuario.nome));
         if (resMsg.ok) setMensagens(await resMsg.json());
-        if (resCall?.ok) setChamadaNoServidor((await resCall.json()).ativa);
+        if (resCall?.ok) {
+            const call = await resCall.json();
+            setChamadaNoServidor(call.ativa);
+        }
       } catch (e) { console.error(e); }
     };
-    sync();
-    const interval = setInterval(sync, 4000);
+    atualizar();
+    const interval = setInterval(atualizar, 4000);
     return () => clearInterval(interval);
   }, [id, dadosUsuario]);
 
   useEffect(() => { scrollRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [mensagens, chamadaAtivaLocal]);
 
-  // --- AÇÕES ---
+  // Ações
   const handleOpenProfile = (userName: string) => {
     setSelectedUserId(userName);
     setIsModalOpen(true);
@@ -153,6 +92,7 @@ export default function SalaLinkahSkype() {
 
   const gerenciarChamada = async () => {
     setChamadaAtivaLocal(true);
+    // Avisa o banco que a sala está em call
     await fetch(`${API_URL}/api/comunidades/chamada/iniciar`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -176,19 +116,18 @@ export default function SalaLinkahSkype() {
     await fetch(`${API_URL}/api/comunidades/enviar`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
   };
 
-  if (carregando) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin text-red-500" size={48} /></div>;
+  if (carregando) return <div className="h-screen flex items-center justify-center bg-white"><Loader2 className="animate-spin text-red-500" size={48} /></div>;
 
   return (
     <div className="flex h-screen bg-[#F8F9FD] overflow-hidden relative font-sans">
       
-      {/* MODAL DE PERFIL VOLTOU! */}
       {isModalOpen && (
         <UserProfileModal 
           {...({ isOpen: isModalOpen, onClose: () => setIsModalOpen(false), userId: selectedUserId } as any)} 
         />
       )}
 
-      {/* Sidebar de Membros */}
+      {/* Sidebar Membros */}
       <aside className="w-80 border-r border-slate-100 hidden lg:flex flex-col bg-white">
         <div className="p-8 border-b border-slate-50 flex items-center justify-between">
           <h2 className="text-slate-900 font-black uppercase text-[11px] tracking-widest italic flex items-center gap-2">
@@ -205,6 +144,7 @@ export default function SalaLinkahSkype() {
         </div>
       </aside>
 
+      {/* Main Chat */}
       <main className="flex-1 flex flex-col bg-white relative">
         <header className="p-6 border-b border-slate-50 flex justify-between items-center bg-white/80 backdrop-blur-md sticky top-0 z-20">
           <div className="flex items-center gap-4">
@@ -215,10 +155,14 @@ export default function SalaLinkahSkype() {
           <div className="flex items-center gap-3">
             <button 
               onClick={gerenciarChamada}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl transition-all ${chamadaNoServidor ? 'bg-red-500 text-white animate-pulse shadow-xl shadow-red-200' : 'bg-slate-50 text-slate-400 hover:bg-blue-50 hover:text-blue-600'}`}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl transition-all active:scale-95 ${
+                chamadaNoServidor 
+                ? 'bg-red-500 text-white animate-pulse shadow-xl shadow-red-200' 
+                : 'bg-slate-50 text-slate-400 hover:bg-blue-50 hover:text-blue-600'
+              }`}
             >
               <Video size={20} strokeWidth={2.5} />
-              {chamadaNoServidor && !chamadaAtivaLocal && <span className="text-[10px] font-black uppercase">Entrar na Call</span>}
+              {chamadaNoServidor && !chamadaAtivaLocal && <span className="text-[10px] font-black uppercase tracking-tighter">Entrar na Call</span>}
             </button>
             <button onClick={() => router.back()} className="p-2 text-slate-400 hover:text-red-500 transition-colors"><LogOut size={20} /></button>
           </div>
@@ -226,13 +170,18 @@ export default function SalaLinkahSkype() {
 
         <div className="flex-1 relative overflow-hidden flex flex-col bg-[#FDFDFF]">
           
-          {/* CONTAINER DA CALL (VIA API DO JITSI) */}
+          {/* LÓGICA DE CALL COM SERVIDOR ALTERNATIVO (SEM LOGIN) */}
           {chamadaAtivaLocal && (
             <div className="absolute inset-0 z-40 bg-slate-900 flex flex-col animate-in slide-in-from-top duration-500">
-              <div ref={jitsiContainerRef} className="flex-1 w-full" />
+              <iframe 
+                /* Usando Framatalk: Um servidor Jitsi de comunidade que não pede login */
+                src={`https://framatalk.org/Linkah_Room_Priv_${id}#userInfo.displayName="${dadosUsuario?.nome}"&config.prejoinPageEnabled=false`}
+                allow="camera; microphone; display-capture; autoplay"
+                className="flex-1 w-full border-none shadow-2xl"
+              />
               <div className="p-6 bg-slate-950 flex items-center justify-center gap-6">
-                <button onClick={() => setChamadaAtivaLocal(false)} className="bg-red-500 text-white px-8 py-3 rounded-full font-black uppercase text-[10px] tracking-widest flex items-center gap-2 shadow-2xl">
-                  <PhoneOff size={18} /> Sair da Chamada
+                <button onClick={() => setChamadaAtivaLocal(false)} className="bg-red-500 text-white px-8 py-3 rounded-full font-black uppercase text-[10px] tracking-widest hover:bg-red-600 transition-all flex items-center gap-2 shadow-2xl">
+                  <PhoneOff size={18} /> Encerrar
                 </button>
                 <button onClick={() => setChamadaAtivaLocal(false)} className="text-white/40 hover:text-white text-[10px] font-black uppercase flex items-center gap-2 transition-colors">
                   <Maximize2 size={14} /> Minimizar
@@ -245,19 +194,16 @@ export default function SalaLinkahSkype() {
             {mensagens.map((m, i) => {
               const souEu = m.usuario_nome === dadosUsuario.nome;
               const imgLink = getImagemUrl(m.usuario_foto || m.foto_perfil || m.avatar);
-
               return (
                 <div key={i} className={`flex ${souEu ? 'justify-end' : 'justify-start'} gap-4 items-end animate-in fade-in`}>
                   {!souEu && <img src={imgLink} onClick={() => handleOpenProfile(m.usuario_nome)} className="w-10 h-10 rounded-[1.2rem] object-cover cursor-pointer hover:scale-110 shadow-md" onError={(e:any) => e.target.src = DEFAULT_FOTO} />}
-                  
                   <div className={`flex flex-col ${souEu ? 'items-end' : 'items-start'} max-w-[70%]`}>
                     {!souEu && <span className="text-[9px] font-black uppercase text-slate-300 ml-1 mb-1 italic tracking-tighter">{m.usuario_nome}</span>}
-                    <div className={`p-4 rounded-[1.5rem] shadow-sm ${souEu ? 'bg-red-500 text-white rounded-br-none' : 'bg-white text-slate-700 border border-slate-50 rounded-bl-none'}`}>
-                      <p className="text-sm font-medium">{m.texto}</p>
-                      {m.imagem && <img src={getImagemUrl(m.imagem)} className="w-full max-w-[250px] rounded-xl mt-3 border border-black/5" />}
+                    <div className={`p-4 rounded-[1.5rem] shadow-sm ${souEu ? 'bg-red-500 text-white rounded-br-none' : 'bg-white text-slate-700 border border-slate-100 rounded-bl-none'}`}>
+                      <p className="text-sm font-medium leading-relaxed">{m.texto}</p>
+                      {m.imagem && <img src={getImagemUrl(m.imagem)} className="w-full max-w-[250px] rounded-xl mt-3 border border-black/5 shadow-inner" />}
                     </div>
                   </div>
-
                   {souEu && <img src={getImagemUrl(getUserPhotoUrl(dadosUsuario))} className="w-10 h-10 rounded-[1.2rem] object-cover shadow-md" onError={(e:any) => e.target.src = DEFAULT_FOTO} />}
                 </div>
               );
@@ -267,8 +213,8 @@ export default function SalaLinkahSkype() {
         </div>
 
         <div className="p-6 bg-white border-t border-slate-50">
-          <form onSubmit={enviarMensagem} className="max-w-4xl mx-auto flex items-center gap-4 bg-slate-50 p-2 rounded-[2rem] border border-slate-100 focus-within:border-red-200 transition-all">
-            <input type="text" value={novoTexto} onChange={e => setNovoTexto(e.target.value)} placeholder={t?.type_message || "Escreva algo..."} className="flex-1 bg-transparent p-4 outline-none text-sm font-bold text-slate-700" />
+          <form onSubmit={enviarMensagem} className="max-w-4xl mx-auto flex items-center gap-4 bg-slate-50 p-2 rounded-[2rem] border border-slate-100">
+            <input type="text" value={novoTexto} onChange={e => setNovoTexto(e.target.value)} placeholder={t?.type_message || "Diga algo..."} className="flex-1 bg-transparent p-4 outline-none text-sm font-bold text-slate-700" />
             <button type="submit" className="w-12 h-12 bg-red-500 text-white rounded-full flex items-center justify-center hover:scale-105 transition-all shadow-lg"><Send size={18} /></button>
           </form>
         </div>
