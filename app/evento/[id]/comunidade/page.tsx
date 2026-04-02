@@ -38,7 +38,6 @@ export default function SalaLinkahSkype() {
     e.target.src = DEFAULT_FOTO; 
   };
 
-  // 1. CARREGAMENTO E SINCRONIZAÇÃO DE PERFIL
   useEffect(() => {
     const loadUserData = async () => {
       const savedUser = localStorage.getItem('@Linkah:User');
@@ -50,11 +49,11 @@ export default function SalaLinkahSkype() {
       const parsedUser = JSON.parse(savedUser);
       
       try {
-        // Busca dados frescos do banco para garantir que temos a foto_perfil correta
         const res = await fetch(`${API_URL}/api/auth/perfil?email=${parsedUser.email}`);
         if (res.ok) {
           const profileData = await res.json();
-          console.log("✅ [DEBUG PROFILE] Foto no Banco:", profileData.foto_perfil || profileData.foto);
+          // --- LOG CRUCIAL ---
+          console.log("📦 [ESTRUTURA COMPLETA DO BANCO]:", profileData); 
           setDadosUsuario(profileData);
           localStorage.setItem('@Linkah:User', JSON.stringify(profileData));
         } else {
@@ -67,13 +66,12 @@ export default function SalaLinkahSkype() {
     loadUserData();
   }, [router]);
 
-  // 2. LOOP DE ATUALIZAÇÃO DO CHAT
   useEffect(() => {
     if (!id || !dadosUsuario?.nome) return;
 
     const atualizar = async () => {
       try {
-        const minhaFoto = dadosUsuario.foto_perfil || dadosUsuario.foto || '';
+        const minhaFoto = dadosUsuario?.foto_perfil || dadosUsuario?.foto || dadosUsuario?.usuario_foto || '';
         
         const [resEv, resMsg, resOn] = await Promise.all([
           fetch(`${API_URL}/api/eventos/${id}`),
@@ -101,13 +99,17 @@ export default function SalaLinkahSkype() {
     return () => clearInterval(int);
   }, [id, dadosUsuario]);
 
-  // 3. ENVIO DE MENSAGEM (CORRIGIDO PARA PEGAR FOTO REAL)
   const enviarMensagem = async (e: any) => {
     e.preventDefault();
     if (!novoTexto.trim() && !imagemAnexada) return;
 
-    // Prioridade total para a foto vinda do banco (perfil)
-    const fotoParaEnviar = dadosUsuario?.foto_perfil || dadosUsuario?.foto || null;
+    // Busca exaustiva pela foto
+    const fotoParaEnviar = 
+        dadosUsuario?.foto_perfil || 
+        dadosUsuario?.foto || 
+        dadosUsuario?.usuario_foto || 
+        dadosUsuario?.avatar || 
+        null;
     
     const payload = {
       evento_id: Number(id),
@@ -118,7 +120,7 @@ export default function SalaLinkahSkype() {
       tipo: 'chat'
     };
 
-    console.log("📤 [DEBUG SEND] Payload enviado:", payload);
+    console.log("📤 [DEBUG SEND] Foto enviada no payload:", fotoParaEnviar);
 
     setNovoTexto('');
     setImagemAnexada(null);
@@ -135,7 +137,7 @@ export default function SalaLinkahSkype() {
   const iniciarCall = async (destino: string) => {
     if (!dadosUsuario) return;
     const sala = `Call_${id}_${Date.now()}`;
-    const fotoCall = dadosUsuario.foto_perfil || dadosUsuario.foto || null;
+    const fotoCall = dadosUsuario?.foto_perfil || dadosUsuario?.foto || null;
 
     try {
       await fetch(`${API_URL}/api/comunidades/enviar`, {
@@ -160,8 +162,6 @@ export default function SalaLinkahSkype() {
 
   return (
     <div className="flex h-screen bg-[#FCFBFA] overflow-hidden text-slate-900 font-sans">
-      
-      {/* SIDEBAR */}
       <aside className="w-80 border-r border-slate-100 hidden lg:flex flex-col bg-white">
         <div className="p-6 flex items-center justify-between">
           <h2 className="font-bold text-2xl">Membros</h2>
@@ -169,7 +169,7 @@ export default function SalaLinkahSkype() {
         </div>
         <div className="flex-1 overflow-y-auto px-4 space-y-1">
           {usuariosOnline.map((u, i) => {
-            const imgSide = getImagemUrl(u.foto || u.foto_perfil || u.usuario_foto);
+            const imgSide = getImagemUrl(u.foto || u.foto_perfil || u.usuario_foto || u.avatar);
             return (
               <div key={i} className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-2xl cursor-pointer">
                 <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center overflow-hidden font-bold">
@@ -182,13 +182,11 @@ export default function SalaLinkahSkype() {
         </div>
       </aside>
 
-      {/* CHAT PRINCIPAL */}
       <main className="flex-1 flex flex-col bg-white lg:rounded-l-[3rem] shadow-2xl border-l border-slate-100 relative">
-        
         {chamadaAtiva && (
           <div className="absolute inset-0 z-50 bg-slate-950 flex flex-col lg:rounded-l-[3rem] overflow-hidden">
             <div className="p-4 flex justify-end bg-slate-900">
-              <button onClick={() => setChamadaAtiva(false)} className="bg-[#ff4d4d] text-white px-6 py-2 rounded-full text-xs font-bold uppercase flex items-center gap-2"><X size={14}/> Sair da Call</button>
+              <button onClick={() => setChamadaAtiva(false)} className="bg-[#ff4d4d] text-white px-6 py-2 rounded-full text-xs font-bold uppercase flex items-center gap-2"><X size={14}/> Sair</button>
             </div>
             <iframe src={`https://meet.jit.si/${nomeSalaCall}#userInfo.displayName="${dadosUsuario?.nome}"`} className="flex-1 border-none" allow="camera; microphone; display-capture; autoplay" />
           </div>
@@ -202,15 +200,12 @@ export default function SalaLinkahSkype() {
         <div className="flex-1 overflow-y-auto p-6 space-y-8 bg-[#FCFBFA]/30">
           {mensagens.map((m, i) => {
             if (m.tipo === 'status' || m.texto?.includes("CALL_INVITE|")) return null;
-            
             const souEu = m.usuario_nome === dadosUsuario.nome;
-            // Prioriza campos de foto que a API retorna nas mensagens
-            const urlFotoMsg = getImagemUrl(m.usuario_foto || m.foto || m.foto_perfil);
+            const urlFotoMsg = getImagemUrl(m.usuario_foto || m.foto || m.foto_perfil || m.avatar);
 
             return (
               <div key={i} className={`flex ${souEu ? 'justify-end' : 'justify-start'}`}>
                 <div className={`flex gap-3 max-w-[85%] ${souEu ? 'flex-row-reverse' : 'flex-row'}`}>
-                  
                   <div className={`w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center overflow-hidden font-bold shadow-sm ${souEu ? 'bg-[#ff4d4d] text-white' : 'bg-slate-200 text-slate-500'}`}>
                     {urlFotoMsg ? (
                       <img src={urlFotoMsg} className="w-full h-full object-cover" onError={handleImageError} alt="User" />
@@ -218,14 +213,12 @@ export default function SalaLinkahSkype() {
                       <span>{m.usuario_nome?.charAt(0).toUpperCase()}</span>
                     )}
                   </div>
-
                   <div className={`flex flex-col ${souEu ? 'items-end' : 'items-start'}`}>
                     <span className="text-[10px] font-bold text-slate-400 mb-1 px-1">{m.usuario_nome}</span>
                     <div className={`p-3 rounded-[1.3rem] shadow-sm ${souEu ? 'bg-[#ff4d4d] text-white rounded-tr-none' : 'bg-white border border-slate-100 text-slate-900 rounded-tl-none'}`}>
                       {m.texto && <p className="text-xs leading-relaxed">{m.texto}</p>}
                     </div>
                   </div>
-
                 </div>
               </div>
             );
@@ -239,9 +232,9 @@ export default function SalaLinkahSkype() {
             placeholder="Digite sua mensagem..." 
             value={novoTexto} 
             onChange={e => setNovoTexto(e.target.value)} 
-            className="flex-1 p-4 rounded-2xl border border-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff4d4d]/20 transition-all bg-slate-50" 
+            className="flex-1 p-4 rounded-2xl border border-slate-100 text-sm focus:outline-none bg-slate-50" 
           />
-          <button type="submit" className="p-4 bg-[#ff4d4d] text-white rounded-full shadow-lg hover:scale-105 transition-all">
+          <button type="submit" className="p-4 bg-[#ff4d4d] text-white rounded-full shadow-lg">
             <Send size={20} />
           </button>
         </form>
