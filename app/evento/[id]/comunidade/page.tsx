@@ -3,10 +3,10 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { 
   Send, Video, Loader2, Phone, LogOut, Users, 
-  PhoneOff, Maximize2, Radio, Camera, ImageIcon
+  PhoneOff, Maximize2, Radio, Camera, ImageIcon 
 } from 'lucide-react';
 import { useLanguage } from '@/app/context/LanguageContext';
-import UserProfileModal from '@/app/dashboard/UserProfileModal'; 
+import {UserProfileModal} from '@/app/dashboard/UserProfileModal'; 
 
 const API_URL = 'https://api-linkah.onrender.com';
 const DEFAULT_FOTO = 'https://i.pinimg.com/originals/ec/a5/a7/eca5a7c991e8fa52554e953593faba2d.gif';
@@ -14,20 +14,25 @@ const DEFAULT_FOTO = 'https://i.pinimg.com/originals/ec/a5/a7/eca5a7c991e8fa5255
 // --- HELPERS DE IMAGEM ---
 const getUserPhotoUrl = (user: any) => {
   if (!user) return DEFAULT_FOTO;
-  const campos = ['avatar', 'foto_perfil', 'usuario_foto', 'foto', 'image', 'img'];
+  const campos = ['avatar', 'foto_perfil', 'usuario_foto', 'foto', 'profile_photo', 'user_photo', 'image', 'img', 'url_foto'];
   for (const c of campos) {
-    if (user[c] && typeof user[c] === 'string' && user[c].trim() !== '' && user[c] !== 'null') return user[c];
+    if (user[c] && typeof user[c] === 'string' && user[c].trim() !== '' && user[c] !== 'null' && user[c] !== 'undefined') {
+      return user[c];
+    }
   }
+  if (user.usuario && typeof user.usuario === 'object') return getUserPhotoUrl(user.usuario);
   return DEFAULT_FOTO;
 };
 
 const getImagemUrl = (foto?: string | null) => {
-  if (!foto || foto === 'null' || foto.trim() === '' || foto === DEFAULT_FOTO) return DEFAULT_FOTO;
+  if (!foto || foto === 'null' || foto === 'undefined' || foto.trim() === '' || foto === DEFAULT_FOTO) return DEFAULT_FOTO;
+  foto = foto.trim();
   if (/^(https?:\/\/|blob:|data:)/.test(foto)) return foto;
   return `${API_URL.replace(/\/$/, '')}/${foto.replace(/^\//, '')}`;
 };
 
-export default function SalaLinkahSkype() {
+// O Next.js exige "export default function Page" ou que o nome do componente bata com a expectativa do roteador
+export default function ComunidadePage() {
   const { t }: any = useLanguage();
   const { id } = useParams();
   const router = useRouter();
@@ -51,14 +56,41 @@ export default function SalaLinkahSkype() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Autenticação
-  useEffect(() => {
-    const user = localStorage.getItem('@Linkah:User');
-    if (!user) return router.push('/site/login');
-    setDadosUsuario(JSON.parse(user));
-    setCarregando(false);
-  }, [router]);
+  const getUsuarioLogado = useCallback(() => {
+    try {
+      const userStorage = localStorage.getItem('@Linkah:User');
+      const parsedUser = userStorage ? JSON.parse(userStorage) : null;
+      const emailLogado = parsedUser?.email || localStorage.getItem('userEmail') || '';
+      const token = localStorage.getItem('@Linkah:Token')?.replace(/['"]+/g, '') || '';
+      return { userStorage, parsedUser, emailLogado, token };
+    } catch (error) {
+      return { userStorage: null, parsedUser: null, emailLogado: '', token: '' };
+    }
+  }, []);
 
-  // Polling (Mensagens + Presença + Call Status)
+  useEffect(() => {
+    const { parsedUser, emailLogado, token } = getUsuarioLogado();
+    if (!emailLogado) { router.push('/site/login'); return; }
+    if (parsedUser) { setDadosUsuario(parsedUser); setCarregando(false); }
+
+    const atualizarPerfil = async () => {
+      try {
+        const headers: Record<string, string> = { Accept: 'application/json' };
+        if (token) headers.Authorization = `Bearer ${token}`;
+        const response = await fetch(`${API_URL}/api/auth/perfil?email=${encodeURIComponent(emailLogado)}`, { method: 'GET', headers });
+        if (response.ok) {
+          const data = await response.json();
+          const userUpdated = { ...data, email: emailLogado };
+          setDadosUsuario(userUpdated);
+          localStorage.setItem('@Linkah:User', JSON.stringify(userUpdated));
+          setCarregando(false);
+        }
+      } catch (error) { console.error(error); }
+    };
+    atualizarPerfil();
+  }, [router, getUsuarioLogado]);
+
+  // Polling
   useEffect(() => {
     if (!id || !dadosUsuario?.nome) return;
     const atualizar = async () => {
@@ -69,12 +101,9 @@ export default function SalaLinkahSkype() {
           fetch(`${API_URL}/api/comunidades/presenca/${id}?usuario_nome=${dadosUsuario.nome}&foto=${minhaFoto}`),
           fetch(`${API_URL}/api/comunidades/chamada-status/${id}`).catch(() => null)
         ]);
-        if (resOn.ok) setUsuariosOnline((await resOn.json()).filter((u: any) => u.usuario_nome !== dadosUsuario.nome));
+        if (resOn.ok) setUsuariosOnline((await resOn.json()).filter((u: any) => (u.usuario_nome || u.nome) !== dadosUsuario.nome));
         if (resMsg.ok) setMensagens(await resMsg.json());
-        if (resCall?.ok) {
-            const call = await resCall.json();
-            setChamadaNoServidor(call.ativa);
-        }
+        if (resCall?.ok) setChamadaNoServidor((await resCall.json()).ativa);
       } catch (e) { console.error(e); }
     };
     atualizar();
@@ -92,7 +121,6 @@ export default function SalaLinkahSkype() {
 
   const gerenciarChamada = async () => {
     setChamadaAtivaLocal(true);
-    // Avisa o banco que a sala está em call
     await fetch(`${API_URL}/api/comunidades/chamada/iniciar`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -144,47 +172,38 @@ export default function SalaLinkahSkype() {
         </div>
       </aside>
 
-      {/* Main Chat */}
+      {/* Chat */}
       <main className="flex-1 flex flex-col bg-white relative">
         <header className="p-6 border-b border-slate-50 flex justify-between items-center bg-white/80 backdrop-blur-md sticky top-0 z-20">
           <div className="flex items-center gap-4">
             <div className={`w-2.5 h-2.5 rounded-full ${chamadaNoServidor ? 'bg-red-500 animate-ping' : 'bg-emerald-500'}`} />
-            <h1 className="font-black uppercase tracking-widest text-[11px] text-slate-400 italic">Chat</h1>
+            <h1 className="font-black uppercase tracking-widest text-[11px] text-slate-400 italic">Chat Linkah</h1>
           </div>
 
           <div className="flex items-center gap-3">
             <button 
               onClick={gerenciarChamada}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl transition-all active:scale-95 ${
-                chamadaNoServidor 
-                ? 'bg-red-500 text-white animate-pulse shadow-xl shadow-red-200' 
-                : 'bg-slate-50 text-slate-400 hover:bg-blue-50 hover:text-blue-600'
-              }`}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl transition-all ${chamadaNoServidor ? 'bg-red-500 text-white animate-pulse shadow-xl shadow-red-200' : 'bg-slate-50 text-slate-400 hover:bg-blue-50 hover:text-blue-600'}`}
             >
               <Video size={20} strokeWidth={2.5} />
               {chamadaNoServidor && !chamadaAtivaLocal && <span className="text-[10px] font-black uppercase tracking-tighter">Entrar na Call</span>}
             </button>
-            <button onClick={() => router.back()} className="p-2 text-slate-400 hover:text-red-500 transition-colors"><LogOut size={20} /></button>
+            <button onClick={() => router.back()} className="p-2 text-slate-400 hover:text-red-500"><LogOut size={20} /></button>
           </div>
         </header>
 
         <div className="flex-1 relative overflow-hidden flex flex-col bg-[#FDFDFF]">
           
-          {/* LÓGICA DE CALL COM SERVIDOR ALTERNATIVO (SEM LOGIN) */}
           {chamadaAtivaLocal && (
             <div className="absolute inset-0 z-40 bg-slate-900 flex flex-col animate-in slide-in-from-top duration-500">
               <iframe 
-                /* Usando Framatalk: Um servidor Jitsi de comunidade que não pede login */
-                src={`https://framatalk.org/Linkah_Room_Priv_${id}#userInfo.displayName="${dadosUsuario?.nome}"&config.prejoinPageEnabled=false`}
+                src={`https://framatalk.org/Linkah_Room_Secure_${id}#userInfo.displayName="${dadosUsuario?.nome}"&config.prejoinPageEnabled=false`}
                 allow="camera; microphone; display-capture; autoplay"
                 className="flex-1 w-full border-none shadow-2xl"
               />
               <div className="p-6 bg-slate-950 flex items-center justify-center gap-6">
-                <button onClick={() => setChamadaAtivaLocal(false)} className="bg-red-500 text-white px-8 py-3 rounded-full font-black uppercase text-[10px] tracking-widest hover:bg-red-600 transition-all flex items-center gap-2 shadow-2xl">
+                <button onClick={() => setChamadaAtivaLocal(false)} className="bg-red-500 text-white px-8 py-3 rounded-full font-black uppercase text-[10px] tracking-widest hover:bg-red-600 transition-all flex items-center gap-2">
                   <PhoneOff size={18} /> Encerrar
-                </button>
-                <button onClick={() => setChamadaAtivaLocal(false)} className="text-white/40 hover:text-white text-[10px] font-black uppercase flex items-center gap-2 transition-colors">
-                  <Maximize2 size={14} /> Minimizar
                 </button>
               </div>
             </div>
@@ -201,7 +220,7 @@ export default function SalaLinkahSkype() {
                     {!souEu && <span className="text-[9px] font-black uppercase text-slate-300 ml-1 mb-1 italic tracking-tighter">{m.usuario_nome}</span>}
                     <div className={`p-4 rounded-[1.5rem] shadow-sm ${souEu ? 'bg-red-500 text-white rounded-br-none' : 'bg-white text-slate-700 border border-slate-100 rounded-bl-none'}`}>
                       <p className="text-sm font-medium leading-relaxed">{m.texto}</p>
-                      {m.imagem && <img src={getImagemUrl(m.imagem)} className="w-full max-w-[250px] rounded-xl mt-3 border border-black/5 shadow-inner" />}
+                      {m.imagem && <img src={getImagemUrl(m.imagem)} className="w-full max-w-[250px] rounded-xl mt-3 border border-black/5" />}
                     </div>
                   </div>
                   {souEu && <img src={getImagemUrl(getUserPhotoUrl(dadosUsuario))} className="w-10 h-10 rounded-[1.2rem] object-cover shadow-md" onError={(e:any) => e.target.src = DEFAULT_FOTO} />}
@@ -214,8 +233,8 @@ export default function SalaLinkahSkype() {
 
         <div className="p-6 bg-white border-t border-slate-50">
           <form onSubmit={enviarMensagem} className="max-w-4xl mx-auto flex items-center gap-4 bg-slate-50 p-2 rounded-[2rem] border border-slate-100">
-            <input type="text" value={novoTexto} onChange={e => setNovoTexto(e.target.value)} placeholder={t?.type_message || "Diga algo..."} className="flex-1 bg-transparent p-4 outline-none text-sm font-bold text-slate-700" />
-            <button type="submit" className="w-12 h-12 bg-red-500 text-white rounded-full flex items-center justify-center hover:scale-105 transition-all shadow-lg"><Send size={18} /></button>
+            <input type="text" value={novoTexto} onChange={e => setNovoTexto(e.target.value)} placeholder="Escreva algo..." className="flex-1 bg-transparent p-4 outline-none text-sm font-bold text-slate-700" />
+            <button type="submit" className="w-12 h-12 bg-red-500 text-white rounded-full flex items-center justify-center hover:scale-105 shadow-lg"><Send size={18} /></button>
           </form>
         </div>
       </main>
