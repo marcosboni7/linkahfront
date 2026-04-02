@@ -98,7 +98,7 @@ export function UserProfileModal({ isOpen, onClose, userId }: UserProfileModalPr
               {/* BIO */}
               <div className="bg-slate-50 p-6 rounded-[2.5rem] mb-6 border border-slate-100">
                 <p className="text-slate-600 font-bold text-sm leading-relaxed">
-                  {userData.bio && userData.bio !== 'null' ? `"${userData.bio}"` : "Estudante de tecnologia e entusiasta do Linkah."}
+                  {userData.bio && userData.bio !== 'null' ? `"${userData.bio}"` : "<3 Linkah"}
                 </p>
               </div>
 
