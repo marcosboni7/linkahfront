@@ -71,20 +71,27 @@ export default function SalaLinkahSkype() {
     }
   }, []);
 
-  // Efeito para carregar e sincronizar os dados do usuário logado
+  // Efeito para carregar os dados do usuário logado instantaneamente e atualizar em background
   useEffect(() => {
-    const carregarDadosUsuario = async () => {
-      const { emailLogado, token } = getUsuarioLogado();
-      if (!emailLogado) {
-        router.push('/site/login');
-        return;
-      }
+    const { parsedUser, emailLogado, token } = getUsuarioLogado();
+    
+    if (!emailLogado) {
+      router.push('/site/login');
+      return;
+    }
 
+    // 1. Carrega instantaneamente o que já está no localStorage para não travar a tela
+    if (parsedUser) {
+      setDadosUsuario(parsedUser);
+      setCarregando(false); // Já libera a tela se tiver dados salvos
+    }
+
+    // 2. Busca atualização na API em segundo plano (background)
+    const atualizarPerfilEmBackground = async () => {
       try {
         const headers: Record<string, string> = { Accept: 'application/json' };
         if (token) headers.Authorization = `Bearer ${token}`;
 
-        // Busca o perfil completo para garantir que temos a foto (avatar)
         const response = await fetch(`${API_URL}/api/auth/perfil?email=${encodeURIComponent(emailLogado)}`, {
           method: 'GET',
           headers,
@@ -93,22 +100,22 @@ export default function SalaLinkahSkype() {
         if (response.ok) {
           const data = await response.json();
           const userUpdated = { ...data, email: emailLogado };
+          
+          // Atualiza o estado e o localStorage sem travar o usuário
           setDadosUsuario(userUpdated);
-          // Sincroniza o localStorage para que outros componentes também tenham a foto
           localStorage.setItem('@Linkah:User', JSON.stringify(userUpdated));
-        } else {
-          // Se falhar a API, tenta usar o que tem no localStorage como fallback
-          const { parsedUser } = getUsuarioLogado();
-          if (parsedUser) setDadosUsuario(parsedUser);
-          else router.push('/site/login');
+          setCarregando(false); // Garante que a tela seja liberada se não foi antes
+        } else if (!parsedUser) {
+          // Se não tiver nada no localStorage e a API falhar, manda pro login
+          router.push('/site/login');
         }
       } catch (error) {
-        console.error('Erro ao buscar dados do usuário:', error);
-        const { parsedUser } = getUsuarioLogado();
-        if (parsedUser) setDadosUsuario(parsedUser);
+        console.error('Erro ao buscar dados do usuário em background:', error);
+        if (!parsedUser) router.push('/site/login');
       }
     };
-    carregarDadosUsuario();
+
+    atualizarPerfilEmBackground();
   }, [router, getUsuarioLogado]);
 
   // Efeito para atualizar mensagens e usuários online
@@ -132,8 +139,6 @@ export default function SalaLinkahSkype() {
           const msgs = await resMsg.json();
           setMensagens(msgs);
         }
-
-        setCarregando(false);
       } catch (e) {
         console.error('Erro ao atualizar dados:', e);
       }
