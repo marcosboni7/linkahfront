@@ -11,15 +11,6 @@ import Link from 'next/link';
 
 const API_URL = 'https://api-linkah.onrender.com';
 
-// Função corrigida para tratar caminhos relativos da API e URLs externas
-const getImagemUrl = (foto?: string | null) => {
-  if (!foto) return undefined;
-  // Se for um blob (preview local) ou URL completa, retorna direto
-  if (foto.startsWith('http') || foto.startsWith('blob:')) return foto;
-  // Se for caminho relativo, concatena com a base da API
-  return `${API_URL}${foto.startsWith('/') ? '' : '/'}${foto}`;
-};
-
 export default function SalaLinkahSkype() {
   const { t }: any = useLanguage();
   const { id } = useParams();
@@ -44,15 +35,21 @@ export default function SalaLinkahSkype() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Função para garantir src de imagem válido
+  const getImagemUrl = (img: string | null | undefined) => {
+    if (!img) return '/images/avatar-default.png'; // fallback padrão
+    if (img.startsWith('http') || img.startsWith('data:')) return img;
+    return `${API_URL}/uploads/${img}`;
+  };
+
+  // 1. Autenticação
   useEffect(() => {
     const savedUser = localStorage.getItem('@Linkah:User');
-    if (savedUser) {
-      setDadosUsuario(JSON.parse(savedUser));
-    } else {
-      router.push('/site/login');
-    }
+    if (savedUser) setDadosUsuario(JSON.parse(savedUser));
+    else router.push('/site/login');
   }, [router]);
 
+  // 2. Sync Loop
   useEffect(() => {
     if (!id || !dadosUsuario?.nome) return;
 
@@ -104,6 +101,7 @@ export default function SalaLinkahSkype() {
             }
           });
         }
+
         setCarregando(false);
       } catch (e) {
         console.error("Erro sync:", e);
@@ -123,12 +121,8 @@ export default function SalaLinkahSkype() {
     setCarregandoPerfil(true);
     try {
       const res = await fetch(`${API_URL}/api/auth/perfil-publico?nome=${encodeURIComponent(nome)}`);
-      if (res.ok) {
-        const data = await res.json();
-        setUsuarioSelecionado(data);
-      } else {
-        setUsuarioSelecionado({ nome, bio: null });
-      }
+      if (res.ok) setUsuarioSelecionado(await res.json());
+      else setUsuarioSelecionado({ nome, bio: null });
     } catch (err) {
       setUsuarioSelecionado({ nome, bio: null });
     } finally {
@@ -227,9 +221,7 @@ export default function SalaLinkahSkype() {
                     <img src={getImagemUrl(usuarioSelecionado.foto || usuarioSelecionado.usuario_foto)} className="w-full h-full object-cover" alt="Avatar" />
                   ) : usuarioSelecionado.nome?.charAt(0)}
                 </div>
-                <div className="absolute -bottom-1 -right-1 w-10 h-10 bg-[#ff4d4d] rounded-2xl flex items-center justify-center border-4 border-white">
-                  <ShieldCheck className="text-white" size={18} />
-                </div>
+                <div className="absolute -bottom-1 -right-1 w-10 h-10 bg-[#ff4d4d] rounded-2xl flex items-center justify-center border-4 border-white"><ShieldCheck className="text-white" size={18} /></div>
               </div>
               <h3 className="mt-6 text-3xl font-black text-slate-950 uppercase">{usuarioSelecionado.nome}</h3>
               <p className="text-slate-400 text-[10px] font-black tracking-[0.4em] uppercase mb-8"><Sparkles size={12} className="inline text-[#ff4d4d] mr-1" /> Linkah Member</p>
@@ -304,41 +296,25 @@ export default function SalaLinkahSkype() {
               <div key={i} className={`flex ${souEu ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2 duration-300`}>
                 <div className={`flex gap-3 max-w-[80%] ${souEu ? 'flex-row-reverse' : 'flex-row'}`}>
                   <div onClick={() => !souEu && abrirPerfil(m.usuario_nome)} className="w-10 h-10 rounded-xl bg-white border border-slate-100 flex-shrink-0 flex items-center justify-center text-xs font-bold text-slate-400 overflow-hidden cursor-pointer shadow-sm">
-                    {(m.usuario_foto || m.foto || m.avatar) ? (
-                      <img src={getImagemUrl(m.usuario_foto || m.foto || m.avatar)} className="w-full h-full object-cover" alt="User" />
-                    ) : m.usuario_nome.charAt(0)}
+                    <img src={getImagemUrl(m.usuario_foto || m.foto || m.avatar)} className="w-full h-full object-cover" alt="User" />
                   </div>
                   <div className={`space-y-1 ${souEu ? 'items-end' : 'items-start'}`}>
                     <span className="text-[11px] font-bold text-slate-900 px-1">{souEu ? 'Você' : m.usuario_nome}</span>
-                    <div className={`p-4 rounded-[1.5rem] shadow-sm ${souEu ? 'bg-[#ff4d4d] text-white rounded-tr-none' : 'bg-white text-slate-900 rounded-tl-none'}`}>
-                      {m.imagem && <img src={getImagemUrl(m.imagem)} alt="Anexo" className="rounded-2xl mb-2 max-h-52 object-cover" />}
-                      <p className="text-[13px] font-medium">{m.texto}</p>
+                    <div className={`p-4 rounded-[1.5rem] shadow-sm ${souEu ? 'bg-slate-950 text-white rounded-tr-none' : 'bg-white border border-slate-100 text-slate-700 rounded-tl-none'}`}>
+                      {m.imagem && <img src={getImagemUrl(m.imagem)} className="w-52 h-auto rounded-xl mb-2" alt="Anexo" />}
+                      <p className="text-[11px]">{m.texto}</p>
                     </div>
                   </div>
                 </div>
               </div>
             );
           })}
-          <div ref={scrollRef}></div>
+          <div ref={scrollRef} />
         </div>
 
-        <form onSubmit={enviarMensagem} className="p-6 border-t border-slate-100 bg-white flex items-center gap-4 sticky bottom-0 z-10">
-          <input 
-            type="file" 
-            ref={fileInputRef} 
-            className="hidden" 
-            onChange={e => {
-              const file = e.target.files?.[0];
-              if (file) {
-                // Se já existia uma URL de blob anterior, libera ela para evitar leak
-                if (imagemAnexada?.startsWith('blob:')) URL.revokeObjectURL(imagemAnexada);
-                setImagemAnexada(URL.createObjectURL(file));
-              }
-            }} 
-          />
-          <button type="button" onClick={() => fileInputRef.current?.click()} className="p-3 rounded-2xl bg-slate-50 hover:bg-slate-100 transition-all"><Paperclip size={18} /></button>
-          <input type="text" placeholder="Digite sua mensagem..." value={novoTexto} onChange={e => setNovoTexto(e.target.value)} className="flex-1 bg-slate-50 p-4 rounded-2xl text-sm outline-none" />
-          <button type="submit" className="p-3 rounded-2xl bg-[#ff4d4d] text-white hover:brightness-110 transition-all"><Send size={18} /></button>
+        <form onSubmit={enviarMensagem} className="p-6 border-t border-slate-50 flex gap-3 bg-white">
+          <input type="text" placeholder="Digite sua mensagem..." value={novoTexto} onChange={e => setNovoTexto(e.target.value)} className="flex-1 p-4 rounded-2xl border border-slate-100 text-sm outline-none focus:ring-2 focus:ring-[#ff4d4d]" />
+          <button type="submit" className="bg-[#ff4d4d] text-white p-4 rounded-2xl"><Send size={18} /></button>
         </form>
       </main>
     </div>
