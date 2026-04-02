@@ -38,7 +38,7 @@ export default function SalaLinkahSkype() {
     e.target.src = DEFAULT_FOTO; 
   };
 
-  // 1. CARREGAMENTO COM DEBUG
+  // 1. CARREGAMENTO E SINCRONIZAÇÃO DE PERFIL
   useEffect(() => {
     const loadUserData = async () => {
       const savedUser = localStorage.getItem('@Linkah:User');
@@ -48,13 +48,13 @@ export default function SalaLinkahSkype() {
       }
       
       const parsedUser = JSON.parse(savedUser);
-      console.log("🔍 [DEBUG USER] Dados no LocalStorage:", parsedUser);
       
       try {
+        // Busca dados frescos do banco para garantir que temos a foto_perfil correta
         const res = await fetch(`${API_URL}/api/auth/perfil?email=${parsedUser.email}`);
         if (res.ok) {
           const profileData = await res.json();
-          console.log("✅ [DEBUG API] Perfil vindo do Banco:", profileData);
+          console.log("✅ [DEBUG PROFILE] Foto no Banco:", profileData.foto_perfil || profileData.foto);
           setDadosUsuario(profileData);
           localStorage.setItem('@Linkah:User', JSON.stringify(profileData));
         } else {
@@ -67,7 +67,7 @@ export default function SalaLinkahSkype() {
     loadUserData();
   }, [router]);
 
-  // 2. SYNC COM DEBUG DE MENSAGENS
+  // 2. LOOP DE ATUALIZAÇÃO DO CHAT
   useEffect(() => {
     if (!id || !dadosUsuario?.nome) return;
 
@@ -84,9 +84,6 @@ export default function SalaLinkahSkype() {
         if (resMsg.ok) {
           const msgs = await resMsg.json();
           setMensagens(msgs);
-          if (msgs.length > 0) {
-            console.log("📩 [DEBUG MSG] Última mensagem recebida:", msgs[msgs.length - 1]);
-          }
         }
         
         if (resOn.ok) {
@@ -104,12 +101,13 @@ export default function SalaLinkahSkype() {
     return () => clearInterval(int);
   }, [id, dadosUsuario]);
 
-  // 3. ENVIO COM DEBUG DE PAYLOAD
+  // 3. ENVIO DE MENSAGEM (CORRIGIDO PARA PEGAR FOTO REAL)
   const enviarMensagem = async (e: any) => {
     e.preventDefault();
     if (!novoTexto.trim() && !imagemAnexada) return;
 
-    const fotoParaEnviar = dadosUsuario.foto_perfil || dadosUsuario.foto || null;
+    // Prioridade total para a foto vinda do banco (perfil)
+    const fotoParaEnviar = dadosUsuario?.foto_perfil || dadosUsuario?.foto || null;
     
     const payload = {
       evento_id: Number(id),
@@ -120,7 +118,7 @@ export default function SalaLinkahSkype() {
       tipo: 'chat'
     };
 
-    console.log("📤 [DEBUG SEND] Enviando para API:", payload);
+    console.log("📤 [DEBUG SEND] Payload enviado:", payload);
 
     setNovoTexto('');
     setImagemAnexada(null);
@@ -190,7 +188,7 @@ export default function SalaLinkahSkype() {
         {chamadaAtiva && (
           <div className="absolute inset-0 z-50 bg-slate-950 flex flex-col lg:rounded-l-[3rem] overflow-hidden">
             <div className="p-4 flex justify-end bg-slate-900">
-              <button onClick={() => setChamadaAtiva(false)} className="bg-[#ff4d4d] text-white px-6 py-2 rounded-full text-xs font-bold uppercase flex items-center gap-2"><X size={14}/> Sair</button>
+              <button onClick={() => setChamadaAtiva(false)} className="bg-[#ff4d4d] text-white px-6 py-2 rounded-full text-xs font-bold uppercase flex items-center gap-2"><X size={14}/> Sair da Call</button>
             </div>
             <iframe src={`https://meet.jit.si/${nomeSalaCall}#userInfo.displayName="${dadosUsuario?.nome}"`} className="flex-1 border-none" allow="camera; microphone; display-capture; autoplay" />
           </div>
@@ -206,6 +204,7 @@ export default function SalaLinkahSkype() {
             if (m.tipo === 'status' || m.texto?.includes("CALL_INVITE|")) return null;
             
             const souEu = m.usuario_nome === dadosUsuario.nome;
+            // Prioriza campos de foto que a API retorna nas mensagens
             const urlFotoMsg = getImagemUrl(m.usuario_foto || m.foto || m.foto_perfil);
 
             return (
