@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -16,6 +17,12 @@ const EMOJIS_STATUS = ['✨', '🔥', '🚀', '😴', '💡', '🎮', '🍕', '�
 // --- HELPERS BLINDADOS PARA FOTO ---
 const getUserPhotoUrl = (user: any) => {
   if (!user) return DEFAULT_FOTO;
+  
+  // Se for uma string direta (caso do payload de mensagem)
+  if (typeof user === 'string') {
+    if (user.length > 5 && user !== 'null') return user;
+    return DEFAULT_FOTO;
+  }
   
   // Lista exaustiva de possíveis campos de imagem que o backend pode enviar
   const campos = ['foto', 'avatar', 'foto_perfil', 'usuario_foto', 'image', 'profile_photo', 'url_foto', 'foto_url'];
@@ -231,7 +238,7 @@ export default function ComunidadePage() {
                 {!souEu && (
                   <div className="relative group">
                     <img 
-                      src={getImagemUrl(m.usuario_foto)} 
+                      src={getImagemUrl(getUserPhotoUrl(m.usuario_foto || m))} 
                       onClick={() => handleOpenProfile(m.usuario_nome)} 
                       className={`w-10 h-10 rounded-[1.2rem] object-cover cursor-pointer group-hover:scale-110 shadow-md transition-all ${isHost ? 'ring-2 ring-amber-400 ring-offset-2' : ''}`} 
                       alt="Msg User"
@@ -255,7 +262,7 @@ export default function ComunidadePage() {
                     isHost 
                       ? 'bg-white border-2 border-amber-400 shadow-[0_4px_15px_rgba(251,191,36,0.15)] ring-1 ring-amber-100' 
                       : souEu 
-                        ? 'bg-red-500 text-white rounded-br-none shadow-xl shadow-red-100' 
+                        ? 'bg-red-500 text-white rounded-br-none shadow-xl shadow-red-500/20' 
                         : 'bg-white text-slate-700 border border-slate-100 rounded-bl-none'
                   }`}>
                     {isHost && <Star size={8} className="absolute -top-2 -right-1 text-amber-500 animate-bounce" fill="currentColor" />}
@@ -301,3 +308,4 @@ export default function ComunidadePage() {
     </div>
   );
 }
+
