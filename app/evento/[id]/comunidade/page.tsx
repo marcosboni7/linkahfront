@@ -7,6 +7,10 @@ import { useLanguage } from '@/app/context/LanguageContext';
 const API_URL = 'https://api-linkah.onrender.com';
 const DEFAULT_FOTO = 'https://i.pinimg.com/originals/ec/a5/a7/eca5a7c991e8fa52554e953593faba2d.gif';
 
+const getUserPhotoUrl = (user: any) => {
+  return user?.foto_perfil || user?.avatar || user?.usuario_foto || user?.foto || DEFAULT_FOTO;
+};
+
 const getImagemUrl = (foto?: string | null) => {
   if (!foto || foto === 'null' || foto === 'undefined' || foto.trim() === '') return DEFAULT_FOTO;
   foto = foto.trim();
@@ -42,7 +46,7 @@ export default function SalaLinkahSkype() {
 
     const atualizar = async () => {
       try {
-        const minhaFoto = dadosUsuario.foto_perfil || dadosUsuario.avatar || '';
+        const minhaFoto = getUserPhotoUrl(dadosUsuario);
         const [resMsg, resOn] = await Promise.all([
           fetch(`${API_URL}/api/comunidades/${id}?t=${Date.now()}`),
           fetch(`${API_URL}/api/comunidades/presenca/${id}?usuario_nome=${dadosUsuario.nome}&foto=${minhaFoto}`)
@@ -73,7 +77,14 @@ export default function SalaLinkahSkype() {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [mensagens]);
 
-  const handleImageError = (e: any) => e.target.src = DEFAULT_FOTO;
+  const handleImageError = (e: any) => {
+    if (e.target.src === DEFAULT_FOTO) {
+      // Previne loop infinito se o DEFAULT_FOTO falhar
+      e.target.onerror = null;
+    } else {
+      e.target.src = DEFAULT_FOTO;
+    }
+  };
 
   const enviarMensagem = async (e: any) => {
     e.preventDefault();
@@ -82,7 +93,7 @@ export default function SalaLinkahSkype() {
     const payload = {
       evento_id: Number(id),
       usuario_nome: dadosUsuario.nome,
-      usuario_foto: dadosUsuario?.foto_perfil || dadosUsuario?.avatar || null,
+      usuario_foto: getUserPhotoUrl(dadosUsuario),
       texto: novoTexto,
       imagem: imagemAnexada,
       tipo: 'chat'
@@ -163,9 +174,7 @@ export default function SalaLinkahSkype() {
             const souEu = m.usuario_nome === dadosUsuario.nome;
 
             // Procura avatar no usuário online ou na própria mensagem
-            const userAvatar = usuariosOnline.find(u => u.usuario_nome === m.usuario_nome)?.foto_perfil
-              || usuariosOnline.find(u => u.usuario_nome === m.usuario_nome)?.avatar
-              || m.usuario_foto || m.foto || (souEu ? dadosUsuario.foto_perfil || dadosUsuario.avatar : DEFAULT_FOTO);
+            const userAvatar = getUserPhotoUrl(usuariosOnline.find(u => u.usuario_nome === m.usuario_nome) || m || (souEu ? dadosUsuario : null));
 
             const imgLink = getImagemUrl(userAvatar);
 
