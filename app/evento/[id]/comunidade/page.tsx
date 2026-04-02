@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Send, Video, Loader2, X } from 'lucide-react';
 import { useLanguage } from '@/app/context/LanguageContext';
@@ -8,15 +8,14 @@ const API_URL = 'https://api-linkah.onrender.com';
 const DEFAULT_FOTO = 'https://i.pinimg.com/originals/ec/a5/a7/eca5a7c991e8fa52554e953593faba2d.gif';
 
 /**
- * Busca exaustiva por qualquer campo que possa conter a URL da imagem.
- * Adicionado log para ajudar a identificar o campo correto no console (F12).
+ * Função auxiliar para buscar a URL da foto do usuário em diversos campos possíveis.
+ * Prioriza 'avatar' que é o campo usado na página de perfil.
  */
 const getUserPhotoUrl = (user: any) => {
   if (!user) return DEFAULT_FOTO;
   
-  // Lista de campos possíveis que o backend pode estar enviando
   const camposFoto = [
-    'foto_perfil', 'avatar', 'usuario_foto', 'foto', 
+    'avatar', 'foto_perfil', 'usuario_foto', 'foto', 
     'profile_photo', 'user_photo', 'image', 'img', 'url_foto'
   ];
 
@@ -26,7 +25,6 @@ const getUserPhotoUrl = (user: any) => {
     }
   }
 
-  // Se não encontrar em nenhum campo direto, tenta procurar dentro de um objeto 'usuario' se existir
   if (user.usuario && typeof user.usuario === 'object') {
     return getUserPhotoUrl(user.usuario);
   }
@@ -38,10 +36,8 @@ const getImagemUrl = (foto?: string | null) => {
   if (!foto || foto === 'null' || foto === 'undefined' || foto.trim() === '' || foto === DEFAULT_FOTO) return DEFAULT_FOTO;
   
   foto = foto.trim();
-  // Se já for uma URL completa ou base64, retorna direto
   if (/^(https?:\/\/|blob:|data:)/.test(foto)) return foto;
   
-  // Se for apenas o caminho, concatena com a API_URL
   return `${API_URL.replace(/\/$/, '')}/${foto.replace(/^\//, '')}`;
 };
 
@@ -61,15 +57,66 @@ export default function SalaLinkahSkype() {
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const savedUser = localStorage.getItem('@Linkah:User');
-    if (savedUser) {
-      const parsed = JSON.parse(savedUser);
-      setDadosUsuario(parsed);
-      console.log('DEBUG - Dados do Usuário Logado:', parsed);
-    } else router.push('/site/login');
-  }, [router]);
+  // Função para obter dados do localStorage de forma segura
+  const getUsuarioLogado = useCallback(() => {
+    try {
+      const userStorage = localStorage.getItem('@Linkah:User');
+      const parsedUser = userStorage ? JSON.parse(userStorage) : null;
+      const emailLogado = parsedUser?.email || localStorage.getItem('userEmail') || '';
+      const token = localStorage.getItem('@Linkah:Token')?.replace(/['"]+/g, '') || '';
 
+      return { userStorage, parsedUser, emailLogado, token };
+    } catch (error) {
+      return { userStorage: null, parsedUser: null, emailLogado: '', token: '' };
+    }
+  }, []);
+
+  // Efeito para carregar os dados do usuário logado instantaneamente e atualizar em background
+  useEffect(() => {
+    const { parsedUser, emailLogado, token } = getUsuarioLogado();
+    
+    if (!emailLogado) {
+      router.push('/site/login');
+      return;
+    }
+
+    // 1. Carrega instantaneamente o que já está no localStorage para não travar a tela
+    if (parsedUser) {
+      setDadosUsuario(parsedUser);
+      setCarregando(false);
+    }
+
+    // 2. Busca atualização na API em segundo plano (background)
+    const atualizarPerfilEmBackground = async () => {
+      try {
+        const headers: Record<string, string> = { Accept: 'application/json' };
+        if (token) headers.Authorization = `Bearer ${token}`;
+
+        const response = await fetch(`${API_URL}/api/auth/perfil?email=${encodeURIComponent(emailLogado)}`, {
+          method: 'GET',
+          headers,
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const userUpdated = { ...data, email: emailLogado };
+          
+          setDadosUsuario(userUpdated);
+          localStorage.setItem('@Linkah:User', JSON.stringify(userUpdated));
+          setCarregando(false);
+        } else if (!parsedUser) {
+          router.push('/site/login');
+        }
+      } catch (error) {
+        console.error('Erro ao buscar dados do usuário em background:', error);
+        if (!parsedUser) router.push('/site/login');
+      }
+    };
+
+    atualizarPerfilEmBackground();
+  }, [router, getUsuarioLogado]);
+
+  // Efeito para atualizar mensagens e usuários online
   useEffect(() => {
     if (!id || !dadosUsuario?.nome) return;
 
@@ -84,16 +131,12 @@ export default function SalaLinkahSkype() {
         if (resOn.ok) {
           const on = await resOn.json();
           setUsuariosOnline(on.filter((u: any) => u.usuario_nome !== dadosUsuario.nome));
-          if (on.length > 0) console.log('DEBUG - Primeiro Usuário Online:', on[0]);
         }
 
         if (resMsg.ok) {
           const msgs = await resMsg.json();
           setMensagens(msgs);
-          if (msgs.length > 0) console.log('DEBUG - Primeira Mensagem:', msgs[0]);
         }
-
-        setCarregando(false);
       } catch (e) {
         console.error('Erro ao atualizar dados:', e);
       }
@@ -110,7 +153,6 @@ export default function SalaLinkahSkype() {
 
   const handleImageError = (e: any) => {
     if (e.target.src !== DEFAULT_FOTO) {
-      console.warn('Erro ao carregar imagem, usando fallback:', e.target.src);
       e.target.src = DEFAULT_FOTO;
     }
   };
@@ -206,7 +248,6 @@ export default function SalaLinkahSkype() {
           {mensagens.map((m, i) => {
             const souEu = m.usuario_nome === dadosUsuario.nome;
 
-            // Busca o usuário correspondente para pegar a foto mais atualizada
             const userObj = usuariosOnline.find(u => u.usuario_nome === m.usuario_nome) || m || (souEu ? dadosUsuario : null);
             const userAvatar = getUserPhotoUrl(userObj);
             const imgLink = getImagemUrl(userAvatar);
