@@ -7,14 +7,41 @@ import { useLanguage } from '@/app/context/LanguageContext';
 const API_URL = 'https://api-linkah.onrender.com';
 const DEFAULT_FOTO = 'https://i.pinimg.com/originals/ec/a5/a7/eca5a7c991e8fa52554e953593faba2d.gif';
 
+/**
+ * Busca exaustiva por qualquer campo que possa conter a URL da imagem.
+ * Adicionado log para ajudar a identificar o campo correto no console (F12).
+ */
 const getUserPhotoUrl = (user: any) => {
-  return user?.foto_perfil || user?.avatar || user?.usuario_foto || user?.foto || DEFAULT_FOTO;
+  if (!user) return DEFAULT_FOTO;
+  
+  // Lista de campos possíveis que o backend pode estar enviando
+  const camposFoto = [
+    'foto_perfil', 'avatar', 'usuario_foto', 'foto', 
+    'profile_photo', 'user_photo', 'image', 'img', 'url_foto'
+  ];
+
+  for (const campo of camposFoto) {
+    if (user[campo] && typeof user[campo] === 'string' && user[campo].trim() !== '' && user[campo] !== 'null' && user[campo] !== 'undefined') {
+      return user[campo];
+    }
+  }
+
+  // Se não encontrar em nenhum campo direto, tenta procurar dentro de um objeto 'usuario' se existir
+  if (user.usuario && typeof user.usuario === 'object') {
+    return getUserPhotoUrl(user.usuario);
+  }
+
+  return DEFAULT_FOTO;
 };
 
 const getImagemUrl = (foto?: string | null) => {
-  if (!foto || foto === 'null' || foto === 'undefined' || foto.trim() === '') return DEFAULT_FOTO;
+  if (!foto || foto === 'null' || foto === 'undefined' || foto.trim() === '' || foto === DEFAULT_FOTO) return DEFAULT_FOTO;
+  
   foto = foto.trim();
+  // Se já for uma URL completa ou base64, retorna direto
   if (/^(https?:\/\/|blob:|data:)/.test(foto)) return foto;
+  
+  // Se for apenas o caminho, concatena com a API_URL
   return `${API_URL.replace(/\/$/, '')}/${foto.replace(/^\//, '')}`;
 };
 
@@ -37,7 +64,9 @@ export default function SalaLinkahSkype() {
   useEffect(() => {
     const savedUser = localStorage.getItem('@Linkah:User');
     if (savedUser) {
-      setDadosUsuario(JSON.parse(savedUser));
+      const parsed = JSON.parse(savedUser);
+      setDadosUsuario(parsed);
+      console.log('DEBUG - Dados do Usuário Logado:', parsed);
     } else router.push('/site/login');
   }, [router]);
 
@@ -55,11 +84,13 @@ export default function SalaLinkahSkype() {
         if (resOn.ok) {
           const on = await resOn.json();
           setUsuariosOnline(on.filter((u: any) => u.usuario_nome !== dadosUsuario.nome));
+          if (on.length > 0) console.log('DEBUG - Primeiro Usuário Online:', on[0]);
         }
 
         if (resMsg.ok) {
           const msgs = await resMsg.json();
           setMensagens(msgs);
+          if (msgs.length > 0) console.log('DEBUG - Primeira Mensagem:', msgs[0]);
         }
 
         setCarregando(false);
@@ -78,10 +109,8 @@ export default function SalaLinkahSkype() {
   }, [mensagens]);
 
   const handleImageError = (e: any) => {
-    if (e.target.src === DEFAULT_FOTO) {
-      // Previne loop infinito se o DEFAULT_FOTO falhar
-      e.target.onerror = null;
-    } else {
+    if (e.target.src !== DEFAULT_FOTO) {
+      console.warn('Erro ao carregar imagem, usando fallback:', e.target.src);
       e.target.src = DEFAULT_FOTO;
     }
   };
@@ -133,8 +162,12 @@ export default function SalaLinkahSkype() {
         <div className="absolute inset-0 bg-black/50 flex justify-center items-center z-50">
           <div className="bg-white p-6 rounded-xl w-80 relative">
             <button className="absolute top-3 right-3" onClick={() => setPerfilAberto(null)}><X /></button>
-            <img src={getImagemUrl(perfilAberto.foto_perfil || perfilAberto.avatar)} className="w-20 h-20 rounded-full mx-auto object-cover" />
-            <h2 className="text-center mt-3 font-bold">{perfilAberto.usuario_nome}</h2>
+            <img 
+              src={getImagemUrl(getUserPhotoUrl(perfilAberto))} 
+              className="w-20 h-20 rounded-full mx-auto object-cover" 
+              onError={handleImageError}
+            />
+            <h2 className="text-center mt-3 font-bold">{perfilAberto.usuario_nome || perfilAberto.nome}</h2>
             {perfilAberto.bio && <p className="mt-2 text-center">{perfilAberto.bio}</p>}
             {perfilAberto.linkedin && (
               <a href={perfilAberto.linkedin} target="_blank" className="block mt-3 text-center text-blue-600 underline">LinkedIn</a>
@@ -151,12 +184,12 @@ export default function SalaLinkahSkype() {
             <div key={i} className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-2xl cursor-pointer"
                  onClick={() => setPerfilAberto(u)}>
               <img
-                src={getImagemUrl(u.foto_perfil || u.avatar || u.usuario_foto || u.foto)}
+                src={getImagemUrl(getUserPhotoUrl(u))}
                 className="w-10 h-10 rounded-xl object-cover"
                 onError={handleImageError}
-                alt={u.usuario_nome}
+                alt={u.usuario_nome || u.nome}
               />
-              <span>{u.usuario_nome}</span>
+              <span>{u.usuario_nome || u.nome}</span>
             </div>
           ))}
         </div>
@@ -173,9 +206,9 @@ export default function SalaLinkahSkype() {
           {mensagens.map((m, i) => {
             const souEu = m.usuario_nome === dadosUsuario.nome;
 
-            // Procura avatar no usuário online ou na própria mensagem
-            const userAvatar = getUserPhotoUrl(usuariosOnline.find(u => u.usuario_nome === m.usuario_nome) || m || (souEu ? dadosUsuario : null));
-
+            // Busca o usuário correspondente para pegar a foto mais atualizada
+            const userObj = usuariosOnline.find(u => u.usuario_nome === m.usuario_nome) || m || (souEu ? dadosUsuario : null);
+            const userAvatar = getUserPhotoUrl(userObj);
             const imgLink = getImagemUrl(userAvatar);
 
             return (
