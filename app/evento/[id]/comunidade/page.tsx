@@ -16,25 +16,21 @@ const DEFAULT_FOTO = 'https://i.pinimg.com/originals/ec/a5/a7/eca5a7c991e8fa5255
 
 // Função utilitária para tratar URLs de imagem com debug
 const getImagemUrl = (foto?: string | null) => {
-  console.log('🔍 getImagemUrl chamado com:', foto);
-
   if (!foto || foto === 'null' || foto === 'undefined' || foto.trim() === '') {
-    console.log('⚠️ Foto inválida, retornando fallback');
     return DEFAULT_FOTO;
   }
 
-  // Se for URL externa ou blob/data
-  if (/^(http|blob|data):/.test(foto)) {
-    console.log('✅ Foto externa válida:', foto);
+  foto = foto.trim();
+
+  // Se já for URL externa ou blob/data, retorna direto
+  if (/^(http|https|blob|data):/.test(foto)) {
     return foto;
   }
 
-  // Monta URL completa
+  // Senão, monta URL completa
   const cleanBase = API_URL.replace(/\/$/, '');
   const cleanPath = foto.replace(/^\//, '');
-  const finalUrl = `${cleanBase}/${cleanPath}`;
-  console.log('✅ URL construída:', finalUrl);
-  return finalUrl;
+  return `${cleanBase}/${cleanPath}`;
 };
 
 export default function SalaLinkahSkype() {
@@ -72,8 +68,6 @@ export default function SalaLinkahSkype() {
     const sala = `Call_${id}_${Date.now()}`;
     const fotoCall = dadosUsuario.foto || dadosUsuario.usuario_foto || null;
 
-    console.log('📞 Iniciando call para:', destino, 'com foto:', fotoCall);
-
     try {
       await fetch(`${API_URL}/api/comunidades/enviar`, {
         method: 'POST',
@@ -107,8 +101,6 @@ export default function SalaLinkahSkype() {
       tipo: 'chat'
     };
 
-    console.log('✉️ Enviando mensagem:', payload);
-
     setNovoTexto('');
     setImagemAnexada(null);
 
@@ -125,7 +117,6 @@ export default function SalaLinkahSkype() {
 
   const abrirPerfil = async (nome: string) => {
     setCarregandoPerfil(true);
-    console.log('👤 Abrindo perfil de:', nome);
     try {
       const res = await fetch(`${API_URL}/api/auth/perfil-publico?nome=${encodeURIComponent(nome)}`);
       if (res.ok) setUsuarioSelecionado(await res.json());
@@ -143,10 +134,8 @@ export default function SalaLinkahSkype() {
   useEffect(() => {
     const savedUser = localStorage.getItem('@Linkah:User');
     if (savedUser) {
-      console.log('💾 Usuário logado encontrado:', savedUser);
       setDadosUsuario(JSON.parse(savedUser));
     } else {
-      console.log('🚨 Nenhum usuário encontrado, redirecionando para login');
       router.push('/site/login');
     }
   }, [router]);
@@ -167,13 +156,11 @@ export default function SalaLinkahSkype() {
 
         if (resOn.ok) {
           const on = await resOn.json();
-          console.log('👥 Usuários online recebidos:', on);
           if (Array.isArray(on)) setUsuariosOnline(on.filter((u: any) => u.usuario_nome !== dadosUsuario.nome));
         }
 
         if (resMsg.ok) {
           const msgs = await resMsg.json();
-          console.log('💬 Mensagens recebidas:', msgs);
           setMensagens(msgs);
 
           const AGORA = Date.now();
