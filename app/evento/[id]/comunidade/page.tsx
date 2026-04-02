@@ -11,15 +11,13 @@ import Link from 'next/link';
 
 const API_URL = 'https://api-linkah.onrender.com';
 
-// Função para tratar caminhos da API e URLs externas
+// Função corrigida para tratar caminhos relativos da API e URLs externas
 const getImagemUrl = (foto?: string | null) => {
-  if (!foto || foto === "null" || foto === "undefined") return undefined;
-  if (foto.startsWith('http') || foto.startsWith('blob:') || foto.startsWith('data:')) {
-    return foto;
-  }
-  const cleanBase = API_URL.replace(/\/$/, '');
-  const cleanPath = foto.replace(/^\//, '');
-  return `${cleanBase}/${cleanPath}`;
+  if (!foto) return undefined;
+  // Se for um blob (preview local) ou URL completa, retorna direto
+  if (foto.startsWith('http') || foto.startsWith('blob:')) return foto;
+  // Se for caminho relativo, concatena com a base da API
+  return `${API_URL}${foto.startsWith('/') ? '' : '/'}${foto}`;
 };
 
 export default function SalaLinkahSkype() {
@@ -45,11 +43,6 @@ export default function SalaLinkahSkype() {
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Debug avançado para o console
-  const handleImageError = (e: any, local: string) => {
-    console.error(`❌ Erro de carregamento [${local}]:`, e.target.src);
-  };
 
   useEffect(() => {
     const savedUser = localStorage.getItem('@Linkah:User');
@@ -77,9 +70,7 @@ export default function SalaLinkahSkype() {
 
         if (resOn.ok) {
           const on = await resOn.json();
-          if (Array.isArray(on)) {
-            setUsuariosOnline(on.filter((u: any) => u.usuario_nome !== dadosUsuario.nome));
-          }
+          setUsuariosOnline(on.filter((u: any) => u.usuario_nome !== dadosUsuario.nome));
         }
 
         if (resMsg.ok) {
@@ -209,7 +200,7 @@ export default function SalaLinkahSkype() {
           <div className="bg-white p-8 rounded-[2.5rem] text-center max-w-sm w-full shadow-2xl border border-slate-100">
             <div className="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 relative overflow-hidden bg-slate-100">
               {(conviteRecebido.foto) ? (
-                <img src={getImagemUrl(conviteRecebido.foto)} className="w-full h-full object-cover" alt="Avatar" onError={(e) => handleImageError(e, 'Convite')} />
+                <img src={getImagemUrl(conviteRecebido.foto)} className="w-full h-full object-cover" alt="Avatar" />
               ) : <Phone size={40} className="text-[#ff4d4d] animate-pulse" />}
             </div>
             <h3 className="font-bold text-xl text-slate-900 mb-2">{conviteRecebido.de}</h3>
@@ -233,7 +224,7 @@ export default function SalaLinkahSkype() {
               <div className="w-32 h-32 bg-white rounded-[2.5rem] mx-auto p-2 shadow-2xl relative">
                 <div className="w-full h-full bg-slate-900 rounded-[2rem] flex items-center justify-center text-white text-4xl font-black overflow-hidden">
                   {(usuarioSelecionado.foto || usuarioSelecionado.usuario_foto) ? (
-                    <img src={getImagemUrl(usuarioSelecionado.foto || usuarioSelecionado.usuario_foto)} className="w-full h-full object-cover" alt="Avatar" onError={(e) => handleImageError(e, 'Perfil')} />
+                    <img src={getImagemUrl(usuarioSelecionado.foto || usuarioSelecionado.usuario_foto)} className="w-full h-full object-cover" alt="Avatar" />
                   ) : usuarioSelecionado.nome?.charAt(0)}
                 </div>
                 <div className="absolute -bottom-1 -right-1 w-10 h-10 bg-[#ff4d4d] rounded-2xl flex items-center justify-center border-4 border-white">
@@ -265,7 +256,7 @@ export default function SalaLinkahSkype() {
               <div className="relative">
                 <div className="w-10 h-10 rounded-xl bg-slate-950 text-white flex items-center justify-center font-bold text-sm overflow-hidden">
                   {(u.usuario_foto || u.foto || u.avatar) ?
-                    <img src={getImagemUrl(u.usuario_foto || u.foto || u.avatar)} className="w-full h-full object-cover" alt="F" onError={(e) => handleImageError(e, 'Sidebar')} />
+                    <img src={getImagemUrl(u.usuario_foto || u.foto || u.avatar)} className="w-full h-full object-cover" alt="F" />
                     : u.usuario_nome.charAt(0)}
                 </div>
                 <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-[3px] border-white rounded-full"></div>
@@ -294,7 +285,7 @@ export default function SalaLinkahSkype() {
         <header className="p-6 border-b border-slate-50 flex justify-between items-center bg-white/80 backdrop-blur-xl z-10 sticky top-0">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center font-black text-2xl overflow-hidden shadow-sm">
-              {dadosEvento?.capa ? <img src={getImagemUrl(dadosEvento.capa)} className="w-full h-full object-cover" alt="Capa" onError={(e) => handleImageError(e, 'Capa Header')} /> : dadosEvento?.nome?.charAt(0)}
+              {dadosEvento?.capa ? <img src={getImagemUrl(dadosEvento.capa)} className="w-full h-full object-cover" alt="Capa" /> : dadosEvento?.nome?.charAt(0)}
             </div>
             <div>
               <h1 className="font-bold text-lg text-slate-950">{dadosEvento?.nome}</h1>
@@ -314,14 +305,14 @@ export default function SalaLinkahSkype() {
                 <div className={`flex gap-3 max-w-[80%] ${souEu ? 'flex-row-reverse' : 'flex-row'}`}>
                   <div onClick={() => !souEu && abrirPerfil(m.usuario_nome)} className="w-10 h-10 rounded-xl bg-white border border-slate-100 flex-shrink-0 flex items-center justify-center text-xs font-bold text-slate-400 overflow-hidden cursor-pointer shadow-sm">
                     {(m.usuario_foto || m.foto || m.avatar) ? (
-                      <img src={getImagemUrl(m.usuario_foto || m.foto || m.avatar)} className="w-full h-full object-cover" alt="User" onError={(e) => handleImageError(e, 'Chat Avatar')} />
+                      <img src={getImagemUrl(m.usuario_foto || m.foto || m.avatar)} className="w-full h-full object-cover" alt="User" />
                     ) : m.usuario_nome.charAt(0)}
                   </div>
                   <div className={`space-y-1 ${souEu ? 'items-end' : 'items-start'}`}>
                     <span className="text-[11px] font-bold text-slate-900 px-1">{souEu ? 'Você' : m.usuario_nome}</span>
-                    <div className={`p-3 rounded-[1.5rem] shadow-sm ${souEu ? 'bg-[#ff4d4d]/10 text-[#ff4d4d]' : 'bg-white text-slate-900'}`}>
-                      {m.texto && <p className="text-[11px]">{m.texto}</p>}
-                      {m.imagem && <img src={getImagemUrl(m.imagem)} className="w-48 h-48 object-cover rounded-xl mt-2" alt="Anexo" onError={(e) => handleImageError(e, 'Chat Imagem')} />}
+                    <div className={`p-4 rounded-[1.5rem] shadow-sm ${souEu ? 'bg-[#ff4d4d] text-white rounded-tr-none' : 'bg-white text-slate-900 rounded-tl-none'}`}>
+                      {m.imagem && <img src={getImagemUrl(m.imagem)} alt="Anexo" className="rounded-2xl mb-2 max-h-52 object-cover" />}
+                      <p className="text-[13px] font-medium">{m.texto}</p>
                     </div>
                   </div>
                 </div>
@@ -331,15 +322,23 @@ export default function SalaLinkahSkype() {
           <div ref={scrollRef}></div>
         </div>
 
-        {/* FORMULÁRIO DE ENVIO */}
-        <form onSubmit={enviarMensagem} className="p-6 border-t border-slate-50 flex items-center gap-4 bg-white/80 backdrop-blur-xl sticky bottom-0 z-10">
-          <input type="text" placeholder="Digite uma mensagem..." value={novoTexto} onChange={e => setNovoTexto(e.target.value)} className="flex-1 p-3 rounded-2xl border border-slate-100 focus:outline-none focus:ring-2 focus:ring-[#ff4d4d] text-sm" />
-          <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={e => { 
-            const file = e.target.files?.[0];
-            if(file) setImagemAnexada(URL.createObjectURL(file)); 
-          }} />
-          <button type="button" onClick={() => fileInputRef.current?.click()} className="p-3 rounded-full bg-slate-50 hover:bg-slate-100 transition-all"><Paperclip size={18} /></button>
-          <button type="submit" className="p-3 rounded-full bg-[#ff4d4d] text-white hover:brightness-110 transition-all"><Send size={18} /></button>
+        <form onSubmit={enviarMensagem} className="p-6 border-t border-slate-100 bg-white flex items-center gap-4 sticky bottom-0 z-10">
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            className="hidden" 
+            onChange={e => {
+              const file = e.target.files?.[0];
+              if (file) {
+                // Se já existia uma URL de blob anterior, libera ela para evitar leak
+                if (imagemAnexada?.startsWith('blob:')) URL.revokeObjectURL(imagemAnexada);
+                setImagemAnexada(URL.createObjectURL(file));
+              }
+            }} 
+          />
+          <button type="button" onClick={() => fileInputRef.current?.click()} className="p-3 rounded-2xl bg-slate-50 hover:bg-slate-100 transition-all"><Paperclip size={18} /></button>
+          <input type="text" placeholder="Digite sua mensagem..." value={novoTexto} onChange={e => setNovoTexto(e.target.value)} className="flex-1 bg-slate-50 p-4 rounded-2xl text-sm outline-none" />
+          <button type="submit" className="p-3 rounded-2xl bg-[#ff4d4d] text-white hover:brightness-110 transition-all"><Send size={18} /></button>
         </form>
       </main>
     </div>
