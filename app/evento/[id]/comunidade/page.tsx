@@ -11,7 +11,14 @@ import Link from 'next/link';
 
 const API_URL = 'https://api-linkah.onrender.com';
 
-const getImagemUrl = (foto: string | null | undefined) => foto || undefined;
+// Função corrigida para tratar caminhos relativos da API e URLs externas
+const getImagemUrl = (foto?: string | null) => {
+  if (!foto) return undefined;
+  // Se for um blob (preview local) ou URL completa, retorna direto
+  if (foto.startsWith('http') || foto.startsWith('blob:')) return foto;
+  // Se for caminho relativo, concatena com a base da API
+  return `${API_URL}${foto.startsWith('/') ? '' : '/'}${foto}`;
+};
 
 export default function SalaLinkahSkype() {
   const { t }: any = useLanguage();
@@ -187,6 +194,7 @@ export default function SalaLinkahSkype() {
   return (
     <div className="flex h-screen bg-[#FCFBFA] overflow-hidden text-slate-900 font-sans">
 
+      {/* MODAL CONVITE RECEBIDO */}
       {conviteRecebido && (
         <div className="fixed inset-0 z-[999] bg-slate-950/40 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-white p-8 rounded-[2.5rem] text-center max-w-sm w-full shadow-2xl border border-slate-100">
@@ -205,6 +213,7 @@ export default function SalaLinkahSkype() {
         </div>
       )}
 
+      {/* MODAL DE PERFIL */}
       {usuarioSelecionado && (
         <div className="fixed inset-0 z-[1000] bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setUsuarioSelecionado(null)}>
           <div className="bg-white w-full max-w-md rounded-[3.5rem] overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
@@ -232,6 +241,7 @@ export default function SalaLinkahSkype() {
         </div>
       )}
 
+      {/* SIDEBAR ONLINE */}
       <aside className="w-80 border-r border-slate-100 hidden lg:flex flex-col bg-white">
         <div className="p-6">
           <Link href="/" className="inline-flex items-center gap-2 text-slate-400 hover:text-slate-950 mb-8 transition-colors"><ChevronLeft size={18} /><span className="font-bold text-xs">Voltar</span></Link>
@@ -260,6 +270,7 @@ export default function SalaLinkahSkype() {
         </div>
       </aside>
 
+      {/* CHAT PRINCIPAL */}
       <main className="flex-1 flex flex-col relative bg-white lg:rounded-l-[3rem] shadow-2xl border-l border-slate-100">
         {chamadaAtiva && (
           <div className="absolute inset-0 z-50 bg-slate-950 flex flex-col lg:rounded-l-[3rem] overflow-hidden">
@@ -319,7 +330,8 @@ export default function SalaLinkahSkype() {
             onChange={e => {
               const file = e.target.files?.[0];
               if (file) {
-                if (imagemAnexada) URL.revokeObjectURL(imagemAnexada);
+                // Se já existia uma URL de blob anterior, libera ela para evitar leak
+                if (imagemAnexada?.startsWith('blob:')) URL.revokeObjectURL(imagemAnexada);
                 setImagemAnexada(URL.createObjectURL(file));
               }
             }} 
