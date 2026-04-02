@@ -3,7 +3,8 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { 
   ChevronLeft, ImageIcon, Search, MapPin, X, Loader2, 
-  Users, Ticket, Sparkles, Navigation, Clock, Building2
+  Users, Ticket, Sparkles, Navigation, Clock, Building2,
+  Wand2 // Ícone para a IA
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/app/context/LanguageContext';
@@ -15,6 +16,7 @@ export default function NovoEventoPresencial() {
   const { t }: any = useLanguage();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [isAiLoading, setIsAiLoading] = useState(false); // Loading específico para a IA
   
   const searchInputRef = useRef<HTMLInputElement>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -25,7 +27,6 @@ export default function NovoEventoPresencial() {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null); 
 
-  // --- NOVOS STATES PARA PATROCINADOR ---
   const [previewBanner, setPreviewBanner] = useState<string | null>(null);
   const [selectedBanner, setSelectedBanner] = useState<File | null>(null); 
   
@@ -36,6 +37,66 @@ export default function NovoEventoPresencial() {
     cidade: '', estado: '', capacidade: '', tipo: 'Presencial',
     regras: '', visibilidade: 'Publico'
   });
+
+  // --- FUNÇÃO PARA GERAR COM IA ---
+  const handleGerarComIA = async () => {
+    const { value: text } = await Swal.fire({
+      title: 'Gerar Evento com IA',
+      input: 'textarea',
+      inputLabel: 'Cole aqui o texto do evento (ex: post do insta, mensagem de zap...)',
+      inputPlaceholder: 'Ex: Workshop de Design dia 20/05 às 14h no SESC Votuporanga...',
+      showCancelButton: true,
+      confirmButtonText: 'Mágica! ✨',
+      confirmButtonColor: '#C22973',
+      cancelButtonText: 'Cancelar'
+    });
+
+    if (!text) return;
+
+    setIsAiLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/api/eventos/gerar-ia`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ textoBruto: text }),
+      });
+
+      if (!response.ok) throw new Error('Falha na IA');
+
+      const aiData = await response.json();
+
+      // Atualiza o formulário com o que a IA extraiu
+      setFormData(prev => ({
+        ...prev,
+        nome: aiData.nome || prev.nome,
+        categoria: aiData.categoria || prev.categoria,
+        descricao: aiData.descricao || prev.descricao,
+        data_inicio: aiData.data_inicio || prev.data_inicio,
+        hora_inicio: aiData.hora_inicio || prev.hora_inicio,
+        data_termino: aiData.data_termino || prev.data_termino,
+        hora_termino: aiData.hora_termino || prev.hora_termino,
+        local_nome: aiData.local_nome || prev.local_nome,
+        cidade: aiData.cidade || prev.cidade,
+        estado: aiData.estado || prev.estado,
+        cep: aiData.cep || prev.cep,
+        capacidade: aiData.capacidade || prev.capacidade,
+      }));
+
+      Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'success',
+        title: 'Campos preenchidos pela IA!',
+        showConfirmButton: false,
+        timer: 3000
+      });
+
+    } catch (error) {
+      Swal.fire('Erro', 'A IA não conseguiu processar esse texto.', 'error');
+    } finally {
+      setIsAiLoading(false);
+    }
+  };
 
   const initGoogleMaps = useCallback(async () => {
     if (typeof window === 'undefined' || !window.google || !mapContainerRef.current) return;
@@ -115,7 +176,6 @@ export default function NovoEventoPresencial() {
     }
   };
 
-  // --- HANDLER PARA O BANNER DO PATROCINADOR ---
   const handleBannerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -157,8 +217,6 @@ export default function NovoEventoPresencial() {
     dataToSend.append('usuario_nome', nomeUsuario.trim());
     
     if (selectedFile) dataToSend.append('imagem_capa', selectedFile);
-    
-    // ENVIA O BANNER SE TIVER SIDO SELECIONADO
     if (selectedBanner) dataToSend.append('banner_patrocinio', selectedBanner);
 
     try {
@@ -211,8 +269,21 @@ export default function NovoEventoPresencial() {
           <div className="lg:col-span-8 space-y-10">
             <section className="bg-white rounded-[3rem] p-10 shadow-sm border border-slate-100 space-y-8">
               <div className="space-y-6">
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 italic">Título da Experiência</label>
+                <div className="space-y-3 relative">
+                  <div className="flex justify-between items-end mb-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 italic">Título da Experiência</label>
+                    
+                    {/* BOTÃO DA IA */}
+                    <button 
+                      onClick={handleGerarComIA}
+                      disabled={isAiLoading}
+                      className="bg-slate-900 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-[#C22973] transition-all active:scale-95 disabled:opacity-50"
+                    >
+                      {isAiLoading ? <Loader2 size={12} className="animate-spin" /> : <Wand2 size={12} />}
+                      {isAiLoading ? 'Processando...' : 'Preencher com IA'}
+                    </button>
+                  </div>
+                  
                   <input name="nome" value={formData.nome} onChange={handleChange} placeholder="Ex: Festival de Jazz 2026" className="w-full bg-slate-50 p-6 rounded-[2rem] outline-none font-bold text-xl focus:bg-white border-2 border-transparent focus:border-pink-100 transition-all shadow-inner" />
                 </div>
                 
@@ -334,7 +405,6 @@ export default function NovoEventoPresencial() {
               </div>
             </div>
 
-            {/* --- NOVO CAMPO: BANNER DE PATROCINADOR --- */}
             <div className="bg-white rounded-[3.5rem] p-8 shadow-sm border border-slate-100">
               <h4 className="text-[9px] text-slate-300 font-black uppercase mb-8 text-center tracking-[0.4em] italic">Media Center: Patrocínio</h4>
               <div className="relative">
@@ -358,7 +428,6 @@ export default function NovoEventoPresencial() {
               <p className="text-[8px] text-slate-400 uppercase font-black text-center mt-6 tracking-widest">Recomendado: 1200x400px (Horizontal)</p>
             </div>
 
-            {/* MAPA */}
             <div className="bg-white rounded-[3.5rem] p-2 shadow-2xl border border-slate-100 h-[400px] relative overflow-hidden group">
                <div ref={mapContainerRef} className="w-full h-full rounded-[3.2rem]" />
                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur px-6 py-2 rounded-full shadow-lg border border-slate-100">
