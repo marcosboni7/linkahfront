@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -14,65 +13,50 @@ const DEFAULT_FOTO = 'https://i.pinimg.com/originals/ec/a5/a7/eca5a7c991e8fa5255
 
 const EMOJIS_STATUS = ['✨', '🔥', '🚀', '😴', '💡', '🎮', '🍕', '💎'];
 
-// --- HELPERS BLINDADOS PARA FOTO ---
-const getUserPhotoUrl = (user: any) => {
+// --- HELPERS BLINDADOS PARA FOTO COM DEBUG ---
+const getUserPhotoUrl = (user: any ) => {
+  console.log('🔍 DEBUG [getUserPhotoUrl]: Analisando objeto:', user);
+
   if (!user) return DEFAULT_FOTO;
   
-  // Se for uma string direta (caso do payload de mensagem)
   if (typeof user === 'string') {
-    if (user.length > 5 && user !== 'null') return user;
-    return DEFAULT_FOTO;
+    return (user.length > 5 && user !== 'null') ? user : DEFAULT_FOTO;
   }
   
-  // Lista exaustiva de possíveis campos de imagem que o backend pode enviar
-  const campos = ['foto', 'avatar', 'foto_perfil', 'usuario_foto', 'image', 'profile_photo', 'url_foto', 'foto_url'];
-  
-  // 1. Tenta buscar no objeto raiz
-  for (const c of campos) {
-    if (user[c] && typeof user[c] === 'string' && user[c].length > 5 && user[c] !== 'null') return user[c];
-  }
+  // Lista exaustiva de possíveis campos
+  const foto = user.avatar || user.foto_perfil || user.usuario_foto || user.foto || 
+               user.user?.avatar || user.user?.foto_perfil || 
+               user.data?.avatar || user.data?.foto_perfil;
 
-  // 2. Tenta buscar dentro de sub-objetos comuns (data ou user)
-  const subObjetos = ['data', 'user', 'usuario'];
-  for (const sub of subObjetos) {
-    if (user[sub]) {
-      for (const c of campos) {
-        if (user[sub][c] && typeof user[sub][c] === 'string' && user[sub][c].length > 5 && user[sub][c] !== 'null') {
-          return user[sub][c];
-        }
-      }
-    }
-  }
-  
-  return DEFAULT_FOTO;
+  console.log('🔍 DEBUG [getUserPhotoUrl]: Valor extraído:', foto);
+  return (foto && foto !== 'null') ? foto : DEFAULT_FOTO;
 };
 
 const getImagemUrl = (foto?: string | null) => {
-  if (!foto || foto === 'null' || foto.trim() === '' || foto === undefined) return DEFAULT_FOTO;
+  if (!foto || foto === 'null' || foto === DEFAULT_FOTO) return DEFAULT_FOTO;
   
-  // Se já for uma URL completa (http, data:image, blob), retorna ela mesma
-  if (/^(https?:\/\/|blob:|data:)/.test(foto)) return foto;
+  if (/^(https?:\/\/|blob:|data: )/.test(foto)) return foto;
   
-  // Se for um caminho relativo, limpa as barras e concatena com a API
   const baseUrl = API_URL.replace(/\/$/, '');
   const cleanPath = foto.replace(/^\//, '');
+  const finalUrl = `${baseUrl}/${cleanPath}`;
   
-  return `${baseUrl}/${cleanPath}`;
+  console.log('🔍 DEBUG [getImagemUrl]: URL Final formatada:', finalUrl);
+  return finalUrl;
 };
 
 export default function ComunidadePage() {
+  console.log("🚀 DEBUG: COMPONENTE COMUNIDADE CARREGADO");
+  
   const { t }: any = useLanguage();
   const { id } = useParams();
   const router = useRouter();
 
-  // Estados de Dados
   const [mensagens, setMensagens] = useState<any[]>([]);
   const [usuariosOnline, setUsuariosOnline] = useState<any[]>([]);
   const [dadosUsuario, setDadosUsuario] = useState<any>(null);
   const [carregando, setCarregando] = useState(true);
   const [novoTexto, setNovoTexto] = useState('');
-  
-  // Estados de Personalização
   const [meuStatus, setMeuStatus] = useState('✨');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -80,19 +64,20 @@ export default function ComunidadePage() {
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // 1. Autenticação
   useEffect(() => {
     const user = localStorage.getItem('@Linkah:User');
+    console.log("🔍 DEBUG [LocalStorage]:", user);
     if (!user) return router.push('/site/login');
     try {
-        setDadosUsuario(JSON.parse(user));
+        const parsed = JSON.parse(user);
+        console.log("🔍 DEBUG [User Parsed]:", parsed);
+        setDadosUsuario(parsed);
     } catch (e) {
         router.push('/site/login');
     }
     setCarregando(false);
   }, [router]);
 
-  // 2. Sync de Dados (Polling)
   useEffect(() => {
     if (!id || !dadosUsuario?.nome) return;
     const sync = async () => {
@@ -106,7 +91,10 @@ export default function ComunidadePage() {
             const onlineData = await resOn.json();
             setUsuariosOnline(onlineData.filter((u: any) => (u.usuario_nome || u.nome) !== dadosUsuario.nome));
         }
-        if (resMsg.ok) setMensagens(await resMsg.json());
+        if (resMsg.ok) {
+            const msgs = await resMsg.json();
+            setMensagens(msgs);
+        }
       } catch (e) { console.error("Erro no Sync:", e); }
     };
     sync();
@@ -116,7 +104,6 @@ export default function ComunidadePage() {
 
   useEffect(() => { scrollRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [mensagens]);
 
-  // --- AÇÕES ---
   const handleOpenProfile = (userName: string) => {
     setSelectedUserId(userName);
     setIsModalOpen(true);
@@ -147,7 +134,6 @@ export default function ComunidadePage() {
     <div className="flex h-screen bg-[#F8F9FD] overflow-hidden font-sans">
       {isModalOpen && <UserProfileModal {...({ isOpen: isModalOpen, onClose: () => setIsModalOpen(false), userId: selectedUserId } as any)} />}
 
-      {/* SIDEBAR COM SELETOR DE STATUS */}
       <aside className="w-80 border-r border-slate-100 hidden lg:flex flex-col bg-white shadow-sm z-30">
         <div className="p-8 border-b border-slate-50 flex items-center justify-between">
           <h2 className="text-slate-900 font-black uppercase text-[11px] tracking-widest italic flex items-center gap-2">
@@ -156,7 +142,6 @@ export default function ComunidadePage() {
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {/* CARD DO MEU PERFIL */}
           <div className="relative p-5 bg-slate-900 rounded-[2.5rem] shadow-2xl overflow-hidden">
             <div className="flex items-center gap-4 relative z-10">
               <div className="relative cursor-pointer hover:scale-105 transition-transform" onClick={() => setShowEmojiPicker(!showEmojiPicker)}>
@@ -171,6 +156,10 @@ export default function ComunidadePage() {
               </div>
               <div className="flex flex-col">
                 <span className="font-black text-white text-sm italic tracking-tight">{dadosUsuario?.nome}</span>
+                {/* DEBUG VISUAL ABAIXO */}
+                <span className="text-[7px] text-slate-500 truncate max-w-[100px]">
+                    IMG: {dadosUsuario?.avatar || dadosUsuario?.foto_perfil || "N/A"}
+                </span>
                 <span className="text-[9px] text-red-400 font-black uppercase tracking-widest flex items-center gap-1">
                   <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" /> Online
                 </span>
@@ -194,7 +183,6 @@ export default function ComunidadePage() {
 
           <div className="h-px bg-slate-100 my-2 mx-4" />
 
-          {/* LISTA DE OUTROS MEMBROS */}
           {usuariosOnline.map((u, i) => (
             <div key={i} onClick={() => handleOpenProfile(u.usuario_nome || u.nome)} className="flex items-center gap-4 p-4 hover:bg-slate-50 rounded-[1.8rem] cursor-pointer group transition-all relative">
               <div className="relative">
@@ -210,7 +198,6 @@ export default function ComunidadePage() {
         </div>
       </aside>
 
-      {/* CHAT PRINCIPAL */}
       <main className="flex-1 flex flex-col bg-white">
         <header className="p-6 border-b border-slate-50 flex justify-between items-center bg-white/90 backdrop-blur-md sticky top-0 z-20">
           <div className="flex items-center gap-4">
@@ -227,7 +214,6 @@ export default function ComunidadePage() {
           </button>
         </header>
 
-        {/* ÁREA DE MENSAGENS */}
         <div className="flex-1 overflow-y-auto p-8 space-y-6 bg-[#FDFDFF] scrollbar-thin scrollbar-thumb-slate-200">
           {mensagens.map((m, i) => {
             const souEu = m.usuario_nome === dadosUsuario?.nome;
@@ -257,55 +243,39 @@ export default function ComunidadePage() {
                     )}
                   </div>
 
-                  {/* BALÃO DE MENSAGEM */}
-                  <div className={`p-4 rounded-[1.8rem] shadow-sm relative transition-all ${
-                    isHost 
-                      ? 'bg-white border-2 border-amber-400 shadow-[0_4px_15px_rgba(251,191,36,0.15)] ring-1 ring-amber-100' 
-                      : souEu 
-                        ? 'bg-red-500 text-white rounded-br-none shadow-xl shadow-red-500/20' 
-                        : 'bg-white text-slate-700 border border-slate-100 rounded-bl-none'
-                  }`}>
-                    {isHost && <Star size={8} className="absolute -top-2 -right-1 text-amber-500 animate-bounce" fill="currentColor" />}
-                    <p className="text-[13.5px] font-medium leading-relaxed">
-                      {m.texto}
-                    </p>
+                  <div className={`p-4 rounded-[1.8rem] shadow-sm ${souEu ? 'bg-red-500 text-white rounded-br-none' : 'bg-white border border-slate-100 text-slate-700 rounded-bl-none'}`}>
+                    <p className="text-sm leading-relaxed font-medium">{m.texto}</p>
                   </div>
                 </div>
 
                 {souEu && (
-                  <div className="relative">
+                  <div className="relative group">
                     <img 
                       src={getImagemUrl(getUserPhotoUrl(dadosUsuario))} 
-                      className={`w-10 h-10 rounded-[1.2rem] object-cover shadow-md ${isHost ? 'ring-2 ring-amber-400 ring-offset-2' : ''}`} 
-                      alt="Me"
+                      className="w-10 h-10 rounded-[1.2rem] object-cover shadow-md" 
+                      alt="Me" 
                     />
-                    <span className="absolute -top-2 -left-2 text-xs drop-shadow-sm">{meuStatus}</span>
+                    <span className="absolute -top-2 -right-2 text-xs drop-shadow-sm">{meuStatus}</span>
                   </div>
                 )}
               </div>
             );
           })}
-          <div ref={scrollRef}></div>
+          <div ref={scrollRef} />
         </div>
 
-        {/* INPUT FIXO EMBAIXO */}
-        <div className="p-6 bg-white border-t border-slate-50">
-          <form onSubmit={enviarMensagem} className="max-w-4xl mx-auto flex items-center gap-4 bg-slate-100/50 p-2 rounded-[2.2rem] border border-slate-100 focus-within:border-red-200 focus-within:bg-white transition-all shadow-inner">
-            <div className="pl-4 text-xl select-none">{meuStatus}</div>
-            <input 
-              type="text" 
-              value={novoTexto} 
-              onChange={e => setNovoTexto(e.target.value)} 
-              placeholder="Escreva algo para a galera..." 
-              className="flex-1 bg-transparent p-4 outline-none text-sm font-bold text-slate-700 placeholder:text-slate-400" 
-            />
-            <button type="submit" className="w-12 h-12 bg-red-500 text-white rounded-full flex items-center justify-center hover:scale-105 hover:bg-red-600 shadow-lg shadow-red-200 active:scale-95 transition-all">
-              <Send size={18} />
-            </button>
-          </form>
-        </div>
+        <form onSubmit={enviarMensagem} className="p-6 bg-white border-t border-slate-50 flex gap-4 items-center">
+          <input 
+            value={novoTexto}
+            onChange={(e) => setNovoTexto(e.target.value)}
+            placeholder="Escreva sua mensagem..."
+            className="flex-1 bg-slate-50 border-none rounded-2xl px-6 py-4 text-sm focus:ring-2 focus:ring-red-500/20 transition-all outline-none font-medium"
+          />
+          <button type="submit" className="bg-red-500 hover:bg-red-600 text-white p-4 rounded-2xl shadow-lg shadow-red-500/30 transition-all hover:scale-105 active:scale-95">
+            <Send size={20} />
+          </button>
+        </form>
       </main>
     </div>
   );
 }
-
