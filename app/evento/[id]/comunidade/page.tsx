@@ -2,39 +2,21 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
-  Search, Paperclip, Send, Video, Phone,
-  X, Loader2, Sparkles, ChevronLeft,
-  Instagram, Linkedin, ShieldCheck
+  Send, Video, Loader2
 } from 'lucide-react';
 import { useLanguage } from '@/app/context/LanguageContext';
 import Link from 'next/link';
 
 const API_URL = 'https://api-linkah.onrender.com';
-
-// Fallback de foto padrão
 const DEFAULT_FOTO = 'https://i.pinimg.com/originals/ec/a5/a7/eca5a7c991e8fa52554e953593faba2d.gif';
 
-// Função utilitária para tratar URLs de imagem com debug
+// --- FUNÇÃO PARA TRATAR IMAGENS ---
 const getImagemUrl = (foto?: string | null) => {
-  console.log('🔍 getImagemUrl chamado com:', foto);
-
-  if (!foto || foto === 'null' || foto === 'undefined' || foto.trim() === '') {
-    console.log('⚠️ Foto inválida, retornando fallback');
-    return DEFAULT_FOTO;
-  }
-
-  // Se for URL externa ou blob/data
-  if (/^(http|blob|data):/.test(foto)) {
-    console.log('✅ Foto externa válida:', foto);
-    return foto;
-  }
-
-  // Monta URL completa
+  if (!foto || foto === 'null' || foto === 'undefined' || foto.trim() === '') return DEFAULT_FOTO;
+  if (/^(http|blob|data):/.test(foto)) return foto;
   const cleanBase = API_URL.replace(/\/$/, '');
   const cleanPath = foto.replace(/^\//, '');
-  const finalUrl = `${cleanBase}/${cleanPath}`;
-  console.log('✅ URL construída:', finalUrl);
-  return finalUrl;
+  return `${cleanBase}/${cleanPath}`;
 };
 
 export default function SalaLinkahSkype() {
@@ -60,8 +42,7 @@ export default function SalaLinkahSkype() {
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // --- FUNÇÕES DE AÇÃO ---
-
+  // --- FUNÇÕES ---
   const handleImageError = (e: any, local: string) => {
     console.error(`❌ Erro [${local}]:`, e.target.src);
     e.target.src = DEFAULT_FOTO;
@@ -71,8 +52,6 @@ export default function SalaLinkahSkype() {
     if (!dadosUsuario) return;
     const sala = `Call_${id}_${Date.now()}`;
     const fotoCall = dadosUsuario.foto || dadosUsuario.usuario_foto || null;
-
-    console.log('📞 Iniciando call para:', destino, 'com foto:', fotoCall);
 
     try {
       await fetch(`${API_URL}/api/comunidades/enviar`, {
@@ -107,8 +86,6 @@ export default function SalaLinkahSkype() {
       tipo: 'chat'
     };
 
-    console.log('✉️ Enviando mensagem:', payload);
-
     setNovoTexto('');
     setImagemAnexada(null);
 
@@ -125,7 +102,6 @@ export default function SalaLinkahSkype() {
 
   const abrirPerfil = async (nome: string) => {
     setCarregandoPerfil(true);
-    console.log('👤 Abrindo perfil de:', nome);
     try {
       const res = await fetch(`${API_URL}/api/auth/perfil-publico?nome=${encodeURIComponent(nome)}`);
       if (res.ok) setUsuarioSelecionado(await res.json());
@@ -139,16 +115,10 @@ export default function SalaLinkahSkype() {
   };
 
   // --- EFFECTS ---
-
   useEffect(() => {
     const savedUser = localStorage.getItem('@Linkah:User');
-    if (savedUser) {
-      console.log('💾 Usuário logado encontrado:', savedUser);
-      setDadosUsuario(JSON.parse(savedUser));
-    } else {
-      console.log('🚨 Nenhum usuário encontrado, redirecionando para login');
-      router.push('/site/login');
-    }
+    if (savedUser) setDadosUsuario(JSON.parse(savedUser));
+    else router.push('/site/login');
   }, [router]);
 
   useEffect(() => {
@@ -167,13 +137,11 @@ export default function SalaLinkahSkype() {
 
         if (resOn.ok) {
           const on = await resOn.json();
-          console.log('👥 Usuários online recebidos:', on);
           if (Array.isArray(on)) setUsuariosOnline(on.filter((u: any) => u.usuario_nome !== dadosUsuario.nome));
         }
 
         if (resMsg.ok) {
           const msgs = await resMsg.json();
-          console.log('💬 Mensagens recebidas:', msgs);
           setMensagens(msgs);
 
           const AGORA = Date.now();
@@ -201,10 +169,15 @@ export default function SalaLinkahSkype() {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [mensagens]);
 
-  if (carregando) return <div className="h-screen flex items-center justify-center bg-white"><Loader2 className="animate-spin text-[#ff4d4d]" size={48} /></div>;
+  if (carregando) return (
+    <div className="h-screen flex items-center justify-center bg-white">
+      <Loader2 className="animate-spin text-[#ff4d4d]" size={48} />
+    </div>
+  );
 
   return (
     <div className="flex h-screen bg-[#FCFBFA] overflow-hidden text-slate-900 font-sans">
+
       {/* MODAL CONVITE */}
       {conviteRecebido && (
         <div className="fixed inset-0 z-[999] bg-slate-950/40 backdrop-blur-md flex items-center justify-center p-4">
@@ -239,6 +212,7 @@ export default function SalaLinkahSkype() {
 
       {/* CHAT */}
       <main className="flex-1 flex flex-col bg-white lg:rounded-l-[3rem] shadow-2xl border-l border-slate-100 relative">
+
         {chamadaAtiva && (
           <div className="absolute inset-0 z-50 bg-slate-950 flex flex-col lg:rounded-l-[3rem] overflow-hidden">
             <div className="p-4 flex justify-end">
@@ -280,6 +254,7 @@ export default function SalaLinkahSkype() {
           <input type="text" placeholder="Escreva aqui..." value={novoTexto} onChange={e => setNovoTexto(e.target.value)} className="flex-1 p-3 rounded-2xl border border-slate-100 text-sm focus:outline-none" />
           <button type="submit" className="p-3 bg-[#ff4d4d] text-white rounded-full"><Send size={18} /></button>
         </form>
+
       </main>
     </div>
   );
