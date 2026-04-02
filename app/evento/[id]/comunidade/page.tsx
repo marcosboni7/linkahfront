@@ -18,14 +18,18 @@ const DEFAULT_FOTO = 'https://i.pinimg.com/originals/ec/a5/a7/eca5a7c991e8fa5255
 const getImagemUrl = (foto?: string | null) => {
   console.log('🔍 getImagemUrl chamado com:', foto);
 
-  if (!foto || foto === "null" || foto === "undefined" || foto === "") {
+  if (!foto || foto === 'null' || foto === 'undefined' || foto.trim() === '') {
     console.log('⚠️ Foto inválida, retornando fallback');
     return DEFAULT_FOTO;
   }
-  if (foto.startsWith('http') || foto.startsWith('blob:') || foto.startsWith('data:')) {
+
+  // Se for URL externa ou blob/data
+  if (/^(http|blob|data):/.test(foto)) {
     console.log('✅ Foto externa válida:', foto);
     return foto;
   }
+
+  // Monta URL completa
   const cleanBase = API_URL.replace(/\/$/, '');
   const cleanPath = foto.replace(/^\//, '');
   const finalUrl = `${cleanBase}/${cleanPath}`;
@@ -224,7 +228,7 @@ export default function SalaLinkahSkype() {
             return (
               <div key={i} onClick={() => abrirPerfil(u.usuario_nome)} className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-2xl cursor-pointer">
                 <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center overflow-hidden">
-                  <img src={imgLink} className="w-full h-full object-cover" alt="" onError={(e) => handleImageError(e, 'Sidebar')} />
+                  <img src={imgLink} className="w-full h-full object-cover" alt={u.usuario_nome} onError={(e) => handleImageError(e, 'Sidebar')} />
                 </div>
                 <span className="text-sm font-bold truncate">{u.usuario_nome}</span>
               </div>
