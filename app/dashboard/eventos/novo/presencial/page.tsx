@@ -1,10 +1,9 @@
-
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { 
   ChevronLeft, ImageIcon, Search, MapPin, X, Loader2, 
-  Users, Ticket, Sparkles, Navigation, Clock
+  Users, Ticket, Sparkles, Navigation, Clock, Building2
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/app/context/LanguageContext';
@@ -25,6 +24,10 @@ export default function NovoEventoPresencial() {
 
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null); 
+
+  // --- NOVOS STATES PARA PATROCINADOR ---
+  const [previewBanner, setPreviewBanner] = useState<string | null>(null);
+  const [selectedBanner, setSelectedBanner] = useState<File | null>(null); 
   
   const [formData, setFormData] = useState({
     nome: '', categoria: '', status: 'Ativo', descricao: '',
@@ -112,11 +115,22 @@ export default function NovoEventoPresencial() {
     }
   };
 
+  // --- HANDLER PARA O BANNER DO PATROCINADOR ---
+  const handleBannerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedBanner(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setPreviewBanner(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSalvar = async () => {
     const token = localStorage.getItem('@Linkah:Token');
     const userRaw = localStorage.getItem('@Linkah:User');
     let emailProdutor = '';
-    let nomeUsuario = ''; // Variável para o Host automático
+    let nomeUsuario = ''; 
 
     try {
       if (userRaw) {
@@ -137,14 +151,15 @@ export default function NovoEventoPresencial() {
     setIsLoading(true);
     const dataToSend = new FormData();
     
-    // Adiciona os campos do formulário
     Object.entries(formData).forEach(([key, value]) => dataToSend.append(key, value));
     
-    // Adiciona as credenciais do criador (Host)
     dataToSend.append('produtor_email', emailProdutor.trim());
-    dataToSend.append('usuario_nome', nomeUsuario.trim()); // ✅ Garante o Host automático no presencial
+    dataToSend.append('usuario_nome', nomeUsuario.trim());
     
     if (selectedFile) dataToSend.append('imagem_capa', selectedFile);
+    
+    // ENVIA O BANNER SE TIVER SIDO SELECIONADO
+    if (selectedBanner) dataToSend.append('banner_patrocinio', selectedBanner);
 
     try {
       const response = await fetch(`${API_URL}/api/eventos/novo-presencial`, {
@@ -296,8 +311,9 @@ export default function NovoEventoPresencial() {
           </div>
 
           <div className="lg:col-span-4 space-y-10">
+            {/* MEDIA CENTER - CAPA */}
             <div className="bg-white rounded-[3.5rem] p-8 shadow-sm border border-slate-100">
-              <h4 className="text-[9px] text-slate-300 font-black uppercase mb-8 text-center tracking-[0.4em] italic">Media Center</h4>
+              <h4 className="text-[9px] text-slate-300 font-black uppercase mb-8 text-center tracking-[0.4em] italic">Media Center: Capa</h4>
               <div className="relative">
                 {previewImage ? (
                   <div className="relative w-full aspect-[4/5] rounded-[3rem] overflow-hidden shadow-2xl group border-4 border-white">
@@ -318,6 +334,31 @@ export default function NovoEventoPresencial() {
               </div>
             </div>
 
+            {/* --- NOVO CAMPO: BANNER DE PATROCINADOR --- */}
+            <div className="bg-white rounded-[3.5rem] p-8 shadow-sm border border-slate-100">
+              <h4 className="text-[9px] text-slate-300 font-black uppercase mb-8 text-center tracking-[0.4em] italic">Media Center: Patrocínio</h4>
+              <div className="relative">
+                {previewBanner ? (
+                  <div className="relative w-full aspect-video rounded-[2rem] overflow-hidden shadow-2xl group border-4 border-white">
+                    <img src={previewBanner} alt="Patrocinador" className="w-full h-full object-cover" />
+                    <button onClick={() => {setPreviewBanner(null); setSelectedBanner(null);}} className="absolute top-4 right-4 bg-white/90 backdrop-blur w-10 h-10 rounded-2xl text-slate-900 shadow-xl flex items-center justify-center hover:scale-110 transition-all">
+                      <X size={20} />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="aspect-video border-2 border-dashed border-slate-100 rounded-[2rem] bg-slate-50/50 cursor-pointer flex flex-col items-center justify-center hover:bg-white hover:border-blue-200 transition-all group">
+                    <input type="file" accept="image/*" onChange={handleBannerChange} className="hidden" />
+                    <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center mb-3 shadow-sm group-hover:scale-110 transition-transform">
+                        <Building2 size={24} className="text-blue-500" />
+                    </div>
+                    <p className="text-[9px] font-black text-slate-800 uppercase tracking-widest italic">Banner Patrocinador</p>
+                  </label>
+                )}
+              </div>
+              <p className="text-[8px] text-slate-400 uppercase font-black text-center mt-6 tracking-widest">Recomendado: 1200x400px (Horizontal)</p>
+            </div>
+
+            {/* MAPA */}
             <div className="bg-white rounded-[3.5rem] p-2 shadow-2xl border border-slate-100 h-[400px] relative overflow-hidden group">
                <div ref={mapContainerRef} className="w-full h-full rounded-[3.2rem]" />
                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur px-6 py-2 rounded-full shadow-lg border border-slate-100">
