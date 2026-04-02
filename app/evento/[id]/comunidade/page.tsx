@@ -34,12 +34,11 @@ export default function SalaLinkahSkype() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const handleImageError = (e: any) => { 
-    console.warn("⚠️ Erro ao carregar imagem específica:", e.target.src);
     e.target.onerror = null; 
     e.target.src = DEFAULT_FOTO; 
   };
 
-  // 1. DEBUG CARREGAMENTO USUÁRIO
+  // 1. CARREGAMENTO COM DEBUG
   useEffect(() => {
     const loadUserData = async () => {
       const savedUser = localStorage.getItem('@Linkah:User');
@@ -49,17 +48,16 @@ export default function SalaLinkahSkype() {
       }
       
       const parsedUser = JSON.parse(savedUser);
-      console.log("🔍 [DEBUG 1] Usuário no LocalStorage:", parsedUser);
+      console.log("🔍 [DEBUG USER] Dados no LocalStorage:", parsedUser);
       
       try {
         const res = await fetch(`${API_URL}/api/auth/perfil?email=${parsedUser.email}`);
         if (res.ok) {
           const profileData = await res.json();
-          console.log("✅ [DEBUG 2] Perfil retornado pelo Banco:", profileData);
+          console.log("✅ [DEBUG API] Perfil vindo do Banco:", profileData);
           setDadosUsuario(profileData);
           localStorage.setItem('@Linkah:User', JSON.stringify(profileData));
         } else {
-          console.error("❌ [DEBUG 2] Erro ao buscar perfil no banco.");
           setDadosUsuario(parsedUser);
         }
       } catch (err) {
@@ -69,13 +67,13 @@ export default function SalaLinkahSkype() {
     loadUserData();
   }, [router]);
 
-  // 2. DEBUG SYNC MENSAGENS
+  // 2. SYNC COM DEBUG DE MENSAGENS
   useEffect(() => {
     if (!id || !dadosUsuario?.nome) return;
 
     const atualizar = async () => {
       try {
-        const minhaFoto = dadosUsuario.foto_perfil || dadosUsuario.foto || dadosUsuario.usuario_foto || '';
+        const minhaFoto = dadosUsuario.foto_perfil || dadosUsuario.foto || '';
         
         const [resEv, resMsg, resOn] = await Promise.all([
           fetch(`${API_URL}/api/eventos/${id}`),
@@ -86,15 +84,8 @@ export default function SalaLinkahSkype() {
         if (resMsg.ok) {
           const msgs = await resMsg.json();
           setMensagens(msgs);
-          
-          // Debug da primeira mensagem da lista para ver a estrutura
           if (msgs.length > 0) {
-            console.log("📩 [DEBUG 3] Estrutura da Mensagem Recebida:", {
-              texto: msgs[msgs.length-1].texto,
-              usuario_foto: msgs[msgs.length-1].usuario_foto,
-              foto: msgs[msgs.length-1].foto,
-              full_object: msgs[msgs.length-1]
-            });
+            console.log("📩 [DEBUG MSG] Última mensagem recebida:", msgs[msgs.length - 1]);
           }
         }
         
@@ -105,7 +96,7 @@ export default function SalaLinkahSkype() {
 
         if (resEv.ok) setDadosEvento(await resEv.json());
         setCarregando(false);
-      } catch (e) { console.error("Erro na sincronização:", e); }
+      } catch (e) { console.error("Erro Sync:", e); }
     };
 
     atualizar();
@@ -113,12 +104,12 @@ export default function SalaLinkahSkype() {
     return () => clearInterval(int);
   }, [id, dadosUsuario]);
 
-  // 3. DEBUG ENVIO DE MENSAGEM
+  // 3. ENVIO COM DEBUG DE PAYLOAD
   const enviarMensagem = async (e: any) => {
     e.preventDefault();
     if (!novoTexto.trim() && !imagemAnexada) return;
 
-    const fotoParaEnviar = dadosUsuario.foto_perfil || dadosUsuario.foto || dadosUsuario.usuario_foto || null;
+    const fotoParaEnviar = dadosUsuario.foto_perfil || dadosUsuario.foto || null;
     
     const payload = {
       evento_id: Number(id),
@@ -129,19 +120,18 @@ export default function SalaLinkahSkype() {
       tipo: 'chat'
     };
 
-    console.log("📤 [DEBUG 4] Enviando Payload:", payload);
+    console.log("📤 [DEBUG SEND] Enviando para API:", payload);
 
     setNovoTexto('');
     setImagemAnexada(null);
 
     try {
-      const response = await fetch(`${API_URL}/api/comunidades/enviar`, {
+      await fetch(`${API_URL}/api/comunidades/enviar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      if (!response.ok) console.error("❌ Erro ao enviar para API");
-    } catch (err) { console.error("Erro ao enviar:", err); }
+    } catch (err) { console.error("Erro envio:", err); }
   };
 
   const iniciarCall = async (destino: string) => {
@@ -177,13 +167,13 @@ export default function SalaLinkahSkype() {
       <aside className="w-80 border-r border-slate-100 hidden lg:flex flex-col bg-white">
         <div className="p-6 flex items-center justify-between">
           <h2 className="font-bold text-2xl">Membros</h2>
-          <Bug size={16} className="text-slate-300" title="Debug mode active" />
+          <Bug size={16} className="text-slate-300" />
         </div>
         <div className="flex-1 overflow-y-auto px-4 space-y-1">
           {usuariosOnline.map((u, i) => {
             const imgSide = getImagemUrl(u.foto || u.foto_perfil || u.usuario_foto);
             return (
-              <div key={i} className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-2xl">
+              <div key={i} className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-2xl cursor-pointer">
                 <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center overflow-hidden font-bold">
                   {imgSide ? <img src={imgSide} className="w-full h-full object-cover" alt="" onError={handleImageError} /> : u.usuario_nome?.charAt(0)}
                 </div>
@@ -196,7 +186,17 @@ export default function SalaLinkahSkype() {
 
       {/* CHAT PRINCIPAL */}
       <main className="flex-1 flex flex-col bg-white lg:rounded-l-[3rem] shadow-2xl border-l border-slate-100 relative">
-        <header className="p-6 border-b border-slate-50 flex justify-between items-center bg-white/80 backdrop-blur-xl">
+        
+        {chamadaAtiva && (
+          <div className="absolute inset-0 z-50 bg-slate-950 flex flex-col lg:rounded-l-[3rem] overflow-hidden">
+            <div className="p-4 flex justify-end bg-slate-900">
+              <button onClick={() => setChamadaAtiva(false)} className="bg-[#ff4d4d] text-white px-6 py-2 rounded-full text-xs font-bold uppercase flex items-center gap-2"><X size={14}/> Sair</button>
+            </div>
+            <iframe src={`https://meet.jit.si/${nomeSalaCall}#userInfo.displayName="${dadosUsuario?.nome}"`} className="flex-1 border-none" allow="camera; microphone; display-capture; autoplay" />
+          </div>
+        )}
+
+        <header className="p-6 border-b border-slate-50 flex justify-between items-center bg-white/80 backdrop-blur-xl sticky top-0 z-10">
           <h1 className="font-bold text-lg">{dadosEvento?.nome || 'Chat Geral'}</h1>
           <button onClick={() => iniciarCall('Todos')} className="p-3 rounded-2xl bg-slate-50 text-slate-400 hover:text-[#ff4d4d] transition-all"><Video size={20} /></button>
         </header>
@@ -206,9 +206,7 @@ export default function SalaLinkahSkype() {
             if (m.tipo === 'status' || m.texto?.includes("CALL_INVITE|")) return null;
             
             const souEu = m.usuario_nome === dadosUsuario.nome;
-            // Tenta pegar a foto de qualquer campo que a API possa retornar
-            const rawFoto = m.usuario_foto || m.foto || m.foto_perfil || m.avatar;
-            const urlFotoMsg = getImagemUrl(rawFoto);
+            const urlFotoMsg = getImagemUrl(m.usuario_foto || m.foto || m.foto_perfil);
 
             return (
               <div key={i} className={`flex ${souEu ? 'justify-end' : 'justify-start'}`}>
@@ -242,9 +240,9 @@ export default function SalaLinkahSkype() {
             placeholder="Digite sua mensagem..." 
             value={novoTexto} 
             onChange={e => setNovoTexto(e.target.value)} 
-            className="flex-1 p-4 rounded-2xl border border-slate-100 text-sm focus:outline-none bg-slate-50" 
+            className="flex-1 p-4 rounded-2xl border border-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff4d4d]/20 transition-all bg-slate-50" 
           />
-          <button type="submit" className="p-4 bg-[#ff4d4d] text-white rounded-full shadow-lg">
+          <button type="submit" className="p-4 bg-[#ff4d4d] text-white rounded-full shadow-lg hover:scale-105 transition-all">
             <Send size={20} />
           </button>
         </form>
