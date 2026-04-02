@@ -14,10 +14,9 @@ const API_URL = 'https://api-linkah.onrender.com';
 // Função corrigida para tratar caminhos relativos da API e URLs externas
 const getImagemUrl = (foto?: string | null) => {
   if (!foto) return undefined;
-  // Se for um blob (preview local) ou URL completa, retorna direto
   if (foto.startsWith('http') || foto.startsWith('blob:')) return foto;
-  // Se for caminho relativo, concatena com a base da API
-  return `${API_URL}${foto.startsWith('/') ? '' : '/'}${foto}`;
+  // Garante que sempre terá "/" entre API_URL e o path
+  return `${API_URL.replace(/\/$/, '')}/${foto.replace(/^\//, '')}`;
 };
 
 export default function SalaLinkahSkype() {
@@ -310,9 +309,9 @@ export default function SalaLinkahSkype() {
                   </div>
                   <div className={`space-y-1 ${souEu ? 'items-end' : 'items-start'}`}>
                     <span className="text-[11px] font-bold text-slate-900 px-1">{souEu ? 'Você' : m.usuario_nome}</span>
-                    <div className={`p-4 rounded-[1.5rem] shadow-sm ${souEu ? 'bg-[#ff4d4d] text-white rounded-tr-none' : 'bg-white text-slate-900 rounded-tl-none'}`}>
-                      {m.imagem && <img src={getImagemUrl(m.imagem)} alt="Anexo" className="rounded-2xl mb-2 max-h-52 object-cover" />}
-                      <p className="text-[13px] font-medium">{m.texto}</p>
+                    <div className={`p-3 rounded-[1.5rem] shadow-sm ${souEu ? 'bg-[#ff4d4d]/10 text-[#ff4d4d]' : 'bg-white text-slate-900'}`}>
+                      {m.texto && <p className="text-[11px]">{m.texto}</p>}
+                      {m.imagem && <img src={getImagemUrl(m.imagem)} className="w-48 h-48 object-cover rounded-xl mt-2" alt="Anexo" />}
                     </div>
                   </div>
                 </div>
@@ -322,23 +321,12 @@ export default function SalaLinkahSkype() {
           <div ref={scrollRef}></div>
         </div>
 
-        <form onSubmit={enviarMensagem} className="p-6 border-t border-slate-100 bg-white flex items-center gap-4 sticky bottom-0 z-10">
-          <input 
-            type="file" 
-            ref={fileInputRef} 
-            className="hidden" 
-            onChange={e => {
-              const file = e.target.files?.[0];
-              if (file) {
-                // Se já existia uma URL de blob anterior, libera ela para evitar leak
-                if (imagemAnexada?.startsWith('blob:')) URL.revokeObjectURL(imagemAnexada);
-                setImagemAnexada(URL.createObjectURL(file));
-              }
-            }} 
-          />
-          <button type="button" onClick={() => fileInputRef.current?.click()} className="p-3 rounded-2xl bg-slate-50 hover:bg-slate-100 transition-all"><Paperclip size={18} /></button>
-          <input type="text" placeholder="Digite sua mensagem..." value={novoTexto} onChange={e => setNovoTexto(e.target.value)} className="flex-1 bg-slate-50 p-4 rounded-2xl text-sm outline-none" />
-          <button type="submit" className="p-3 rounded-2xl bg-[#ff4d4d] text-white hover:brightness-110 transition-all"><Send size={18} /></button>
+        {/* FORMULÁRIO DE ENVIO */}
+        <form onSubmit={enviarMensagem} className="p-6 border-t border-slate-50 flex items-center gap-4 bg-white/80 backdrop-blur-xl sticky bottom-0 z-10">
+          <input type="text" placeholder="Digite uma mensagem..." value={novoTexto} onChange={e => setNovoTexto(e.target.value)} className="flex-1 p-3 rounded-2xl border border-slate-100 focus:outline-none focus:ring-2 focus:ring-[#ff4d4d] text-sm" />
+          <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={e => { if(e.target.files?.[0]) setImagemAnexada(URL.createObjectURL(e.target.files[0])); }} />
+          <button type="button" onClick={() => fileInputRef.current?.click()} className="p-3 rounded-full bg-slate-50 hover:bg-slate-100 transition-all"><Paperclip size={18} /></button>
+          <button type="submit" className="p-3 rounded-full bg-[#ff4d4d] text-white hover:brightness-110 transition-all"><Send size={18} /></button>
         </form>
       </main>
     </div>
