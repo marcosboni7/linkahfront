@@ -97,14 +97,19 @@ export default function NovoEventoOnline() {
     const token = localStorage.getItem('@Linkah:Token');
     const userRaw = localStorage.getItem('@Linkah:User');
     let emailProdutor = '';
+    let nomeUsuario = ''; // Variável para o nome do dono
 
     try {
       if (userRaw) {
         const userObj = JSON.parse(userRaw);
+        // Tenta pegar o email de várias estruturas possíveis
         emailProdutor = userObj.email || userObj.user?.email || userObj.data?.email || '';
+        // Tenta pegar o nome de quem está logado para ser o Host
+        nomeUsuario = userObj.nome || userObj.user?.nome || userObj.data?.nome || userObj.username || '';
       }
     } catch (e) {
       emailProdutor = localStorage.getItem('userEmail') || '';
+      nomeUsuario = localStorage.getItem('userName') || 'Admin';
     }
 
     if (!formData.nome || !formData.categoria || !formData.data_inicio) {
@@ -123,6 +128,8 @@ export default function NovoEventoOnline() {
     try {
       const dataToSend = new FormData();
       dataToSend.append('produtor_email', emailProdutor.trim());
+      dataToSend.append('usuario_nome', nomeUsuario.trim()); // ✅ ADICIONADO: Envia o dono da comunidade
+
       Object.entries(formData).forEach(([key, value]) => {
         dataToSend.append(key, value);
       });

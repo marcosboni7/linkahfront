@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
@@ -115,13 +116,18 @@ export default function NovoEventoPresencial() {
     const token = localStorage.getItem('@Linkah:Token');
     const userRaw = localStorage.getItem('@Linkah:User');
     let emailProdutor = '';
+    let nomeUsuario = ''; // Variável para o Host automático
 
     try {
       if (userRaw) {
         const userObj = JSON.parse(userRaw);
         emailProdutor = userObj.email || userObj.user?.email || userObj.data?.email || '';
+        nomeUsuario = userObj.nome || userObj.user?.nome || userObj.data?.nome || userObj.username || '';
       }
-    } catch (e) { emailProdutor = ''; }
+    } catch (e) { 
+      emailProdutor = ''; 
+      nomeUsuario = 'Admin';
+    }
 
     if (!token) return Swal.fire('Sessão Expirada', 'Faça login novamente.', 'warning');
     if (!formData.nome || !formData.categoria || !formData.data_inicio) {
@@ -130,8 +136,14 @@ export default function NovoEventoPresencial() {
 
     setIsLoading(true);
     const dataToSend = new FormData();
+    
+    // Adiciona os campos do formulário
     Object.entries(formData).forEach(([key, value]) => dataToSend.append(key, value));
-    dataToSend.append('produtor_email', emailProdutor);
+    
+    // Adiciona as credenciais do criador (Host)
+    dataToSend.append('produtor_email', emailProdutor.trim());
+    dataToSend.append('usuario_nome', nomeUsuario.trim()); // ✅ Garante o Host automático no presencial
+    
     if (selectedFile) dataToSend.append('imagem_capa', selectedFile);
 
     try {
