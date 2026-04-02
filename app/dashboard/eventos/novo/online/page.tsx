@@ -13,7 +13,8 @@ import {
   Link2,
   Clock,
   Layout,
-  Building2
+  Building2,
+  Wand2 // Ícone extra para o botão de IA
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/app/context/LanguageContext';
@@ -26,10 +27,9 @@ export default function NovoEventoOnline() {
   const router = useRouter();
 
   const [isLoading, setIsLoading] = useState(false);
+  const [isGeneratingIA, setIsGeneratingIA] = useState(false); // State para o loading da IA
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-
-  // --- NOVOS STATES PARA PATROCINADOR ---
   const [previewBanner, setPreviewBanner] = useState<string | null>(null);
   const [selectedBanner, setSelectedBanner] = useState<File | null>(null);
 
@@ -50,6 +50,65 @@ export default function NovoEventoOnline() {
     visibilidade: 'Publico'
   });
 
+  // --- FUNÇÃO PARA GERAR COM IA ---
+  const handleIA = async () => {
+    const { value: text } = await Swal.fire({
+      title: 'GERADOR INTELIGENTE',
+      input: 'textarea',
+      inputLabel: 'Cole o texto do seu evento (WhatsApp, E-mail, Post)',
+      inputPlaceholder: 'Ex: Workshop de React dia 20/05 as 19h no Zoom...',
+      showCancelButton: true,
+      confirmButtonText: 'Gerar Dados ✨',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#000',
+      inputAttributes: { 'aria-label': 'Texto do evento' },
+      customClass: { popup: 'rounded-[2rem] font-sans', input: 'rounded-xl' }
+    });
+
+    if (!text) return;
+
+    setIsGeneratingIA(true);
+    const token = localStorage.getItem('@Linkah:Token');
+
+    try {
+      const response = await fetch(`${API_URL}/api/eventos/gerar-ia`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ texto: text })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setFormData(prev => ({
+          ...prev,
+          ...data,
+          // Garante que campos vazios da IA não sobrescrevam o padrão "Online"
+          tipo: 'Online',
+          local_nome: data.local_nome || 'Plataforma Online'
+        }));
+        
+        Swal.fire({
+          icon: 'success',
+          title: 'DADOS EXTRAÍDOS',
+          text: 'Revise os campos preenchidos pela IA.',
+          timer: 2000,
+          showConfirmButton: false,
+          customClass: { popup: 'rounded-[2rem]' }
+        });
+      } else {
+        throw new Error(data.error);
+      }
+    } catch (error) {
+      Swal.fire('Erro na IA', 'Não conseguimos processar esse texto agora.', 'error');
+    } finally {
+      setIsGeneratingIA(false);
+    }
+  };
+
   const compressImage = (base64Str: string): Promise<string> => {
     return new Promise((resolve, reject) => {
       const img = new Image();
@@ -59,7 +118,6 @@ export default function NovoEventoOnline() {
         const MAX_WIDTH = 1080;
         let width = img.width;
         let height = img.height;
-
         if (width > MAX_WIDTH) {
           height *= MAX_WIDTH / width;
           width = MAX_WIDTH;
@@ -83,7 +141,6 @@ export default function NovoEventoOnline() {
     const file = e.target.files?.[0];
     if (!file) return;
     setSelectedFile(file);
-
     const reader = new FileReader();
     reader.onloadend = async () => {
       const originalBase64 = reader.result as string;
@@ -97,7 +154,6 @@ export default function NovoEventoOnline() {
     reader.readAsDataURL(file);
   };
 
-  // --- HANDLER PARA O BANNER DO PATROCINADOR ---
   const handleBannerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -148,8 +204,6 @@ export default function NovoEventoOnline() {
       });
 
       if (selectedFile) dataToSend.append('imagem_capa', selectedFile);
-      
-      // ENVIA O BANNER SE TIVER SIDO SELECIONADO
       if (selectedBanner) dataToSend.append('banner_patrocinio', selectedBanner);
 
       const response = await fetch(`${API_URL}/api/eventos/novo-online`, {
@@ -218,11 +272,23 @@ export default function NovoEventoOnline() {
           
           <div className="lg:col-span-8 space-y-10">
             <section className="bg-white rounded-[3rem] p-10 shadow-sm border border-slate-100 space-y-8">
-              <div className="flex items-center gap-3 mb-4">
-                 <div className="w-10 h-10 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400">
-                    <Layout size={20} />
-                 </div>
-                 <h2 className="font-black italic uppercase text-xs tracking-widest text-slate-800">Dados da Experiência</h2>
+              <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400">
+                        <Layout size={20} />
+                    </div>
+                    <h2 className="font-black italic uppercase text-xs tracking-widest text-slate-800">Dados da Experiência</h2>
+                  </div>
+
+                  {/* BOTÃO DA IA */}
+                  <button 
+                    onClick={handleIA}
+                    disabled={isGeneratingIA}
+                    className="flex items-center gap-2 bg-slate-900 text-white px-5 py-3 rounded-2xl text-[9px] font-black uppercase tracking-widest hover:bg-pink-600 transition-all active:scale-95 disabled:opacity-50"
+                  >
+                    {isGeneratingIA ? <Loader2 size={12} className="animate-spin" /> : <Wand2 size={12} />}
+                    {isGeneratingIA ? 'Processando...' : 'Preencher com IA'}
+                  </button>
               </div>
 
               <div className="space-y-3">
@@ -327,7 +393,6 @@ export default function NovoEventoOnline() {
           </div>
 
           <div className="lg:col-span-4 space-y-10">
-            {/* MEDIA CENTER: CAPA */}
             <div className="bg-white rounded-[3.5rem] p-8 shadow-sm border border-slate-100">
               <h4 className="text-[9px] text-slate-300 font-black uppercase mb-8 text-center tracking-[0.4em] italic">Media Center: Capa</h4>
               <div className="relative">
@@ -350,7 +415,6 @@ export default function NovoEventoOnline() {
               </div>
             </div>
 
-            {/* --- NOVO CAMPO: BANNER DE PATROCINADOR --- */}
             <div className="bg-white rounded-[3.5rem] p-8 shadow-sm border border-slate-100">
               <h4 className="text-[9px] text-slate-300 font-black uppercase mb-8 text-center tracking-[0.4em] italic">Media Center: Patrocínio</h4>
               <div className="relative">
