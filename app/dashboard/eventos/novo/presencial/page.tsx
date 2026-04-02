@@ -4,7 +4,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { 
   ChevronLeft, ImageIcon, Search, MapPin, X, Loader2, 
   Users, Ticket, Sparkles, Navigation, Clock, Building2,
-  Wand2 // Ícone para a IA
+  Wand2 
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/app/context/LanguageContext';
@@ -16,7 +16,7 @@ export default function NovoEventoPresencial() {
   const { t }: any = useLanguage();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const [isAiLoading, setIsAiLoading] = useState(false); // Loading específico para a IA
+  const [isAiLoading, setIsAiLoading] = useState(false);
   
   const searchInputRef = useRef<HTMLInputElement>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -38,7 +38,7 @@ export default function NovoEventoPresencial() {
     regras: '', visibilidade: 'Publico'
   });
 
-  // --- FUNÇÃO PARA GERAR COM IA ---
+  // --- FUNÇÃO PARA GERAR COM IA (CORRIGIDA) ---
   const handleGerarComIA = async () => {
     const { value: text } = await Swal.fire({
       title: 'Gerar Evento com IA',
@@ -48,7 +48,8 @@ export default function NovoEventoPresencial() {
       showCancelButton: true,
       confirmButtonText: 'Mágica! ✨',
       confirmButtonColor: '#C22973',
-      cancelButtonText: 'Cancelar'
+      cancelButtonText: 'Cancelar',
+      customClass: { popup: 'rounded-[2rem]' }
     });
 
     if (!text) return;
@@ -58,14 +59,14 @@ export default function NovoEventoPresencial() {
       const response = await fetch(`${API_URL}/api/eventos/gerar-ia`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ textoBruto: text }),
+        body: JSON.stringify({ texto: text }), // Chave 'texto' batendo com o Back-end
       });
 
       if (!response.ok) throw new Error('Falha na IA');
 
       const aiData = await response.json();
 
-      // Atualiza o formulário com o que a IA extraiu
+      // Mapeamento Inteligente: IA -> Formulário
       setFormData(prev => ({
         ...prev,
         nome: aiData.nome || prev.nome,
@@ -73,9 +74,11 @@ export default function NovoEventoPresencial() {
         descricao: aiData.descricao || prev.descricao,
         data_inicio: aiData.data_inicio || prev.data_inicio,
         hora_inicio: aiData.hora_inicio || prev.hora_inicio,
-        data_termino: aiData.data_termino || prev.data_termino,
+        data_termino: aiData.data_termino || aiData.data_inicio || prev.data_termino,
         hora_termino: aiData.hora_termino || prev.hora_termino,
         local_nome: aiData.local_nome || prev.local_nome,
+        endereco: aiData.rua || prev.endereco, // IA retorna 'rua', form usa 'endereco'
+        numero: aiData.numero || prev.numero,
         cidade: aiData.cidade || prev.cidade,
         estado: aiData.estado || prev.estado,
         cep: aiData.cep || prev.cep,
@@ -123,7 +126,8 @@ export default function NovoEventoPresencial() {
 
       if (searchInputRef.current && !autocompleteRef.current) {
         autocompleteRef.current = new Autocomplete(searchInputRef.current, {
-          types: ['geocode', 'establishment'],
+          types: ['address', 'establishment'],
+          componentRestrictions: { country: 'br' },
           fields: ['address_components', 'formatted_address', 'name', 'geometry']
         });
 
@@ -187,7 +191,7 @@ export default function NovoEventoPresencial() {
   };
 
   const handleSalvar = async () => {
-    const token = localStorage.getItem('@Linkah:Token');
+    const token = localStorage.getItem('@Linkah:Token')?.replace(/['"]+/g, '');
     const userRaw = localStorage.getItem('@Linkah:User');
     let emailProdutor = '';
     let nomeUsuario = ''; 
@@ -195,11 +199,10 @@ export default function NovoEventoPresencial() {
     try {
       if (userRaw) {
         const userObj = JSON.parse(userRaw);
-        emailProdutor = userObj.email || userObj.user?.email || userObj.data?.email || '';
-        nomeUsuario = userObj.nome || userObj.user?.nome || userObj.data?.nome || userObj.username || '';
+        emailProdutor = userObj.email || userObj.user?.email || '';
+        nomeUsuario = userObj.nome || userObj.user?.nome || 'Organizador';
       }
     } catch (e) { 
-      emailProdutor = ''; 
       nomeUsuario = 'Admin';
     }
 
@@ -211,7 +214,9 @@ export default function NovoEventoPresencial() {
     setIsLoading(true);
     const dataToSend = new FormData();
     
-    Object.entries(formData).forEach(([key, value]) => dataToSend.append(key, value));
+    Object.entries(formData).forEach(([key, value]) => {
+      if (value !== null && value !== undefined) dataToSend.append(key, value.toString());
+    });
     
     dataToSend.append('produtor_email', emailProdutor.trim());
     dataToSend.append('usuario_nome', nomeUsuario.trim());
@@ -222,18 +227,18 @@ export default function NovoEventoPresencial() {
     try {
       const response = await fetch(`${API_URL}/api/eventos/novo-presencial`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
+        headers: { 'Authorization': `Bearer ${token}` }, // Sem Content-Type para FormData
         body: dataToSend,
       });
 
       const data = await response.json();
       if (response.ok) {
-        router.push(`/dashboard/eventos/novo/ingressos/${data.id}`);
+        router.push(`/dashboard/eventos/novo/ingressos/${data.id || data.evento?.id}`);
       } else {
         Swal.fire('Erro', data.message || "Falha ao salvar", 'error');
       }
     } catch (error) {
-      Swal.fire('Erro de Rede', 'Verifique sua conexão.', 'error');
+      Swal.fire('Erro de Rede', 'Verifique sua conexão com o servidor.', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -273,7 +278,6 @@ export default function NovoEventoPresencial() {
                   <div className="flex justify-between items-end mb-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 italic">Título da Experiência</label>
                     
-                    {/* BOTÃO DA IA */}
                     <button 
                       onClick={handleGerarComIA}
                       disabled={isAiLoading}
@@ -382,7 +386,6 @@ export default function NovoEventoPresencial() {
           </div>
 
           <div className="lg:col-span-4 space-y-10">
-            {/* MEDIA CENTER - CAPA */}
             <div className="bg-white rounded-[3.5rem] p-8 shadow-sm border border-slate-100">
               <h4 className="text-[9px] text-slate-300 font-black uppercase mb-8 text-center tracking-[0.4em] italic">Media Center: Capa</h4>
               <div className="relative">
@@ -405,30 +408,7 @@ export default function NovoEventoPresencial() {
               </div>
             </div>
 
-            <div className="bg-white rounded-[3.5rem] p-8 shadow-sm border border-slate-100">
-              <h4 className="text-[9px] text-slate-300 font-black uppercase mb-8 text-center tracking-[0.4em] italic">Media Center: Patrocínio</h4>
-              <div className="relative">
-                {previewBanner ? (
-                  <div className="relative w-full aspect-video rounded-[2rem] overflow-hidden shadow-2xl group border-4 border-white">
-                    <img src={previewBanner} alt="Patrocinador" className="w-full h-full object-cover" />
-                    <button onClick={() => {setPreviewBanner(null); setSelectedBanner(null);}} className="absolute top-4 right-4 bg-white/90 backdrop-blur w-10 h-10 rounded-2xl text-slate-900 shadow-xl flex items-center justify-center hover:scale-110 transition-all">
-                      <X size={20} />
-                    </button>
-                  </div>
-                ) : (
-                  <label className="aspect-video border-2 border-dashed border-slate-100 rounded-[2rem] bg-slate-50/50 cursor-pointer flex flex-col items-center justify-center hover:bg-white hover:border-blue-200 transition-all group">
-                    <input type="file" accept="image/*" onChange={handleBannerChange} className="hidden" />
-                    <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center mb-3 shadow-sm group-hover:scale-110 transition-transform">
-                        <Building2 size={24} className="text-blue-500" />
-                    </div>
-                    <p className="text-[9px] font-black text-slate-800 uppercase tracking-widest italic">Banner Patrocinador</p>
-                  </label>
-                )}
-              </div>
-              <p className="text-[8px] text-slate-400 uppercase font-black text-center mt-6 tracking-widest">Recomendado: 1200x400px (Horizontal)</p>
-            </div>
-
-            <div className="bg-white rounded-[3.5rem] p-2 shadow-2xl border border-slate-100 h-[400px] relative overflow-hidden group">
+            <div className="bg-white rounded-[3.5rem] p-8 shadow-sm border border-slate-100 h-[400px] relative overflow-hidden group">
                <div ref={mapContainerRef} className="w-full h-full rounded-[3.2rem]" />
                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur px-6 py-2 rounded-full shadow-lg border border-slate-100">
                   <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Live View no Mapa</p>
