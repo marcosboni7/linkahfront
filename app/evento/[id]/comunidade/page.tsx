@@ -1,14 +1,13 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import {
-  Send, Video, Loader2
-} from 'lucide-react';
+import { Send, Video, Loader2 } from 'lucide-react';
 import { useLanguage } from '@/app/context/LanguageContext';
 
 const API_URL = 'https://api-linkah.onrender.com';
 const DEFAULT_FOTO = 'https://i.pinimg.com/originals/ec/a5/a7/eca5a7c991e8fa52554e953593faba2d.gif';
 
+// --- Função utilitária para pegar URL de avatar/foto ---
 const getImagemUrl = (foto?: string | null) => {
   console.log('🔍 getImagemUrl chamado com:', foto);
   if (!foto || foto === 'null' || foto === 'undefined' || foto.trim() === '') return DEFAULT_FOTO;
@@ -97,6 +96,7 @@ export default function SalaLinkahSkype() {
     } catch (err) { console.error("Erro ao iniciar call:", err); }
   };
 
+  // --- Carrega usuário logado ---
   useEffect(() => {
     const savedUser = localStorage.getItem('@Linkah:User');
     if (savedUser) {
@@ -105,6 +105,7 @@ export default function SalaLinkahSkype() {
     } else router.push('/site/login');
   }, [router]);
 
+  // --- Atualiza mensagens e presença ---
   useEffect(() => {
     if (!id || !dadosUsuario?.nome) return;
 
@@ -137,11 +138,16 @@ export default function SalaLinkahSkype() {
     return () => clearInterval(int);
   }, [id, dadosUsuario]);
 
+  // --- Scroll automático ---
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [mensagens]);
 
-  if (carregando) return <div className="h-screen flex items-center justify-center bg-white"><Loader2 className="animate-spin text-[#ff4d4d]" size={48} /></div>;
+  if (carregando) return (
+    <div className="h-screen flex items-center justify-center bg-white">
+      <Loader2 className="animate-spin text-[#ff4d4d]" size={48} />
+    </div>
+  );
 
   return (
     <div className="flex h-screen bg-[#FCFBFA] overflow-hidden text-slate-900 font-sans">
@@ -194,7 +200,6 @@ export default function SalaLinkahSkype() {
           {mensagens.map((m, i) => {
             const souEu = m.usuario_nome === dadosUsuario.nome;
 
-            // Prioridade: avatar da mensagem > avatar do map > avatar do usuário > fallback
             const avatarMsg = m.usuario_foto || m.foto || m.avatar || avatarMap[m.usuario_nome] || (souEu ? dadosUsuario.foto_perfil || dadosUsuario.avatar : null);
             const imgLink = getImagemUrl(avatarMsg);
 
