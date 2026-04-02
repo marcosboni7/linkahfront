@@ -1,22 +1,17 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import {
-  Send, Video, Loader2
-} from 'lucide-react';
+import { Send, Video, Loader2 } from 'lucide-react';
 import { useLanguage } from '@/app/context/LanguageContext';
 
 const API_URL = 'https://api-linkah.onrender.com';
 const DEFAULT_FOTO = 'https://i.pinimg.com/originals/ec/a5/a7/eca5a7c991e8fa52554e953593faba2d.gif';
 
+// Função que retorna URL válida, evitando concatenar API_URL em URLs externas
 const getImagemUrl = (foto?: string | null) => {
   if (!foto || foto === 'null' || foto === 'undefined' || foto.trim() === '') return DEFAULT_FOTO;
-  // URL externa
-  if (/^(http|blob|data):/.test(foto)) return foto;
-  // URL interna
-  const cleanBase = API_URL.replace(/\/$/, '');
-  const cleanPath = foto.replace(/^\//, '');
-  return `${cleanBase}/${cleanPath}`;
+  if (/^(http|https|blob|data):/.test(foto)) return foto; // externa
+  return `${API_URL.replace(/\/$/, '')}/${foto.replace(/^\//, '')}`; // interna
 };
 
 export default function SalaLinkahSkype() {
