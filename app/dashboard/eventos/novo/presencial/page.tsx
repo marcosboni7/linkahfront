@@ -38,7 +38,7 @@ export default function NovoEventoPresencial() {
     regras: '', visibilidade: 'Publico'
   });
 
-  // --- FUNÇÃO PARA GERAR COM IA (CORRIGIDA) ---
+  // --- FUNÇÃO PARA GERAR COM IA ---
   const handleGerarComIA = async () => {
     const { value: text } = await Swal.fire({
       title: 'Gerar Evento com IA',
@@ -59,14 +59,13 @@ export default function NovoEventoPresencial() {
       const response = await fetch(`${API_URL}/api/eventos/gerar-ia`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ texto: text }), // Chave 'texto' batendo com o Back-end
+        body: JSON.stringify({ texto: text }),
       });
 
       if (!response.ok) throw new Error('Falha na IA');
 
       const aiData = await response.json();
 
-      // Mapeamento Inteligente: IA -> Formulário
       setFormData(prev => ({
         ...prev,
         nome: aiData.nome || prev.nome,
@@ -77,7 +76,7 @@ export default function NovoEventoPresencial() {
         data_termino: aiData.data_termino || aiData.data_inicio || prev.data_termino,
         hora_termino: aiData.hora_termino || prev.hora_termino,
         local_nome: aiData.local_nome || prev.local_nome,
-        endereco: aiData.rua || prev.endereco, // IA retorna 'rua', form usa 'endereco'
+        endereco: aiData.rua || prev.endereco, 
         numero: aiData.numero || prev.numero,
         cidade: aiData.cidade || prev.cidade,
         estado: aiData.estado || prev.estado,
@@ -227,7 +226,7 @@ export default function NovoEventoPresencial() {
     try {
       const response = await fetch(`${API_URL}/api/eventos/novo-presencial`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }, // Sem Content-Type para FormData
+        headers: { 'Authorization': `Bearer ${token}` },
         body: dataToSend,
       });
 
@@ -277,7 +276,6 @@ export default function NovoEventoPresencial() {
                 <div className="space-y-3 relative">
                   <div className="flex justify-between items-end mb-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 italic">Título da Experiência</label>
-                    
                     <button 
                       onClick={handleGerarComIA}
                       disabled={isAiLoading}
@@ -287,7 +285,6 @@ export default function NovoEventoPresencial() {
                       {isAiLoading ? 'Processando...' : 'Preencher com IA'}
                     </button>
                   </div>
-                  
                   <input name="nome" value={formData.nome} onChange={handleChange} placeholder="Ex: Festival de Jazz 2026" className="w-full bg-slate-50 p-6 rounded-[2rem] outline-none font-bold text-xl focus:bg-white border-2 border-transparent focus:border-pink-100 transition-all shadow-inner" />
                 </div>
                 
@@ -353,29 +350,21 @@ export default function NovoEventoPresencial() {
                  </div>
                  <h2 className="font-black italic uppercase text-xs tracking-widest text-slate-800">Localização do Evento</h2>
               </div>
-              
               <div className="space-y-6">
                 <div className="relative">
                   <Search size={18} className="absolute left-6 top-1/2 -translate-y-1/2 text-pink-400" />
-                  <input 
-                    ref={searchInputRef} 
-                    placeholder="Onde será o evento? Digite o endereço ou nome do local..." 
-                    className="w-full bg-slate-900 text-white p-7 pl-16 rounded-[2rem] outline-none font-bold text-sm shadow-2xl focus:ring-4 focus:ring-pink-500/10 transition-all" 
-                  />
+                  <input ref={searchInputRef} placeholder="Onde será o evento?" className="w-full bg-slate-900 text-white p-7 pl-16 rounded-[2rem] outline-none font-bold text-sm shadow-2xl focus:ring-4 focus:ring-pink-500/10 transition-all" />
                 </div>
-                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <input name="local_nome" value={formData.local_nome} onChange={handleChange} placeholder="Nome do Local" className="w-full bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner" />
-                  <input name="cep" value={formData.cep} onChange={handleChange} placeholder="CEP" className="w-full bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner" />
+                  <input name="local_nome" value={formData.local_nome} onChange={handleChange} placeholder="Nome do Local" className="bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner" />
+                  <input name="cep" value={formData.cep} onChange={handleChange} placeholder="CEP" className="bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner" />
                 </div>
-
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="md:col-span-2">
                     <input name="endereco" value={formData.endereco} onChange={handleChange} placeholder="Endereço / Rua" className="w-full bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner" />
                   </div>
-                  <input name="numero" value={formData.numero} onChange={handleChange} placeholder="Número" className="w-full bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner" />
+                  <input name="numero" value={formData.numero} onChange={handleChange} placeholder="Número" className="bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner" />
                 </div>
-
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <input name="cidade" value={formData.cidade} onChange={handleChange} placeholder="Cidade" className="bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner" />
                   <input name="estado" value={formData.estado} onChange={handleChange} placeholder="UF" className="bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner text-center" />
@@ -386,6 +375,7 @@ export default function NovoEventoPresencial() {
           </div>
 
           <div className="lg:col-span-4 space-y-10">
+            {/* MEDIA CENTER: CAPA */}
             <div className="bg-white rounded-[3.5rem] p-8 shadow-sm border border-slate-100">
               <h4 className="text-[9px] text-slate-300 font-black uppercase mb-8 text-center tracking-[0.4em] italic">Media Center: Capa</h4>
               <div className="relative">
@@ -408,13 +398,35 @@ export default function NovoEventoPresencial() {
               </div>
             </div>
 
-            <div className="bg-white rounded-[3.5rem] p-8 shadow-sm border border-slate-100 h-[400px] relative overflow-hidden group">
-               <div ref={mapContainerRef} className="w-full h-full rounded-[3.2rem]" />
-               <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur px-6 py-2 rounded-full shadow-lg border border-slate-100">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Live View no Mapa</p>
-               </div>
+            {/* MEDIA CENTER: PATROCÍNIO (RESTAURADO) */}
+            <div className="bg-white rounded-[3.5rem] p-8 shadow-sm border border-slate-100">
+              <h4 className="text-[9px] text-slate-300 font-black uppercase mb-8 text-center tracking-[0.4em] italic">Media Center: Patrocínio</h4>
+              <div className="relative">
+                {previewBanner ? (
+                  <div className="relative w-full aspect-video rounded-[2rem] overflow-hidden shadow-2xl group border-4 border-white">
+                    <img src={previewBanner} alt="Patrocinador" className="w-full h-full object-cover" />
+                    <button onClick={() => {setPreviewBanner(null); setSelectedBanner(null);}} className="absolute top-4 right-4 bg-white/90 backdrop-blur w-10 h-10 rounded-2xl text-slate-900 shadow-xl flex items-center justify-center hover:scale-110 transition-all">
+                      <X size={20} />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="aspect-video border-2 border-dashed border-slate-100 rounded-[2rem] bg-slate-50/50 cursor-pointer flex flex-col items-center justify-center hover:bg-white hover:border-blue-200 transition-all group">
+                    <input type="file" accept="image/*" onChange={handleBannerChange} className="hidden" />
+                    <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center mb-3 shadow-sm group-hover:scale-110 transition-transform">
+                        <Building2 size={24} className="text-blue-500" />
+                    </div>
+                    <p className="text-[9px] font-black text-slate-800 uppercase tracking-widest italic">Banner Patrocinador</p>
+                  </label>
+                )}
+              </div>
             </div>
 
+            {/* MAPA VIEW */}
+            <div className="bg-white rounded-[3.5rem] p-8 shadow-sm border border-slate-100 h-[350px] relative overflow-hidden">
+               <div ref={mapContainerRef} className="w-full h-full rounded-[3.2rem]" />
+            </div>
+
+            {/* FINANCEIRO PREVIEW */}
             <div className="bg-gradient-to-br from-black to-slate-800 rounded-[3.5rem] p-10 text-white shadow-2xl relative overflow-hidden">
                <div className="absolute top-0 right-0 p-8 opacity-10">
                   <Ticket size={120} />
@@ -423,7 +435,6 @@ export default function NovoEventoPresencial() {
                <p className="text-[11px] font-bold opacity-60 uppercase tracking-[0.2em]">Tickets e Lotes serão configurados no próximo estágio.</p>
             </div>
           </div>
-
         </div>
       </main>
     </div>
