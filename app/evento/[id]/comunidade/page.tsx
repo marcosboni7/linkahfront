@@ -14,7 +14,7 @@ const DEFAULT_FOTO = 'https://i.pinimg.com/originals/ec/a5/a7/eca5a7c991e8fa5255
 const EMOJIS_STATUS = ['✨', '🔥', '🚀', '😴', '💡', '🎮', '🍕', '💎'];
 
 // --- HELPERS BLINDADOS PARA FOTO ---
-const getUserPhotoUrl = (user: any) => {
+const getUserPhotoUrl = (user: any ) => {
   if (!user) return DEFAULT_FOTO;
   
   // Se for uma string direta (caso do payload de mensagem)
@@ -49,8 +49,8 @@ const getUserPhotoUrl = (user: any) => {
 const getImagemUrl = (foto?: string | null) => {
   if (!foto || foto === 'null' || foto.trim() === '' || foto === undefined) return DEFAULT_FOTO;
   
-  // Se já for uma URL completa (http, data:image, blob), retorna ela mesma
-  if (/^(https?:\/\/|blob:|data:)/.test(foto)) return foto;
+  // Se já for uma URL completa (http, data:image, blob ), retorna ela mesma
+  if (/^(https?:\/\/|blob:|data: )/.test(foto)) return foto;
   
   // Se for um caminho relativo, limpa as barras e concatena com a API
   const baseUrl = API_URL.replace(/\/$/, '');
@@ -79,21 +79,41 @@ export default function ComunidadePage() {
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // 1. Autenticação
+  // 1. Autenticação e Recuperação de Foto
   useEffect(() => {
-    const user = localStorage.getItem('@Linkah:User');
-    if (!user) return router.push('/site/login');
-    try {
-        setDadosUsuario(JSON.parse(user));
-    } catch (e) {
+    const init = async () => {
+      const userStr = localStorage.getItem('@Linkah:User');
+      if (!userStr) return router.push('/site/login');
+      
+      try {
+        let user = JSON.parse(userStr);
+        
+        // Se não tem foto no storage, tenta buscar na API para garantir que apareça
+        if (user.email && !user.avatar && !user.foto_perfil) {
+          const res = await fetch(`${API_URL}/api/auth/perfil?email=${encodeURIComponent(user.email)}`);
+          if (res.ok) {
+            const data = await res.json();
+            const foto = data.avatar || data.foto_perfil;
+            if (foto) {
+              user = { ...user, avatar: foto };
+              localStorage.setItem('@Linkah:User', JSON.stringify(user));
+            }
+          }
+        }
+        
+        setDadosUsuario(user);
+      } catch (e) {
         router.push('/site/login');
-    }
-    setCarregando(false);
+      }
+      setCarregando(false);
+    };
+    init();
   }, [router]);
 
-  // 2. Sync de Dados (Polling)
+  // 2. Sync de Dados (Polling) - Corrigido para garantir carregamento
   useEffect(() => {
     if (!id || !dadosUsuario?.nome) return;
+    
     const sync = async () => {
       try {
         const minhaFoto = getUserPhotoUrl(dadosUsuario);
@@ -101,13 +121,23 @@ export default function ComunidadePage() {
           fetch(`${API_URL}/api/comunidades/${id}?t=${Date.now()}`),
           fetch(`${API_URL}/api/comunidades/presenca/${id}?usuario_nome=${dadosUsuario.nome}&foto=${minhaFoto}&status=${meuStatus}`)
         ]);
+
         if (resOn.ok) {
             const onlineData = await resOn.json();
-            setUsuariosOnline(onlineData.filter((u: any) => (u.usuario_nome || u.nome) !== dadosUsuario.nome));
+            if (Array.isArray(onlineData)) {
+              setUsuariosOnline(onlineData.filter((u: any) => (u.usuario_nome || u.nome) !== dadosUsuario.nome));
+            }
         }
-        if (resMsg.ok) setMensagens(await resMsg.json());
+        
+        if (resMsg.ok) {
+          const msgs = await resMsg.json();
+          if (Array.isArray(msgs)) {
+            setMensagens(msgs);
+          }
+        }
       } catch (e) { console.error("Erro no Sync:", e); }
     };
+
     sync();
     const interval = setInterval(sync, 4000);
     return () => clearInterval(interval);
@@ -123,7 +153,8 @@ export default function ComunidadePage() {
 
   const enviarMensagem = async (e: any) => {
     e.preventDefault();
-    if (!novoTexto.trim()) return;
+    if (!novoTexto.trim() || !dadosUsuario) return;
+    
     const payload = {
       evento_id: Number(id),
       usuario_nome: dadosUsuario.nome,
@@ -132,12 +163,18 @@ export default function ComunidadePage() {
       status: meuStatus,
       tipo: 'chat'
     };
+    
     setNovoTexto('');
-    await fetch(`${API_URL}/api/comunidades/enviar`, { 
-        method: 'POST', 
-        headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify(payload) 
-    });
+    
+    try {
+      await fetch(`${API_URL}/api/comunidades/enviar`, { 
+          method: 'POST', 
+          headers: { 'Content-Type': 'application/json' }, 
+          body: JSON.stringify(payload) 
+      });
+    } catch (e) {
+      console.error("Erro ao enviar mensagem:", e);
+    }
   };
 
   if (carregando) return <div className="h-screen flex items-center justify-center bg-white"><Loader2 className="animate-spin text-red-500" size={48} /></div>;
@@ -257,54 +294,40 @@ export default function ComunidadePage() {
                   </div>
 
                   {/* BALÃO DE MENSAGEM */}
-                  <div className={`p-4 rounded-[1.8rem] shadow-sm relative transition-all ${
-                    isHost 
-                      ? 'bg-white border-2 border-amber-400 shadow-[0_4px_15px_rgba(251,191,36,0.15)] ring-1 ring-amber-100' 
-                      : souEu 
-                        ? 'bg-red-500 text-white rounded-br-none shadow-xl shadow-red-500/20' 
-                        : 'bg-white text-slate-700 border border-slate-100 rounded-bl-none'
-                  }`}>
-                    {isHost && <Star size={8} className="absolute -top-2 -right-1 text-amber-500 animate-bounce" fill="currentColor" />}
-                    <p className="text-[13.5px] font-medium leading-relaxed">
-                      {m.texto}
-                    </p>
+                  <div className={`p-4 rounded-[1.8rem] shadow-sm ${souEu ? 'bg-red-500 text-white rounded-br-none' : 'bg-white border border-slate-100 text-slate-700 rounded-bl-none'}`}>
+                    <p className="text-sm leading-relaxed font-medium">{m.texto}</p>
                   </div>
                 </div>
 
                 {souEu && (
-                  <div className="relative">
+                  <div className="relative group">
                     <img 
                       src={getImagemUrl(getUserPhotoUrl(dadosUsuario))} 
-                      className={`w-10 h-10 rounded-[1.2rem] object-cover shadow-md ${isHost ? 'ring-2 ring-amber-400 ring-offset-2' : ''}`} 
-                      alt="Me"
+                      className="w-10 h-10 rounded-[1.2rem] object-cover shadow-md" 
+                      alt="Me" 
                     />
-                    <span className="absolute -top-2 -left-2 text-xs drop-shadow-sm">{meuStatus}</span>
+                    <span className="absolute -top-2 -right-2 text-xs drop-shadow-sm">{meuStatus}</span>
                   </div>
                 )}
               </div>
             );
           })}
-          <div ref={scrollRef}></div>
+          <div ref={scrollRef} />
         </div>
 
-        {/* INPUT FIXO EMBAIXO */}
-        <div className="p-6 bg-white border-t border-slate-50">
-          <form onSubmit={enviarMensagem} className="max-w-4xl mx-auto flex items-center gap-4 bg-slate-100/50 p-2 rounded-[2.2rem] border border-slate-100 focus-within:border-red-200 focus-within:bg-white transition-all shadow-inner">
-            <div className="pl-4 text-xl select-none">{meuStatus}</div>
-            <input 
-              type="text" 
-              value={novoTexto} 
-              onChange={e => setNovoTexto(e.target.value)} 
-              placeholder="Escreva algo para a galera..." 
-              className="flex-1 bg-transparent p-4 outline-none text-sm font-bold text-slate-700 placeholder:text-slate-400" 
-            />
-            <button type="submit" className="w-12 h-12 bg-red-500 text-white rounded-full flex items-center justify-center hover:scale-105 hover:bg-red-600 shadow-lg shadow-red-200 active:scale-95 transition-all">
-              <Send size={18} />
-            </button>
-          </form>
-        </div>
+        {/* INPUT DE MENSAGEM */}
+        <form onSubmit={enviarMensagem} className="p-6 bg-white border-t border-slate-50 flex gap-4 items-center">
+          <input 
+            value={novoTexto}
+            onChange={(e) => setNovoTexto(e.target.value)}
+            placeholder="Escreva sua mensagem..."
+            className="flex-1 bg-slate-50 border-none rounded-2xl px-6 py-4 text-sm focus:ring-2 focus:ring-red-500/20 transition-all outline-none font-medium"
+          />
+          <button type="submit" className="bg-red-500 hover:bg-red-600 text-white p-4 rounded-2xl shadow-lg shadow-red-500/30 transition-all hover:scale-105 active:scale-95">
+            <Send size={20} />
+          </button>
+        </form>
       </main>
     </div>
   );
 }
-
