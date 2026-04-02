@@ -4,7 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Send, Video, Loader2, Bug, X } from 'lucide-react';
 import { useLanguage } from '@/app/context/LanguageContext';
 // Importe o componente do Modal (ajuste o caminho se necessário)
-import { UserProfileModal } from '@/app/components/UserProfileModal'; 
+import  UserProfileModal  from '@/app/dashboard/UserProfileModal'; 
 
 const API_URL = 'https://api-linkah.onrender.com';
 const DEFAULT_FOTO = 'https://i.pinimg.com/originals/ec/a5/a7/eca5a7c991e8fa52554e953593faba2d.gif';
