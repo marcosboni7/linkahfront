@@ -11,13 +11,16 @@ import Link from 'next/link';
 
 const API_URL = 'https://api-linkah.onrender.com';
 
+// Fallback de foto padrão
+const DEFAULT_FOTO = 'https://i.pinimg.com/originals/ec/a5/a7/eca5a7c991e8fa52554e953593faba2d.gif';
+
 // Função utilitária para tratar URLs de imagem com debug
 const getImagemUrl = (foto?: string | null) => {
   console.log('🔍 getImagemUrl chamado com:', foto);
 
   if (!foto || foto === "null" || foto === "undefined" || foto === "") {
-    console.log('⚠️ Foto inválida, retornando undefined');
-    return undefined;
+    console.log('⚠️ Foto inválida, retornando fallback');
+    return DEFAULT_FOTO;
   }
   if (foto.startsWith('http') || foto.startsWith('blob:') || foto.startsWith('data:')) {
     console.log('✅ Foto externa válida:', foto);
@@ -52,12 +55,12 @@ export default function SalaLinkahSkype() {
   const [carregandoPerfil, setCarregandoPerfil] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // --- FUNÇÕES DE AÇÃO ---
 
   const handleImageError = (e: any, local: string) => {
     console.error(`❌ Erro [${local}]:`, e.target.src);
+    e.target.src = DEFAULT_FOTO;
   };
 
   const iniciarCall = async (destino: string) => {
@@ -157,15 +160,18 @@ export default function SalaLinkahSkype() {
         ]);
 
         if (resEv.ok) setDadosEvento(await resEv.json());
+
         if (resOn.ok) {
           const on = await resOn.json();
           console.log('👥 Usuários online recebidos:', on);
           if (Array.isArray(on)) setUsuariosOnline(on.filter((u: any) => u.usuario_nome !== dadosUsuario.nome));
         }
+
         if (resMsg.ok) {
           const msgs = await resMsg.json();
           console.log('💬 Mensagens recebidas:', msgs);
           setMensagens(msgs);
+
           const AGORA = Date.now();
           msgs.slice(-5).forEach((msg: any) => {
             if (msg.texto?.includes("CALL_INVITE|")) {
@@ -177,6 +183,7 @@ export default function SalaLinkahSkype() {
             }
           });
         }
+
         setCarregando(false);
       } catch (e) { console.error('Erro ao atualizar dados:', e); }
     };
@@ -194,15 +201,12 @@ export default function SalaLinkahSkype() {
 
   return (
     <div className="flex h-screen bg-[#FCFBFA] overflow-hidden text-slate-900 font-sans">
-      
       {/* MODAL CONVITE */}
       {conviteRecebido && (
         <div className="fixed inset-0 z-[999] bg-slate-950/40 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-white p-8 rounded-[2.5rem] text-center max-w-sm w-full shadow-2xl">
             <div className="w-24 h-24 rounded-full mx-auto mb-6 overflow-hidden bg-slate-100 flex items-center justify-center">
-              {getImagemUrl(conviteRecebido.foto) ? 
-                <img src={getImagemUrl(conviteRecebido.foto)} className="w-full h-full object-cover" alt="" onError={(e) => handleImageError(e, 'Modal Convite')} /> 
-                : <Phone className="text-[#ff4d4d]" size={40} />}
+              <img src={getImagemUrl(conviteRecebido.foto)} className="w-full h-full object-cover" alt="" onError={(e) => handleImageError(e, 'Modal Convite')} />
             </div>
             <h3 className="font-bold text-xl mb-8">{conviteRecebido.de} chamando...</h3>
             <button onClick={() => { setNomeSalaCall(conviteRecebido.sala); setChamadaAtiva(true); setConviteRecebido(null); }} className="w-full bg-slate-950 text-white py-4 rounded-2xl font-bold mb-2">Atender</button>
@@ -217,11 +221,10 @@ export default function SalaLinkahSkype() {
         <div className="flex-1 overflow-y-auto px-4 space-y-1">
           {usuariosOnline.map((u, i) => {
             const imgLink = getImagemUrl(u.usuario_foto || u.foto);
-            console.log('🔹 Sidebar usuário:', u.usuario_nome, 'Foto URL:', imgLink);
             return (
               <div key={i} onClick={() => abrirPerfil(u.usuario_nome)} className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-2xl cursor-pointer">
                 <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center overflow-hidden">
-                  {imgLink ? <img src={imgLink} className="w-full h-full object-cover" alt="" onError={(e) => handleImageError(e, 'Sidebar')} /> : u.usuario_nome.charAt(0)}
+                  <img src={imgLink} className="w-full h-full object-cover" alt="" onError={(e) => handleImageError(e, 'Sidebar')} />
                 </div>
                 <span className="text-sm font-bold truncate">{u.usuario_nome}</span>
               </div>
@@ -251,13 +254,12 @@ export default function SalaLinkahSkype() {
             if (m.tipo === 'status' || m.texto?.includes("CALL_INVITE|")) return null;
             const souEu = m.usuario_nome === dadosUsuario.nome;
             const imgLink = getImagemUrl(m.usuario_foto || m.foto || m.avatar);
-            console.log('🔹 Chat mensagem:', m.usuario_nome, 'Foto URL:', imgLink);
 
             return (
               <div key={i} className={`flex ${souEu ? 'justify-end' : 'justify-start'}`}>
                 <div className={`flex gap-3 max-w-[80%] ${souEu ? 'flex-row-reverse' : 'flex-row'}`}>
                   <div className="w-10 h-10 rounded-xl bg-slate-100 flex-shrink-0 flex items-center justify-center overflow-hidden">
-                    {imgLink ? <img src={imgLink} className="w-full h-full object-cover" onError={(e) => handleImageError(e, 'Chat')} alt={m.usuario_nome} /> : m.usuario_nome.charAt(0)}
+                    <img src={imgLink} className="w-full h-full object-cover" onError={(e) => handleImageError(e, 'Chat')} alt={m.usuario_nome} />
                   </div>
                   <div className={`p-3 rounded-[1.5rem] ${souEu ? 'bg-[#ff4d4d]/10 text-[#ff4d4d]' : 'bg-slate-50 text-slate-900'}`}>
                     {m.texto && <p className="text-[11px] font-medium">{m.texto}</p>}
