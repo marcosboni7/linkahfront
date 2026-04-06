@@ -38,7 +38,6 @@ export default function NovoEventoPresencial() {
     regras: '', visibilidade: 'Publico'
   });
 
-  // --- FUNÇÃO PARA GERAR COM IA ---
   const handleGerarComIA = async () => {
     const { value: text } = await Swal.fire({
       title: 'Gerar Evento com IA',
@@ -63,7 +62,6 @@ export default function NovoEventoPresencial() {
       });
 
       if (!response.ok) throw new Error('Falha na IA');
-
       const aiData = await response.json();
 
       setFormData(prev => ({
@@ -84,15 +82,7 @@ export default function NovoEventoPresencial() {
         capacidade: aiData.capacidade || prev.capacidade,
       }));
 
-      Swal.fire({
-        toast: true,
-        position: 'top-end',
-        icon: 'success',
-        title: 'Campos preenchidos pela IA!',
-        showConfirmButton: false,
-        timer: 3000
-      });
-
+      Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Campos preenchidos!', showConfirmButton: false, timer: 3000 });
     } catch (error) {
       Swal.fire('Erro', 'A IA não conseguiu processar esse texto.', 'error');
     } finally {
@@ -105,11 +95,13 @@ export default function NovoEventoPresencial() {
     if (googleMap.current) return;
 
     try {
-      const [{ Map }, { AdvancedMarkerElement }, { Autocomplete }] = await Promise.all([
-        window.google.maps.importLibrary("maps"),
-        window.google.maps.importLibrary("marker"),
-        window.google.maps.importLibrary("places"),
+      // Usando importLibrary para as novas versões v2 do Maps
+      const [{ Map }, { AdvancedMarkerElement }] = await Promise.all([
+        window.google.maps.importLibrary("maps") as any,
+        window.google.maps.importLibrary("marker") as any,
       ]);
+
+      const { Autocomplete } = await window.google.maps.importLibrary("places") as any;
 
       googleMap.current = new Map(mapContainerRef.current, {
         center: { lat: -23.5505, lng: -46.6333 },
@@ -125,21 +117,23 @@ export default function NovoEventoPresencial() {
 
       if (searchInputRef.current && !autocompleteRef.current) {
         autocompleteRef.current = new Autocomplete(searchInputRef.current, {
-          types: ['address', 'establishment'],
+          // SOLUÇÃO DO ERRO: Removido 'address' para evitar mix com 'establishment'
+          // 'geocode' cobre endereços de forma mais ampla e compatível
+          types: ['establishment', 'geocode'],
           componentRestrictions: { country: 'br' },
           fields: ['address_components', 'formatted_address', 'name', 'geometry']
         });
 
         autocompleteRef.current.addListener('place_changed', () => {
           const place = autocompleteRef.current.getPlace();
-          if (!place.geometry) return;
+          if (!place.geometry || !place.geometry.location) return;
 
           googleMap.current.setCenter(place.geometry.location);
           googleMap.current.setZoom(17);
           marker.current.position = place.geometry.location;
 
           const getComp = (type: string) => 
-            place.address_components!.find((c: any) => c.types.includes(type))?.long_name || '';
+            place.address_components?.find((c: any) => c.types.includes(type))?.long_name || '';
 
           setFormData(prev => ({
             ...prev,
@@ -153,9 +147,7 @@ export default function NovoEventoPresencial() {
         });
       }
     } catch (error: any) {
-      if (!error.message?.includes('already defined')) {
-        console.error("Erro no mapa:", error);
-      }
+       console.error("Erro no mapa:", error);
     }
   }, []);
 
@@ -201,24 +193,20 @@ export default function NovoEventoPresencial() {
         emailProdutor = userObj.email || userObj.user?.email || '';
         nomeUsuario = userObj.nome || userObj.user?.nome || 'Organizador';
       }
-    } catch (e) { 
+    } catch (e) {
       nomeUsuario = 'Admin';
     }
 
-    if (!token) return Swal.fire('Sessão Expirada', 'Faça login novamente.', 'warning');
-    if (!formData.nome || !formData.categoria || !formData.data_inicio) {
-        return Swal.fire('Atenção', 'Nome, Categoria e Data são obrigatórios.', 'info');
-    }
+    if (!token) return Swal.fire('Erro', 'Sessão expirada', 'warning');
 
     setIsLoading(true);
     const dataToSend = new FormData();
-    
     Object.entries(formData).forEach(([key, value]) => {
-      if (value !== null && value !== undefined) dataToSend.append(key, value.toString());
+      if (value !== null) dataToSend.append(key, value.toString());
     });
     
-    dataToSend.append('produtor_email', emailProdutor.trim());
-    dataToSend.append('usuario_nome', nomeUsuario.trim());
+    dataToSend.append('produtor_email', emailProdutor);
+    dataToSend.append('usuario_nome', nomeUsuario);
     
     if (selectedFile) dataToSend.append('imagem_capa', selectedFile);
     if (selectedBanner) dataToSend.append('banner_patrocinio', selectedBanner);
@@ -231,13 +219,10 @@ export default function NovoEventoPresencial() {
       });
 
       const data = await response.json();
-      if (response.ok) {
-        router.push(`/dashboard/eventos/novo/ingressos/${data.id || data.evento?.id}`);
-      } else {
-        Swal.fire('Erro', data.message || "Falha ao salvar", 'error');
-      }
+      if (response.ok) router.push(`/dashboard/eventos/novo/ingressos/${data.id || data.evento?.id}`);
+      else Swal.fire('Erro', data.message, 'error');
     } catch (error) {
-      Swal.fire('Erro de Rede', 'Verifique sua conexão com o servidor.', 'error');
+      Swal.fire('Erro', 'Falha na conexão', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -276,13 +261,8 @@ export default function NovoEventoPresencial() {
                 <div className="space-y-3 relative">
                   <div className="flex justify-between items-end mb-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 italic">Título da Experiência</label>
-                    <button 
-                      onClick={handleGerarComIA}
-                      disabled={isAiLoading}
-                      className="bg-slate-900 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-[#C22973] transition-all active:scale-95 disabled:opacity-50"
-                    >
-                      {isAiLoading ? <Loader2 size={12} className="animate-spin" /> : <Wand2 size={12} />}
-                      {isAiLoading ? 'Processando...' : 'Preencher com IA'}
+                    <button onClick={handleGerarComIA} disabled={isAiLoading} className="bg-slate-900 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-[#C22973] transition-all active:scale-95 disabled:opacity-50">
+                      {isAiLoading ? <Loader2 size={12} className="animate-spin" /> : <Wand2 size={12} />} IA Linkah
                     </button>
                   </div>
                   <input name="nome" value={formData.nome} onChange={handleChange} placeholder="Ex: Festival de Jazz 2026" className="w-full bg-slate-50 p-6 rounded-[2rem] outline-none font-bold text-xl focus:bg-white border-2 border-transparent focus:border-pink-100 transition-all shadow-inner" />
@@ -348,23 +328,27 @@ export default function NovoEventoPresencial() {
                  <div className="w-10 h-10 bg-slate-50 rounded-2xl flex items-center justify-center text-[#C22973]">
                     <Navigation size={20} />
                  </div>
-                 <h2 className="font-black italic uppercase text-xs tracking-widest text-slate-800">Localização do Evento</h2>
+                 <h2 className="font-black italic uppercase text-xs tracking-widest text-slate-800">Localização</h2>
               </div>
+              
               <div className="space-y-6">
                 <div className="relative">
                   <Search size={18} className="absolute left-6 top-1/2 -translate-y-1/2 text-pink-400" />
-                  <input ref={searchInputRef} placeholder="Onde será o evento?" className="w-full bg-slate-900 text-white p-7 pl-16 rounded-[2rem] outline-none font-bold text-sm shadow-2xl focus:ring-4 focus:ring-pink-500/10 transition-all" />
+                  <input ref={searchInputRef} placeholder="Digite o nome do local ou endereço..." className="w-full bg-slate-900 text-white p-7 pl-16 rounded-[2rem] outline-none font-bold text-sm shadow-2xl focus:ring-4 focus:ring-pink-500/10 transition-all" />
                 </div>
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <input name="local_nome" value={formData.local_nome} onChange={handleChange} placeholder="Nome do Local" className="bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner" />
-                  <input name="cep" value={formData.cep} onChange={handleChange} placeholder="CEP" className="bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner" />
+                  <input name="local_nome" value={formData.local_nome} onChange={handleChange} placeholder="Nome do Local" className="w-full bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner" />
+                  <input name="cep" value={formData.cep} onChange={handleChange} placeholder="CEP" className="w-full bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner" />
                 </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="md:col-span-2">
                     <input name="endereco" value={formData.endereco} onChange={handleChange} placeholder="Endereço / Rua" className="w-full bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner" />
                   </div>
-                  <input name="numero" value={formData.numero} onChange={handleChange} placeholder="Número" className="bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner" />
+                  <input name="numero" value={formData.numero} onChange={handleChange} placeholder="Número" className="w-full bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner" />
                 </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <input name="cidade" value={formData.cidade} onChange={handleChange} placeholder="Cidade" className="bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner" />
                   <input name="estado" value={formData.estado} onChange={handleChange} placeholder="UF" className="bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner text-center" />
@@ -375,7 +359,6 @@ export default function NovoEventoPresencial() {
           </div>
 
           <div className="lg:col-span-4 space-y-10">
-            {/* MEDIA CENTER: CAPA */}
             <div className="bg-white rounded-[3.5rem] p-8 shadow-sm border border-slate-100">
               <h4 className="text-[9px] text-slate-300 font-black uppercase mb-8 text-center tracking-[0.4em] italic">Media Center: Capa</h4>
               <div className="relative">
@@ -398,7 +381,6 @@ export default function NovoEventoPresencial() {
               </div>
             </div>
 
-            {/* MEDIA CENTER: PATROCÍNIO (RESTAURADO) */}
             <div className="bg-white rounded-[3.5rem] p-8 shadow-sm border border-slate-100">
               <h4 className="text-[9px] text-slate-300 font-black uppercase mb-8 text-center tracking-[0.4em] italic">Media Center: Patrocínio</h4>
               <div className="relative">
@@ -421,12 +403,10 @@ export default function NovoEventoPresencial() {
               </div>
             </div>
 
-            {/* MAPA VIEW */}
             <div className="bg-white rounded-[3.5rem] p-8 shadow-sm border border-slate-100 h-[350px] relative overflow-hidden">
                <div ref={mapContainerRef} className="w-full h-full rounded-[3.2rem]" />
             </div>
 
-            {/* FINANCEIRO PREVIEW */}
             <div className="bg-gradient-to-br from-black to-slate-800 rounded-[3.5rem] p-10 text-white shadow-2xl relative overflow-hidden">
                <div className="absolute top-0 right-0 p-8 opacity-10">
                   <Ticket size={120} />
