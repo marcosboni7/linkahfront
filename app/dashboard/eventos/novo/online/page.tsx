@@ -14,7 +14,7 @@ import {
   Clock,
   Layout,
   Building2,
-  Wand2 // Ícone extra para o botão de IA
+  Wand2
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/app/context/LanguageContext';
@@ -27,7 +27,7 @@ export default function NovoEventoOnline() {
   const router = useRouter();
 
   const [isLoading, setIsLoading] = useState(false);
-  const [isGeneratingIA, setIsGeneratingIA] = useState(false); // State para o loading da IA
+  const [isGeneratingIA, setIsGeneratingIA] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewBanner, setPreviewBanner] = useState<string | null>(null);
@@ -50,6 +50,14 @@ export default function NovoEventoOnline() {
     visibilidade: 'Publico'
   });
 
+  // Limpeza de memória ao trocar de página ou remover imagem
+  useEffect(() => {
+    return () => {
+      if (previewImage) URL.revokeObjectURL(previewImage);
+      if (previewBanner) URL.revokeObjectURL(previewBanner);
+    };
+  }, [previewImage, previewBanner]);
+
   // --- FUNÇÃO PARA GERAR COM IA ---
   const handleIA = async () => {
     const { value: text } = await Swal.fire({
@@ -68,7 +76,7 @@ export default function NovoEventoOnline() {
     if (!text) return;
 
     setIsGeneratingIA(true);
-    const token = localStorage.getItem('@Linkah:Token');
+    const token = typeof window !== 'undefined' ? localStorage.getItem('@Linkah:Token') : null;
 
     try {
       const response = await fetch(`${API_URL}/api/eventos/gerar-ia`, {
@@ -86,7 +94,6 @@ export default function NovoEventoOnline() {
         setFormData(prev => ({
           ...prev,
           ...data,
-          // Garante que campos vazios da IA não sobrescrevam o padrão "Online"
           tipo: 'Online',
           local_nome: data.local_nome || 'Plataforma Online'
         }));
@@ -109,59 +116,27 @@ export default function NovoEventoOnline() {
     }
   };
 
-  const compressImage = (base64Str: string): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.src = base64Str;
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 1080;
-        let width = img.width;
-        let height = img.height;
-        if (width > MAX_WIDTH) {
-          height *= MAX_WIDTH / width;
-          width = MAX_WIDTH;
-        }
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return reject(new Error('Canvas Context Error'));
-        ctx.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', 0.8));
-      };
-    });
-  };
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    
+    if (previewImage) URL.revokeObjectURL(previewImage);
     setSelectedFile(file);
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      const originalBase64 = reader.result as string;
-      try {
-        const compressed = await compressImage(originalBase64);
-        setPreviewImage(compressed);
-      } catch {
-        setPreviewImage(originalBase64);
-      }
-    };
-    reader.readAsDataURL(file);
+    setPreviewImage(URL.createObjectURL(file));
   };
 
   const handleBannerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setSelectedBanner(file);
-      const reader = new FileReader();
-      reader.onloadend = () => setPreviewBanner(reader.result as string);
-      reader.readAsDataURL(file);
-    }
+    if (!file) return;
+    
+    if (previewBanner) URL.revokeObjectURL(previewBanner);
+    setSelectedBanner(file);
+    setPreviewBanner(URL.createObjectURL(file));
   };
 
   const handleSalvar = async () => {
@@ -174,7 +149,7 @@ export default function NovoEventoOnline() {
       if (userRaw) {
         const userObj = JSON.parse(userRaw);
         emailProdutor = userObj.email || userObj.user?.email || userObj.data?.email || '';
-        nomeUsuario = userObj.nome || userObj.user?.nome || userObj.data?.nome || userObj.username || '';
+        nomeUsuario = userObj.nome || userObj.user?.nome || userObj.data?.nome || userObj.username || 'Produtor';
       }
     } catch (e) {
       emailProdutor = localStorage.getItem('userEmail') || '';
@@ -280,7 +255,6 @@ export default function NovoEventoOnline() {
                     <h2 className="font-black italic uppercase text-xs tracking-widest text-slate-800">Dados da Experiência</h2>
                   </div>
 
-                  {/* BOTÃO DA IA */}
                   <button 
                     onClick={handleIA}
                     disabled={isGeneratingIA}
