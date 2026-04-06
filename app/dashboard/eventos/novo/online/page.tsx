@@ -46,11 +46,11 @@ export default function NovoEventoOnline() {
     link_reuniao: '',
     capacidade: '',
     tipo: 'Online',
+    moeda: 'BRL',
     regras: '',
     visibilidade: 'Publico'
   });
 
-  // Limpeza de memória ao trocar de página ou remover imagem
   useEffect(() => {
     return () => {
       if (previewImage) URL.revokeObjectURL(previewImage);
@@ -58,7 +58,6 @@ export default function NovoEventoOnline() {
     };
   }, [previewImage, previewBanner]);
 
-  // --- FUNÇÃO PARA GERAR COM IA ---
   const handleIA = async () => {
     const { value: text } = await Swal.fire({
       title: 'GERADOR INTELIGENTE',
@@ -95,9 +94,10 @@ export default function NovoEventoOnline() {
           ...prev,
           ...data,
           tipo: 'Online',
+          moeda: data.moeda || prev.moeda,
           local_nome: data.local_nome || 'Plataforma Online'
         }));
-        
+
         Swal.fire({
           icon: 'success',
           title: 'DADOS EXTRAÍDOS',
@@ -124,7 +124,7 @@ export default function NovoEventoOnline() {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
+
     if (previewImage) URL.revokeObjectURL(previewImage);
     setSelectedFile(file);
     setPreviewImage(URL.createObjectURL(file));
@@ -133,7 +133,7 @@ export default function NovoEventoOnline() {
   const handleBannerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
+
     if (previewBanner) URL.revokeObjectURL(previewBanner);
     setSelectedBanner(file);
     setPreviewBanner(URL.createObjectURL(file));
@@ -157,14 +157,14 @@ export default function NovoEventoOnline() {
     }
 
     if (!formData.nome || !formData.categoria || !formData.data_inicio) {
-        Swal.fire({
-            title: 'CAMPOS OBRIGATÓRIOS',
-            text: 'Nome, categoria e data de início são fundamentais.',
-            icon: 'warning',
-            confirmButtonColor: '#000',
-            customClass: { popup: 'rounded-[2rem]' }
-        });
-        return;
+      Swal.fire({
+        title: 'CAMPOS OBRIGATÓRIOS',
+        text: 'Nome, categoria e data de início são fundamentais.',
+        icon: 'warning',
+        confirmButtonColor: '#000',
+        customClass: { popup: 'rounded-[2rem]' }
+      });
+      return;
     }
 
     setIsLoading(true);
@@ -203,7 +203,6 @@ export default function NovoEventoOnline() {
 
   return (
     <div className="min-h-screen bg-[#F8F9FD] font-sans antialiased pb-24 text-slate-900">
-      
       <header className="border-b border-slate-200/50 px-6 md:px-12 py-6 flex justify-between items-center bg-white/80 backdrop-blur-2xl sticky top-0 z-50">
         <div className="flex items-center gap-6">
           <button
@@ -215,13 +214,13 @@ export default function NovoEventoOnline() {
 
           <div>
             <div className="flex items-center gap-2 mb-0.5">
-               <span className="bg-black text-[8px] text-white px-2 py-0.5 rounded-full font-black uppercase tracking-widest">
-                 Cloud Engine
-               </span>
-               <Globe className="text-[#C22973] animate-pulse" size={14} />
+              <span className="bg-black text-[8px] text-white px-2 py-0.5 rounded-full font-black uppercase tracking-widest">
+                Cloud Engine
+              </span>
+              <Globe className="text-[#C22973] animate-pulse" size={14} />
             </div>
             <h1 className="text-slate-900 font-black text-xl tracking-tighter uppercase italic leading-none">
-                Evento Online
+              Evento Online
             </h1>
           </div>
         </div>
@@ -244,29 +243,32 @@ export default function NovoEventoOnline() {
 
       <main className="max-w-7xl mx-auto p-6 md:p-12">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-          
           <div className="lg:col-span-8 space-y-10">
             <section className="bg-white rounded-[3rem] p-10 shadow-sm border border-slate-100 space-y-8">
               <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400">
-                        <Layout size={20} />
-                    </div>
-                    <h2 className="font-black italic uppercase text-xs tracking-widest text-slate-800">Dados da Experiência</h2>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400">
+                    <Layout size={20} />
                   </div>
+                  <h2 className="font-black italic uppercase text-xs tracking-widest text-slate-800">
+                    Dados da Experiência
+                  </h2>
+                </div>
 
-                  <button 
-                    onClick={handleIA}
-                    disabled={isGeneratingIA}
-                    className="flex items-center gap-2 bg-slate-900 text-white px-5 py-3 rounded-2xl text-[9px] font-black uppercase tracking-widest hover:bg-pink-600 transition-all active:scale-95 disabled:opacity-50"
-                  >
-                    {isGeneratingIA ? <Loader2 size={12} className="animate-spin" /> : <Wand2 size={12} />}
-                    {isGeneratingIA ? 'Processando...' : 'Preencher com IA'}
-                  </button>
+                <button
+                  onClick={handleIA}
+                  disabled={isGeneratingIA}
+                  className="flex items-center gap-2 bg-slate-900 text-white px-5 py-3 rounded-2xl text-[9px] font-black uppercase tracking-widest hover:bg-pink-600 transition-all active:scale-95 disabled:opacity-50"
+                >
+                  {isGeneratingIA ? <Loader2 size={12} className="animate-spin" /> : <Wand2 size={12} />}
+                  {isGeneratingIA ? 'Processando...' : 'Preencher com IA'}
+                </button>
               </div>
 
               <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 italic">Nome do Evento</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 italic">
+                  Nome do Evento
+                </label>
                 <input
                   name="nome"
                   value={formData.nome}
@@ -276,9 +278,11 @@ export default function NovoEventoOnline() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 italic">Categoria</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 italic">
+                    Categoria
+                  </label>
                   <select
                     name="categoria"
                     value={formData.categoria}
@@ -297,7 +301,9 @@ export default function NovoEventoOnline() {
                 </div>
 
                 <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 italic">Capacidade</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 italic">
+                    Capacidade
+                  </label>
                   <div className="relative">
                     <input
                       name="capacidade"
@@ -310,12 +316,30 @@ export default function NovoEventoOnline() {
                     <Users className="absolute right-8 top-6 text-slate-300" size={20} />
                   </div>
                 </div>
+
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 italic">
+                    Moeda do Evento
+                  </label>
+                  <select
+                    name="moeda"
+                    value={formData.moeda}
+                    onChange={handleChange}
+                    className="w-full bg-slate-50 border-2 border-transparent p-6 rounded-[2rem] outline-none font-bold text-slate-600 focus:border-pink-100 focus:bg-white transition-all shadow-inner appearance-none"
+                  >
+                    <option value="BRL">🇧🇷 Real (BRL)</option>
+                    <option value="EUR">🇪🇺 Euro (EUR)</option>
+                    <option value="USD">🇺🇸 Dólar (USD)</option>
+                  </select>
+                </div>
               </div>
 
               <div className="space-y-3">
                 <div className="flex items-center gap-2 ml-2">
-                   <Link2 size={14} className="text-[#C22973]" />
-                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Link da Transmissão</label>
+                  <Link2 size={14} className="text-[#C22973]" />
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">
+                    Link da Transmissão
+                  </label>
                 </div>
                 <input
                   name="link_reuniao"
@@ -327,7 +351,9 @@ export default function NovoEventoOnline() {
               </div>
 
               <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 italic">Sobre o Evento</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 italic">
+                  Sobre o Evento
+                </label>
                 <textarea
                   name="descricao"
                   value={formData.descricao}
@@ -340,26 +366,57 @@ export default function NovoEventoOnline() {
             </section>
 
             <section className="bg-white rounded-[3rem] p-10 shadow-sm border border-slate-100 space-y-8">
-               <div className="flex items-center gap-3 mb-4">
-                 <div className="w-10 h-10 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400">
-                    <Clock size={20} />
-                 </div>
-                 <h2 className="font-black italic uppercase text-xs tracking-widest text-slate-800">Cronograma</h2>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400">
+                  <Clock size={20} />
+                </div>
+                <h2 className="font-black italic uppercase text-xs tracking-widest text-slate-800">
+                  Cronograma
+                </h2>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                 <div className="space-y-4">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-2">Início</label>
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-2">
+                    Início
+                  </label>
                   <div className="flex gap-4">
-                    <input name="data_inicio" type="date" value={formData.data_inicio} onChange={handleChange} className="flex-1 bg-slate-50 p-5 rounded-2xl font-bold outline-none border border-transparent focus:border-slate-200" />
-                    <input name="hora_inicio" type="time" value={formData.hora_inicio} onChange={handleChange} className="w-32 bg-slate-50 p-5 rounded-2xl font-bold outline-none border border-transparent focus:border-slate-200" />
+                    <input
+                      name="data_inicio"
+                      type="date"
+                      value={formData.data_inicio}
+                      onChange={handleChange}
+                      className="flex-1 bg-slate-50 p-5 rounded-2xl font-bold outline-none border border-transparent focus:border-slate-200"
+                    />
+                    <input
+                      name="hora_inicio"
+                      type="time"
+                      value={formData.hora_inicio}
+                      onChange={handleChange}
+                      className="w-32 bg-slate-50 p-5 rounded-2xl font-bold outline-none border border-transparent focus:border-slate-200"
+                    />
                   </div>
                 </div>
+
                 <div className="space-y-4">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-2">Término</label>
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-2">
+                    Término
+                  </label>
                   <div className="flex gap-4">
-                    <input name="data_termino" type="date" value={formData.data_termino} onChange={handleChange} className="flex-1 bg-slate-50 p-5 rounded-2xl font-bold outline-none border border-transparent focus:border-slate-200" />
-                    <input name="hora_termino" type="time" value={formData.hora_termino} onChange={handleChange} className="w-32 bg-slate-50 p-5 rounded-2xl font-bold outline-none border border-transparent focus:border-slate-200" />
+                    <input
+                      name="data_termino"
+                      type="date"
+                      value={formData.data_termino}
+                      onChange={handleChange}
+                      className="flex-1 bg-slate-50 p-5 rounded-2xl font-bold outline-none border border-transparent focus:border-slate-200"
+                    />
+                    <input
+                      name="hora_termino"
+                      type="time"
+                      value={formData.hora_termino}
+                      onChange={handleChange}
+                      className="w-32 bg-slate-50 p-5 rounded-2xl font-bold outline-none border border-transparent focus:border-slate-200"
+                    />
                   </div>
                 </div>
               </div>
@@ -368,12 +425,25 @@ export default function NovoEventoOnline() {
 
           <div className="lg:col-span-4 space-y-10">
             <div className="bg-white rounded-[3.5rem] p-8 shadow-sm border border-slate-100">
-              <h4 className="text-[9px] text-slate-300 font-black uppercase mb-8 text-center tracking-[0.4em] italic">Media Center: Capa</h4>
+              <h4 className="text-[9px] text-slate-300 font-black uppercase mb-8 text-center tracking-[0.4em] italic">
+                Media Center: Capa
+              </h4>
               <div className="relative">
                 {previewImage ? (
                   <div className="relative w-full aspect-[3/4] rounded-[3rem] overflow-hidden shadow-2xl group border-4 border-white">
-                    <img src={previewImage} alt="Preview" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                    <button type="button" onClick={() => { setPreviewImage(null); setSelectedFile(null); }} className="absolute top-6 right-6 bg-white w-14 h-14 rounded-3xl text-[#C22973] flex items-center justify-center shadow-2xl hover:scale-110 transition-transform">
+                    <img
+                      src={previewImage}
+                      alt="Preview"
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPreviewImage(null);
+                        setSelectedFile(null);
+                      }}
+                      className="absolute top-6 right-6 bg-white w-14 h-14 rounded-3xl text-[#C22973] flex items-center justify-center shadow-2xl hover:scale-110 transition-transform"
+                    >
                       <X size={24} />
                     </button>
                   </div>
@@ -383,19 +453,30 @@ export default function NovoEventoOnline() {
                     <div className="w-20 h-20 bg-white rounded-[2rem] flex items-center justify-center shadow-sm mb-6 group-hover:scale-110 transition-all">
                       <ImageIcon size={36} className="text-[#C22973]" />
                     </div>
-                    <p className="text-[11px] font-black text-slate-800 uppercase tracking-widest italic">Capa do Evento</p>
+                    <p className="text-[11px] font-black text-slate-800 uppercase tracking-widest italic">
+                      Capa do Evento
+                    </p>
                   </label>
                 )}
               </div>
             </div>
 
             <div className="bg-white rounded-[3.5rem] p-8 shadow-sm border border-slate-100">
-              <h4 className="text-[9px] text-slate-300 font-black uppercase mb-8 text-center tracking-[0.4em] italic">Media Center: Patrocínio</h4>
+              <h4 className="text-[9px] text-slate-300 font-black uppercase mb-8 text-center tracking-[0.4em] italic">
+                Media Center: Patrocínio
+              </h4>
               <div className="relative">
                 {previewBanner ? (
                   <div className="relative w-full aspect-video rounded-[2rem] overflow-hidden shadow-2xl group border-4 border-white">
                     <img src={previewBanner} alt="Patrocinador" className="w-full h-full object-cover" />
-                    <button type="button" onClick={() => {setPreviewBanner(null); setSelectedBanner(null);}} className="absolute top-4 right-4 bg-white/90 backdrop-blur w-10 h-10 rounded-2xl text-slate-900 shadow-xl flex items-center justify-center hover:scale-110">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPreviewBanner(null);
+                        setSelectedBanner(null);
+                      }}
+                      className="absolute top-4 right-4 bg-white/90 backdrop-blur w-10 h-10 rounded-2xl text-slate-900 shadow-xl flex items-center justify-center hover:scale-110"
+                    >
                       <X size={20} />
                     </button>
                   </div>
@@ -403,22 +484,27 @@ export default function NovoEventoOnline() {
                   <label className="aspect-video border-2 border-dashed border-slate-100 rounded-[2rem] bg-slate-50/50 cursor-pointer flex flex-col items-center justify-center hover:bg-white hover:border-blue-200 transition-all group">
                     <input type="file" accept="image/*" onChange={handleBannerChange} className="hidden" />
                     <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center mb-3 shadow-sm group-hover:scale-110 transition-transform">
-                        <Building2 size={24} className="text-blue-500" />
+                      <Building2 size={24} className="text-blue-500" />
                     </div>
-                    <p className="text-[9px] font-black text-slate-800 uppercase tracking-widest italic">Banner Patrocinador</p>
+                    <p className="text-[9px] font-black text-slate-800 uppercase tracking-widest italic">
+                      Banner Patrocinador
+                    </p>
                   </label>
                 )}
               </div>
             </div>
 
             <div className="p-8 bg-slate-900 rounded-[3.5rem] text-white">
-                <div className="flex items-center gap-4 mb-4">
-                  <Globe className="text-emerald-400" size={20} />
-                  <p className="text-[10px] font-black uppercase tracking-widest">Setup de Nuvem</p>
-                </div>
-                <p className="text-[11px] opacity-60 font-bold uppercase italic leading-relaxed">
-                  O ambiente virtual será provisionado automaticamente após a criação.
-                </p>
+              <div className="flex items-center gap-4 mb-4">
+                <Globe className="text-emerald-400" size={20} />
+                <p className="text-[10px] font-black uppercase tracking-widest">Setup de Nuvem</p>
+              </div>
+              <p className="text-[11px] opacity-60 font-bold uppercase italic leading-relaxed">
+                O ambiente virtual será provisionado automaticamente após a criação.
+              </p>
+              <p className="mt-4 text-[11px] font-bold uppercase tracking-widest text-pink-300">
+                Moeda selecionada: {formData.moeda}
+              </p>
             </div>
           </div>
         </div>
