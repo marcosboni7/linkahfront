@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Navbar } from '../../site/Navbar';
 import { Footer } from '../../site/Footer';
-import { useLanguage } from '@/app/context/LanguageContext';
 import {
   Calendar,
   MapPin,
@@ -21,9 +20,19 @@ import Link from 'next/link';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api-linkah.onrender.com';
 const CLOUDINARY_CLOUD_NAME = 'dj32txsol';
 
+function normalizeCurrency(input?: string) {
+  const raw = String(input || '').trim().toUpperCase();
+
+  if (raw === 'R$' || raw === 'REAL' || raw === 'REAIS' || raw === 'BRL') return 'BRL';
+  if (raw === '€' || raw === 'EURO' || raw === 'EUROS' || raw === 'EUR') return 'EUR';
+  if (raw === '$' || raw === 'DOLAR' || raw === 'DÓLAR' || raw === 'DOLARES' || raw === 'DÓLARES' || raw === 'USD') return 'USD';
+
+  return 'BRL';
+}
+
 function formatCurrency(value: number | string, currency?: string) {
   const amount = Number(value || 0);
-  const moeda = (currency || 'BRL').toUpperCase();
+  const moeda = normalizeCurrency(currency);
 
   const localeMap: Record<string, string> = {
     BRL: 'pt-BR',
@@ -31,28 +40,15 @@ function formatCurrency(value: number | string, currency?: string) {
     USD: 'en-US',
   };
 
-  const locale = localeMap[moeda] || 'pt-BR';
-
-  return new Intl.NumberFormat(locale, {
+  return new Intl.NumberFormat(localeMap[moeda] || 'pt-BR', {
     style: 'currency',
     currency: moeda,
   }).format(amount);
 }
 
-function getSafeCurrency(value?: string) {
-  const moeda = (value || 'BRL').toUpperCase();
-
-  if (['BRL', 'EUR', 'USD'].includes(moeda)) {
-    return moeda;
-  }
-
-  return 'BRL';
-}
-
 export default function DetalhesEquilibrado() {
   const { id } = useParams();
   const router = useRouter();
-  const { language }: any = useLanguage();
 
   const [evento, setEvento] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -62,7 +58,9 @@ export default function DetalhesEquilibrado() {
     async function carregarEvento() {
       try {
         const timestamp = new Date().getTime();
-        const res = await fetch(`${API_URL}/api/eventos/${id}?t=${timestamp}`);
+        const res = await fetch(`${API_URL}/api/eventos/${id}?t=${timestamp}`, {
+          cache: 'no-store',
+        });
 
         if (!res.ok) {
           throw new Error('Erro ao carregar evento');
@@ -70,14 +68,36 @@ export default function DetalhesEquilibrado() {
 
         const data = await res.json();
 
-        const moedaEvento = getSafeCurrency(data?.moeda);
+        console.log('🔥 EVENTO RAW API:', data);
+        console.log('🔥 MOEDA RAW EVENTO:', data?.moeda);
+        console.log('🔥 INGRESSOS RAW:', data?.ingressos);
+
+        // tenta vários nomes possíveis vindos do backend
+        const moedaEvento =
+          normalizeCurrency(
+            data?.moeda ||
+            data?.currency ||
+            data?.moeda_evento ||
+            data?.tipo_moeda ||
+            data?.valor_moeda
+          );
 
         const ingressosTratados = Array.isArray(data?.ingressos)
-          ? data.ingressos.map((ing: any) => ({
-              ...ing,
-              preco: Number(ing?.preco || 0),
-              moeda: getSafeCurrency(ing?.moeda || moedaEvento),
-            }))
+          ? data.ingressos.map((ing: any) => {
+              const moedaIngresso = normalizeCurrency(
+                ing?.moeda ||
+                ing?.currency ||
+                ing?.moeda_ingresso ||
+                ing?.tipo_moeda ||
+                moedaEvento
+              );
+
+              return {
+                ...ing,
+                preco: Number(ing?.preco || 0),
+                moeda: moedaIngresso,
+              };
+            })
           : [];
 
         const eventoTratado = {
@@ -85,6 +105,8 @@ export default function DetalhesEquilibrado() {
           moeda: moedaEvento,
           ingressos: ingressosTratados,
         };
+
+        console.log('✅ EVENTO TRATADO:', eventoTratado);
 
         setEvento(eventoTratado);
 
@@ -106,14 +128,10 @@ export default function DetalhesEquilibrado() {
       }
     }
 
-    if (id) {
-      carregarEvento();
-    }
+    if (id) carregarEvento();
   }, [id]);
 
-  const moedaEvento = useMemo(() => {
-    return getSafeCurrency(evento?.moeda);
-  }, [evento]);
+  const moedaEvento = useMemo(() => normalizeCurrency(evento?.moeda), [evento]);
 
   const totalGeral = useMemo(() => {
     if (!Array.isArray(evento?.ingressos)) return 0;
@@ -202,9 +220,7 @@ export default function DetalhesEquilibrado() {
                     <Calendar size={18} />
                   </div>
                   <div>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase">
-                      Data e Hora
-                    </p>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase">Data e Hora</p>
                     <p className="text-sm font-bold">
                       {new Date(evento.data_inicio).toLocaleDateString('pt-BR', {
                         day: '2-digit',
@@ -220,9 +236,7 @@ export default function DetalhesEquilibrado() {
                     <MapPin size={18} />
                   </div>
                   <div>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase">
-                      Localização
-                    </p>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase">Localização</p>
                     <p className="text-sm font-bold">
                       {evento.local_nome}, {evento.cidade}
                     </p>
@@ -331,10 +345,7 @@ export default function DetalhesEquilibrado() {
                   <span className="text-sm uppercase tracking-widest">
                     Confirmar Pedido
                   </span>
-                  <ArrowRight
-                    size={20}
-                    className="group-hover:translate-x-2 transition-transform"
-                  />
+                  <ArrowRight size={20} className="group-hover:translate-x-2 transition-transform" />
                 </Link>
               </div>
             </section>
