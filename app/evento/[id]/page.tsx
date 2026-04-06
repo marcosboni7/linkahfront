@@ -16,10 +16,9 @@ import {
   ChevronLeft,
   CheckCircle2,
   Heart,
-  Users,
   Verified,
-  Building2,
-  Globe
+  Globe,
+  Award
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -98,10 +97,7 @@ export default function DetalhesEvento() {
 
   const moedaFinal = (evento.moeda || 'BRL').toUpperCase();
   const locale = language === 'PT' ? 'pt-BR' : 'en-US';
-
-  const totalGeral = evento.ingressos?.reduce((acc: number, ing: any) => {
-    return acc + Number(ing.preco) * (quantidades[ing.id] || 0);
-  }, 0) || 0;
+  const totalGeral = evento.ingressos?.reduce((acc: number, ing: any) => acc + Number(ing.preco) * (quantidades[ing.id] || 0), 0) || 0;
 
   const handleMudarQuantidade = (ingId: string, operacao: 'soma' | 'sub') => {
     setQuantidades(prev => ({
@@ -116,7 +112,7 @@ export default function DetalhesEvento() {
 
       <main className="max-w-7xl mx-auto px-4 md:px-8 pt-6">
         
-        {/* HEADER DE NAVEGAÇÃO */}
+        {/* NAVEGAÇÃO */}
         <div className="flex justify-between items-center mb-8">
           <button onClick={() => router.back()} className="flex items-center gap-2 text-slate-400 hover:text-black transition-all font-black uppercase text-[10px] tracking-widest">
             <ChevronLeft size={16} /> Voltar
@@ -127,12 +123,11 @@ export default function DetalhesEvento() {
           </div>
         </div>
 
-        {/* LAYOUT SPLIT (CAPA NA ESQUERDA) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
           
-          {/* COLUNA ESQUERDA: CAPA FIXA */}
+          {/* COLUNA ESQUERDA: CAPA 1080x1350 */}
           <div className="lg:col-span-5 lg:sticky lg:top-24">
-            <div className="relative aspect-[4/5] rounded-[3rem] overflow-hidden shadow-[0_40px_80px_-15px_rgba(0,0,0,0.15)] bg-slate-200 group">
+            <div className="relative aspect-[4/5] rounded-[3.5rem] overflow-hidden shadow-[0_40px_80px_-15px_rgba(0,0,0,0.15)] bg-slate-200 group border-4 border-white">
               <img 
                 src={urlFinalImagem} 
                 alt={evento.nome} 
@@ -140,96 +135,89 @@ export default function DetalhesEvento() {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
               
-              {/* TAGS SOBRE A CAPA */}
-              <div className="absolute top-6 left-6 flex gap-2">
+              <div className="absolute top-8 left-8 flex gap-2">
                 <span className="bg-white/10 backdrop-blur-xl border border-white/20 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest text-white">
-                   {evento.categoria || 'Evento'}
+                   {evento.categoria || 'Special'}
                 </span>
                 <span className="bg-[#C22973] px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest text-white flex items-center gap-1.5 shadow-xl">
-                   <Verified size={12} /> Verificado
+                   <Verified size={12} /> Oficial
                 </span>
               </div>
             </div>
-
-            {/* BANNER PATROCÍNIO ABAIXO DA CAPA */}
-            {urlFinalBanner && (
-              <div className="mt-8 bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex items-center justify-between">
-                <div>
-                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Apoio Oficial</p>
-                  <p className="text-sm font-bold text-slate-800 italic uppercase">Special Partner</p>
-                </div>
-                <img src={urlFinalBanner} className="h-12 w-auto grayscale opacity-50 hover:grayscale-0 hover:opacity-100 transition-all cursor-pointer" />
-              </div>
-            )}
           </div>
 
-          {/* COLUNA DIREITA: INFO E CHECKOUT */}
+          {/* COLUNA DIREITA: CONTEÚDO */}
           <div className="lg:col-span-7 space-y-10">
             
-            {/* TÍTULO E RESUMO */}
+            {/* TÍTULO PRINCIPAL */}
             <div className="space-y-4">
-               <h1 className="text-5xl md:text-7xl font-black tracking-tighter uppercase italic leading-[0.85] text-slate-900">
+               <h1 className="text-6xl md:text-8xl font-black tracking-tighter uppercase italic leading-[0.8] text-slate-900">
                   {evento.nome}
                </h1>
                <div className="flex flex-wrap gap-3">
-                  <div className="flex items-center gap-2 bg-slate-100 px-4 py-2 rounded-full text-xs font-bold text-slate-600">
+                  <div className="flex items-center gap-2 bg-white border border-slate-100 shadow-sm px-4 py-2 rounded-full text-xs font-bold text-slate-600">
                     <Calendar size={14} className="text-[#C22973]" />
                     {new Date(evento.data_inicio).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}
                   </div>
-                  <div className="flex items-center gap-2 bg-slate-100 px-4 py-2 rounded-full text-xs font-bold text-slate-600">
+                  <div className="flex items-center gap-2 bg-white border border-slate-100 shadow-sm px-4 py-2 rounded-full text-xs font-bold text-slate-600">
                     <Globe size={14} className="text-blue-500" />
-                    {evento.tipo === 'Online' ? 'Evento Digital' : evento.cidade}
+                    {evento.tipo === 'Online' ? 'Digital Experience' : evento.cidade}
                   </div>
                </div>
             </div>
 
-            {/* CARDS DE INFO RÁPIDA */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-               <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-4">
-                  <div className="w-12 h-12 bg-pink-50 rounded-2xl flex items-center justify-center text-[#C22973]"><Calendar size={20} /></div>
-                  <div>
-                    <p className="text-[9px] font-black uppercase text-slate-400">Horário</p>
-                    <p className="text-sm font-bold">{evento.hora_inicio || '19:00'}</p>
+            {/* SEÇÃO DO PATROCINADOR - MAIOR E MAIS VISÍVEL */}
+            {urlFinalBanner && (
+              <div className="bg-slate-900 rounded-[2.5rem] p-8 md:p-10 flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl relative overflow-hidden group">
+                {/* Efeito de brilho no fundo */}
+                <div className="absolute top-0 right-0 w-64 h-64 bg-[#C22973]/10 rounded-full blur-3xl -mr-32 -mt-32" />
+                
+                <div className="flex flex-col items-center md:items-start text-center md:text-left z-10">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Award size={16} className="text-yellow-400" />
+                    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Apresentado por</span>
                   </div>
-               </div>
-               <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-4">
-                  <div className="w-12 h-12 bg-orange-50 rounded-2xl flex items-center justify-center text-orange-500"><MapPin size={20} /></div>
-                  <div>
-                    <p className="text-[9px] font-black uppercase text-slate-400">Localização</p>
-                    <p className="text-sm font-bold truncate max-w-[150px]">{evento.local_nome || 'A definir'}</p>
-                  </div>
-               </div>
-            </div>
+                  <h4 className="text-white text-2xl font-black italic uppercase tracking-tight leading-none">Parceiro Global</h4>
+                </div>
 
-            {/* TICKETS SELECTION */}
-            <section className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
-               <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
-                  <h3 className="font-black italic uppercase text-sm tracking-widest">Seleção de Ingressos</h3>
-                  <Ticket size={18} className="text-slate-300" />
+                <div className="bg-white/5 backdrop-blur-md border border-white/10 p-6 rounded-[2rem] hover:bg-white/10 transition-all duration-500 group z-10">
+                  <img 
+                    src={urlFinalBanner} 
+                    className="h-20 md:h-24 w-auto object-contain transition-transform duration-500 group-hover:scale-110" 
+                    alt="Sponsor Logo"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* SELEÇÃO DE INGRESSOS */}
+            <section className="bg-white rounded-[3rem] border border-slate-100 shadow-xl overflow-hidden">
+               <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
+                  <h3 className="font-black italic uppercase text-sm tracking-widest">Tickets</h3>
+                  <Ticket size={20} className="text-[#C22973]" />
                </div>
                <div className="p-8 space-y-4">
                   {evento.ingressos?.map((ing: any) => (
-                    <div key={ing.id} className={`flex items-center justify-between p-6 rounded-3xl border-2 transition-all ${quantidades[ing.id] > 0 ? 'border-[#C22973] bg-pink-50/20' : 'border-slate-50 bg-slate-50/30'}`}>
+                    <div key={ing.id} className={`flex items-center justify-between p-6 rounded-[2rem] border-2 transition-all ${quantidades[ing.id] > 0 ? 'border-[#C22973] bg-pink-50/20' : 'border-slate-50 bg-slate-50/50'}`}>
                        <div>
-                          <p className="font-black uppercase italic text-xs mb-1">{ing.nome}</p>
-                          <p className="text-2xl font-black text-[#C22973]">
+                          <p className="font-black uppercase italic text-[10px] tracking-widest mb-1 text-slate-400">{ing.nome}</p>
+                          <p className="text-3xl font-black text-slate-900 leading-none">
                             {Number(ing.preco).toLocaleString(locale, { style: 'currency', currency: moedaFinal })}
                           </p>
                        </div>
-                       <div className="flex items-center gap-4 bg-white p-2 rounded-2xl shadow-sm border border-slate-100">
-                          <button onClick={() => handleMudarQuantidade(ing.id, 'sub')} className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-black"><Minus size={14} /></button>
-                          <span className="font-black text-sm w-4 text-center">{quantidades[ing.id] || 0}</span>
-                          <button onClick={() => handleMudarQuantidade(ing.id, 'soma')} className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-black"><Plus size={14} /></button>
+                       <div className="flex items-center gap-4 bg-white p-2 rounded-2xl shadow-sm">
+                          <button onClick={() => handleMudarQuantidade(ing.id, 'sub')} className="w-10 h-10 flex items-center justify-center text-slate-300 hover:text-black transition-all"><Minus size={16} /></button>
+                          <span className="font-black text-lg w-6 text-center">{quantidades[ing.id] || 0}</span>
+                          <button onClick={() => handleMudarQuantidade(ing.id, 'soma')} className="w-10 h-10 flex items-center justify-center text-slate-300 hover:text-black transition-all"><Plus size={16} /></button>
                        </div>
                     </div>
                   ))}
                </div>
                
-               {/* BOTÃO DE COMPRA FIXO NO CARD */}
                <div className="p-8 pt-0">
                   <Link 
                     href={totalGeral > 0 ? `/venda?eventoId=${id}&payload=${encodeURIComponent(JSON.stringify(quantidades))}` : '#'}
-                    className={`w-full py-6 rounded-[1.8rem] font-black text-[11px] tracking-[0.2em] uppercase flex items-center justify-center gap-3 transition-all ${totalGeral > 0 ? 'bg-black text-white hover:bg-[#C22973] shadow-2xl shadow-pink-200' : 'bg-slate-100 text-slate-300 cursor-not-allowed'}`}
+                    className={`w-full py-7 rounded-[2rem] font-black text-[12px] tracking-[0.2em] uppercase flex items-center justify-center gap-3 transition-all ${totalGeral > 0 ? 'bg-[#C22973] text-white hover:bg-black shadow-2xl shadow-pink-200' : 'bg-slate-100 text-slate-300 cursor-not-allowed'}`}
                   >
                     Confirmar Reserva — {totalGeral.toLocaleString(locale, { style: 'currency', currency: moedaFinal })}
                   </Link>
@@ -238,9 +226,12 @@ export default function DetalhesEvento() {
 
             {/* DESCRIÇÃO */}
             <section className="space-y-6">
-               <h2 className="text-2xl font-black uppercase italic tracking-tighter">O Evento</h2>
-               <div className="text-slate-500 leading-relaxed font-medium text-lg whitespace-pre-line bg-white p-10 rounded-[2.5rem] border border-slate-100">
-                  {evento.descricao || 'Nenhuma informação adicional fornecida pelo organizador.'}
+               <h2 className="text-3xl font-black uppercase italic tracking-tighter flex items-center gap-3">
+                 <div className="h-1 w-8 bg-[#C22973]"></div>
+                 The Event
+               </h2>
+               <div className="text-slate-500 leading-[1.8] font-medium text-xl whitespace-pre-line bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm italic">
+                  {evento.descricao || 'No additional info.'}
                </div>
             </section>
 
