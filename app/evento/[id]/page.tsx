@@ -14,15 +14,17 @@ import {
   Plus,
   Minus,
   ChevronLeft,
+  CheckCircle2,
   Heart,
+  Users,
   Verified,
-  Globe,
   Building2
 } from 'lucide-react';
 import Link from 'next/link';
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || 'https://api-linkah.onrender.com';
+
 const CLOUDINARY_CLOUD_NAME = 'dj32txsol';
 
 export default function DetalhesEvento() {
@@ -37,6 +39,11 @@ export default function DetalhesEvento() {
   useEffect(() => {
     async function carregarEvento() {
       try {
+        console.log(
+          `%c[AWS Debug] Buscando evento ID: ${id}`,
+          'color: #C22973; font-weight: bold;'
+        );
+
         const timestamp = new Date().getTime();
         const res = await fetch(`${API_URL}/api/eventos/${id}?t=${timestamp}`, {
           cache: 'no-store'
@@ -48,11 +55,14 @@ export default function DetalhesEvento() {
 
           if (data.ingressos && Array.isArray(data.ingressos)) {
             const qts: any = {};
+
             data.ingressos.forEach((ing: any) => {
               qts[ing.id] = 0;
             });
 
-            if (data.ingressos.length > 0) qts[data.ingressos[0].id] = 1;
+            if (data.ingressos.length > 0) {
+              qts[data.ingressos[0].id] = 1;
+            }
 
             setQuantidades(qts);
           }
@@ -83,12 +93,14 @@ export default function DetalhesEvento() {
   if (!evento) {
     return (
       <div className="h-screen flex items-center justify-center flex-col gap-4">
-        <p className="italic text-slate-400">Evento não encontrado.</p>
+        <p className="text-slate-500 font-medium italic">
+          Evento não encontrado.
+        </p>
         <button
           onClick={() => router.push('/')}
-          className="text-[#C22973] font-bold"
+          className="text-[#C22973] font-bold underline"
         >
-          Voltar
+          Voltar para o início
         </button>
       </div>
     );
@@ -102,40 +114,47 @@ export default function DetalhesEvento() {
 
   if (rawImage && rawImage !== 'null' && rawImage !== 'undefined') {
     const valor = String(rawImage).trim();
-    urlFinalImagem = valor.startsWith('http')
-      ? valor
-      : valor.startsWith('linkah/')
-        ? `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${valor}`
-        : `${API_URL}/uploads/${valor.replace(/^\/+/, '')}`;
+
+    if (valor.startsWith('http://') || valor.startsWith('https://')) {
+      urlFinalImagem = valor;
+    } else if (valor.startsWith('linkah/')) {
+      urlFinalImagem = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${valor}`;
+    } else {
+      urlFinalImagem = `${API_URL}/uploads/${valor.replace(/^\/+/, '')}`;
+    }
   }
 
   const rawBanner = evento.banner_patrocinio;
-  let urlFinalBanner: string | null = null;
+  let urlFinalBanner = null;
 
   if (rawBanner && rawBanner !== 'null' && rawBanner !== 'undefined') {
-    const vB = String(rawBanner).trim();
-    urlFinalBanner = vB.startsWith('http')
-      ? vB
-      : vB.startsWith('linkah/')
-        ? `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${vB}`
-        : `${API_URL}/uploads/${vB.replace(/^\/+/, '')}`;
+    const valorBanner = String(rawBanner).trim();
+
+    if (valorBanner.startsWith('http')) {
+      urlFinalBanner = valorBanner;
+    } else if (valorBanner.startsWith('linkah/')) {
+      urlFinalBanner = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${valorBanner}`;
+    } else {
+      urlFinalBanner = `${API_URL}/uploads/${valorBanner.replace(/^\/+/, '')}`;
+    }
   }
 
   const moedaFinal = (evento.moeda || 'BRL').toUpperCase();
   const locale = language === 'PT' ? 'pt-BR' : 'en-US';
 
   const formatarDataSegura = (data: string) => {
-    if (!data) return 'Data a definir';
+    if (!data) return '---';
 
     const apenasData = String(data).split('T')[0];
     const partes = apenasData.split('-');
-    if (partes.length !== 3) return 'Data a definir';
+
+    if (partes.length !== 3) return '---';
 
     const ano = Number(partes[0]);
     const mes = Number(partes[1]);
     const dia = Number(partes[2]);
 
-    if (!ano || !mes || !dia) return 'Data a definir';
+    if (!ano || !mes || !dia) return '---';
 
     const dataLocal = new Date(ano, mes - 1, dia);
 
@@ -155,6 +174,8 @@ export default function DetalhesEvento() {
       return acc + Number(ing.preco) * (quantidades[ing.id] || 0);
     }, 0) || 0;
 
+  const temIngressoSelecionado = totalGeral > 0;
+
   const handleMudarQuantidade = (ingId: string, operacao: 'soma' | 'sub') => {
     setQuantidades((prev) => ({
       ...prev,
@@ -166,235 +187,274 @@ export default function DetalhesEvento() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F9FD] text-slate-900 antialiased pb-20">
+    <div className="min-h-screen bg-[#f8fafc] text-slate-900 antialiased">
       <Navbar />
 
-      <main className="max-w-7xl mx-auto px-4 md:px-8 pt-6">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-24">
         <div className="flex justify-between items-center mb-8">
           <button
             onClick={() => router.back()}
-            className="flex items-center gap-2 text-slate-400 hover:text-black transition-all font-black uppercase text-[10px] tracking-widest"
+            className="group inline-flex items-center gap-2 text-slate-500 hover:text-[#C22973] transition-all text-sm font-semibold"
           >
-            <ChevronLeft size={16} /> Voltar
+            <div className="p-2 rounded-full group-hover:bg-pink-50 transition-colors">
+              <ChevronLeft size={18} />
+            </div>
+            {language === 'PT' ? 'Voltar' : 'Back'}
           </button>
 
-          <div className="flex gap-2">
-            <button className="p-3 rounded-2xl bg-white border border-slate-100 shadow-sm text-slate-400 hover:text-[#C22973] transition-all">
+          <div className="flex gap-3">
+            <button className="p-3 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 shadow-sm transition-all">
               <Share2 size={18} />
             </button>
-            <button className="p-3 rounded-2xl bg-white border border-slate-100 shadow-sm text-slate-400 hover:text-red-500 transition-all">
+            <button className="p-3 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 shadow-sm transition-all">
               <Heart size={18} />
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
-          {/* ESQUERDA */}
-          <div className="lg:col-span-5 lg:sticky lg:top-24">
-            <div className="relative aspect-[4/5] rounded-[3rem] overflow-hidden shadow-[0_40px_80px_-15px_rgba(0,0,0,0.15)] bg-slate-200 group">
-              <img
-                src={urlFinalImagem}
-                alt={evento.nome}
-                className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src =
-                    'https://images.unsplash.com/photo-1492684223066-81342ee5ff30';
-                }}
-              />
+        {/* CAPA NOVA 1080x1350 */}
+        <div className="w-full flex justify-center mb-14">
+          <div className="relative w-full max-w-[1080px] aspect-[4/5] rounded-[2rem] overflow-hidden bg-slate-200 shadow-[0_20px_60px_rgba(0,0,0,0.12)]">
+            <img
+              src={urlFinalImagem}
+              alt={evento.nome}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                console.warn('[Render Debug] Falha na imagem, usando fallback.');
+                (e.target as HTMLImageElement).src =
+                  'https://images.unsplash.com/photo-1492684223066-81342ee5ff30';
+              }}
+            />
 
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
 
-              <div className="absolute top-6 left-6 flex gap-2 flex-wrap">
-                <span className="bg-white/10 backdrop-blur-xl border border-white/20 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest text-white">
+            <div className="absolute top-5 left-5 right-5 flex items-start justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="bg-white/12 backdrop-blur-md px-4 py-2 rounded-full text-[11px] font-semibold uppercase tracking-[0.18em] text-white border border-white/20">
                   {evento.categoria || 'Evento'}
                 </span>
 
-                <span className="bg-[#C22973] px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest text-white flex items-center gap-1.5 shadow-xl">
-                  <Verified size={12} /> Verificado
+                <span className="flex items-center gap-1.5 text-[11px] font-medium text-white/90 bg-white/10 backdrop-blur-md px-3 py-2 rounded-full border border-white/15">
+                  <Verified size={13} className="text-sky-300" />
+                  {language === 'PT' ? 'Verificado' : 'Verified'}
                 </span>
               </div>
             </div>
-          </div>
 
-          {/* DIREITA */}
-          <div className="lg:col-span-7 space-y-10">
-            <div className="space-y-4">
-              <h1 className="text-5xl md:text-7xl font-black tracking-tighter uppercase italic leading-[0.85] text-slate-900">
-                {evento.nome}
-              </h1>
+            <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
+              <div className="backdrop-blur-md bg-black/20 border border-white/10 rounded-[1.75rem] p-5 md:p-7">
+                <h1 className="text-white text-3xl md:text-5xl lg:text-6xl font-bold leading-[0.95] tracking-tight">
+                  {evento.nome}
+                </h1>
 
-              <div className="flex flex-wrap gap-3">
-                <div className="flex items-center gap-2 bg-slate-100 px-4 py-2 rounded-full text-xs font-bold text-slate-600">
-                  <Calendar size={14} className="text-[#C22973]" />
-                  {formatarDataSegura(evento.data_inicio)}
-                </div>
+                <div className="mt-5 flex flex-wrap gap-3 text-white/90">
+                  <div className="inline-flex items-center gap-2 bg-white/10 border border-white/10 rounded-full px-4 py-2 text-sm">
+                    <Calendar size={16} />
+                    <span>
+                      {formatarDataSegura(evento.data_inicio)} •{' '}
+                      {formatarHoraSegura(evento.hora_inicio || evento.horario)}
+                    </span>
+                  </div>
 
-                <div className="flex items-center gap-2 bg-slate-100 px-4 py-2 rounded-full text-xs font-bold text-slate-600">
-                  <Globe size={14} className="text-blue-500" />
-                  {String(evento.tipo || '').toLowerCase() === 'online'
-                    ? 'Evento Digital'
-                    : evento.cidade || 'Cidade a definir'}
+                  <div className="inline-flex items-center gap-2 bg-white/10 border border-white/10 rounded-full px-4 py-2 text-sm">
+                    <MapPin size={16} />
+                    <span>
+                      {String(evento.tipo || '').toLowerCase() === 'online'
+                        ? 'Linkah Digital'
+                        : evento.local_nome || evento.local || 'Local a definir'}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
+          </div>
+        </div>
 
-            {/* BANNER DE PATROCINADOR MAIOR EM NOVA POSIÇÃO */}
-            {urlFinalBanner && (
-              <section className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
-                <div className="p-6 md:p-7 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
-                  <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600">
-                      <Building2 size={20} />
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                        Apoio oficial
-                      </p>
-                      <p className="text-sm md:text-base font-black text-slate-800 uppercase italic">
-                        Patrocinador do evento
-                      </p>
-                    </div>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 xl:gap-14">
+          <div className="lg:col-span-8 space-y-10">
+            {/* INFORMAÇÕES */}
+            <section className="bg-white rounded-[2rem] border border-slate-200 shadow-sm p-6 md:p-8">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="flex items-start gap-4">
+                  <div className="w-14 h-14 rounded-2xl bg-pink-50 flex items-center justify-center text-[#C22973] shrink-0">
+                    <Calendar size={24} />
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400 mb-1">
+                      Data
+                    </p>
+                    <p className="font-semibold text-slate-900 text-lg">
+                      {formatarDataSegura(evento.data_inicio)}
+                    </p>
+                    <p className="text-sm text-slate-500">
+                      {formatarHoraSegura(evento.hora_inicio || evento.horario)}
+                    </p>
                   </div>
                 </div>
 
-                <div className="p-6 md:p-8">
-                  <div className="relative w-full max-w-[420px] mx-auto aspect-[236/354] rounded-[2rem] overflow-hidden bg-slate-100 border border-slate-200 shadow-[0_20px_50px_rgba(15,23,42,0.08)]">
-                    <img
-                      src={urlFinalBanner}
-                      alt="Banner Patrocinador"
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = 'none';
-                      }}
-                    />
+                <div className="flex items-start gap-4">
+                  <div className="w-14 h-14 rounded-2xl bg-orange-50 flex items-center justify-center text-orange-500 shrink-0">
+                    <MapPin size={24} />
                   </div>
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400 mb-1">
+                      Local
+                    </p>
+                    <p className="font-semibold text-slate-900 text-lg line-clamp-1">
+                      {String(evento.tipo || '').toLowerCase() === 'online'
+                        ? 'Linkah Digital'
+                        : evento.local_nome || evento.local || 'Local a definir'}
+                    </p>
+                    <p className="text-sm text-slate-500 line-clamp-1">
+                      {String(evento.tipo || '').toLowerCase() === 'online'
+                        ? 'Digital'
+                        : evento.cidade || 'Cidade a definir'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="w-14 h-14 rounded-2xl bg-purple-50 flex items-center justify-center text-purple-500 shrink-0">
+                    <Users size={24} />
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400 mb-1">
+                      Organizador
+                    </p>
+                    <p className="font-semibold text-slate-900 text-lg line-clamp-1">
+                      {evento.produtor_nome || 'Linkah Produtora'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* SOBRE */}
+            <section className="bg-white rounded-[2rem] border border-slate-200 shadow-sm p-6 md:p-8">
+              <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900 mb-5">
+                Sobre o evento
+              </h2>
+
+              <div className="text-slate-600 leading-8 text-base md:text-lg whitespace-pre-line">
+                {evento.descricao || 'Sem descrição disponível.'}
+              </div>
+            </section>
+
+            {/* BANNER PATROCINADOR */}
+            {urlFinalBanner && (
+              <section className="bg-white rounded-[2rem] border border-slate-200 shadow-sm p-4 md:p-5">
+                <div className="mb-4 flex items-center gap-2">
+                  <div className="bg-slate-100 px-3 py-1.5 rounded-full flex items-center gap-2">
+                    <Building2 size={14} className="text-blue-500" />
+                    <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-600">
+                      Patrocinador oficial
+                    </span>
+                  </div>
+                </div>
+
+                <div className="relative w-full aspect-[21/7] rounded-[1.5rem] overflow-hidden bg-slate-100">
+                  <img
+                    src={urlFinalBanner}
+                    alt="Banner Patrocinador"
+                    className="w-full h-full object-cover"
+                  />
                 </div>
               </section>
             )}
+          </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-4">
-                <div className="w-12 h-12 bg-pink-50 rounded-2xl flex items-center justify-center text-[#C22973]">
-                  <Calendar size={20} />
-                </div>
-                <div>
-                  <p className="text-[9px] font-black uppercase text-slate-400">
-                    Horário
-                  </p>
-                  <p className="text-sm font-bold">
-                    {formatarHoraSegura(evento.hora_inicio || evento.horario)}
-                  </p>
-                </div>
-              </div>
-
-              <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-4">
-                <div className="w-12 h-12 bg-orange-50 rounded-2xl flex items-center justify-center text-orange-500">
-                  <MapPin size={20} />
-                </div>
-                <div>
-                  <p className="text-[9px] font-black uppercase text-slate-400">
-                    Localização
-                  </p>
-                  <p className="text-sm font-bold truncate max-w-[220px]">
-                    {evento.local_nome || evento.local || 'A definir'}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <section className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
-              <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
-                <h3 className="font-black italic uppercase text-sm tracking-widest">
-                  Seleção de Ingressos
+          {/* SIDEBAR */}
+          <div className="lg:col-span-4">
+            <div className="sticky top-28 bg-white rounded-[2rem] border border-slate-200 shadow-[0_20px_50px_rgba(15,23,42,0.08)] p-6 md:p-7 space-y-6">
+              <div className="flex justify-between items-center">
+                <h3 className="font-bold text-slate-900 text-xl">
+                  Ingressos
                 </h3>
-                <Ticket size={18} className="text-slate-300" />
+                <CheckCircle2 size={20} className="text-emerald-500" />
               </div>
 
-              <div className="p-8 space-y-4">
+              <div className="space-y-4 max-h-[420px] overflow-y-auto pr-1">
                 {evento.ingressos?.length > 0 ? (
                   evento.ingressos.map((ing: any) => (
                     <div
                       key={ing.id}
-                      className={`flex items-center justify-between p-6 rounded-3xl border-2 transition-all ${
+                      className={`rounded-[1.5rem] border p-4 transition-all ${
                         quantidades[ing.id] > 0
-                          ? 'border-[#C22973] bg-pink-50/20'
-                          : 'border-slate-50 bg-slate-50/30'
+                          ? 'bg-pink-50/40 border-pink-200'
+                          : 'bg-slate-50 border-slate-200'
                       }`}
                     >
-                      <div>
-                        <p className="font-black uppercase italic text-xs mb-1">
-                          {ing.nome || 'Ingresso'}
-                        </p>
-                        <p className="text-2xl font-black text-[#C22973]">
-                          {Number(ing.preco).toLocaleString(locale, {
-                            style: 'currency',
-                            currency: moedaFinal
-                          })}
-                        </p>
-                      </div>
+                      <p className="font-semibold text-slate-800 text-sm uppercase tracking-wide">
+                        {ing.nome || 'Individual'}
+                      </p>
 
-                      <div className="flex items-center gap-4 bg-white p-2 rounded-2xl shadow-sm border border-slate-100">
+                      <p className="text-[#C22973] font-bold text-xl mt-1 mb-4">
+                        {Number(ing.preco).toLocaleString(locale, {
+                          style: 'currency',
+                          currency: moedaFinal
+                        })}
+                      </p>
+
+                      <div className="flex items-center justify-between bg-white p-1 rounded-2xl shadow-sm border border-slate-200">
                         <button
                           onClick={() => handleMudarQuantidade(ing.id, 'sub')}
-                          className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-black"
+                          className="w-10 h-10 flex items-center justify-center text-slate-500 hover:text-[#C22973] transition-colors"
                         >
-                          <Minus size={14} />
+                          <Minus size={16} />
                         </button>
 
-                        <span className="font-black text-sm w-4 text-center">
+                        <span className="font-bold text-lg text-slate-900">
                           {quantidades[ing.id] || 0}
                         </span>
 
                         <button
                           onClick={() => handleMudarQuantidade(ing.id, 'soma')}
-                          className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-black"
+                          className="w-10 h-10 flex items-center justify-center text-slate-500 hover:text-[#C22973] transition-colors"
                         >
-                          <Plus size={14} />
+                          <Plus size={16} />
                         </button>
                       </div>
                     </div>
                   ))
                 ) : (
-                  <div className="rounded-[2rem] border border-slate-100 bg-slate-50/50 p-6 text-slate-400 font-medium">
+                  <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
                     Nenhum ingresso disponível no momento.
                   </div>
                 )}
               </div>
 
-              <div className="p-8 pt-0">
+              <div className="pt-4 border-t border-slate-200 space-y-5">
+                <div className="flex justify-between items-end">
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.18em]">
+                    Total geral
+                  </p>
+                  <p className="text-3xl font-bold text-slate-900 tracking-tight">
+                    {totalGeral.toLocaleString(locale, {
+                      style: 'currency',
+                      currency: moedaFinal
+                    })}
+                  </p>
+                </div>
+
                 <Link
                   href={
-                    totalGeral > 0
+                    temIngressoSelecionado
                       ? `/venda?eventoId=${id}&payload=${encodeURIComponent(
                           JSON.stringify(quantidades)
                         )}`
                       : '#'
                   }
-                  className={`w-full py-6 rounded-[1.8rem] font-black text-[11px] tracking-[0.2em] uppercase flex items-center justify-center gap-3 transition-all ${
-                    totalGeral > 0
-                      ? 'bg-black text-white hover:bg-[#C22973] shadow-2xl shadow-pink-200'
-                      : 'bg-slate-100 text-slate-300 cursor-not-allowed'
+                  className={`flex items-center justify-center w-full py-4 rounded-[1.25rem] font-bold text-white transition-all ${
+                    temIngressoSelecionado
+                      ? 'bg-gradient-to-r from-[#C22973] to-[#ff8c42] hover:opacity-95'
+                      : 'bg-slate-200 cursor-not-allowed text-slate-400'
                   }`}
                 >
-                  Confirmar Reserva —{' '}
-                  {totalGeral.toLocaleString(locale, {
-                    style: 'currency',
-                    currency: moedaFinal
-                  })}
+                  <Ticket size={20} className="mr-2" />
+                  CONTINUAR
                 </Link>
               </div>
-            </section>
-
-            <section className="space-y-6">
-              <h2 className="text-2xl font-black uppercase italic tracking-tighter">
-                O Evento
-              </h2>
-
-              <div className="text-slate-500 leading-relaxed font-medium text-lg whitespace-pre-line bg-white p-10 rounded-[2.5rem] border border-slate-100">
-                {evento.descricao ||
-                  'Nenhuma informação adicional fornecida pelo organizador.'}
-              </div>
-            </section>
+            </div>
           </div>
         </div>
       </main>
