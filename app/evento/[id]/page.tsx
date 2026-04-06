@@ -340,10 +340,10 @@ export default function DetalhesEvento() {
               </div>
             </section>
 
-            {/* BANNER PATROCINADOR */}
+            {/* BANNER PATROCINADOR 236x354 */}
             {urlFinalBanner && (
-              <section className="bg-white rounded-[2rem] border border-slate-200 shadow-sm p-4 md:p-5">
-                <div className="mb-4 flex items-center gap-2">
+              <section className="bg-white rounded-[2rem] border border-slate-200 shadow-sm p-6 md:p-8">
+                <div className="mb-5 flex items-center gap-2">
                   <div className="bg-slate-100 px-3 py-1.5 rounded-full flex items-center gap-2">
                     <Building2 size={14} className="text-blue-500" />
                     <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-600">
@@ -352,12 +352,17 @@ export default function DetalhesEvento() {
                   </div>
                 </div>
 
-                <div className="relative w-full aspect-[21/7] rounded-[1.5rem] overflow-hidden bg-slate-100">
-                  <img
-                    src={urlFinalBanner}
-                    alt="Banner Patrocinador"
-                    className="w-full h-full object-cover"
-                  />
+                <div className="flex justify-center">
+                  <div className="relative w-full max-w-[236px] aspect-[236/354] rounded-[1.5rem] overflow-hidden bg-slate-100 border border-slate-200 shadow-sm">
+                    <img
+                      src={urlFinalBanner}
+                      alt="Banner Patrocinador"
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  </div>
                 </div>
               </section>
             )}
