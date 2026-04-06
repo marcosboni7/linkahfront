@@ -39,6 +39,16 @@ function formatCurrency(value: number | string, currency?: string) {
   }).format(amount);
 }
 
+function getSafeCurrency(value?: string) {
+  const moeda = (value || 'BRL').toUpperCase();
+
+  if (['BRL', 'EUR', 'USD'].includes(moeda)) {
+    return moeda;
+  }
+
+  return 'BRL';
+}
+
 export default function DetalhesEquilibrado() {
   const { id } = useParams();
   const router = useRouter();
@@ -54,53 +64,63 @@ export default function DetalhesEquilibrado() {
         const timestamp = new Date().getTime();
         const res = await fetch(`${API_URL}/api/eventos/${id}?t=${timestamp}`);
 
-        if (res.ok) {
-          const data = await res.json();
-
-          // fallback defensivo
-          data.moeda = (data.moeda || 'BRL').toUpperCase();
-
-          if (Array.isArray(data.ingressos)) {
-            data.ingressos = data.ingressos.map((ing: any) => ({
-              ...ing,
-              moeda: (ing.moeda || data.moeda || 'BRL').toUpperCase(),
-            }));
-          }
-
-          setEvento(data);
-
-          if (data.ingressos) {
-            const qts: any = {};
-            data.ingressos.forEach((ing: any) => {
-              qts[ing.id] = 0;
-            });
-
-            if (data.ingressos.length > 0) {
-              qts[data.ingressos[0].id] = 1;
-            }
-
-            setQuantidades(qts);
-          }
+        if (!res.ok) {
+          throw new Error('Erro ao carregar evento');
         }
+
+        const data = await res.json();
+
+        const moedaEvento = getSafeCurrency(data?.moeda);
+
+        const ingressosTratados = Array.isArray(data?.ingressos)
+          ? data.ingressos.map((ing: any) => ({
+              ...ing,
+              preco: Number(ing?.preco || 0),
+              moeda: getSafeCurrency(ing?.moeda || moedaEvento),
+            }))
+          : [];
+
+        const eventoTratado = {
+          ...data,
+          moeda: moedaEvento,
+          ingressos: ingressosTratados,
+        };
+
+        setEvento(eventoTratado);
+
+        const qts: Record<string, number> = {};
+        ingressosTratados.forEach((ing: any) => {
+          qts[ing.id] = 0;
+        });
+
+        if (ingressosTratados.length > 0) {
+          qts[ingressosTratados[0].id] = 1;
+        }
+
+        setQuantidades(qts);
       } catch (err) {
-        console.error(err);
+        console.error('❌ Erro ao carregar evento:', err);
+        setEvento(null);
       } finally {
         setLoading(false);
       }
     }
 
-    if (id) carregarEvento();
+    if (id) {
+      carregarEvento();
+    }
   }, [id]);
 
   const moedaEvento = useMemo(() => {
-    return (evento?.moeda || 'BRL').toUpperCase();
+    return getSafeCurrency(evento?.moeda);
   }, [evento]);
 
   const totalGeral = useMemo(() => {
-    if (!evento?.ingressos) return 0;
+    if (!Array.isArray(evento?.ingressos)) return 0;
 
     return evento.ingressos.reduce((acc: number, ing: any) => {
-      return acc + Number(ing.preco || 0) * (quantidades[ing.id] || 0);
+      const quantidade = quantidades[ing.id] || 0;
+      return acc + Number(ing.preco || 0) * quantidade;
     }, 0);
   }, [evento, quantidades]);
 
@@ -188,7 +208,7 @@ export default function DetalhesEquilibrado() {
                     <p className="text-sm font-bold">
                       {new Date(evento.data_inicio).toLocaleDateString('pt-BR', {
                         day: '2-digit',
-                        month: 'long'
+                        month: 'long',
                       })}{' '}
                       • {evento.hora_inicio || '20:00'}
                     </p>
@@ -240,56 +260,54 @@ export default function DetalhesEquilibrado() {
               </h3>
 
               <div className="space-y-3">
-                {evento.ingressos?.map((ing: any) => {
-                  const moedaIngresso = (ing.moeda || moedaEvento || 'BRL').toUpperCase();
+                {evento.ingressos?.map((ing: any) => (
+                  <div
+                    key={ing.id}
+                    className="group bg-white hover:bg-indigo-600 p-6 rounded-[1.8rem] border border-slate-100 hover:border-indigo-400 transition-all duration-300 flex items-center justify-between shadow-sm hover:shadow-xl hover:shadow-indigo-200"
+                  >
+                    <div>
+                      <p className="text-sm font-bold uppercase tracking-wide text-slate-900 group-hover:text-white transition-colors">
+                        {ing.nome}
+                      </p>
 
-                  return (
-                    <div
-                      key={ing.id}
-                      className="group bg-white hover:bg-indigo-600 p-6 rounded-[1.8rem] border border-slate-100 hover:border-indigo-400 transition-all duration-300 flex items-center justify-between shadow-sm hover:shadow-xl hover:shadow-indigo-200"
-                    >
-                      <div>
-                        <p className="text-sm font-bold uppercase tracking-wide text-slate-900 group-hover:text-white transition-colors">
-                          {ing.nome}
-                        </p>
-
-                        <p className="text-indigo-600 font-bold text-sm mt-1 group-hover:text-indigo-200 transition-colors">
-                          {formatCurrency(ing.preco, moedaIngresso)}
-                        </p>
-                      </div>
-
-                      <div className="flex items-center gap-6 bg-slate-50 group-hover:bg-white/10 px-5 py-2.5 rounded-2xl transition-colors">
-                        <button
-                          onClick={() =>
-                            setQuantidades((p) => ({
-                              ...p,
-                              [ing.id]: Math.max(0, (p[ing.id] || 0) - 1)
-                            }))
-                          }
-                          className="text-slate-400 hover:text-indigo-600 group-hover:text-white transition-colors"
-                        >
-                          <Minus size={16} strokeWidth={3} />
-                        </button>
-
-                        <span className="text-md font-black w-4 text-center group-hover:text-white">
-                          {quantidades[ing.id] || 0}
-                        </span>
-
-                        <button
-                          onClick={() =>
-                            setQuantidades((p) => ({
-                              ...p,
-                              [ing.id]: (p[ing.id] || 0) + 1
-                            }))
-                          }
-                          className="text-slate-400 hover:text-indigo-600 group-hover:text-white transition-colors"
-                        >
-                          <Plus size={16} strokeWidth={3} />
-                        </button>
-                      </div>
+                      <p className="text-indigo-600 font-bold text-sm mt-1 group-hover:text-indigo-200 transition-colors">
+                        {formatCurrency(ing.preco, ing.moeda || moedaEvento)}
+                      </p>
                     </div>
-                  );
-                })}
+
+                    <div className="flex items-center gap-6 bg-slate-50 group-hover:bg-white/10 px-5 py-2.5 rounded-2xl transition-colors">
+                      <button
+                        onClick={() =>
+                          setQuantidades((prev) => ({
+                            ...prev,
+                            [ing.id]: Math.max(0, (prev[ing.id] || 0) - 1),
+                          }))
+                        }
+                        className="text-slate-400 hover:text-indigo-600 group-hover:text-white transition-colors"
+                        type="button"
+                      >
+                        <Minus size={16} strokeWidth={3} />
+                      </button>
+
+                      <span className="text-md font-black w-4 text-center group-hover:text-white">
+                        {quantidades[ing.id] || 0}
+                      </span>
+
+                      <button
+                        onClick={() =>
+                          setQuantidades((prev) => ({
+                            ...prev,
+                            [ing.id]: (prev[ing.id] || 0) + 1,
+                          }))
+                        }
+                        className="text-slate-400 hover:text-indigo-600 group-hover:text-white transition-colors"
+                        type="button"
+                      >
+                        <Plus size={16} strokeWidth={3} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
 
               <div className="mt-12 bg-slate-900 p-8 rounded-[2.5rem] flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl">
