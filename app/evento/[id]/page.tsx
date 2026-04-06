@@ -72,15 +72,13 @@ export default function DetalhesEquilibrado() {
         console.log('🔥 MOEDA RAW EVENTO:', data?.moeda);
         console.log('🔥 INGRESSOS RAW:', data?.ingressos);
 
-        // tenta vários nomes possíveis vindos do backend
-        const moedaEvento =
-          normalizeCurrency(
-            data?.moeda ||
-            data?.currency ||
-            data?.moeda_evento ||
-            data?.tipo_moeda ||
-            data?.valor_moeda
-          );
+        const moedaEvento = normalizeCurrency(
+          data?.moeda ||
+          data?.currency ||
+          data?.moeda_evento ||
+          data?.tipo_moeda ||
+          data?.valor_moeda
+        );
 
         const ingressosTratados = Array.isArray(data?.ingressos)
           ? data.ingressos.map((ing: any) => {
@@ -269,9 +267,15 @@ export default function DetalhesEquilibrado() {
             </div>
 
             <section className="space-y-6">
-              <h3 className="text-sm font-bold text-slate-900 uppercase tracking-[0.2em] ml-2">
-                Escolha seu acesso
-              </h3>
+              <div className="flex items-center justify-between gap-4">
+                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-[0.2em] ml-2">
+                  Escolha seu acesso
+                </h3>
+
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
+                  Moeda: {moedaEvento}
+                </span>
+              </div>
 
               <div className="space-y-3">
                 {evento.ingressos?.map((ing: any) => (
@@ -286,6 +290,10 @@ export default function DetalhesEquilibrado() {
 
                       <p className="text-indigo-600 font-bold text-sm mt-1 group-hover:text-indigo-200 transition-colors">
                         {formatCurrency(ing.preco, ing.moeda || moedaEvento)}
+                      </p>
+
+                      <p className="text-[10px] mt-1 text-slate-400 group-hover:text-indigo-100 transition-colors">
+                        moeda ingresso: {ing.moeda || moedaEvento}
                       </p>
                     </div>
 
