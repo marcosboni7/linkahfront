@@ -2,16 +2,15 @@
 
 import { useRouter } from 'next/navigation';
 
-// Tipagem correta para a prop onClose
 interface AvisoCadastroProps {
-  onClose: () => void;  // Definindo que onClose é uma função que não retorna nada
+  onClose: () => void;  // A prop 'onClose' recebe uma função para fechar o modal
 }
 
 export default function AvisoCadastro({ onClose }: AvisoCadastroProps) {
   const router = useRouter();
 
   const handleConfigurar = () => {
-    onClose();  // Chama a função de fechar o modal
+    onClose();  // Chama a função onClose para fechar o modal
     router.push('/dashboard/perfil');  // Redireciona para a página de perfil
   };
 
@@ -28,8 +27,9 @@ export default function AvisoCadastro({ onClose }: AvisoCadastroProps) {
             </p>
           </div>
 
+          {/* Botão de Fechar */}
           <button
-            onClick={onClose}
+            onClick={onClose}  // Chama a função onClose quando o botão "Fechar" é clicado
             className="text-slate-400 hover:text-slate-600 transition-colors"
             aria-label="Fechar aviso"
           >
@@ -51,6 +51,7 @@ export default function AvisoCadastro({ onClose }: AvisoCadastroProps) {
         </div>
 
         <div className="mt-6 flex flex-col sm:flex-row gap-3">
+          {/* Botão "Configurar meus dados" */}
           <button
             onClick={handleConfigurar}
             className="flex-1 flex items-center justify-center gap-2 bg-[#4B0082] text-white rounded-2xl py-3 px-4 font-bold hover:opacity-90 transition-all"
@@ -58,8 +59,9 @@ export default function AvisoCadastro({ onClose }: AvisoCadastroProps) {
             Configurar meus dados
           </button>
 
+          {/* Botão "Agora não" */}
           <button
-            onClick={onClose}
+            onClick={onClose}  // Chama a função onClose quando o botão "Agora não" é clicado
             className="flex-1 border border-slate-200 text-slate-700 rounded-2xl py-3 px-4 font-bold hover:bg-slate-50 transition-all"
           >
             Agora não
