@@ -10,21 +10,17 @@ export default function DashboardEventos() {
   const [isOpen, setIsOpen] = useState(false);
   const [userName, setUserName] = useState('Produtor');
   const [mostrarAviso, setMostrarAviso] = useState(false);
-  const [perfilCompleto, setPerfilCompleto] = useState(false);
+  const [perfilCompleto, setPerfilCompleto] = useState<boolean | null>(null);
 
   const router = useRouter();
 
   useEffect(() => {
     try {
-      const perfil = localStorage.getItem('perfil_completo');
+      const perfilStorage = localStorage.getItem('perfil_completo');
+      const perfilEstaCompleto = perfilStorage === 'true';
 
-      if (perfil === 'true') {
-        setPerfilCompleto(true);
-        setMostrarAviso(false);
-      } else {
-        setPerfilCompleto(false);
-        setMostrarAviso(true);
-      }
+      setPerfilCompleto(perfilEstaCompleto);
+      setMostrarAviso(!perfilEstaCompleto);
 
       const userStorage = localStorage.getItem('@Linkah:User');
       const parsedUser = userStorage ? JSON.parse(userStorage) : null;
@@ -39,11 +35,14 @@ export default function DashboardEventos() {
         setUserName(
           firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase()
         );
+      } else {
+        setUserName('Produtor');
       }
     } catch (error) {
-      console.error('Erro ao carregar nome do usuário:', error);
+      console.error('Erro ao carregar dashboard:', error);
       setUserName('Produtor');
       setPerfilCompleto(false);
+      setMostrarAviso(true);
     }
   }, []);
 
@@ -55,6 +54,14 @@ export default function DashboardEventos() {
   const handleAbrirPerfil = () => {
     setIsOpen(false);
     router.push('/dashboard/perfil');
+  };
+
+  const handleAbrirAviso = () => {
+    setMostrarAviso(true);
+  };
+
+  const handleFecharAviso = () => {
+    setMostrarAviso(false);
   };
 
   return (
@@ -127,10 +134,11 @@ export default function DashboardEventos() {
       </nav>
 
       <main className="max-w-[1400px] mx-auto p-4 md:p-10">
-        {!perfilCompleto && (
+        {perfilCompleto === false && (
           <div className="mb-6 flex justify-end">
             <button
-              onClick={() => setMostrarAviso(true)}
+              type="button"
+              onClick={handleAbrirAviso}
               className="bg-[#4B0082] text-white px-5 py-3 rounded-2xl font-bold hover:opacity-90 transition-all shadow-md"
             >
               ⚙️ Configurar meus dados
@@ -138,13 +146,7 @@ export default function DashboardEventos() {
           </div>
         )}
 
-        {mostrarAviso && (
-          <AvisoCadastro
-            onClose={() => {
-              setMostrarAviso(false);
-            }}
-          />
-        )}
+        {mostrarAviso && <AvisoCadastro onClose={handleFecharAviso} />}
 
         <TabelaEventos />
       </main>
