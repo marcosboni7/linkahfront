@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import AvisoCadastro from '../eventos/AvisoCadastro'; // Corrigido para importar corretamente
+import AvisoCadastro from '../eventos/AvisoCadastro';
 import TabelaEventos from '../eventos/TabelaEventos';
 import { UserCircle, LogOut, Settings, ChevronDown } from 'lucide-react';
 
@@ -91,7 +91,7 @@ export default function DashboardEventos() {
               <div
                 className="fixed inset-0 z-10"
                 onClick={() => setIsOpen(false)}
-              ></div>
+              />
 
               <div className="absolute right-0 mt-2 w-52 bg-white rounded-3xl border border-slate-100 shadow-2xl shadow-indigo-100/50 z-20 py-2 animate-in fade-in zoom-in duration-150">
                 <div className="px-4 py-2 border-b border-slate-50 mb-1">
