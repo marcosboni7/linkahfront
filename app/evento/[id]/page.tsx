@@ -293,7 +293,7 @@ export default function DetalhesEquilibrado() {
                       </p>
 
                       <p className="text-[10px] mt-1 text-slate-400 group-hover:text-indigo-100 transition-colors">
-                        moeda ingresso: {ing.moeda || moedaEvento}
+                      moeda: {moedaEvento}
                       </p>
                     </div>
 
