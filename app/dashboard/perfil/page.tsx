@@ -60,7 +60,6 @@ function PerfilContent() {
   const [stripeAccountId, setStripeAccountId] = useState<string | null>(null);
   const [stripeAtivo, setStripeAtivo] = useState(false);
   const [stripeDetails, setStripeDetails] = useState<StripeDetails | null>(null);
-  
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<FormDataState>({
@@ -91,7 +90,7 @@ function PerfilContent() {
   const aplicarMascara = (name: string, value: string) => {
     let v = value.replace(/\D/g, '');
     if (name === 'cpf_cnpj') {
-      return v.length <= 11 
+      return v.length <= 11
         ? v.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/g, '$1.$2.$3-$4')
         : v.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/g, '$1.$2.$3/$4-$5');
     }
@@ -126,9 +125,11 @@ function PerfilContent() {
   useEffect(() => {
     const carregarDados = async () => {
       const { emailLogado, token } = getUsuarioLogado();
-      if (!emailLogado) { 
-        router.push('/site/login'); 
-        return; 
+      const modoEdicao = searchParams.get('editar') === 'true';
+
+      if (!emailLogado) {
+        router.push('/site/login');
+        return;
       }
 
       try {
@@ -142,11 +143,12 @@ function PerfilContent() {
 
         if (response.ok) {
           const data = await response.json();
-          
-          // Tratativa da Foto (Avatar)
+
           const fotoPath = data.avatar || data.foto_perfil || '';
           if (fotoPath) {
-            const fullUrl = fotoPath.startsWith('http') ? fotoPath : `${API_URL}/${fotoPath.replace(/^\//, '')}`;
+            const fullUrl = fotoPath.startsWith('http')
+              ? fotoPath
+              : `${API_URL}/${fotoPath.replace(/^\//, '')}`;
             setAvatarPreview(fullUrl);
           }
 
@@ -163,16 +165,16 @@ function PerfilContent() {
             avatar: fotoPath,
           };
 
+          const completo = perfilJaCompleto(dadosPerfil);
+
           setFormData(dadosPerfil);
 
-          // ADICIONADO: marca se o perfil já estiver completo
-          if (perfilJaCompleto(dadosPerfil)) {
+          if (completo) {
             localStorage.setItem('perfil_completo', 'true');
           } else {
             localStorage.removeItem('perfil_completo');
           }
 
-          // Atualiza LocalStorage para sincronizar com o Chat
           const userStorage = localStorage.getItem('@Linkah:User');
           if (userStorage) {
             const userAtual = JSON.parse(userStorage);
@@ -185,6 +187,12 @@ function PerfilContent() {
 
           setStripeAccountId(data.stripe_account_id || null);
           if (data.stripe_account_id) await checarStatusStripe(emailLogado);
+
+          // SE JÁ ESTÁ COMPLETO E NÃO FOI ABERTO MANUALMENTE, VOLTA PRO EVENTOS
+          if (completo && !modoEdicao) {
+            router.replace('/dashboard/eventos');
+            return;
+          }
         }
       } catch (error) {
         console.error('❌ Erro carregar perfil:', error);
@@ -192,8 +200,9 @@ function PerfilContent() {
         setIsLoading(false);
       }
     };
+
     carregarDados();
-  }, [router, checarStatusStripe, getUsuarioLogado, perfilJaCompleto]);
+  }, [router, checarStatusStripe, getUsuarioLogado, perfilJaCompleto, searchParams]);
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -219,8 +228,7 @@ function PerfilContent() {
 
       if (!res.ok) throw new Error('Erro no upload');
       const data = await res.json();
-      
-      // Atualiza avatar no LocalStorage para o Chat pegar na hora
+
       const userStorage = localStorage.getItem('@Linkah:User');
       if (userStorage) {
         const userParsed = JSON.parse(userStorage);
@@ -252,8 +260,7 @@ function PerfilContent() {
       });
 
       if (!response.ok) throw new Error('Erro ao salvar');
-      
-      // Sincroniza o localStorage ao salvar o perfil completo
+
       const userStorage = localStorage.getItem('@Linkah:User');
       if (userStorage) {
         const userAtual = JSON.parse(userStorage);
@@ -266,12 +273,12 @@ function PerfilContent() {
 
       localStorage.setItem('perfil_completo', 'true');
 
-      Swal.fire({ 
-        title: 'SUCESSO!', 
-        text: 'Perfil sincronizado.', 
-        icon: 'success', 
-        confirmButtonColor: '#FF4D4D', 
-        customClass: { popup: 'rounded-[2rem]' } 
+      Swal.fire({
+        title: 'SUCESSO!',
+        text: 'Perfil sincronizado.',
+        icon: 'success',
+        confirmButtonColor: '#FF4D4D',
+        customClass: { popup: 'rounded-[2rem]' }
       });
 
       router.replace('/dashboard/eventos');
@@ -284,7 +291,10 @@ function PerfilContent() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: (name === 'cpf_cnpj' || name === 'cep') ? aplicarMascara(name, value) : value }));
+    setFormData(prev => ({
+      ...prev,
+      [name]: (name === 'cpf_cnpj' || name === 'cep') ? aplicarMascara(name, value) : value
+    }));
   };
 
   const handleConectarStripe = async () => {
@@ -318,10 +328,9 @@ function PerfilContent() {
 
         <div className="bg-white rounded-[4rem] shadow-2xl p-8 md:p-20 border border-slate-50 relative overflow-hidden">
           <div className="flex items-center gap-8 mb-20 relative z-10">
-            {/* AVATAR COM UPLOAD */}
             <div onClick={() => fileInputRef.current?.click()} className="w-24 h-24 bg-slate-950 rounded-[2.5rem] flex items-center justify-center shadow-2xl relative group cursor-pointer overflow-hidden">
-              {isUploadingAvatar ? <Loader2 className="animate-spin text-white" size={32} /> : 
-                avatarPreview ? <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" /> : 
+              {isUploadingAvatar ? <Loader2 className="animate-spin text-white" size={32} /> :
+                avatarPreview ? <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" /> :
                 <UserCircle className="text-white" size={48} />
               }
               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"><Camera className="text-white" size={24} /></div>
@@ -394,7 +403,7 @@ function PerfilContent() {
                 {isSaving ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
                 {isSaving ? 'Salvando...' : 'Salvar Alterações'}
               </button>
-              
+
               {!stripeAtivo ? (
                 <button type="button" onClick={handleConectarStripe} className="flex-1 bg-slate-950 text-white rounded-[2rem] py-8 font-black uppercase tracking-[0.4em] italic text-xs shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-4">
                   <Zap size={20} className="text-yellow-400" /> Conectar Pagamentos
