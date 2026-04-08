@@ -28,19 +28,18 @@ export default function AdminEventos() {
   const carregarDados = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/vitrine`);
+      // Adicionado timestamp para evitar cache do navegador no GET
+      const res = await fetch(`${API_URL}/vitrine?t=${Date.now()}`);
       if (res.ok) {
         const data = await res.json();
-        
         const formatados = Array.isArray(data) ? data
           .filter((ev: any) => ev.status !== 'Excluído')
           .map((ev: any) => ({
             ...ev,
             data: ev.data_inicio ? ev.data_inicio.split('T')[0] : (ev.data ? ev.data.split('T')[0] : ''),
             taxa_plataforma: ev.taxa_plataforma ? parseFloat(ev.taxa_plataforma) : 0.05,
-            preco: ev.preco_minimo || ev.preco || 0 // Tenta pegar o preço real
+            preco: ev.preco_minimo || ev.preco || 0 
           })) : [];
-          
         setEventos(formatados);
       }
     } catch (err) {
@@ -83,7 +82,7 @@ export default function AdminEventos() {
     };
 
     try {
-      // 1. Atualiza os dados principais do evento
+      // 1. Atualiza dados do evento
       const res = await fetch(`${API_URL}/${eventoParaEditar.id}`, {
         method: 'PUT',
         headers: { 
@@ -94,7 +93,7 @@ export default function AdminEventos() {
       });
 
       if (res.ok) {
-        // 2. SINCRONIZAÇÃO DE PREÇO NO STAFF (Para refletir na Vitrine)
+        // 2. Sincroniza o preço nos ingressos (Obrigatório para a vitrine mudar)
         await fetch(`${API_URL}/${eventoParaEditar.id}/ingressos`, {
           method: 'POST',
           headers: { 
@@ -102,28 +101,28 @@ export default function AdminEventos() {
             'Authorization': `Bearer ${token}`
           },
           body: JSON.stringify({
-            ingressos: [
-              {
-                nome: 'Ingresso Geral',
-                preco: Number(eventoParaEditar.preco),
-                quantidade: 9999
-              }
-            ]
+            ingressos: [{
+              nome: 'Ingresso Geral',
+              preco: Number(eventoParaEditar.preco),
+              quantidade: 9999
+            }]
           }),
         });
 
         setIsModalOpen(false);
+        
         Swal.fire({
           icon: 'success',
           title: 'Sincronizado!',
-          text: 'Dados e Preços atualizados no Render',
+          text: 'Aguardando atualização do servidor...',
           showConfirmButton: false,
-          timer: 1500,
-          customClass: { popup: 'rounded-[3rem]' }
+          timer: 1500
         });
-        
-        // Pequeno delay para o banco processar antes do refresh
-        setTimeout(() => carregarDados(), 500);
+
+        // 3. O SEGREDO: Delay de 1.5s antes de dar o GET final
+        setTimeout(() => {
+          carregarDados();
+        }, 1500);
       }
     } catch (err) {
       Swal.fire('Erro', 'Falha ao salvar no Render', 'error');
@@ -141,7 +140,6 @@ export default function AdminEventos() {
       confirmButtonColor: '#0f172a',
       cancelButtonColor: '#f43f5e',
       confirmButtonText: 'Sim, remover',
-      cancelButtonText: 'Cancelar',
       customClass: { popup: 'rounded-[3rem]' }
     });
 
@@ -296,8 +294,8 @@ export default function AdminEventos() {
               </div>
 
               <div className="col-span-2 space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1"><DollarSign size={12}/> Preço de Venda (Reflete na Vitrine)</label>
-                <input type="number" step="0.01" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-rose-600 outline-none focus:bg-white" value={eventoParaEditar.preco} onChange={(e) => setEventoParaEditar({...eventoParaEditar, preco: e.target.value})} />
+                <label className="text-[10px] font-black uppercase tracking-widest text-rose-500 flex items-center gap-1 italic"><DollarSign size={12}/> Preço Base (Card)</label>
+                <input type="number" step="0.01" className="w-full p-5 bg-rose-50/30 border border-rose-100 rounded-2xl font-black text-rose-600 outline-none focus:bg-white" value={eventoParaEditar.preco} onChange={(e) => setEventoParaEditar({...eventoParaEditar, preco: e.target.value})} />
               </div>
 
               {/* SLIDER DE TAXA - STAFF ONLY */}
