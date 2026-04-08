@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '@/app/context/LanguageContext';
 
+// URL da API vinda do .env ou fallback para produção
 const API_URL_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api-linkah.onrender.com';
 
 export default function AdminDashboard() {
@@ -15,43 +16,49 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState({
     usuarios: 0,
     eventos: 0,
-    comunidades: 12 
+    comunidades: 0 
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [lastSync, setLastSync] = useState(new Date());
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      setLoading(true);
-      setError(false);
-      try {
-        const [resUsers, resEvents] = await Promise.all([
-          fetch(`${API_URL_BASE}/api/usuarios`),
-          fetch(`${API_URL_BASE}/api/eventos`)
-        ]);
-
-        if (!resUsers.ok || !resEvents.ok) throw new Error("Falha na resposta da API");
-
-        const usersData = await resUsers.json();
-        const eventsData = await resEvents.json();
-
-        setStats(prev => ({
-          ...prev,
-          usuarios: Array.isArray(usersData) ? usersData.length : 0,
-          eventos: Array.isArray(eventsData) ? eventsData.length : 0,
-        }));
-        setLastSync(new Date());
-      } catch (err) {
-        console.error("Erro ao sincronizar dados:", err);
-        setError(true);
-      } finally {
-        setLoading(false);
+  const fetchStats = async () => {
+    setLoading(true);
+    setError(false);
+    try {
+      // Fazemos o fetch simultâneo de todas as métricas necessárias
+   const [resUsers, resEvents, resCommu] = await Promise.all([
+  fetch(`${API_URL_BASE}/api/usuarios`),
+  fetch(`${API_URL_BASE}/api/eventos`),
+  fetch(`${API_URL_BASE}/api/comunidades/total`) // Adicione o /total aqui
+]);
+      if (!resUsers.ok || !resEvents.ok || !resCommu.ok) {
+        throw new Error("Falha na resposta da API");
       }
-    };
 
+      const usersData = await resUsers.json();
+      const eventsData = await resEvents.json();
+      const commuData = await resCommu.json();
+
+      setStats({
+        usuarios: Array.isArray(usersData) ? usersData.length : 0,
+        eventos: Array.isArray(eventsData) ? eventsData.length : 0,
+        comunidades: Array.isArray(commuData) ? commuData.length : 0,
+      });
+      
+      setLastSync(new Date());
+    } catch (err) {
+      console.error("Erro ao sincronizar dados do Dashboard:", err);
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchStats();
-    // Opcional: Atualização automática a cada 5 minutos
+    
+    // Atualização automática a cada 5 minutos (300.000ms)
     const interval = setInterval(fetchStats, 300000);
     return () => clearInterval(interval);
   }, []);
@@ -82,6 +89,14 @@ export default function AdminDashboard() {
               {loading ? t.syncing : error ? 'System Error' : t.systemStable}
             </span>
           </div>
+          
+          <button 
+            onClick={fetchStats}
+            disabled={loading}
+            className="p-3 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 transition-colors disabled:opacity-50"
+          >
+            <Activity size={18} className={loading ? "animate-spin text-slate-400" : "text-slate-600"} />
+          </button>
         </div>
       </header>
 
@@ -132,7 +147,11 @@ export default function AdminDashboard() {
           </div>
           <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mb-1">{t.communities}</p>
           <div className="flex items-baseline gap-3">
-            <p className="text-6xl font-black text-slate-900 tracking-tighter">{stats.comunidades}</p>
+            {loading ? (
+              <Loader2 className="animate-spin text-slate-200" />
+            ) : (
+              <p className="text-6xl font-black text-slate-900 tracking-tighter">{stats.comunidades}</p>
+            )}
             <span className="text-slate-300 text-xs font-black uppercase tracking-widest italic">Hubs</span>
           </div>
         </div>
