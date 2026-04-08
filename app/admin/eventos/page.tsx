@@ -3,12 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Search, Trash2, RefreshCcw, MapPin, 
-  Save, X, Edit3, Loader2, Image as ImageIcon,
-  DollarSign, Calendar, Percent, Activity
+  Save, X, Edit3, Loader2, AlertCircle, Image as ImageIcon,
+  DollarSign, Calendar, Activity, Clock
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { useLanguage } from '@/app/context/LanguageContext';
 
+// --- API ATUALIZADA PARA O RENDER ---
 const API_URL = 'https://api-linkah.onrender.com/api/eventos';
 
 export default function AdminEventos() {
@@ -30,13 +31,14 @@ export default function AdminEventos() {
       const res = await fetch(`${API_URL}/vitrine`);
       if (res.ok) {
         const data = await res.json();
+        
         const formatados = Array.isArray(data) ? data
           .filter((ev: any) => ev.status !== 'Excluído')
           .map((ev: any) => ({
             ...ev,
             data: ev.data_inicio ? ev.data_inicio.split('T')[0] : (ev.data ? ev.data.split('T')[0] : ''),
-            // Garante que a taxa venha do banco ou assuma 5%
-            taxa_plataforma: ev.taxa_plataforma !== undefined ? parseFloat(ev.taxa_plataforma) : 0.05
+            // Garante que o front leia a taxa como um número decimal vindo do banco
+            taxa_plataforma: ev.taxa_plataforma ? parseFloat(ev.taxa_plataforma) : 0.05
           })) : [];
           
         setEventos(formatados);
@@ -61,6 +63,7 @@ export default function AdminEventos() {
       imagem: evento.imagem || '',
       descricao: evento.descricao || '',
       status: evento.status || 'Ativo',
+      // Mantém a taxa que já está no banco ao abrir o modal
       taxa_plataforma: evento.taxa_plataforma ?? 0.05
     });
     setIsModalOpen(true);
@@ -176,7 +179,7 @@ export default function AdminEventos() {
               <tr className="bg-slate-50/50 text-slate-400 text-[10px] uppercase font-black tracking-[0.2em] border-b border-slate-100">
                 <th className="px-10 py-8">Evento</th>
                 <th className="px-10 py-8 text-center">Data e Hora</th>
-                <th className="px-10 py-8 text-center">Taxa</th>
+                <th className="px-10 py-8 text-center">Taxa Linkah</th>
                 <th className="px-10 py-8 text-right">Ações</th>
               </tr>
             </thead>
@@ -218,7 +221,7 @@ export default function AdminEventos() {
                       <td className="px-10 py-6 text-center">
                         <div className="flex flex-col items-center">
                            <span className="text-slate-900 font-black italic text-sm">{(ev.taxa_plataforma * 100).toFixed(1)}%</span>
-                           <span className="text-[9px] text-slate-400 font-bold uppercase">Linkah Fee</span>
+                           <span className="text-[9px] text-slate-400 font-bold uppercase">Fee Ativa</span>
                         </div>
                       </td>
                       <td className="px-10 py-6 text-right">
@@ -256,7 +259,7 @@ export default function AdminEventos() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Horário</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1"><Clock size={12}/> Horário</label>
                 <input type="time" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none focus:bg-white text-slate-800" value={eventoParaEditar.horario} onChange={(e) => setEventoParaEditar({...eventoParaEditar, horario: e.target.value})} />
               </div>
 
@@ -270,14 +273,14 @@ export default function AdminEventos() {
                 <input type="number" step="0.01" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none focus:bg-white text-slate-800" value={eventoParaEditar.preco} onChange={(e) => setEventoParaEditar({...eventoParaEditar, preco: e.target.value})} />
               </div>
 
-              {/* CONTROLE DE TAXA - STAFF ONLY */}
+              {/* SLIDER DE TAXA - STAFF ONLY */}
               <div className="col-span-2 space-y-4 p-8 bg-slate-900 rounded-[2.5rem] text-white shadow-inner">
                 <div className="flex justify-between items-end">
                   <div className="space-y-1">
                     <label className="text-[10px] font-black uppercase tracking-widest text-rose-500 flex items-center gap-2">
                       <Activity size={14}/> Taxa da Plataforma
                     </label>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">Comissão retida pela Linkah</p>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">Lucro Linkah por venda</p>
                   </div>
                   <div className="text-right">
                     <span className="text-4xl font-black italic text-white">{(eventoParaEditar.taxa_plataforma * 100).toFixed(1)}%</span>
