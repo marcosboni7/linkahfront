@@ -15,8 +15,10 @@ export default function DashboardEventos() {
   useEffect(() => {
     try {
       const perfilCompleto = localStorage.getItem('perfil_completo');
+      console.log('perfilCompleto:', perfilCompleto);
 
       if (perfilCompleto !== 'true') {
+        console.log('ABRINDO MODAL');
         setMostrarAviso(true);
       }
 
@@ -35,10 +37,12 @@ export default function DashboardEventos() {
         );
       }
     } catch (error) {
-      console.error('Erro ao carregar nome do usuário:', error);
+      console.error('❌ Erro ao carregar nome do usuário:', error);
       setUserName('Produtor');
     }
   }, []);
+
+  console.log('mostrarAviso:', mostrarAviso);
 
   const handleLogout = () => {
     localStorage.clear();
