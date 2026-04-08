@@ -118,17 +118,14 @@ export default function TabelaEventos() {
 
     const valor = String(url).trim();
 
-    // URL completa
     if (valor.startsWith('http://') || valor.startsWith('https://')) {
       return valor;
     }
 
-    // Public ID da Cloudinary
     if (valor.startsWith('linkah/eventos/')) {
       return `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${valor}`;
     }
 
-    // Compatibilidade com imagens antigas locais
     return `${API_URL}/uploads/${valor}`;
   };
 
@@ -245,7 +242,7 @@ export default function TabelaEventos() {
   };
 
   return (
-    <div className="bg-white rounded-[3rem] shadow-sm border border-slate-100 overflow-hidden">
+    <div className="bg-white rounded-[3rem] shadow-sm border border-slate-100 relative">
       <div className="p-10 border-b border-slate-50 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
         <div>
           <h2 className="text-[#C22973] font-black uppercase text-[10px] tracking-[0.3em] mb-1 italic">
@@ -279,7 +276,7 @@ export default function TabelaEventos() {
             </button>
 
             {showDropdown && (
-              <div className="absolute right-0 mt-4 w-72 bg-white rounded-[2.5rem] shadow-2xl border border-slate-50 p-6 z-50 animate-in fade-in zoom-in duration-200">
+              <div className="absolute right-0 mt-4 w-72 bg-white rounded-[2.5rem] shadow-2xl border border-slate-50 p-6 z-[100] animate-in fade-in zoom-in duration-200">
                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4 ml-2 italic">
                   Selecione o Formato
                 </p>
@@ -315,7 +312,7 @@ export default function TabelaEventos() {
         </div>
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto rounded-b-[3rem]">
         <table className="w-full text-left">
           <thead className="bg-slate-50/50 text-slate-400 text-[9px] font-black uppercase tracking-[0.2em]">
             <tr>
