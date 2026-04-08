@@ -50,6 +50,8 @@ function PerfilContent() {
   const searchParams = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const modoEdicaoManual = searchParams.get('editar') === '1';
+
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -206,13 +208,14 @@ function PerfilContent() {
           const perfilCompletoStorage = localStorage.getItem('perfil_completo') === 'true';
           const perfilCompletoBanco = perfilJaCompleto(dadosPerfil);
 
-          // Se já estiver completo, não deixa a tela aparecer de novo
-          if (perfilCompletoStorage || perfilCompletoBanco) {
+          // REDIRECIONA SÓ SE NÃO FOR EDIÇÃO MANUAL
+          if (!modoEdicaoManual && (perfilCompletoStorage || perfilCompletoBanco)) {
             router.replace('/dashboard/eventos');
             return;
           }
 
           setStripeAccountId(data.stripe_account_id || null);
+
           if (data.stripe_account_id) {
             await checarStatusStripe(emailLogado);
           }
@@ -225,7 +228,14 @@ function PerfilContent() {
     };
 
     carregarDados();
-  }, [router, checarStatusStripe, getUsuarioLogado, perfilJaCompleto, salvarPerfilCompletoNoStorage]);
+  }, [
+    router,
+    checarStatusStripe,
+    getUsuarioLogado,
+    perfilJaCompleto,
+    salvarPerfilCompletoNoStorage,
+    modoEdicaoManual
+  ]);
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
