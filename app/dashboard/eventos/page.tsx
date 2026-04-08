@@ -12,13 +12,23 @@ export default function DashboardEventos() {
   const router = useRouter();
 
   useEffect(() => {
-    const storedName = localStorage.getItem('userName');
+    try {
+      const userStorage = localStorage.getItem('@Linkah:User');
+      const parsedUser = userStorage ? JSON.parse(userStorage) : null;
 
-    if (storedName && storedName !== 'undefined') {
-      const firstName = storedName.split(' ')[0];
-      setUserName(
-        firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase()
-      );
+      const storedName =
+        parsedUser?.nome ||
+        localStorage.getItem('userName') ||
+        'Produtor';
+
+      if (storedName && storedName !== 'undefined') {
+        const firstName = storedName.split(' ')[0];
+        setUserName(
+          firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase()
+        );
+      }
+    } catch (error) {
+      console.error('❌ Erro ao carregar nome do usuário:', error);
     }
   }, []);
 
@@ -27,9 +37,9 @@ export default function DashboardEventos() {
     router.push('/auth/login');
   };
 
-  const handleGoToPerfil = () => {
+  const handleConfigurarDados = () => {
     setIsOpen(false);
-    router.push('/dashboard/perfil');
+    router.push('/dashboard/perfil?editar=true');
   };
 
   return (
@@ -75,7 +85,7 @@ export default function DashboardEventos() {
                 onClick={() => setIsOpen(false)}
               ></div>
 
-              <div className="absolute right-0 mt-2 w-56 bg-white rounded-3xl border border-slate-100 shadow-2xl shadow-indigo-100/50 z-20 py-2 animate-in fade-in zoom-in duration-150">
+              <div className="absolute right-0 mt-2 w-52 bg-white rounded-3xl border border-slate-100 shadow-2xl shadow-indigo-100/50 z-20 py-2 animate-in fade-in zoom-in duration-150">
                 <div className="px-4 py-2 border-b border-slate-50 mb-1">
                   <p className="text-[10px] font-black text-slate-300 uppercase">
                     Minha Conta
@@ -83,7 +93,7 @@ export default function DashboardEventos() {
                 </div>
 
                 <button
-                  onClick={handleGoToPerfil}
+                  onClick={handleConfigurarDados}
                   className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all"
                 >
                   <Settings size={16} /> Configurar meus dados
