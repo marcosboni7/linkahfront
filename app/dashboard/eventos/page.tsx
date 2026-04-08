@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import AvisoCadastro from '../eventos/AvisoCadastro';
 import TabelaEventos from '../eventos/TabelaEventos';
 import { UserCircle, LogOut, Settings, ChevronDown } from 'lucide-react';
@@ -9,7 +8,6 @@ import { UserCircle, LogOut, Settings, ChevronDown } from 'lucide-react';
 export default function DashboardEventos() {
   const [isOpen, setIsOpen] = useState(false);
   const [userName, setUserName] = useState('Produtor');
-  const router = useRouter();
 
   useEffect(() => {
     try {
@@ -33,13 +31,21 @@ export default function DashboardEventos() {
   }, []);
 
   const handleLogout = () => {
-    localStorage.clear();
-    router.push('/auth/login');
+    try {
+      localStorage.clear();
+      window.location.href = '/auth/login';
+    } catch (error) {
+      console.error('❌ Erro ao sair da conta:', error);
+    }
   };
 
   const handleConfigurarDados = () => {
-    setIsOpen(false);
-    router.push('/dashboard/perfil?editar=true');
+    try {
+      setIsOpen(false);
+      window.location.href = '/dashboard/perfil?editar=true';
+    } catch (error) {
+      console.error('❌ Erro ao abrir configurações:', error);
+    }
   };
 
   return (
@@ -53,8 +59,9 @@ export default function DashboardEventos() {
 
         <div className="relative">
           <button
-            onClick={() => setIsOpen(!isOpen)}
-            className="flex items-center gap-3 hover:bg-slate-50 p-2 rounded-2xl transition-all group"
+            type="button"
+            onClick={() => setIsOpen((prev) => !prev)}
+            className="flex items-center gap-3 hover:bg-slate-50 p-2 rounded-2xl transition-all group cursor-pointer"
           >
             <div className="text-right mr-1 hidden sm:block">
               <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">
@@ -83,7 +90,7 @@ export default function DashboardEventos() {
               <div
                 className="fixed inset-0 z-10"
                 onClick={() => setIsOpen(false)}
-              ></div>
+              />
 
               <div className="absolute right-0 mt-2 w-52 bg-white rounded-3xl border border-slate-100 shadow-2xl shadow-indigo-100/50 z-20 py-2 animate-in fade-in zoom-in duration-150">
                 <div className="px-4 py-2 border-b border-slate-50 mb-1">
@@ -93,15 +100,17 @@ export default function DashboardEventos() {
                 </div>
 
                 <button
+                  type="button"
                   onClick={handleConfigurarDados}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all"
+                  className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all cursor-pointer"
                 >
                   <Settings size={16} /> Configurar meus dados
                 </button>
 
                 <button
+                  type="button"
                   onClick={handleLogout}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-red-500 hover:bg-red-50 transition-all"
+                  className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-red-500 hover:bg-red-50 transition-all cursor-pointer"
                 >
                   <LogOut size={16} /> Sair da conta
                 </button>
