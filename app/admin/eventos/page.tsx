@@ -37,8 +37,8 @@ export default function AdminEventos() {
           .map((ev: any) => ({
             ...ev,
             data: ev.data_inicio ? ev.data_inicio.split('T')[0] : (ev.data ? ev.data.split('T')[0] : ''),
-            // Garante que o front leia a taxa como um número decimal vindo do banco
-            taxa_plataforma: ev.taxa_plataforma ? parseFloat(ev.taxa_plataforma) : 0.05
+            taxa_plataforma: ev.taxa_plataforma ? parseFloat(ev.taxa_plataforma) : 0.05,
+            preco: ev.preco_minimo || ev.preco || 0 // Tenta pegar o preço real
           })) : [];
           
         setEventos(formatados);
@@ -63,7 +63,6 @@ export default function AdminEventos() {
       imagem: evento.imagem || '',
       descricao: evento.descricao || '',
       status: evento.status || 'Ativo',
-      // Mantém a taxa que já está no banco ao abrir o modal
       taxa_plataforma: evento.taxa_plataforma ?? 0.05
     });
     setIsModalOpen(true);
@@ -73,6 +72,9 @@ export default function AdminEventos() {
     e.preventDefault();
     setIsProcessing('salvando');
 
+    const rawToken = localStorage.getItem('@Linkah:Token');
+    const token = rawToken?.replace(/['"]+/g, '').trim() || '';
+
     const payload = { 
       ...eventoParaEditar, 
       data_inicio: eventoParaEditar.data,
@@ -81,22 +83,47 @@ export default function AdminEventos() {
     };
 
     try {
+      // 1. Atualiza os dados principais do evento
       const res = await fetch(`${API_URL}/${eventoParaEditar.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify(payload)
       });
 
       if (res.ok) {
+        // 2. SINCRONIZAÇÃO DE PREÇO NO STAFF (Para refletir na Vitrine)
+        await fetch(`${API_URL}/${eventoParaEditar.id}/ingressos`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            ingressos: [
+              {
+                nome: 'Ingresso Geral',
+                preco: Number(eventoParaEditar.preco),
+                quantidade: 9999
+              }
+            ]
+          }),
+        });
+
         setIsModalOpen(false);
         Swal.fire({
           icon: 'success',
           title: 'Sincronizado!',
+          text: 'Dados e Preços atualizados no Render',
           showConfirmButton: false,
           timer: 1500,
           customClass: { popup: 'rounded-[3rem]' }
         });
-        await carregarDados();
+        
+        // Pequeno delay para o banco processar antes do refresh
+        setTimeout(() => carregarDados(), 500);
       }
     } catch (err) {
       Swal.fire('Erro', 'Falha ao salvar no Render', 'error');
@@ -220,8 +247,8 @@ export default function AdminEventos() {
                       </td>
                       <td className="px-10 py-6 text-center">
                         <div className="flex flex-col items-center">
-                           <span className="text-slate-900 font-black italic text-sm">{(ev.taxa_plataforma * 100).toFixed(1)}%</span>
-                           <span className="text-[9px] text-slate-400 font-bold uppercase">Fee Ativa</span>
+                            <span className="text-slate-900 font-black italic text-sm">{(ev.taxa_plataforma * 100).toFixed(1)}%</span>
+                            <span className="text-[9px] text-slate-400 font-bold uppercase">Fee Ativa</span>
                         </div>
                       </td>
                       <td className="px-10 py-6 text-right">
@@ -269,8 +296,8 @@ export default function AdminEventos() {
               </div>
 
               <div className="col-span-2 space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1"><DollarSign size={12}/> Preço de Venda</label>
-                <input type="number" step="0.01" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none focus:bg-white text-slate-800" value={eventoParaEditar.preco} onChange={(e) => setEventoParaEditar({...eventoParaEditar, preco: e.target.value})} />
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1"><DollarSign size={12}/> Preço de Venda (Reflete na Vitrine)</label>
+                <input type="number" step="0.01" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-rose-600 outline-none focus:bg-white" value={eventoParaEditar.preco} onChange={(e) => setEventoParaEditar({...eventoParaEditar, preco: e.target.value})} />
               </div>
 
               {/* SLIDER DE TAXA - STAFF ONLY */}
