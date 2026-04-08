@@ -32,8 +32,7 @@ export default function AvisoCadastro({ onClose }: AvisoCadastroProps) {
         </h2>
 
         <p className="text-sm text-slate-500 mt-3 leading-relaxed">
-          Para continuar usando a plataforma da melhor forma, configure seus
-          dados.
+          Para continuar usando a plataforma da melhor forma, configure seus dados.
         </p>
 
         <div className="mt-6 flex flex-col sm:flex-row gap-3">
