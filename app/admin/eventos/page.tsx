@@ -3,14 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Search, Trash2, RefreshCcw, MapPin, 
-  Save, X, Edit3, Loader2, AlertCircle, Image as ImageIcon,
-  DollarSign, Calendar
+  Save, X, Edit3, Loader2, Image as ImageIcon,
+  DollarSign, Calendar, Percent, Activity
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { useLanguage } from '@/app/context/LanguageContext';
 
-// --- API ATUALIZADA PARA O RENDER ---
-const API_URL = 'api-linkah.onrender.com/api/eventos';
+const API_URL = 'https://api-linkah.onrender.com/api/eventos';
 
 export default function AdminEventos() {
   const { t } = useLanguage();
@@ -21,23 +20,23 @@ export default function AdminEventos() {
   const [filtroBusca, setFiltroBusca] = useState('');
   
   const [eventoParaEditar, setEventoParaEditar] = useState<any>({
-    id: '', nome: '', data: '', horario: '', local: '', preco: '', imagem: '', descricao: '', status: ''
+    id: '', nome: '', data: '', horario: '', local: '', preco: '', 
+    imagem: '', descricao: '', status: '', taxa_plataforma: 0.05
   });
 
   const carregarDados = async () => {
     setLoading(true);
     try {
-      // Rota de vitrine no backend do Render
       const res = await fetch(`${API_URL}/vitrine`);
       if (res.ok) {
         const data = await res.json();
-        
-        // Filtra deletados e formata a data para o padrão de input HTML (yyyy-MM-dd)
         const formatados = Array.isArray(data) ? data
           .filter((ev: any) => ev.status !== 'Excluído')
           .map((ev: any) => ({
             ...ev,
-            data: ev.data_inicio ? ev.data_inicio.split('T')[0] : (ev.data ? ev.data.split('T')[0] : '') 
+            data: ev.data_inicio ? ev.data_inicio.split('T')[0] : (ev.data ? ev.data.split('T')[0] : ''),
+            // Garante que a taxa venha do banco ou assuma 5%
+            taxa_plataforma: ev.taxa_plataforma !== undefined ? parseFloat(ev.taxa_plataforma) : 0.05
           })) : [];
           
         setEventos(formatados);
@@ -61,7 +60,8 @@ export default function AdminEventos() {
       preco: evento.preco || '',
       imagem: evento.imagem || '',
       descricao: evento.descricao || '',
-      status: evento.status || 'Ativo'
+      status: evento.status || 'Ativo',
+      taxa_plataforma: evento.taxa_plataforma ?? 0.05
     });
     setIsModalOpen(true);
   };
@@ -73,7 +73,8 @@ export default function AdminEventos() {
     const payload = { 
       ...eventoParaEditar, 
       data_inicio: eventoParaEditar.data,
-      preco: parseFloat(eventoParaEditar.preco) || 0 
+      preco: parseFloat(eventoParaEditar.preco) || 0,
+      taxa_plataforma: parseFloat(eventoParaEditar.taxa_plataforma)
     };
 
     try {
@@ -175,7 +176,7 @@ export default function AdminEventos() {
               <tr className="bg-slate-50/50 text-slate-400 text-[10px] uppercase font-black tracking-[0.2em] border-b border-slate-100">
                 <th className="px-10 py-8">Evento</th>
                 <th className="px-10 py-8 text-center">Data e Hora</th>
-                <th className="px-10 py-8 text-center">Status</th>
+                <th className="px-10 py-8 text-center">Taxa</th>
                 <th className="px-10 py-8 text-right">Ações</th>
               </tr>
             </thead>
@@ -215,7 +216,10 @@ export default function AdminEventos() {
                         </div>
                       </td>
                       <td className="px-10 py-6 text-center">
-                        <span className="px-3 py-1 bg-emerald-50 text-emerald-500 rounded-lg text-[9px] font-black uppercase tracking-widest border border-emerald-100 italic">Publicado</span>
+                        <div className="flex flex-col items-center">
+                           <span className="text-slate-900 font-black italic text-sm">{(ev.taxa_plataforma * 100).toFixed(1)}%</span>
+                           <span className="text-[9px] text-slate-400 font-bold uppercase">Linkah Fee</span>
+                        </div>
                       </td>
                       <td className="px-10 py-6 text-right">
                         <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all">
@@ -262,8 +266,33 @@ export default function AdminEventos() {
               </div>
 
               <div className="col-span-2 space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1"><DollarSign size={12}/> Preço</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1"><DollarSign size={12}/> Preço de Venda</label>
                 <input type="number" step="0.01" className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none focus:bg-white text-slate-800" value={eventoParaEditar.preco} onChange={(e) => setEventoParaEditar({...eventoParaEditar, preco: e.target.value})} />
+              </div>
+
+              {/* CONTROLE DE TAXA - STAFF ONLY */}
+              <div className="col-span-2 space-y-4 p-8 bg-slate-900 rounded-[2.5rem] text-white shadow-inner">
+                <div className="flex justify-between items-end">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-rose-500 flex items-center gap-2">
+                      <Activity size={14}/> Taxa da Plataforma
+                    </label>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">Comissão retida pela Linkah</p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-4xl font-black italic text-white">{(eventoParaEditar.taxa_plataforma * 100).toFixed(1)}%</span>
+                  </div>
+                </div>
+                
+                <input 
+                  type="range" 
+                  min="0" 
+                  max="0.30" 
+                  step="0.005" 
+                  className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-rose-500"
+                  value={eventoParaEditar.taxa_plataforma} 
+                  onChange={(e) => setEventoParaEditar({...eventoParaEditar, taxa_plataforma: parseFloat(e.target.value)})} 
+                />
               </div>
 
               <button type="submit" disabled={isProcessing === 'salvando'} className="col-span-2 bg-slate-900 text-white py-6 rounded-3xl font-black uppercase tracking-[0.3em] hover:bg-rose-500 transition-all flex items-center justify-center gap-3 text-xs shadow-xl active:scale-95 disabled:opacity-50">
