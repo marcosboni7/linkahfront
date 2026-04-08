@@ -6,21 +6,51 @@ import { Navbar } from '../site/Navbar';
 import { Footer } from '../site/Footer';
 import { useLanguage } from '@/app/context/LanguageContext';
 import {
-  ShieldCheck, Lock, Loader2, ArrowLeft,
-  Ticket as TicketIcon, CreditCard, CheckCircle2
+  ShieldCheck,
+  Lock,
+  Loader2,
+  ArrowLeft,
+  CreditCard,
+  CheckCircle2,
 } from 'lucide-react';
 import Link from 'next/link';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api-linkah.onrender.com';
 
-function normalizeCurrency(input?: string) {
-  const raw = String(input || '').trim().toUpperCase();
+// Função segura para normalizar moeda
+function normalizeCurrency(input?: any) {
+  if (input === null || input === undefined) return 'BRL';
 
-  if (raw === 'R$' || raw === 'REAL' || raw === 'REAIS' || raw === 'BRL') return 'BRL';
-  if (raw === '€' || raw === 'EURO' || raw === 'EUROS' || raw === 'EUR') return 'EUR';
-  if (raw === '$' || raw === 'DOLAR' || raw === 'DÓLAR' || raw === 'DOLARES' || raw === 'DÓLARES' || raw === 'USD') return 'USD';
+  const raw =
+    typeof input === 'string'
+      ? input.trim().toUpperCase()
+      : String(input).trim().toUpperCase();
+
+  if (['R$', 'REAL', 'REAIS', 'BRL'].includes(raw)) return 'BRL';
+  if (['€', 'EURO', 'EUROS', 'EUR'].includes(raw)) return 'EUR';
+  if (['$', 'DOLAR', 'DÓLAR', 'DOLARES', 'DÓLARES', 'USD'].includes(raw)) return 'USD';
 
   return 'BRL';
+}
+
+// Função segura para número
+function safeNumber(value: any, fallback = 0) {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : fallback;
+}
+
+// Função segura para texto de erro
+function getErrorMessage(err: any) {
+  if (!err) return 'Erro desconhecido';
+  if (typeof err === 'string') return err;
+  if (typeof err?.message === 'string' && err.message.trim()) return err.message;
+  if (typeof err?.toString === 'function') {
+    const asString = err.toString();
+    if (typeof asString === 'string' && asString.trim() && asString !== '[object Object]') {
+      return asString;
+    }
+  }
+  return 'Erro desconhecido';
 }
 
 function CheckoutContent() {
@@ -35,17 +65,31 @@ function CheckoutContent() {
 
   const { language }: any = useLanguage();
 
+  // Decodifica o payload de ingressos vindo da página anterior
   useEffect(() => {
-    if (payloadRaw) {
-      try {
-        const decoded = JSON.parse(decodeURIComponent(payloadRaw));
-        setQuantidades(decoded);
-      } catch (err) {
-        console.error('Erro ao decodificar payload:', err);
+    if (!payloadRaw) return;
+
+    try {
+      const decoded = JSON.parse(decodeURIComponent(payloadRaw));
+
+      if (decoded && typeof decoded === 'object' && !Array.isArray(decoded)) {
+        const quantidadesTratadas: { [key: string]: number } = {};
+
+        Object.entries(decoded).forEach(([key, value]) => {
+          quantidadesTratadas[String(key)] = safeNumber(value, 0);
+        });
+
+        setQuantidades(quantidadesTratadas);
+      } else {
+        setQuantidades({});
       }
+    } catch (err) {
+      console.error('Erro ao decodificar payload:', err);
+      setQuantidades({});
     }
   }, [payloadRaw]);
 
+  // Carrega os dados do evento e trata a moeda/ingressos
   useEffect(() => {
     async function carregarEvento() {
       if (!eventoId) return;
@@ -55,36 +99,42 @@ function CheckoutContent() {
           cache: 'no-store',
         });
 
-        if (res.ok) {
-          const data = await res.json();
-
-          const moedaEvento = normalizeCurrency(
-            data?.moeda ||
-            data?.currency ||
-            data?.moeda_evento
-          );
-
-          const ingressosTratados = Array.isArray(data?.ingressos)
-            ? data.ingressos.map((ing: any) => ({
-                ...ing,
-                preco: Number(ing?.preco || 0),
-                moeda: normalizeCurrency(
-                  ing?.moeda ||
-                  ing?.currency ||
-                  ing?.moeda_evento ||
-                  moedaEvento
-                ),
-              }))
-            : [];
-
-          setEvento({
-            ...data,
-            moeda: moedaEvento,
-            ingressos: ingressosTratados,
-          });
+        if (!res.ok) {
+          throw new Error('Não foi possível carregar o evento.');
         }
+
+        let data: any = null;
+
+        try {
+          data = await res.json();
+        } catch {
+          throw new Error('Resposta inválida do servidor ao carregar evento.');
+        }
+
+        const moedaEvento = normalizeCurrency(
+          data?.moeda ?? data?.currency ?? data?.moeda_evento
+        );
+
+        const ingressosTratados = Array.isArray(data?.ingressos)
+          ? data.ingressos.map((ing: any, index: number) => ({
+              ...ing,
+              id: String(ing?.id ?? index),
+              nome: ing?.nome ?? 'Ingresso',
+              preco: safeNumber(ing?.preco, 0),
+              moeda: normalizeCurrency(
+                ing?.moeda ?? ing?.currency ?? ing?.moeda_evento ?? moedaEvento
+              ),
+            }))
+          : [];
+
+        setEvento({
+          ...data,
+          moeda: moedaEvento,
+          ingressos: ingressosTratados,
+        });
       } catch (err) {
         console.error('🚨 Erro de conexão:', err);
+        setEvento(null);
       }
     }
 
@@ -105,29 +155,51 @@ function CheckoutContent() {
     return localeMap[moedaEvento] || 'pt-BR';
   }, [moedaEvento]);
 
-  const formatarPreco = useMemo(() => {
-    return (valor: number) =>
-      new Intl.NumberFormat(locale, {
+  const formatarPreco = (valor: number) => {
+    try {
+      return new Intl.NumberFormat(locale, {
         style: 'currency',
         currency: moedaEvento,
-      }).format(Number(valor || 0));
-  }, [locale, moedaEvento]);
+      }).format(safeNumber(valor, 0));
+    } catch {
+      return safeNumber(valor, 0).toFixed(2);
+    }
+  };
 
-  const totalGeral = evento?.ingressos?.reduce((acc: number, ing: any) => {
-    const qtdSelecionada = quantidades[ing.id] || 0;
-    return acc + (Number(ing.preco) * qtdSelecionada);
-  }, 0) || 0;
+  const totalGeral = useMemo(() => {
+    if (!Array.isArray(evento?.ingressos)) return 0;
 
-  const totalItens = Object.values(quantidades).reduce((a, b) => a + b, 0);
+    return evento.ingressos.reduce((acc: number, ing: any) => {
+      const key = String(ing?.id ?? '');
+      const qtdSelecionada = safeNumber(quantidades[key], 0);
+      const preco = safeNumber(ing?.preco, 0);
+
+      return acc + preco * qtdSelecionada;
+    }, 0);
+  }, [evento, quantidades]);
+
+  const totalItens = useMemo(() => {
+    return Object.values(quantidades).reduce((a, b) => a + safeNumber(b, 0), 0);
+  }, [quantidades]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleFinalizarCompra = async () => {
     if (!formData.email || !formData.nome) {
       alert('Por favor, preencha nome e e-mail.');
+      return;
+    }
+
+    if (!eventoId) {
+      alert('Evento inválido.');
+      return;
+    }
+
+    if (totalItens <= 0 || totalGeral <= 0) {
+      alert('Selecione pelo menos 1 ingresso.');
       return;
     }
 
@@ -140,34 +212,50 @@ function CheckoutContent() {
         body: JSON.stringify({
           evento: {
             id: eventoId,
-            titulo: evento?.nome,
-            precoTotal: totalGeral,
-            moeda: moedaEvento
+            titulo: evento?.nome ?? 'Evento',
+            preco: totalGeral / totalItens,
+            moeda: moedaEvento,
           },
           usuarioEmail: formData.email,
           usuarioNome: formData.nome,
-          quantidades: quantidades,
-          totalItens: totalItens
+          quantidade: totalItens,
+          quantidades,
         }),
       });
 
-      const data = await response.json();
+      let data: any = {};
 
-      if (data.url) {
-        window.location.assign(data.url);
-      } else {
-        throw new Error(data.error || 'Erro ao gerar sessão de pagamento.');
+      try {
+        data = await response.json();
+      } catch {
+        throw new Error('Resposta inválida do servidor');
       }
+
+      if (!response.ok) {
+        throw new Error(data?.error || 'Erro ao gerar sessão de pagamento.');
+      }
+
+      if (data?.url) {
+        window.location.assign(data.url);
+        return;
+      }
+
+      throw new Error(data?.error || 'Erro ao gerar sessão de pagamento.');
     } catch (err: any) {
-      console.error('🚨 Erro:', err.message);
-      alert(`Erro: ${err.message}`);
+      const errorMessage = getErrorMessage(err);
+      console.error('🚨 Erro:', err);
+      alert(`Erro: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
   };
 
   if (!eventoId) {
-    return <div className="p-20 text-center">ID do evento não encontrado.</div>;
+    return (
+      <div className="p-20 text-center uppercase tracking-widest text-slate-400">
+        ID do evento não encontrado.
+      </div>
+    );
   }
 
   return (
@@ -177,7 +265,8 @@ function CheckoutContent() {
           href={`/evento/${eventoId}`}
           className="group inline-flex items-center gap-2 text-slate-400 hover:text-slate-900 transition-all text-[10px] tracking-[0.3em] uppercase font-bold"
         >
-          <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" /> Voltar
+          <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
+          Voltar
         </Link>
       </div>
 
@@ -242,7 +331,7 @@ function CheckoutContent() {
                 {evento?.imagem_capa && (
                   <img
                     src={
-                      evento.imagem_capa.startsWith('http')
+                      String(evento.imagem_capa).startsWith('http')
                         ? evento.imagem_capa
                         : `https://res.cloudinary.com/dj32txsol/image/upload/${evento.imagem_capa}`
                     }
@@ -258,24 +347,26 @@ function CheckoutContent() {
                 </h4>
 
                 <div className="mt-4 space-y-2">
-                  {evento?.ingressos?.map((ing: any) => {
-                    const qtd = quantidades[ing.id] || 0;
+                  {Array.isArray(evento?.ingressos) &&
+                    evento.ingressos.map((ing: any) => {
+                      const key = String(ing?.id ?? '');
+                      const qtd = safeNumber(quantidades[key], 0);
 
-                    if (qtd > 0) {
-                      return (
-                        <div key={ing.id} className="flex justify-between items-center group">
-                          <span className="text-[10px] text-slate-400 uppercase tracking-widest">
-                            {qtd}x {ing.nome}
-                          </span>
-                          <span className="text-xs font-bold italic">
-                            {formatarPreco(Number(ing.preco) * qtd)}
-                          </span>
-                        </div>
-                      );
-                    }
+                      if (qtd > 0) {
+                        return (
+                          <div key={key} className="flex justify-between items-center group">
+                            <span className="text-[10px] text-slate-400 uppercase tracking-widest">
+                              {qtd}x {ing?.nome || 'Ingresso'}
+                            </span>
+                            <span className="text-xs font-bold italic text-slate-900">
+                              {formatarPreco(safeNumber(ing?.preco, 0) * qtd)}
+                            </span>
+                          </div>
+                        );
+                      }
 
-                    return null;
-                  })}
+                      return null;
+                    })}
                 </div>
               </div>
             </div>
