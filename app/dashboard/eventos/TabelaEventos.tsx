@@ -12,7 +12,8 @@ import {
   Sparkles,
   Globe,
   MapPin,
-  Calendar
+  Calendar,
+  DollarSign
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Swal from 'sweetalert2';
@@ -34,15 +35,8 @@ const CATEGORIAS_VALIDAS = [
 // Helpers de Formatação
 function formatDateToInput(dateValue: any): string {
   if (!dateValue) return '';
-
-  if (typeof dateValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
-    return dateValue;
-  }
-
-  if (typeof dateValue === 'string' && dateValue.includes('T')) {
-    return dateValue.split('T')[0];
-  }
-
+  if (typeof dateValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateValue)) return dateValue;
+  if (typeof dateValue === 'string' && dateValue.includes('T')) return dateValue.split('T')[0];
   const d = new Date(dateValue);
   if (!isNaN(d.getTime())) {
     const ano = d.getFullYear();
@@ -50,7 +44,6 @@ function formatDateToInput(dateValue: any): string {
     const dia = String(d.getDate()).padStart(2, '0');
     return `${ano}-${mes}-${dia}`;
   }
-
   return '';
 }
 
@@ -64,11 +57,7 @@ function formatDateToBR(dateValue: any): string {
 
 function formatDateToBackend(dateValue: any): string {
   if (!dateValue) return '';
-
-  if (typeof dateValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
-    return dateValue;
-  }
-
+  if (typeof dateValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateValue)) return dateValue;
   const d = new Date(dateValue);
   if (!isNaN(d.getTime())) {
     const ano = d.getFullYear();
@@ -76,7 +65,6 @@ function formatDateToBackend(dateValue: any): string {
     const dia = String(d.getDate()).padStart(2, '0');
     return `${ano}-${mes}-${dia}`;
   }
-
   return '';
 }
 
@@ -115,17 +103,11 @@ export default function TabelaEventos() {
     if (!url || url === 'null' || url === 'undefined' || String(url).includes('[object Object]')) {
       return 'https://placehold.co/600x400/f1f5f9/94a3b8?text=Sem+Capa';
     }
-
     const valor = String(url).trim();
-
-    if (valor.startsWith('http://') || valor.startsWith('https://')) {
-      return valor;
-    }
-
+    if (valor.startsWith('http://') || valor.startsWith('https://')) return valor;
     if (valor.startsWith('linkah/eventos/')) {
       return `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${valor}`;
     }
-
     return `${API_URL}/uploads/${valor}`;
   };
 
@@ -154,8 +136,6 @@ export default function TabelaEventos() {
       const data = await res.json();
       if (res.ok) {
         setEventos(Array.isArray(data) ? data : []);
-      } else {
-        console.error('Erro ao listar eventos:', data);
       }
     } catch (err) {
       console.error('Erro ao carregar:', err);
@@ -175,6 +155,7 @@ export default function TabelaEventos() {
       nome: evento.nome || '',
       descricao: evento.descricao || '',
       local_nome: evento.local_nome || '',
+      preco: evento.preco_minimo || 0, // Pega o preço atual para o input
       data_inicio: formatDateToInput(evento.data_inicio),
       imagem_capa: evento.imagem_capa || '',
     });
@@ -197,6 +178,7 @@ export default function TabelaEventos() {
       formData.append('categoria', eventoParaEditar.categoria || '');
       formData.append('descricao', eventoParaEditar.descricao || '');
       formData.append('local_nome', eventoParaEditar.local_nome || '');
+      formData.append('preco', String(eventoParaEditar.preco || 0));
 
       const dataInicioFormatada = formatDateToBackend(eventoParaEditar.data_inicio);
       if (dataInicioFormatada) {
@@ -209,24 +191,43 @@ export default function TabelaEventos() {
         formData.append('imagem_capa', eventoParaEditar.imagem_capa);
       }
 
+      // 1. Atualiza os dados básicos do Evento
       const res = await fetch(`${API_URL}/api/eventos/${eventoParaEditar.id}`, {
         method: 'PUT',
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
 
-      const responseData = await res.json();
-
+      // 2. SINCRONIZAÇÃO DE PREÇO (O segredo para o Card atualizar)
       if (res.ok) {
+        await fetch(`${API_URL}/api/eventos/${eventoParaEditar.id}/ingressos`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}` 
+          },
+          body: JSON.stringify({
+            ingressos: [
+              {
+                nome: 'Ingresso Geral',
+                preco: Number(eventoParaEditar.preco),
+                quantidade: 1000
+              }
+            ]
+          }),
+        });
+
         setIsEditModalOpen(false);
         Swal.fire({
           title: 'Sucesso!',
+          text: 'Evento e preços atualizados!',
           icon: 'success',
           timer: 1500,
           showConfirmButton: false
         });
         carregarEventos();
       } else {
+        const responseData = await res.json();
         throw new Error(responseData.error || 'Erro ao salvar alterações');
       }
     } catch (err: any) {
@@ -449,6 +450,21 @@ export default function TabelaEventos() {
                       onChange={(e) => setEventoParaEditar({ ...eventoParaEditar, nome: e.target.value })}
                     />
                   </div>
+
+                  {/* CAMPO DE PREÇO - ADICIONADO PARA RESOLVER O PROBLEMA */}
+                  <div>
+                    <label className="text-[10px] font-black text-[#C22973] uppercase italic ml-2 flex items-center gap-1">
+                      <DollarSign size={10} /> Preço Base (App Card)
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="Ex: 50"
+                      className="w-full p-4 bg-pink-50/30 rounded-xl font-black outline-none border border-pink-100 focus:border-pink-300 text-[#C22973]"
+                      value={eventoParaEditar.preco || ''}
+                      onChange={(e) => setEventoParaEditar({ ...eventoParaEditar, preco: e.target.value })}
+                    />
+                  </div>
+
                   <div>
                     <label className="text-[10px] font-black text-slate-400 uppercase italic ml-2">
                       Categoria
@@ -474,17 +490,18 @@ export default function TabelaEventos() {
                       onChange={(e) => setEventoParaEditar({ ...eventoParaEditar, data_inicio: e.target.value })}
                     />
                   </div>
-                  <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase italic ml-2">
-                      {eventoParaEditar.tipo === 'Online' ? 'Link da Reunião' : 'Local do Evento'}
-                    </label>
-                    <input
-                      className="w-full p-4 bg-slate-50 rounded-xl font-bold outline-none border border-transparent focus:border-pink-200"
-                      value={eventoParaEditar.local_nome || ''}
-                      onChange={(e) => setEventoParaEditar({ ...eventoParaEditar, local_nome: e.target.value })}
-                    />
-                  </div>
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase italic ml-2">
+                  Link ou Localização
+                </label>
+                <input
+                  className="w-full p-4 bg-slate-50 rounded-xl font-bold outline-none border border-transparent focus:border-pink-200"
+                  value={eventoParaEditar.local_nome || ''}
+                  onChange={(e) => setEventoParaEditar({ ...eventoParaEditar, local_nome: e.target.value })}
+                />
               </div>
 
               <div className="space-y-2">
