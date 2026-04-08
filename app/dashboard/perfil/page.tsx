@@ -126,7 +126,10 @@ function PerfilContent() {
   useEffect(() => {
     const carregarDados = async () => {
       const { emailLogado, token } = getUsuarioLogado();
-      if (!emailLogado) { router.push('/site/login'); return; }
+      if (!emailLogado) { 
+        router.push('/site/login'); 
+        return; 
+      }
 
       try {
         const headers: Record<string, string> = { Accept: 'application/json' };
@@ -162,11 +165,22 @@ function PerfilContent() {
 
           setFormData(dadosPerfil);
 
+          // ADICIONADO: marca se o perfil já estiver completo
+          if (perfilJaCompleto(dadosPerfil)) {
+            localStorage.setItem('perfil_completo', 'true');
+          } else {
+            localStorage.removeItem('perfil_completo');
+          }
+
           // Atualiza LocalStorage para sincronizar com o Chat
           const userStorage = localStorage.getItem('@Linkah:User');
           if (userStorage) {
             const userAtual = JSON.parse(userStorage);
             localStorage.setItem('@Linkah:User', JSON.stringify({ ...userAtual, ...dadosPerfil }));
+          }
+
+          if (data.nome) {
+            localStorage.setItem('userName', data.nome);
           }
 
           setStripeAccountId(data.stripe_account_id || null);
@@ -179,7 +193,7 @@ function PerfilContent() {
       }
     };
     carregarDados();
-  }, [router, checarStatusStripe, getUsuarioLogado]);
+  }, [router, checarStatusStripe, getUsuarioLogado, perfilJaCompleto]);
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -246,8 +260,20 @@ function PerfilContent() {
         localStorage.setItem('@Linkah:User', JSON.stringify({ ...userAtual, ...formData }));
       }
 
+      if (formData.nome) {
+        localStorage.setItem('userName', formData.nome);
+      }
+
       localStorage.setItem('perfil_completo', 'true');
-      Swal.fire({ title: 'SUCESSO!', text: 'Perfil sincronizado.', icon: 'success', confirmButtonColor: '#FF4D4D', customClass: { popup: 'rounded-[2rem]' } });
+
+      Swal.fire({ 
+        title: 'SUCESSO!', 
+        text: 'Perfil sincronizado.', 
+        icon: 'success', 
+        confirmButtonColor: '#FF4D4D', 
+        customClass: { popup: 'rounded-[2rem]' } 
+      });
+
       router.replace('/dashboard/eventos');
     } catch (error: any) {
       Swal.fire('Erro', error.message, 'error');
