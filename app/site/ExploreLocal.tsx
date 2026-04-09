@@ -13,7 +13,20 @@ export function ExploreLocal({ activeCity, onSelect }: ExploreLocalProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Cidades rápidas (Favoritos)
-  const QUICK_CITIES = ['São Paulo', 'Rio de Janeiro', 'Lisboa', 'Remoto'];
+// Cidades rápidas (Favoritos - Principais polos de eventos)
+  const QUICK_CITIES = [
+    'São Paulo', 
+    'Rio de Janeiro', 
+    'Curitiba', 
+    'Belo Horizonte', 
+    'Florianópolis',
+    'Porto Alegre', 
+    'Brasília', 
+    'Salvador', 
+    'Lisboa', 
+    'Porto', 
+    'Remoto'
+  ];
 
   // Hook do Google Places
   const {
