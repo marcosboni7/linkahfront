@@ -1,130 +1,86 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import dynamic from 'next/dynamic';
-import { Navbar } from './site/Navbar';
-import { Footer } from './site/Footer';
-import { useLanguage } from '@/app/context/LanguageContext';
-import { Search, Ticket, Users, Zap, ChevronRight, MessageCircle, Calendar, Sparkles } from 'lucide-react';
-import Link from 'next/link';
-import Image from 'next/image';
+import React, { useState } from 'react';
+import { MapPin, Globe, Navigation, Search, X } from 'lucide-react';
 
-const EventCard = dynamic(() => import('./site/EventCard').then(mod => mod.EventCard), { ssr: false });
-const CategoryGrid = dynamic(() => import('./site/CategoryGrid').then(mod => mod.CategoryGrid), { ssr: false });
-const ExploreLocal = dynamic(() => import('./site/ExploreLocal').then(mod => mod.ExploreLocal), { ssr: false });
+interface ExploreLocalProps {
+  activeCity: string;
+  onSelect: (cityId: string) => void;
+}
 
-const API_URL_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api-linkah.onrender.com';
+export function ExploreLocal({ activeCity, onSelect }: ExploreLocalProps) {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
-export default function BuyTicketHome() {
-  const languageData = useLanguage();
-  const t = languageData?.t as Record<string, any> | undefined;
+  const CITIES = [
+    { id: 'todos', name: 'Todos' },
+    { id: 'São Paulo', name: 'São Paulo' },
+    { id: 'Rio de Janeiro', name: 'Rio de Janeiro' },
+    { id: 'Remoto', name: 'Remoto' },
+  ];
 
-  const [isMounted, setIsMounted] = useState(false);
-  const [eventos, setEventos] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  
-  const [categoriaAtiva, setCategoriaAtiva] = useState('Todos');
-  const [cidadeAtiva, setCidadeAtiva] = useState('todos');
-  const [buscaNome, setBuscaNome] = useState('');
-
-  useEffect(() => { setIsMounted(true); }, []);
-
-  useEffect(() => {
-    if (!isMounted) return;
-    async function carregarDados() {
-      try {
-        const res = await fetch(`${API_URL_BASE}/api/eventos/vitrine`, { cache: 'no-store' });
-        if (res.ok) setEventos(await res.json());
-      } catch (e) { console.error(e); } finally { setLoading(false); }
-    }
-    carregarDados();
-  }, [isMounted]);
-
-  // 🔥 ESTA É A FUNÇÃO QUE RESOLVE O PROBLEMA DO "PORTO"
-  const vitrineFiltrada = useMemo(() => {
-    if (!isMounted) return [];
-
-    const normalizar = (str: any) => 
-      String(str || '').toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "") // Remove acentos
-        .trim();
-
-    return (eventos || []).filter((ev) => {
-      // 1. Match de Nome
-      const nomeMatch = normalizar(ev.nome).includes(normalizar(buscaNome));
-      
-      // 2. Match de Categoria
-      const catMatch = categoriaAtiva === 'Todos' || ev.categoria === categoriaAtiva;
-      
-      // 3. Match de Localização (O FIX SUPREMO)
-      let cidadeMatch = true;
-      if (cidadeAtiva !== 'todos') {
-        const busca = normalizar(cidadeAtiva);
-        
-        // Criamos uma "Super String" com todos os campos que a sua API pode enviar
-        // Adicionei campos comuns de APIs (local, cidade, estado, address, etc)
-        const infosLocal = normalizar(`
-          ${ev.local} 
-          ${ev.cidade} 
-          ${ev.estado} 
-          ${ev.endereco} 
-          ${ev.location?.city} 
-          ${ev.location?.address}
-        `);
-
-        cidadeMatch = infosLocal.includes(busca);
-        
-        // Console log para você ver o que está acontecendo no F12
-        if (busca === "porto" && cidadeMatch) {
-          console.log("Evento encontrado no Porto:", ev.nome);
-        }
-      }
-
-      return nomeMatch && catMatch && cidadeMatch;
-    });
-  }, [eventos, buscaNome, categoriaAtiva, cidadeAtiva, isMounted]);
-
-  if (!isMounted) return null;
+  const isCustom = activeCity !== 'todos' && !CITIES.find(c => c.id === activeCity);
 
   return (
-    <div className="min-h-screen bg-[#fafafa]">
-      <Navbar />
-
-      {/* HERO SIMPLIFICADO PARA O FILTRO */}
-      <section className="pt-32 pb-16 px-6 text-center">
-        <h1 className="text-6xl font-black mb-8 uppercase tracking-tighter">Explorar <span className="text-[#ff4d4d] italic">Eventos</span></h1>
-        <div className="max-w-xl mx-auto bg-white p-2 rounded-2xl shadow-lg border flex">
-          <input 
-            value={buscaNome} 
-            onChange={e => setBuscaNome(e.target.value)} 
-            placeholder="Nome do evento..." 
-            className="flex-grow px-4 outline-none font-bold"
-          />
-          <div className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold uppercase text-xs">Buscar</div>
+    <section className="py-8">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500">
+          <Navigation size={18} strokeWidth={2.5} />
         </div>
-      </section>
+        <div>
+          <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">Explorar por Local</h3>
+          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Encontre experiências perto de você</p>
+        </div>
+      </div>
 
-      <main className="max-w-7xl mx-auto px-6 space-y-20 pb-20">
-        <CategoryGrid categories={['Todos', 'Arte & Cultura', 'Negócios', 'Educação']} activeCategory={categoriaAtiva} onSelect={setCategoriaAtiva} />
-        
-        {/* COMPONENTE DE LOCALIZAÇÃO */}
-        <ExploreLocal activeCity={cidadeAtiva} onSelect={setCidadeAtiva} />
+      <div className="flex flex-wrap gap-3">
+        {CITIES.map((city) => (
+          <button
+            key={city.id}
+            onClick={() => onSelect(city.id)}
+            className={`flex items-center gap-3 px-6 py-4 rounded-2xl border transition-all duration-300
+              ${activeCity === city.id ? 'bg-white border-violet-200 shadow-xl shadow-violet-100/50 scale-[1.05] z-10 text-slate-950' : 'bg-white border-slate-100 text-slate-500'}`}
+          >
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${activeCity === city.id ? 'bg-violet-600 text-white' : 'bg-slate-50 text-slate-400'}`}>
+              {city.id === 'Remoto' ? <Globe size={14} /> : <MapPin size={14} />}
+            </div>
+            <span className="text-sm font-black uppercase tracking-tight">{city.name}</span>
+          </button>
+        ))}
 
-        <section>
-          <h2 className="text-2xl font-black mb-8 uppercase">Resultados</h2>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            {vitrineFiltrada.length > 0 ? (
-              vitrineFiltrada.map(ev => <EventCard key={ev.id} evento={ev} />)
-            ) : (
-              <div className="col-span-full py-20 text-center bg-white rounded-3xl border border-dashed">
-                <p className="text-slate-400 font-bold uppercase tracking-widest">Nenhum evento encontrado para "{cidadeAtiva}"</p>
-              </div>
-            )}
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className={`flex items-center gap-3 px-6 py-4 rounded-2xl border transition-all duration-300
+            ${isCustom ? 'bg-white border-violet-200 shadow-xl shadow-violet-100/50 scale-[1.05] z-10 text-slate-950' : 'bg-slate-50 border-dashed border-slate-200 text-slate-400'}`}
+        >
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isCustom ? 'bg-violet-600 text-white' : 'bg-white text-slate-300'}`}>
+            <Search size={14} />
           </div>
-        </section>
-      </main>
-      <Footer />
-    </div>
+          <span className="text-sm font-black uppercase tracking-tight">{isCustom ? activeCity : 'Outros'}</span>
+        </button>
+      </div>
+
+      {isModalOpen && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setIsModalOpen(false)} />
+          <div className="relative w-full max-w-md bg-white rounded-[2.5rem] p-8 shadow-2xl">
+            <h3 className="text-2xl font-black text-slate-950 uppercase mb-6">Buscar Cidade</h3>
+            <input 
+              autoFocus
+              placeholder="Ex: Porto, Lisboa, Curitiba..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-5 px-6 text-slate-900 font-bold mb-4 outline-none focus:ring-2 focus:ring-violet-500/20"
+            />
+            <button 
+              onClick={() => { onSelect(searchTerm); setIsModalOpen(false); setSearchTerm(''); }}
+              className="w-full py-5 bg-slate-950 text-white rounded-2xl font-black uppercase tracking-widest text-[11px] hover:bg-violet-600 transition-all"
+            >
+              Filtrar
+            </button>
+          </div>
+        </div>
+      )}
+    </section>
   );
 }
