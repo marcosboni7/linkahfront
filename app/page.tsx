@@ -9,13 +9,9 @@ import {
   Search,
   Ticket,
   Sparkles,
-  Users,
   Zap,
-  ChevronRight,
-  MessageCircle,
   Calendar,
 } from 'lucide-react';
-import Link from 'next/link';
 import Image from 'next/image';
 
 // 🔥 CONFIGURAÇÃO DINÂMICA
@@ -57,7 +53,6 @@ export default function BuyTicketHome() {
 
   const [isMounted, setIsMounted] = useState(false);
   const [eventos, setEventos] = useState<any[]>([]);
-  const [comunidades, setComunidades] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [categoriaAtiva, setCategoriaAtiva] = useState('Todos');
   const [cidadeAtiva, setCidadeAtiva] = useState('todos');
@@ -82,19 +77,11 @@ export default function BuyTicketHome() {
     async function carregarDados() {
       setLoading(true);
       try {
-        const [resEventos, resComunidades] = await Promise.all([
-          fetch(`${API_URL_BASE}/api/eventos/vitrine`, { cache: 'no-store' }),
-          fetch(`${API_URL_BASE}/api/comunidades`, { cache: 'no-store' }),
-        ]);
+        const resEventos = await fetch(`${API_URL_BASE}/api/eventos/vitrine`, { cache: 'no-store' });
 
         if (resEventos.ok) {
           const dadosEventos = await resEventos.json();
           setEventos(Array.isArray(dadosEventos) ? dadosEventos : []);
-        }
-
-        if (resComunidades.ok) {
-          const dadosCom = await resComunidades.json();
-          setComunidades(Array.isArray(dadosCom) ? dadosCom.slice(0, 3) : []);
         }
       } catch (error) {
         console.error('Erro ao carregar dados:', error);
@@ -280,7 +267,7 @@ export default function BuyTicketHome() {
           onSelect={setCidadeAtiva}
         />
 
-        <section id="vitrine-principal" className="scroll-mt-32">
+        <section id="vitrine-principal" className="scroll-mt-32 pb-20">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
             <div>
               <h2 className="text-3xl font-black text-slate-900 tracking-tight uppercase">Eventos</h2>
@@ -326,58 +313,6 @@ export default function BuyTicketHome() {
             )}
           </div>
         </section>
-
-        {!loading && comunidades.length > 0 && (
-          <section className="space-y-10">
-            <div className="flex items-end justify-between border-b border-slate-100 pb-6">
-              <h2 className="text-3xl font-black text-slate-900 tracking-tight uppercase">Comunidades</h2>
-              <Link href="/comunidades" className="text-slate-500 font-bold text-xs uppercase tracking-widest flex items-center gap-2 hover:text-slate-900 transition-colors group">
-                Explorar <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
-              </Link>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {comunidades.map((com) => {
-                const rawFoto = com.foto_url || com.imagem || com.capa;
-                const fotoFinal = (rawFoto && typeof rawFoto === 'string')
-                  ? (rawFoto.startsWith('http') ? rawFoto : `${API_URL_BASE}/uploads/${rawFoto.replace(/^\/+/, '')}`)
-                  : 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?q=80&w=2070';
-
-                return (
-                  <Link
-                    key={com.id}
-                    href={`/comunidades/${com.id}`}
-                    className="group bg-white rounded-[2rem] border border-slate-100 hover:border-violet-200 hover:shadow-2xl hover:shadow-violet-100/50 transition-all duration-500 flex flex-col overflow-hidden h-full"
-                  >
-                    <div className="relative h-48 w-full overflow-hidden bg-slate-50">
-                      <Image src={fotoFinal} alt={com.nome || 'Comunidade'} fill unoptimized className="object-cover group-hover:scale-105 transition-transform duration-700" />
-                    </div>
-
-                    <div className="p-8 flex-grow">
-                      <div className="bg-slate-50 w-fit px-4 py-1.5 rounded-full text-[9px] font-black text-slate-500 mb-4 flex items-center gap-2 uppercase tracking-widest border border-slate-100">
-                        <Users size={12} /> {com.membros_count || 0} Membros
-                      </div>
-
-                      <h3 className="text-xl font-black text-slate-950 mb-3 group-hover:text-violet-600 transition-colors uppercase tracking-tight leading-tight">
-                        {com.nome || 'Sem Nome'}
-                      </h3>
-
-                      <p className="text-slate-400 text-sm line-clamp-2 leading-relaxed font-medium">
-                        {com.descricao || 'Participe das discussões exclusivas.'}
-                      </p>
-                    </div>
-
-                    <div className="px-8 pb-8">
-                      <div className="w-full py-4 bg-slate-950 rounded-2xl flex items-center justify-center gap-2 text-white font-black text-[10px] uppercase tracking-[0.2em] group-hover:bg-violet-600 transition-all duration-300 shadow-lg shadow-slate-200">
-                        <MessageCircle size={16} strokeWidth={3} /> Entrar no Chat
-                      </div>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          </section>
-        )}
       </main>
 
       <Footer />
