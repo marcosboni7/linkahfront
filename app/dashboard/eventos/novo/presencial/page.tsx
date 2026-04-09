@@ -18,20 +18,18 @@ export default function NovoEventoPresencial() {
   const [isLoading, setIsLoading] = useState(false);
   const [isAiLoading, setIsAiLoading] = useState(false);
 
-  // Refs para Google Maps
   const searchInputRef = useRef<HTMLInputElement>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const googleMap = useRef<any>(null);
   const marker = useRef<any>(null);
   const autocompleteRef = useRef<any>(null);
 
-  // Estados de Mídia
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
   const [previewBanner, setPreviewBanner] = useState<string | null>(null);
   const [selectedBanner, setSelectedBanner] = useState<File | null>(null);
 
-  // Estado do Formulário Completo
   const [formData, setFormData] = useState({
     nome: '',
     categoria: '',
@@ -55,7 +53,6 @@ export default function NovoEventoPresencial() {
     visibilidade: 'Publico'
   });
 
-  // Função IA Linkah
   const handleGerarComIA = async () => {
     const { value: text } = await Swal.fire({
       title: 'Gerar Evento com IA',
@@ -116,7 +113,6 @@ export default function NovoEventoPresencial() {
     }
   };
 
-  // Inicialização do Google Maps
   const initGoogleMaps = useCallback(async () => {
     if (typeof window === 'undefined' || !window.google || !mapContainerRef.current) return;
     if (googleMap.current) return;
@@ -142,6 +138,7 @@ export default function NovoEventoPresencial() {
       });
 
       if (searchInputRef.current && !autocompleteRef.current) {
+        // CORREÇÃO: Removido o componentRestrictions para permitir busca mundial
         autocompleteRef.current = new Autocomplete(searchInputRef.current, {
           types: ['establishment', 'geocode'],
           fields: ['address_components', 'formatted_address', 'name', 'geometry']
@@ -181,7 +178,6 @@ export default function NovoEventoPresencial() {
     return () => clearTimeout(timer);
   }, [initGoogleMaps]);
 
-  // Handlers
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -295,11 +291,7 @@ export default function NovoEventoPresencial() {
 
       <main className="max-w-7xl mx-auto p-6 md:p-12">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-          
-          {/* LADO ESQUERDO: FORMULÁRIO */}
           <div className="lg:col-span-8 space-y-10">
-            
-            {/* INFORMAÇÕES BÁSICAS */}
             <section className="bg-white rounded-[3rem] p-10 shadow-sm border border-slate-100 space-y-8">
               <div className="space-y-6">
                 <div className="space-y-3 relative">
@@ -397,7 +389,6 @@ export default function NovoEventoPresencial() {
               </div>
             </section>
 
-            {/* DATAS & HORÁRIOS */}
             <section className="bg-white rounded-[3rem] p-10 shadow-sm border border-slate-100">
               <div className="flex items-center gap-3 mb-8">
                 <div className="w-10 h-10 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400">
@@ -455,7 +446,6 @@ export default function NovoEventoPresencial() {
               </div>
             </section>
 
-            {/* LOCALIZAÇÃO COMPLETA */}
             <section className="bg-white rounded-[3rem] p-10 shadow-sm border border-slate-100 space-y-8">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-slate-50 rounded-2xl flex items-center justify-center text-[#C22973]">
@@ -477,139 +467,168 @@ export default function NovoEventoPresencial() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <input name="local_nome" value={formData.local_nome} onChange={handleChange} placeholder="Nome do Local (Ex: Teatro Municipal)" className="w-full bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner" />
-                  <input name="cep" value={formData.cep} onChange={handleChange} placeholder="CEP / Postal Code" className="w-full bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner" />
-                  <input name="endereco" value={formData.endereco} onChange={handleChange} placeholder="Rua / Avenida" className="w-full bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner md:col-span-2" />
-                  <div className="grid grid-cols-2 gap-6 md:col-span-2">
-                    <input name="numero" value={formData.numero} onChange={handleChange} placeholder="Número" className="w-full bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner" />
-                    <input name="complemento" value={formData.complemento} onChange={handleChange} placeholder="Complemento" className="w-full bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner" />
-                  </div>
-                  <input name="cidade" value={formData.cidade} onChange={handleChange} placeholder="Cidade" className="w-full bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner" />
-                  <input name="estado" value={formData.estado} onChange={handleChange} placeholder="Estado / UF" className="w-full bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner" />
+                  <input
+                    name="local_nome"
+                    value={formData.local_nome}
+                    onChange={handleChange}
+                    placeholder="Nome do Local"
+                    className="w-full bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner"
+                  />
+                  <input
+                    name="cep"
+                    value={formData.cep}
+                    onChange={handleChange}
+                    placeholder="CEP / Postal Code"
+                    className="w-full bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner"
+                  />
+                  <input
+                    name="endereco"
+                    value={formData.endereco}
+                    onChange={handleChange}
+                    placeholder="Rua / Avenida"
+                    className="w-full bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner md:col-span-2"
+                  />
+                  <input
+                    name="numero"
+                    value={formData.numero}
+                    onChange={handleChange}
+                    placeholder="Número"
+                    className="w-full bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner"
+                  />
+                  <input
+                    name="complemento"
+                    value={formData.complemento}
+                    onChange={handleChange}
+                    placeholder="Complemento"
+                    className="w-full bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner"
+                  />
+                  <input
+                    name="cidade"
+                    value={formData.cidade}
+                    onChange={handleChange}
+                    placeholder="Cidade"
+                    className="w-full bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner"
+                  />
+                  <input
+                    name="estado"
+                    value={formData.estado}
+                    onChange={handleChange}
+                    placeholder="Estado / Província / UF"
+                    className="w-full bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner"
+                  />
                 </div>
-              </div>
-            </section>
 
-            {/* CONFIGURAÇÕES EXTRAS */}
-            <section className="bg-white rounded-[3rem] p-10 shadow-sm border border-slate-100 space-y-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-3">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 italic">
-                    Visibilidade do Evento
+                    Regras / Informações Extras
                   </label>
-                  <select
-                    name="visibilidade"
-                    value={formData.visibilidade}
+                  <textarea
+                    name="regras"
+                    value={formData.regras}
                     onChange={handleChange}
-                    className="w-full bg-slate-50 p-6 rounded-[2rem] outline-none font-bold text-slate-600 shadow-inner appearance-none"
-                  >
-                    <option value="Publico">🌍 Público (Visível para todos)</option>
-                    <option value="Privado">🔒 Privado (Apenas via link direto)</option>
-                  </select>
+                    rows={4}
+                    className="w-full bg-slate-50 p-6 rounded-[2.5rem] outline-none resize-none font-medium text-slate-600 focus:bg-white border-2 border-transparent focus:border-pink-100 transition-all shadow-inner"
+                    placeholder="Ex: Proibida entrada com bebidas, classificação etária, instruções..."
+                  />
                 </div>
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 italic">
-                    Status do Cadastro
-                  </label>
-                  <select
-                    name="status"
-                    value={formData.status}
-                    onChange={handleChange}
-                    className="w-full bg-slate-50 p-6 rounded-[2rem] outline-none font-bold text-slate-600 shadow-inner appearance-none"
-                  >
-                    <option value="Ativo">🟢 Ativo (Publicar agora)</option>
-                    <option value="Rascunho">🟡 Rascunho (Salvar e editar depois)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 italic">
-                  Regras & Observações
-                </label>
-                <textarea
-                  name="regras"
-                  value={formData.regras}
-                  onChange={handleChange}
-                  rows={4}
-                  className="w-full bg-slate-50 p-6 rounded-[2.5rem] outline-none resize-none font-medium text-slate-600 focus:bg-white border-2 border-transparent focus:border-pink-100 transition-all shadow-inner"
-                  placeholder="Ex: Proibida entrada com objetos cortantes, Classificação 18+..."
-                />
               </div>
             </section>
           </div>
 
-          {/* LADO DIREITO: MÍDIA E PREVIEW */}
           <div className="lg:col-span-4 space-y-10">
-            
-            {/* CAPA NORMAL (1080x1350) */}
             <div className="bg-white rounded-[3.5rem] p-8 shadow-sm border border-slate-100">
               <h4 className="text-[9px] text-slate-300 font-black uppercase mb-8 text-center tracking-[0.4em] italic">
-                Media Center: Capa Principal
+                Media Center: Capa
               </h4>
               <div className="relative">
                 {previewImage ? (
-                  <div className="relative w-full aspect-[1080/1350] rounded-[3rem] overflow-hidden shadow-2xl group border-4 border-white">
-                    <img src={previewImage} alt="Preview" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                    <button type="button" onClick={() => { setPreviewImage(null); setSelectedFile(null); }} className="absolute top-6 right-6 bg-white w-14 h-14 rounded-3xl text-[#C22973] flex items-center justify-center shadow-2xl hover:scale-110 transition-transform">
+                  <div className="relative w-full aspect-[3/4] rounded-[3rem] overflow-hidden shadow-2xl group border-4 border-white">
+                    <img
+                      src={previewImage}
+                      alt="Preview"
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPreviewImage(null);
+                        setSelectedFile(null);
+                      }}
+                      className="absolute top-6 right-6 bg-white w-14 h-14 rounded-3xl text-[#C22973] flex items-center justify-center shadow-2xl hover:scale-110 transition-transform"
+                    >
                       <X size={24} />
                     </button>
                   </div>
                 ) : (
-                  <label className="aspect-[1080/1350] border-2 border-dashed border-slate-100 rounded-[3rem] bg-slate-50/50 cursor-pointer flex flex-col items-center justify-center hover:bg-white hover:border-pink-200 transition-all group overflow-hidden text-center">
+                  <label className="aspect-[3/4] border-2 border-dashed border-slate-100 rounded-[3rem] bg-slate-50/50 cursor-pointer flex flex-col items-center justify-center hover:bg-white hover:border-pink-200 transition-all group overflow-hidden">
                     <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
-                    <div className="w-20 h-20 bg-white rounded-[2rem] flex items-center justify-center shadow-sm mb-4 group-hover:scale-110 transition-all">
+                    <div className="w-20 h-20 bg-white rounded-[2rem] flex items-center justify-center shadow-sm mb-6 group-hover:scale-110 transition-all">
                       <ImageIcon size={36} className="text-[#C22973]" />
                     </div>
-                    <p className="text-[11px] font-black text-slate-800 uppercase tracking-widest italic">Capa do Evento</p>
-                    <span className="text-[9px] font-bold text-slate-400 mt-2 opacity-60 uppercase">1080 x 1350 px</span>
+                    <p className="text-[11px] font-black text-slate-800 uppercase tracking-widest italic">
+                      Capa do Evento
+                    </p>
                   </label>
                 )}
               </div>
             </div>
 
-            {/* CAPA PATROCINADOR (236x354) */}
             <div className="bg-white rounded-[3.5rem] p-8 shadow-sm border border-slate-100">
               <h4 className="text-[9px] text-slate-300 font-black uppercase mb-8 text-center tracking-[0.4em] italic">
-                Media Center: Patrocinador
+                Media Center: Banner
               </h4>
               <div className="relative">
                 {previewBanner ? (
-                  <div className="relative w-full aspect-[236/354] rounded-[2rem] overflow-hidden shadow-2xl group border-4 border-white">
-                    <img src={previewBanner} alt="Preview Banner" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                    <button type="button" onClick={() => { setPreviewBanner(null); setSelectedBanner(null); }} className="absolute top-4 right-4 bg-white w-12 h-12 rounded-2xl text-blue-500 flex items-center justify-center shadow-xl hover:scale-110 transition-transform">
+                  <div className="relative w-full aspect-video rounded-[2rem] overflow-hidden shadow-2xl group border-4 border-white">
+                    <img
+                      src={previewBanner}
+                      alt="Preview Banner"
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPreviewBanner(null);
+                        setSelectedBanner(null);
+                      }}
+                      className="absolute top-4 right-4 bg-white w-12 h-12 rounded-2xl text-blue-500 flex items-center justify-center shadow-xl hover:scale-110 transition-transform"
+                    >
                       <X size={20} />
                     </button>
                   </div>
                 ) : (
-                  <label className="aspect-[236/354] border-2 border-dashed border-slate-100 rounded-[2rem] bg-slate-50/50 cursor-pointer flex flex-col items-center justify-center hover:bg-white hover:border-blue-200 transition-all group text-center">
+                  <label className="aspect-video border-2 border-dashed border-slate-100 rounded-[2rem] bg-slate-50/50 cursor-pointer flex flex-col items-center justify-center hover:bg-white hover:border-blue-200 transition-all group">
                     <input type="file" accept="image/*" onChange={handleBannerChange} className="hidden" />
                     <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center mb-3 shadow-sm group-hover:scale-110 transition-transform">
                       <Building2 size={24} className="text-blue-500" />
                     </div>
-                    <p className="text-[9px] font-black text-slate-800 uppercase tracking-widest italic">Capa Patrocinador</p>
-                    <span className="text-[8px] font-bold text-slate-400 mt-2 opacity-60 uppercase">236 x 354 px</span>
+                    <p className="text-[9px] font-black text-slate-800 uppercase tracking-widest italic">
+                      Banner Patrocinador
+                    </p>
                   </label>
                 )}
               </div>
             </div>
 
-            {/* MAPA PREVIEW */}
             <div className="bg-white rounded-[3.5rem] p-8 shadow-sm border border-slate-100 h-[350px] relative overflow-hidden">
               <div ref={mapContainerRef} className="w-full h-full rounded-[3.2rem]" />
             </div>
 
-            {/* FINANCEIRO PREVIEW */}
             <div className="bg-gradient-to-br from-black to-slate-800 rounded-[3.5rem] p-10 text-white shadow-2xl relative overflow-hidden">
               <div className="absolute top-0 right-0 p-8 opacity-10">
                 <Ticket size={120} />
               </div>
-              <h4 className="font-black italic text-2xl uppercase leading-tight mb-4 tracking-tighter">Financeiro</h4>
-              <p className="text-[11px] font-bold opacity-60 uppercase tracking-[0.2em]">Tickets e Lotes serão configurados no próximo estágio.</p>
-              <p className="mt-6 text-sm font-bold text-pink-300">Moeda atual: {formData.moeda}</p>
+              <h4 className="font-black italic text-2xl uppercase leading-tight mb-4 tracking-tighter">
+                Financeiro
+              </h4>
+              <p className="text-[11px] font-bold opacity-60 uppercase tracking-[0.2em]">
+                Tickets e Lotes serão configurados no próximo estágio.
+              </p>
+              <p className="mt-6 text-sm font-bold text-pink-300">
+                Moeda atual: {formData.moeda}
+              </p>
             </div>
           </div>
-
         </div>
       </main>
     </div>
