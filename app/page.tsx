@@ -29,23 +29,15 @@ const EventCard = dynamic(() => import('./site/EventCard').then(mod => mod.Event
   loading: () => <div className="h-64 bg-slate-50 animate-pulse rounded-3xl" /> 
 });
 
-// NOVO COMPONENTE ESTILO LUMA
 const CategoryGrid = dynamic(() => import('./site/CategoryGrid').then(mod => mod.CategoryGrid), { 
   ssr: false 
 });
 
-const API_URL_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api-linkah.onrender.com';
+const ExploreLocal = dynamic(() => import('./site/ExploreLocal').then(mod => mod.ExploreLocal), { 
+  ssr: false 
+});
 
-const iconMap: { [key: string]: any } = {
-  Todos: Ticket,
-  'Arte & Cultura': Palette,
-  'Entretenimento': Theater,
-  'Negócios': Briefcase,
-  'Educação & Desenvolvimento': GraduationCap,
-  'Esportes & Bem-estar': Heart,
-  'Experiências & Lifestyle': Sparkles,
-  'Família & Comunidade': Users,
-};
+const API_URL_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api-linkah.onrender.com';
 
 const CATEGORIAS_FIXAS = [
   'Todos',
@@ -73,6 +65,7 @@ export default function BuyTicketHome() {
   const [comunidades, setComunidades] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [categoriaAtiva, setCategoriaAtiva] = useState('Todos');
+  const [cidadeAtiva, setCidadeAtiva] = useState('todos'); // NOVO ESTADO
   const [filtroData, setFiltroData] = useState('todos'); 
   const [buscaNome, setBuscaNome] = useState('');
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -83,7 +76,6 @@ export default function BuyTicketHome() {
 
   useEffect(() => {
     if (!isMounted) return;
-
     async function carregarDados() {
       setLoading(true);
       try {
@@ -122,10 +114,8 @@ export default function BuyTicketHome() {
     amanha.setDate(hoje.getDate() + 1);
 
     return (eventos || []).filter((ev) => {
-      // 🔥 MANTIDA SUA LÓGICA DE CORREÇÃO DE FUSO
       const dataString = String(ev.data_inicio || ev.data || '').split('T')[0];
       const partes = dataString.split('-');
-      
       let dataEv = new Date(0);
       if (partes.length === 3) {
         dataEv = new Date(Number(partes[0]), Number(partes[1]) - 1, Number(partes[2]));
@@ -135,6 +125,19 @@ export default function BuyTicketHome() {
       const nomeMatch = String(ev.nome || '').toLowerCase().includes(buscaNome.toLowerCase());
       const catMatch = categoriaAtiva === 'Todos' || ev.categoria === categoriaAtiva;
       
+      // FILTRO DE LOCALIZAÇÃO
+      let cidadeMatch = true;
+      if (cidadeAtiva !== 'todos') {
+        const localEv = String(ev.local || '').toLowerCase();
+        const cidadeFiltro = cidadeAtiva.toLowerCase();
+        
+        if (cidadeAtiva === 'Outros') {
+          cidadeMatch = !localEv.includes('são paulo') && !localEv.includes('rio de janeiro') && !localEv.includes('remoto');
+        } else {
+          cidadeMatch = localEv.includes(cidadeFiltro);
+        }
+      }
+
       let dataMatch = true;
       if (filtroData === 'hoje') dataMatch = dataEv.getTime() === hoje.getTime();
       if (filtroData === 'amanha') dataMatch = dataEv.getTime() === amanha.getTime();
@@ -143,9 +146,9 @@ export default function BuyTicketHome() {
         dataMatch = diaSemana === 0 || diaSemana === 6;
       }
 
-      return nomeMatch && catMatch && dataMatch;
+      return nomeMatch && catMatch && dataMatch && cidadeMatch;
     });
-  }, [eventos, buscaNome, categoriaAtiva, filtroData, isMounted]);
+  }, [eventos, buscaNome, categoriaAtiva, cidadeAtiva, filtroData, isMounted]);
 
   if (!isMounted) return <div className="min-h-screen bg-white" />;
 
@@ -196,7 +199,7 @@ export default function BuyTicketHome() {
 
       <main className="mx-auto max-w-7xl px-6 py-16 space-y-32">
         
-        {/* NAVEGAR POR CATEGORIA (Estilo Luma Cards) */}
+        {/* NAVEGAR POR CATEGORIA */}
         <section>
           <div className="flex flex-col mb-8">
             <h2 className="text-2xl font-black text-slate-950 tracking-tight uppercase">Navegar por Categoria</h2>
@@ -209,6 +212,12 @@ export default function BuyTicketHome() {
           />
         </section>
 
+        {/* EXPLORAR POR LOCAL (Novo Componente) */}
+        <ExploreLocal 
+          activeCity={cidadeAtiva} 
+          onSelect={setCidadeAtiva} 
+        />
+
         {/* VITRINE DE EVENTOS */}
         <section id="vitrine-principal" className="scroll-mt-32">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
@@ -217,7 +226,6 @@ export default function BuyTicketHome() {
               <div className="h-1 w-12 bg-slate-900 rounded-full mt-2" />
             </div>
 
-            {/* Filtros de Data (Atualizados para o novo visual) */}
             <div className="flex flex-wrap gap-2 p-1 bg-white border border-slate-100 rounded-2xl shadow-sm">
               {[
                 { id: 'todos', label: 'Todos', icon: Ticket },
@@ -248,7 +256,7 @@ export default function BuyTicketHome() {
                 <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300">
                   <Ticket size={32} />
                 </div>
-                <p className="text-slate-400 font-bold uppercase tracking-widest text-sm">Nenhum evento para esta seleção.</p>
+                <p className="text-slate-400 font-bold uppercase tracking-widest text-sm">Nenhum evento encontrado.</p>
               </div>
             )}
           </div>
