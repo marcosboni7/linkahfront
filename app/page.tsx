@@ -8,11 +8,6 @@ import { useLanguage } from '@/app/context/LanguageContext';
 import {
   Search,
   Ticket,
-  Palette,
-  Theater,
-  Briefcase,
-  GraduationCap,
-  Heart,
   Sparkles,
   Users,
   Zap,
@@ -24,17 +19,17 @@ import Link from 'next/link';
 import Image from 'next/image';
 
 // 🔥 CONFIGURAÇÃO DINÂMICA
-const EventCard = dynamic(() => import('./site/EventCard').then(mod => mod.EventCard), { 
+const EventCard = dynamic(() => import('./site/EventCard').then(mod => mod.EventCard), {
   ssr: false,
-  loading: () => <div className="h-64 bg-slate-50 animate-pulse rounded-3xl" /> 
+  loading: () => <div className="h-64 bg-slate-50 animate-pulse rounded-3xl" />
 });
 
-const CategoryGrid = dynamic(() => import('./site/CategoryGrid').then(mod => mod.CategoryGrid), { 
-  ssr: false 
+const CategoryGrid = dynamic(() => import('./site/CategoryGrid').then(mod => mod.CategoryGrid), {
+  ssr: false
 });
 
-const ExploreLocal = dynamic(() => import('./site/ExploreLocal').then(mod => mod.ExploreLocal), { 
-  ssr: false 
+const ExploreLocal = dynamic(() => import('./site/ExploreLocal').then(mod => mod.ExploreLocal), {
+  ssr: false
 });
 
 const API_URL_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api-linkah.onrender.com';
@@ -65,10 +60,17 @@ export default function BuyTicketHome() {
   const [comunidades, setComunidades] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [categoriaAtiva, setCategoriaAtiva] = useState('Todos');
-  const [cidadeAtiva, setCidadeAtiva] = useState('todos'); // NOVO ESTADO
-  const [filtroData, setFiltroData] = useState('todos'); 
+  const [cidadeAtiva, setCidadeAtiva] = useState('todos');
+  const [filtroData, setFiltroData] = useState('todos');
   const [buscaNome, setBuscaNome] = useState('');
   const [currentSlide, setCurrentSlide] = useState(0);
+
+  const normalizeText = (text: string = '') =>
+    String(text)
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim()
+      .toLowerCase();
 
   useEffect(() => {
     setIsMounted(true);
@@ -76,6 +78,7 @@ export default function BuyTicketHome() {
 
   useEffect(() => {
     if (!isMounted) return;
+
     async function carregarDados() {
       setLoading(true);
       try {
@@ -83,7 +86,12 @@ export default function BuyTicketHome() {
           fetch(`${API_URL_BASE}/api/eventos/vitrine`, { cache: 'no-store' }),
           fetch(`${API_URL_BASE}/api/comunidades`, { cache: 'no-store' }),
         ]);
-        if (resEventos.ok) setEventos(await resEventos.json());
+
+        if (resEventos.ok) {
+          const dadosEventos = await resEventos.json();
+          setEventos(Array.isArray(dadosEventos) ? dadosEventos : []);
+        }
+
         if (resComunidades.ok) {
           const dadosCom = await resComunidades.json();
           setComunidades(Array.isArray(dadosCom) ? dadosCom.slice(0, 3) : []);
@@ -94,14 +102,17 @@ export default function BuyTicketHome() {
         setLoading(false);
       }
     }
+
     carregarDados();
   }, [isMounted]);
 
   useEffect(() => {
     if (!isMounted) return;
+
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev === SLIDES.length - 1 ? 0 : prev + 1));
     }, 6500);
+
     return () => clearInterval(interval);
   }, [isMounted]);
 
@@ -110,37 +121,89 @@ export default function BuyTicketHome() {
 
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
+
     const amanha = new Date(hoje);
     amanha.setDate(hoje.getDate() + 1);
 
     return (eventos || []).filter((ev) => {
       const dataString = String(ev.data_inicio || ev.data || '').split('T')[0];
       const partes = dataString.split('-');
+
       let dataEv = new Date(0);
       if (partes.length === 3) {
         dataEv = new Date(Number(partes[0]), Number(partes[1]) - 1, Number(partes[2]));
       }
       dataEv.setHours(0, 0, 0, 0);
 
-      const nomeMatch = String(ev.nome || '').toLowerCase().includes(buscaNome.toLowerCase());
-      const catMatch = categoriaAtiva === 'Todos' || ev.categoria === categoriaAtiva;
-      
-      // FILTRO DE LOCALIZAÇÃO
+      const nomeEvento = String(
+        ev.nome ||
+        ev.titulo ||
+        ev.nome_evento ||
+        ''
+      );
+
+      const nomeMatch = normalizeText(nomeEvento).includes(normalizeText(buscaNome));
+
+      const categoriaEvento = String(ev.categoria || '');
+      const catMatch =
+        categoriaAtiva === 'Todos' ||
+        normalizeText(categoriaEvento) === normalizeText(categoriaAtiva);
+
       let cidadeMatch = true;
-      if (cidadeAtiva !== 'todos') {
-        const localEv = String(ev.local || '').toLowerCase();
-        const cidadeFiltro = cidadeAtiva.toLowerCase();
-        
-        if (cidadeAtiva === 'Outros') {
-          cidadeMatch = !localEv.includes('são paulo') && !localEv.includes('rio de janeiro') && !localEv.includes('remoto');
+
+      if (normalizeText(cidadeAtiva) !== 'todos') {
+        const cidadeFiltro = normalizeText(cidadeAtiva);
+
+        const cidadeEvento = normalizeText(
+          ev.cidade ||
+          ev.cidade_evento ||
+          ''
+        );
+
+        const localEvento = normalizeText(
+          ev.local ||
+          ev.endereco ||
+          ev.endereco_completo ||
+          ev.nome_local ||
+          ''
+        );
+
+        const formatoEvento = normalizeText(
+          ev.modalidade ||
+          ev.tipo ||
+          ev.formato ||
+          ''
+        );
+
+        const textoCompletoLocal = `${cidadeEvento} ${localEvento} ${formatoEvento}`;
+
+        if (cidadeFiltro === 'remoto') {
+          cidadeMatch =
+            formatoEvento.includes('online') ||
+            formatoEvento.includes('remoto') ||
+            formatoEvento.includes('virtual') ||
+            cidadeEvento.includes('remoto') ||
+            localEvento.includes('remoto') ||
+            localEvento.includes('online') ||
+            localEvento.includes('virtual');
         } else {
-          cidadeMatch = localEv.includes(cidadeFiltro);
+          cidadeMatch =
+            cidadeEvento.includes(cidadeFiltro) ||
+            localEvento.includes(cidadeFiltro) ||
+            textoCompletoLocal.includes(cidadeFiltro);
         }
       }
 
       let dataMatch = true;
-      if (filtroData === 'hoje') dataMatch = dataEv.getTime() === hoje.getTime();
-      if (filtroData === 'amanha') dataMatch = dataEv.getTime() === amanha.getTime();
+
+      if (filtroData === 'hoje') {
+        dataMatch = dataEv.getTime() === hoje.getTime();
+      }
+
+      if (filtroData === 'amanha') {
+        dataMatch = dataEv.getTime() === amanha.getTime();
+      }
+
       if (filtroData === 'fds') {
         const diaSemana = dataEv.getDay();
         dataMatch = diaSemana === 0 || diaSemana === 6;
@@ -161,8 +224,8 @@ export default function BuyTicketHome() {
       <section className="relative h-[60vh] flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">
           {SLIDES.map((s, i) => (
-            <div 
-              key={s.id} 
+            <div
+              key={s.id}
               className={`absolute inset-0 transition-all duration-[2000ms] ${i === currentSlide ? 'opacity-100 scale-100' : 'opacity-0 scale-105'}`}
             >
               <Image src={s.url} alt="Destaque" fill priority={i === 0} className="object-cover" />
@@ -174,9 +237,9 @@ export default function BuyTicketHome() {
 
         <div className="relative z-10 w-full max-w-5xl px-6 text-center">
           <h1 className="text-5xl md:text-7xl font-black tracking-tighter text-slate-900 leading-none mb-10 uppercase">
-            {String(t?.[slide.titleKey] || "DESCUBRA")} <br />
+            {String(t?.[slide.titleKey] || 'DESCUBRA')} <br />
             <span className="text-[#ff4d4d] italic font-serif font-light">
-              {String(t?.[slide.highlightKey] || "EXPERIÊNCIAS")}
+              {String(t?.[slide.highlightKey] || 'EXPERIÊNCIAS')}
             </span>
           </h1>
 
@@ -190,6 +253,7 @@ export default function BuyTicketHome() {
                 className="w-full bg-transparent outline-none text-slate-700 font-medium text-base"
               />
             </div>
+
             <button className="bg-slate-900 text-white px-8 py-3 rounded-xl font-bold text-sm uppercase tracking-wider hover:bg-slate-800 transition-all">
               Buscar
             </button>
@@ -198,27 +262,24 @@ export default function BuyTicketHome() {
       </section>
 
       <main className="mx-auto max-w-7xl px-6 py-16 space-y-32">
-        
-        {/* NAVEGAR POR CATEGORIA */}
         <section>
           <div className="flex flex-col mb-8">
             <h2 className="text-2xl font-black text-slate-950 tracking-tight uppercase">Navegar por Categoria</h2>
             <div className="h-1 w-10 bg-violet-600 rounded-full mt-2" />
           </div>
-          <CategoryGrid 
-            categories={CATEGORIAS_FIXAS} 
-            activeCategory={categoriaAtiva} 
-            onSelect={setCategoriaAtiva} 
+
+          <CategoryGrid
+            categories={CATEGORIAS_FIXAS}
+            activeCategory={categoriaAtiva}
+            onSelect={setCategoriaAtiva}
           />
         </section>
 
-        {/* EXPLORAR POR LOCAL (Novo Componente) */}
-        <ExploreLocal 
-          activeCity={cidadeAtiva} 
-          onSelect={setCidadeAtiva} 
+        <ExploreLocal
+          activeCity={cidadeAtiva}
+          onSelect={setCidadeAtiva}
         />
 
-        {/* VITRINE DE EVENTOS */}
         <section id="vitrine-principal" className="scroll-mt-32">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
             <div>
@@ -237,9 +298,9 @@ export default function BuyTicketHome() {
                   key={item.id}
                   onClick={() => setFiltroData(item.id)}
                   className={`flex items-center gap-2 px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                    filtroData === item.id 
-                    ? 'bg-slate-950 text-white shadow-lg shadow-slate-200' 
-                    : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
+                    filtroData === item.id
+                      ? 'bg-slate-950 text-white shadow-lg shadow-slate-200'
+                      : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
                   }`}
                 >
                   <item.icon size={14} /> {item.label}
@@ -250,19 +311,22 @@ export default function BuyTicketHome() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-12">
             {vitrineFiltrada.length > 0 ? (
-              vitrineFiltrada.map((ev) => <EventCard key={`vitrine-${ev.id}`} evento={ev} />)
+              vitrineFiltrada.map((ev) => (
+                <EventCard key={`vitrine-${ev.id}`} evento={ev} />
+              ))
             ) : (
               <div className="col-span-full py-24 text-center bg-white rounded-[2.5rem] border border-slate-100 shadow-sm">
                 <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300">
                   <Ticket size={32} />
                 </div>
-                <p className="text-slate-400 font-bold uppercase tracking-widest text-sm">Nenhum evento encontrado.</p>
+                <p className="text-slate-400 font-bold uppercase tracking-widest text-sm">
+                  Nenhum evento encontrado.
+                </p>
               </div>
             )}
           </div>
         </section>
 
-        {/* COMUNIDADES */}
         {!loading && comunidades.length > 0 && (
           <section className="space-y-10">
             <div className="flex items-end justify-between border-b border-slate-100 pb-6">
@@ -271,26 +335,38 @@ export default function BuyTicketHome() {
                 Explorar <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
               </Link>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {comunidades.map((com) => {
                 const rawFoto = com.foto_url || com.imagem || com.capa;
-                const fotoFinal = (rawFoto && typeof rawFoto === 'string') 
-                  ? (rawFoto.startsWith('http') ? rawFoto : `${API_URL_BASE}/uploads/${rawFoto.replace(/^\/+/, '')}`) 
+                const fotoFinal = (rawFoto && typeof rawFoto === 'string')
+                  ? (rawFoto.startsWith('http') ? rawFoto : `${API_URL_BASE}/uploads/${rawFoto.replace(/^\/+/, '')}`)
                   : 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?q=80&w=2070';
-                
+
                 return (
-                  <Link key={com.id} href={`/comunidades/${com.id}`} className="group bg-white rounded-[2rem] border border-slate-100 hover:border-violet-200 hover:shadow-2xl hover:shadow-violet-100/50 transition-all duration-500 flex flex-col overflow-hidden h-full">
+                  <Link
+                    key={com.id}
+                    href={`/comunidades/${com.id}`}
+                    className="group bg-white rounded-[2rem] border border-slate-100 hover:border-violet-200 hover:shadow-2xl hover:shadow-violet-100/50 transition-all duration-500 flex flex-col overflow-hidden h-full"
+                  >
                     <div className="relative h-48 w-full overflow-hidden bg-slate-50">
-                      <Image src={fotoFinal} alt={com.nome || "Comunidade"} fill unoptimized className="object-cover group-hover:scale-105 transition-transform duration-700" />
+                      <Image src={fotoFinal} alt={com.nome || 'Comunidade'} fill unoptimized className="object-cover group-hover:scale-105 transition-transform duration-700" />
                     </div>
+
                     <div className="p-8 flex-grow">
                       <div className="bg-slate-50 w-fit px-4 py-1.5 rounded-full text-[9px] font-black text-slate-500 mb-4 flex items-center gap-2 uppercase tracking-widest border border-slate-100">
                         <Users size={12} /> {com.membros_count || 0} Membros
                       </div>
-                      <h3 className="text-xl font-black text-slate-950 mb-3 group-hover:text-violet-600 transition-colors uppercase tracking-tight leading-tight">{com.nome || "Sem Nome"}</h3>
-                      <p className="text-slate-400 text-sm line-clamp-2 leading-relaxed font-medium">{com.descricao || "Participe das discussões exclusivas."}</p>
+
+                      <h3 className="text-xl font-black text-slate-950 mb-3 group-hover:text-violet-600 transition-colors uppercase tracking-tight leading-tight">
+                        {com.nome || 'Sem Nome'}
+                      </h3>
+
+                      <p className="text-slate-400 text-sm line-clamp-2 leading-relaxed font-medium">
+                        {com.descricao || 'Participe das discussões exclusivas.'}
+                      </p>
                     </div>
+
                     <div className="px-8 pb-8">
                       <div className="w-full py-4 bg-slate-950 rounded-2xl flex items-center justify-center gap-2 text-white font-black text-[10px] uppercase tracking-[0.2em] group-hover:bg-violet-600 transition-all duration-300 shadow-lg shadow-slate-200">
                         <MessageCircle size={16} strokeWidth={3} /> Entrar no Chat
@@ -302,7 +378,8 @@ export default function BuyTicketHome() {
             </div>
           </section>
         )}
-      </main> 
+      </main>
+
       <Footer />
     </div>
   );
