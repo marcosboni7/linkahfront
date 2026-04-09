@@ -9,16 +9,14 @@ import {
   ArrowLeft,
   MapPin,
   CreditCard,
-  ExternalLink,
   CheckCircle2,
-  AlertCircle,
-  Mail,
   ShieldCheck,
   Zap,
   Instagram,
   Linkedin,
   AlignLeft,
   Camera,
+  Globe,
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import Link from 'next/link';
@@ -82,7 +80,6 @@ function PerfilContent() {
         localStorage.getItem('userEmail') ||
         '';
       const token = localStorage.getItem('@Linkah:Token')?.replace(/['"]+/g, '') || '';
-
       return { emailLogado, token };
     } catch (error) {
       return { emailLogado: '', token: '' };
@@ -92,10 +89,9 @@ function PerfilContent() {
   const aplicarMascara = (name: string, value: string) => {
     let v = value.replace(/\D/g, '');
     if (name === 'cpf_cnpj') {
-      if (v.length <= 11) {
-        return v.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/g, '$1.$2.$3-$4');
-      }
-      return v.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/g, '$1.$2.$3/$4-$5');
+      return v.length <= 11 
+        ? v.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/g, '$1.$2.$3-$4')
+        : v.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/g, '$1.$2.$3/$4-$5');
     }
     if (name === 'cep') return v.replace(/(\d{5})(\d{3})/g, '$1-$2');
     return value;
@@ -128,10 +124,7 @@ function PerfilContent() {
   useEffect(() => {
     const carregarDados = async () => {
       const { emailLogado, token } = getUsuarioLogado();
-      if (!emailLogado) {
-        router.push('/site/login');
-        return;
-      }
+      if (!emailLogado) return router.push('/site/login');
 
       try {
         const headers: Record<string, string> = { Accept: 'application/json' };
@@ -144,7 +137,6 @@ function PerfilContent() {
 
         if (response.ok) {
           const data = await response.json();
-          
           const fotoPath = data.avatar || data.foto_perfil || '';
           if (fotoPath) {
             const fullUrl = fotoPath.startsWith('http') ? fotoPath : `${API_URL}/${fotoPath.replace(/^\//, '')}`;
@@ -165,21 +157,12 @@ function PerfilContent() {
           };
 
           setFormData(dadosPerfil);
-
           const completo = perfilJaCompleto(dadosPerfil);
           const userStorage = localStorage.getItem('@Linkah:User');
           if (userStorage) {
             const userAtual = JSON.parse(userStorage);
-            localStorage.setItem(
-              '@Linkah:User',
-              JSON.stringify({
-                ...userAtual,
-                ...dadosPerfil,
-                perfil_completo: completo,
-              })
-            );
+            localStorage.setItem('@Linkah:User', JSON.stringify({ ...userAtual, ...dadosPerfil, perfil_completo: completo }));
           }
-
           localStorage.setItem('perfil_completo', completo ? 'true' : 'false');
           if (data.stripe_account_id) await checarStatusStripe(emailLogado);
         }
@@ -220,12 +203,8 @@ function PerfilContent() {
       const userStorage = localStorage.getItem('@Linkah:User');
       if (userStorage) {
         const userParsed = JSON.parse(userStorage);
-        localStorage.setItem(
-          '@Linkah:User',
-          JSON.stringify({ ...userParsed, avatar: data.avatar })
-        );
+        localStorage.setItem('@Linkah:User', JSON.stringify({ ...userParsed, avatar: data.avatar }));
       }
-
       Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Foto atualizada!', showConfirmButton: false, timer: 2000 });
     } catch (error: any) {
       Swal.fire('Erro', error.message, 'error');
@@ -256,24 +235,16 @@ function PerfilContent() {
       const userStorage = localStorage.getItem('@Linkah:User');
       if (userStorage) {
         const userAtual = JSON.parse(userStorage);
-        localStorage.setItem(
-          '@Linkah:User',
-          JSON.stringify({
-            ...userAtual,
-            ...formData,
-            perfil_completo: completo,
-          })
-        );
+        localStorage.setItem('@Linkah:User', JSON.stringify({ ...userAtual, ...formData, perfil_completo: completo }));
       }
-
       localStorage.setItem('perfil_completo', completo ? 'true' : 'false');
 
       await Swal.fire({
-        title: 'SUCESSO!',
-        text: 'Perfil sincronizado.',
+        title: 'Perfil Atualizado!',
+        text: 'Suas informações foram sincronizadas com sucesso.',
         icon: 'success',
-        confirmButtonColor: '#FF4D4D',
-        customClass: { popup: 'rounded-[3rem]' }
+        confirmButtonColor: '#000',
+        customClass: { popup: 'rounded-2xl' }
       });
 
       router.replace('/dashboard/eventos');
@@ -286,10 +257,7 @@ function PerfilContent() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ 
-      ...prev, 
-      [name]: (name === 'cpf_cnpj' || name === 'cep') ? aplicarMascara(name, value) : value 
-    }));
+    setFormData(prev => ({ ...prev, [name]: (name === 'cpf_cnpj' || name === 'cep') ? aplicarMascara(name, value) : value }));
   };
 
   const handleConectarStripe = async () => {
@@ -308,135 +276,192 @@ function PerfilContent() {
   };
 
   if (isLoading) return (
-    <div className="flex h-screen w-screen flex-col items-center justify-center bg-white gap-4">
-      <Loader2 className="animate-spin text-[#FF4D4D]" size={48} />
-      <span className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 italic">Sincronizando...</span>
+    <div className="h-screen w-screen flex flex-col items-center justify-center bg-white">
+      <Loader2 className="animate-spin text-slate-300 mb-2" size={32} />
+      <span className="text-[12px] font-medium text-slate-400">Carregando perfil...</span>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-[#FDFDFF] p-6 md:p-12 font-sans">
-      <div className="max-w-[850px] mx-auto">
-        <Link href="/dashboard/eventos" className="inline-flex items-center gap-3 text-slate-400 hover:text-[#FF4D4D] transition-all mb-10 font-black text-[10px] tracking-[0.2em] uppercase group">
-          <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" /> Voltar ao Painel
+    <div className="min-h-screen bg-[#F9FAFB] text-slate-900 font-sans antialiased">
+      {/* NAVBAR LUMA STYLE */}
+      <nav className="h-16 border-b bg-white/80 backdrop-blur-md flex items-center justify-between px-6 sticky top-0 z-50">
+        <Link href="/dashboard/eventos" className="flex items-center gap-2 text-slate-500 hover:text-black transition-colors text-sm font-medium">
+          <ArrowLeft size={16} /> Painel
         </Link>
+        <button 
+          onClick={handleSalvar} 
+          disabled={isSaving} 
+          className="bg-black text-white px-5 py-2 rounded-full text-sm font-semibold hover:bg-slate-800 transition-all disabled:opacity-50 flex items-center gap-2"
+        >
+          {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+          {isSaving ? 'Salvando...' : 'Salvar'}
+        </button>
+      </nav>
 
-        <div className="bg-white rounded-[4rem] shadow-2xl p-8 md:p-20 border border-slate-50 relative overflow-hidden">
-          {/* BACKGROUND DECORATION */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-slate-50 rounded-full -mr-32 -mt-32 z-0" />
-          
-          <div className="flex flex-col md:flex-row items-center gap-8 mb-20 relative z-10 text-center md:text-left">
-            <div 
-              onClick={() => fileInputRef.current?.click()} 
-              className="w-32 h-32 bg-slate-950 rounded-[3rem] flex items-center justify-center shadow-2xl relative group cursor-pointer overflow-hidden border-4 border-white"
-            >
-              {isUploadingAvatar ? (
-                <Loader2 className="animate-spin text-white" size={32} />
-              ) : avatarPreview ? (
-                <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-              ) : (
-                <UserCircle className="text-white" size={64} />
-              )}
-              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                <Camera className="text-white" size={28} />
-              </div>
-              <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleAvatarChange} />
+      <main className="max-w-[640px] mx-auto pt-12 pb-24 px-6">
+        <div className="flex flex-col items-center mb-12">
+          <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+            <div className="w-28 h-28 rounded-full overflow-hidden bg-slate-100 border-4 border-white shadow-xl transition-all group-hover:brightness-90">
+                {isUploadingAvatar ? (
+                    <div className="w-full h-full flex items-center justify-center"><Loader2 className="animate-spin text-slate-400" /></div>
+                ) : avatarPreview ? (
+                    <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                    <div className="w-full h-full flex items-center justify-center text-slate-300"><UserCircle size={60} /></div>
+                )}
             </div>
+            <div className="absolute bottom-1 right-1 bg-white p-2 rounded-full shadow-lg border border-slate-100">
+                <Camera size={16} className="text-slate-600" />
+            </div>
+            <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleAvatarChange} />
+          </div>
+          <h1 className="mt-6 text-3xl font-extrabold tracking-tight">Configurações</h1>
+          <p className="text-slate-500 text-sm mt-1">Gerencie sua identidade no Linkah</p>
+        </div>
 
-            <div>
-              <h2 className="text-5xl md:text-6xl font-black text-slate-900 leading-none tracking-tighter italic uppercase">Meu Perfil</h2>
-              <p className="text-slate-400 mt-3 font-bold uppercase text-[11px] tracking-[0.25em] italic flex items-center justify-center md:justify-start gap-2">
-                <ShieldCheck size={14} className="text-[#FF4D4D]" /> Conta Verificada
-              </p>
+        <form onSubmit={handleSalvar} className="space-y-8">
+          {/* SEÇÃO: PERFIL PÚBLICO */}
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-slate-50 bg-slate-50/50">
+                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                    <UserCircle size={14} /> Perfil Público
+                </h3>
+            </div>
+            <div className="p-8 space-y-6">
+                <div>
+                    <label className="block text-[13px] font-semibold text-slate-700 mb-2">Nome Completo</label>
+                    <input 
+                        name="nome"
+                        value={formData.nome}
+                        onChange={handleChange}
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-black focus:ring-0 transition-all outline-none text-sm bg-slate-50/30"
+                        placeholder="Como você quer ser chamado?"
+                    />
+                </div>
+                <div>
+                    <label className="block text-[13px] font-semibold text-slate-700 mb-2">Bio</label>
+                    <textarea 
+                        name="bio"
+                        value={formData.bio}
+                        onChange={handleChange}
+                        rows={3}
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-black focus:ring-0 transition-all outline-none text-sm resize-none bg-slate-50/30"
+                        placeholder="Uma breve descrição sobre você..."
+                    />
+                </div>
             </div>
           </div>
 
-          <form onSubmit={handleSalvar} className="space-y-12 relative z-10">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-              <div className="space-y-4">
-                <label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 italic ml-2">Nome Completo</label>
-                <div className="relative group">
-                  <UserCircle className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#FF4D4D] transition-colors" size={20} />
-                  <input name="nome" value={formData.nome} onChange={handleChange} placeholder="Seu nome" className="w-full bg-slate-50 border-none rounded-3xl py-6 pl-16 pr-8 text-slate-900 font-bold placeholder:text-slate-300 focus:ring-4 focus:ring-[#FF4D4D]/10 transition-all" />
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 italic ml-2">Documento (CPF/CNPJ)</label>
-                <div className="relative group">
-                  <CreditCard className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#FF4D4D] transition-colors" size={20} />
-                  <input name="cpf_cnpj" value={formData.cpf_cnpj} onChange={handleChange} placeholder="000.000.000-00" className="w-full bg-slate-50 border-none rounded-3xl py-6 pl-16 pr-8 text-slate-900 font-bold placeholder:text-slate-300 focus:ring-4 focus:ring-[#FF4D4D]/10 transition-all" />
-                </div>
-              </div>
+          {/* SEÇÃO: DOCUMENTAÇÃO E ENDEREÇO */}
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-slate-50 bg-slate-50/50">
+                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                    <ShieldCheck size={14} /> Dados de Verificação
+                </h3>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-              <div className="space-y-4">
-                <label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 italic ml-2">CEP</label>
-                <div className="relative group">
-                  <MapPin className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#FF4D4D] transition-colors" size={20} />
-                  <input name="cep" value={formData.cep} onChange={handleChange} placeholder="00000-000" className="w-full bg-slate-50 border-none rounded-3xl py-6 pl-16 pr-8 text-slate-900 font-bold placeholder:text-slate-300 focus:ring-4 focus:ring-[#FF4D4D]/10 transition-all" />
+            <div className="p-8 space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label className="block text-[13px] font-semibold text-slate-700 mb-2">CPF ou CNPJ</label>
+                        <input 
+                            name="cpf_cnpj"
+                            value={formData.cpf_cnpj}
+                            onChange={handleChange}
+                            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-black focus:ring-0 transition-all outline-none text-sm bg-slate-50/30"
+                            placeholder="000.000.000-00"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-[13px] font-semibold text-slate-700 mb-2">CEP</label>
+                        <input 
+                            name="cep"
+                            value={formData.cep}
+                            onChange={handleChange}
+                            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-black focus:ring-0 transition-all outline-none text-sm bg-slate-50/30"
+                            placeholder="00000-000"
+                        />
+                    </div>
                 </div>
-              </div>
-              <div className="md:col-span-2 space-y-4">
-                <label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 italic ml-2">Bio / Descrição Profissional</label>
-                <div className="relative group">
-                  <AlignLeft className="absolute left-6 top-8 text-slate-300 group-focus-within:text-[#FF4D4D] transition-colors" size={20} />
-                  <textarea name="bio" value={formData.bio} onChange={handleChange} placeholder="Fale um pouco sobre seu trabalho..." rows={3} className="w-full bg-slate-50 border-none rounded-3xl py-6 pl-16 pr-8 text-slate-900 font-bold placeholder:text-slate-300 focus:ring-4 focus:ring-[#FF4D4D]/10 transition-all resize-none" />
-                </div>
-              </div>
             </div>
+          </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-              <div className="space-y-4">
-                <label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 italic ml-2">LinkedIn</label>
-                <div className="relative group">
-                  <Linkedin className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#FF4D4D] transition-colors" size={20} />
-                  <input name="linkedin" value={formData.linkedin} onChange={handleChange} placeholder="linkedin.com/in/usuario" className="w-full bg-slate-50 border-none rounded-3xl py-6 pl-16 pr-8 text-slate-900 font-bold placeholder:text-slate-300 focus:ring-4 focus:ring-[#FF4D4D]/10 transition-all" />
-                </div>
-              </div>
-              <div className="space-y-4">
-                <label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 italic ml-2">Instagram</label>
-                <div className="relative group">
-                  <Instagram className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#FF4D4D] transition-colors" size={20} />
-                  <input name="instagram" value={formData.instagram} onChange={handleChange} placeholder="@seuusuario" className="w-full bg-slate-50 border-none rounded-3xl py-6 pl-16 pr-8 text-slate-900 font-bold placeholder:text-slate-300 focus:ring-4 focus:ring-[#FF4D4D]/10 transition-all" />
-                </div>
-              </div>
+          {/* SEÇÃO: REDES SOCIAIS */}
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-slate-50 bg-slate-50/50">
+                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                    <Globe size={14} /> Presença Digital
+                </h3>
             </div>
+            <div className="p-8 space-y-4">
+                <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-pink-50 text-pink-500 flex items-center justify-center shrink-0">
+                        <Instagram size={20} />
+                    </div>
+                    <input 
+                        name="instagram"
+                        value={formData.instagram}
+                        onChange={handleChange}
+                        className="flex-1 px-4 py-3 rounded-xl border border-slate-200 focus:border-black focus:ring-0 transition-all outline-none text-sm"
+                        placeholder="@usuario"
+                    />
+                </div>
+                <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                        <Linkedin size={20} />
+                    </div>
+                    <input 
+                        name="linkedin"
+                        value={formData.linkedin}
+                        onChange={handleChange}
+                        className="flex-1 px-4 py-3 rounded-xl border border-slate-200 focus:border-black focus:ring-0 transition-all outline-none text-sm"
+                        placeholder="linkedin.com/in/usuario"
+                    />
+                </div>
+            </div>
+          </div>
 
-            <div className="pt-10 flex flex-col md:flex-row gap-6">
-              <button 
-                type="submit" 
-                disabled={isSaving} 
-                className="flex-1 bg-[#FF4D4D] text-white rounded-[2.5rem] py-8 font-black uppercase tracking-[0.4em] italic text-xs shadow-2xl shadow-[#FF4D4D]/40 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-4 disabled:opacity-50"
-              >
+          {/* SEÇÃO: FINANCEIRO */}
+          <div className={`rounded-3xl border p-8 transition-all ${stripeAtivo ? 'bg-emerald-50/50 border-emerald-100' : 'bg-white border-slate-200'}`}>
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                <div className="flex items-center gap-5">
+                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm ${stripeAtivo ? 'bg-emerald-500 text-white' : 'bg-slate-900 text-white'}`}>
+                        {stripeAtivo ? <CheckCircle2 size={28} /> : <Zap size={28} />}
+                    </div>
+                    <div>
+                        <h4 className="font-bold text-slate-900">Pagamentos via Stripe</h4>
+                        <p className="text-sm text-slate-500 mt-0.5">
+                            {stripeAtivo ? `Conectado como ${stripeDetails?.business_name}` : 'Receba pagamentos de seus eventos diretamente.'}
+                        </p>
+                    </div>
+                </div>
+                
+                {!stripeAtivo ? (
+                    <button 
+                        type="button" 
+                        onClick={handleConectarStripe}
+                        className="w-full md:w-auto bg-black text-white px-6 py-3 rounded-xl text-sm font-bold hover:scale-[1.02] active:scale-[0.98] transition-all"
+                    >
+                        Conectar Conta
+                    </button>
+                ) : (
+                    <span className="bg-emerald-100 text-emerald-700 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">Ativo</span>
+                )}
+            </div>
+          </div>
+
+          <div className="pt-6">
+            <button 
+                type="submit"
+                disabled={isSaving}
+                className="w-full bg-black text-white py-4 rounded-2xl font-bold hover:bg-slate-800 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+            >
                 {isSaving ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
-                {isSaving ? 'Sincronizando...' : 'Salvar Alterações'}
-              </button>
-              
-              {!stripeAtivo ? (
-                <button 
-                  type="button" 
-                  onClick={handleConectarStripe} 
-                  className="flex-1 bg-slate-950 text-white rounded-[2.5rem] py-8 font-black uppercase tracking-[0.4em] italic text-xs shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-4"
-                >
-                  <Zap size={20} className="text-yellow-400" /> Conectar Pagamentos
-                </button>
-              ) : (
-                <div className="flex-1 bg-emerald-50 border-2 border-emerald-100 rounded-[2.5rem] p-6 flex items-center gap-6">
-                  <div className="w-14 h-14 bg-emerald-500 rounded-[1.5rem] flex items-center justify-center shadow-lg shadow-emerald-200 shrink-0">
-                    <CheckCircle2 className="text-white" size={28} />
-                  </div>
-                  <div className="overflow-hidden">
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600 italic">Checkout Ativo</p>
-                    <p className="text-slate-900 font-bold text-sm truncate">{stripeDetails?.business_name}</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </form>
-        </div>
-      </div>
+                Salvar Todas as Alterações
+            </button>
+          </div>
+        </form>
+      </main>
     </div>
   );
 }
@@ -444,10 +469,9 @@ function PerfilContent() {
 export default function PerfilPage() {
   return (
     <Suspense fallback={
-      <div className="h-screen w-screen flex flex-col items-center justify-center gap-4">
-        <Loader2 className="animate-spin text-[#FF4D4D]" size={48} />
-        <p className="font-black uppercase tracking-widest text-[10px] text-slate-400 italic">Aguarde...</p>
-      </div>
+        <div className="h-screen w-screen flex flex-col items-center justify-center bg-[#F9FAFB]">
+            <Loader2 className="animate-spin text-slate-300" size={32} />
+        </div>
     }>
       <PerfilContent />
     </Suspense>
