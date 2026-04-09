@@ -1,8 +1,10 @@
+//eventcard
+
 'use client';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { MapPin, Calendar, ArrowUpRight } from 'lucide-react'; // Mantidos os seus ícones originais
+import { MapPin, Calendar, ArrowUpRight } from 'lucide-react';
 import { useLanguage } from '@/app/context/LanguageContext';
 
 const API_URL_BASE =
@@ -98,13 +100,33 @@ export function EventCard({ evento }: { evento: any }) {
       const diasSemanaEn = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 
       const mesesPt = [
-        'JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN',
-        'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'
+        'JAN',
+        'FEV',
+        'MAR',
+        'ABR',
+        'MAI',
+        'JUN',
+        'JUL',
+        'AGO',
+        'SET',
+        'OUT',
+        'NOV',
+        'DEZ'
       ];
 
       const mesesEn = [
-        'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
-        'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'
+        'JAN',
+        'FEB',
+        'MAR',
+        'APR',
+        'MAY',
+        'JUN',
+        'JUL',
+        'AUG',
+        'SEP',
+        'OCT',
+        'NOV',
+        'DEC'
       ];
 
       const diaSemana =
@@ -167,19 +189,19 @@ export function EventCard({ evento }: { evento: any }) {
 
   if (!isMounted) {
     return (
-      <div className="w-full aspect-[4/5] bg-slate-50 rounded-[2.5rem] animate-pulse border border-gray-100" />
+      <div className="w-full aspect-[16/10] bg-slate-50 rounded-2xl animate-pulse border border-gray-100" />
     );
   }
 
   return (
     <Link
       href={`/evento/${evento?.id || ''}`}
-      className="group block w-full bg-white rounded-[2.5rem] overflow-hidden hover:shadow-2xl hover:shadow-violet-200/50 transition-all duration-500 border border-slate-100 flex flex-col h-full"
+      className="group block w-full bg-white rounded-2xl overflow-hidden hover:shadow-[0_30px_60px_-15px_rgba(255,77,77,0.15)] transition-all duration-500 border border-gray-100 flex flex-col h-full"
     >
-      <div className="relative aspect-[4/5] overflow-hidden bg-gray-100">
+      <div className="relative aspect-[16/10] overflow-hidden bg-gray-100">
         <img
           src={renderImagem()}
-          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
           alt={String(evento?.nome || 'Evento')}
           onError={(e) => {
             e.currentTarget.src =
@@ -187,41 +209,41 @@ export function EventCard({ evento }: { evento: any }) {
           }}
         />
 
-        <div className="absolute top-5 left-5">
-          <span className="bg-white/80 backdrop-blur-md text-slate-900 text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-2xl shadow-sm border border-white/20">
+        <div className="absolute top-4 left-4">
+          <span className="bg-white/95 backdrop-blur-sm text-slate-900 text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-lg shadow-sm">
             {traduzirCategoria(String(evento?.categoria || 'Evento'))}
           </span>
         </div>
       </div>
 
-      <div className="p-8 flex flex-col flex-grow">
-        <div className="flex items-center gap-2 text-violet-600 text-[11px] font-black uppercase tracking-[0.2em] mb-4">
-          <Calendar size={14} strokeWidth={3} />
+      <div className="p-6 flex flex-col flex-grow">
+        <div className="flex items-center gap-2 text-[#ff4d4d] text-[11px] font-bold uppercase tracking-wider mb-4">
+          <Calendar size={14} strokeWidth={2.5} />
           <span>
             {diaSemana ? `${diaSemana}, ${dia} ${mes}` : 'Data a definir'}
             {hora && ` • ${hora}`}
           </span>
         </div>
 
-        <h3 className="text-slate-950 font-black text-xl leading-[1.2] mb-4 group-hover:text-violet-600 transition-colors line-clamp-2 min-h-[48px]">
+        <h3 className="text-slate-900 font-bold text-lg leading-tight mb-3 group-hover:text-[#ff4d4d] transition-colors line-clamp-2 min-h-[56px]">
           {String(evento?.nome || 'Evento sem nome')}
         </h3>
 
-        <div className="flex items-center gap-1.5 text-slate-400 mb-8">
-          <MapPin size={14} strokeWidth={2.5} className="flex-shrink-0 text-slate-300" />
-          <span className="text-xs font-bold uppercase tracking-tight truncate">
+        <div className="flex items-center gap-1.5 text-gray-400 mb-6">
+          <MapPin size={14} className="flex-shrink-0 text-gray-300" />
+          <span className="text-xs font-medium truncate">
             {String(evento?.local_nome || 'Local')}, {String(evento?.cidade || '')}
           </span>
         </div>
 
-        <div className="mt-auto pt-6 border-t border-slate-50 flex items-center justify-between">
+        <div className="mt-auto pt-5 border-t border-gray-50 flex items-center justify-between">
           <div>
-            <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.1em] mb-1">
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
               {String(t?.from || 'A partir de')}
             </p>
 
-            <p className="text-2xl font-black text-slate-950 tracking-tighter">
-              <span className="text-sm font-black mr-0.5">{getCurrencySymbol()}</span>
+            <p className="text-xl font-black text-slate-900 tracking-tight">
+              <span className="text-sm font-bold mr-0.5">{getCurrencySymbol()}</span>
               {evento?.preco_minimo
                 ? Number(evento.preco_minimo).toLocaleString(locale, {
                     minimumFractionDigits: 2
@@ -230,8 +252,8 @@ export function EventCard({ evento }: { evento: any }) {
             </p>
           </div>
 
-          <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-violet-600 group-hover:text-white group-hover:rotate-45 transition-all duration-500 shadow-sm">
-            <ArrowUpRight size={24} strokeWidth={3} />
+          <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-[#ff4d4d] group-hover:text-white group-hover:rotate-45 transition-all duration-500">
+            <ArrowUpRight size={20} />
           </div>
         </div>
       </div>
