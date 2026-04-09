@@ -29,6 +29,7 @@
     "stripe": "^20.3.0",
     "sweetalert2": "^11.26.17",
     "sweetalert2-react-content": "^5.1.1",
+    "use-places-autocomplete": "^4.0.1",
     "vercel": "^50.5.0",
     "zod": "^4.3.6"
   },

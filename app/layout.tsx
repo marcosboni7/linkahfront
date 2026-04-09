@@ -4,6 +4,7 @@ import "./globals.css";
 import Script from "next/script";
 import { LanguageProvider } from "./context/LanguageContext";
 
+// Definição global para não dar erro de TypeScript ao usar window.google
 declare global {
   interface Window {
     google: any;
@@ -19,6 +20,9 @@ const poppins = Poppins({
 export const metadata: Metadata = {
   title: "Linkah - Produtor de Eventos",
   description: "Gerencie seus eventos e conecte-se com seu público.",
+  icons: {
+    icon: "/favicon.ico", // Certifique-se de ter esse arquivo na pasta public
+  }
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -29,9 +33,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
         </LanguageProvider>
 
-        {/* CARREGAMENTO ÚNICO E GLOBAL */}
+        {/* DICA: Use strategy="afterInteractive" para carregar logo após a página ficar interativa.
+          Removi o &loading=async da URL para deixar o Next.js controlar o carregamento.
+        */}
         <Script
-          src={`https://maps.googleapis.com/maps/api/js?key=AIzaSyDlGFav-T-Dig9xkdqpqfr98pJP8zmWbE8&libraries=places&loading=async`}
+          src={`https://maps.googleapis.com/maps/api/js?key=AIzaSyDlGFav-T-Dig9xkdqpqfr98pJP8zmWbE8&libraries=places`}
           strategy="afterInteractive" 
         />
       </body>
