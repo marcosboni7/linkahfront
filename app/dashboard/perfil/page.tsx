@@ -1,5 +1,3 @@
-//perfil/page
-
 'use client';
 
 import { useEffect, useState, useCallback, Suspense, useRef } from 'react';
@@ -58,11 +56,8 @@ function PerfilContent() {
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [stripeAccountId, setStripeAccountId] = useState<string | null>(null);
   const [stripeAtivo, setStripeAtivo] = useState(false);
   const [stripeDetails, setStripeDetails] = useState<StripeDetails | null>(null);
-  
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<FormDataState>({
@@ -88,18 +83,19 @@ function PerfilContent() {
         '';
       const token = localStorage.getItem('@Linkah:Token')?.replace(/['"]+/g, '') || '';
 
-      return { userStorage, parsedUser, emailLogado, token };
+      return { emailLogado, token };
     } catch (error) {
-      return { userStorage: null, parsedUser: null, emailLogado: '', token: '' };
+      return { emailLogado: '', token: '' };
     }
   }, []);
 
   const aplicarMascara = (name: string, value: string) => {
     let v = value.replace(/\D/g, '');
     if (name === 'cpf_cnpj') {
-      return v.length <= 11 
-        ? v.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/g, '$1.$2.$3-$4')
-        : v.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/g, '$1.$2.$3/$4-$5');
+      if (v.length <= 11) {
+        return v.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/g, '$1.$2.$3-$4');
+      }
+      return v.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/g, '$1.$2.$3/$4-$5');
     }
     if (name === 'cep') return v.replace(/(\d{5})(\d{3})/g, '$1-$2');
     return value;
@@ -149,7 +145,6 @@ function PerfilContent() {
         if (response.ok) {
           const data = await response.json();
           
-          // Tratativa da Foto (Avatar)
           const fotoPath = data.avatar || data.foto_perfil || '';
           if (fotoPath) {
             const fullUrl = fotoPath.startsWith('http') ? fotoPath : `${API_URL}/${fotoPath.replace(/^\//, '')}`;
@@ -172,8 +167,6 @@ function PerfilContent() {
           setFormData(dadosPerfil);
 
           const completo = perfilJaCompleto(dadosPerfil);
-
-          // Atualiza LocalStorage para sincronizar com o Chat
           const userStorage = localStorage.getItem('@Linkah:User');
           if (userStorage) {
             const userAtual = JSON.parse(userStorage);
@@ -188,15 +181,10 @@ function PerfilContent() {
           }
 
           localStorage.setItem('perfil_completo', completo ? 'true' : 'false');
-
-          setStripeAccountId(data.stripe_account_id || null);
           if (data.stripe_account_id) await checarStatusStripe(emailLogado);
-        } else {
-          localStorage.setItem('perfil_completo', 'false');
         }
       } catch (error) {
         console.error('❌ Erro carregar perfil:', error);
-        localStorage.setItem('perfil_completo', 'false');
       } finally {
         setIsLoading(false);
       }
@@ -229,7 +217,6 @@ function PerfilContent() {
       if (!res.ok) throw new Error('Erro no upload');
       const data = await res.json();
       
-      // Atualiza avatar no LocalStorage para o Chat pegar na hora
       const userStorage = localStorage.getItem('@Linkah:User');
       if (userStorage) {
         const userParsed = JSON.parse(userStorage);
@@ -265,10 +252,7 @@ function PerfilContent() {
 
       if (!response.ok) throw new Error('Erro ao salvar');
       
-      const dadosAtualizados = { ...formData };
-      const completo = perfilJaCompleto(dadosAtualizados);
-
-      // Sincroniza o localStorage ao salvar o perfil completo
+      const completo = perfilJaCompleto(formData);
       const userStorage = localStorage.getItem('@Linkah:User');
       if (userStorage) {
         const userAtual = JSON.parse(userStorage);
@@ -276,7 +260,7 @@ function PerfilContent() {
           '@Linkah:User',
           JSON.stringify({
             ...userAtual,
-            ...dadosAtualizados,
+            ...formData,
             perfil_completo: completo,
           })
         );
@@ -289,7 +273,7 @@ function PerfilContent() {
         text: 'Perfil sincronizado.',
         icon: 'success',
         confirmButtonColor: '#FF4D4D',
-        customClass: { popup: 'rounded-[2rem]' }
+        customClass: { popup: 'rounded-[3rem]' }
       });
 
       router.replace('/dashboard/eventos');
@@ -302,7 +286,10 @@ function PerfilContent() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: (name === 'cpf_cnpj' || name === 'cep') ? aplicarMascara(name, value) : value }));
+    setFormData(prev => ({ 
+      ...prev, 
+      [name]: (name === 'cpf_cnpj' || name === 'cep') ? aplicarMascara(name, value) : value 
+    }));
   };
 
   const handleConectarStripe = async () => {
@@ -335,20 +322,30 @@ function PerfilContent() {
         </Link>
 
         <div className="bg-white rounded-[4rem] shadow-2xl p-8 md:p-20 border border-slate-50 relative overflow-hidden">
-          <div className="flex items-center gap-8 mb-20 relative z-10">
-            {/* AVATAR COM UPLOAD */}
-            <div onClick={() => fileInputRef.current?.click()} className="w-24 h-24 bg-slate-950 rounded-[2.5rem] flex items-center justify-center shadow-2xl relative group cursor-pointer overflow-hidden">
-              {isUploadingAvatar ? <Loader2 className="animate-spin text-white" size={32} /> : 
-                avatarPreview ? <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" /> : 
-                <UserCircle className="text-white" size={48} />
-              }
-              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"><Camera className="text-white" size={24} /></div>
+          {/* BACKGROUND DECORATION */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-slate-50 rounded-full -mr-32 -mt-32 z-0" />
+          
+          <div className="flex flex-col md:flex-row items-center gap-8 mb-20 relative z-10 text-center md:text-left">
+            <div 
+              onClick={() => fileInputRef.current?.click()} 
+              className="w-32 h-32 bg-slate-950 rounded-[3rem] flex items-center justify-center shadow-2xl relative group cursor-pointer overflow-hidden border-4 border-white"
+            >
+              {isUploadingAvatar ? (
+                <Loader2 className="animate-spin text-white" size={32} />
+              ) : avatarPreview ? (
+                <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+              ) : (
+                <UserCircle className="text-white" size={64} />
+              )}
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <Camera className="text-white" size={28} />
+              </div>
               <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleAvatarChange} />
             </div>
 
             <div>
-              <h2 className="text-5xl font-black text-slate-900 leading-none tracking-tighter italic uppercase">Meu Perfil</h2>
-              <p className="text-slate-400 mt-3 font-bold uppercase text-[11px] tracking-[0.25em] italic flex items-center gap-2">
+              <h2 className="text-5xl md:text-6xl font-black text-slate-900 leading-none tracking-tighter italic uppercase">Meu Perfil</h2>
+              <p className="text-slate-400 mt-3 font-bold uppercase text-[11px] tracking-[0.25em] italic flex items-center justify-center md:justify-start gap-2">
                 <ShieldCheck size={14} className="text-[#FF4D4D]" /> Conta Verificada
               </p>
             </div>
@@ -365,7 +362,7 @@ function PerfilContent() {
               </div>
 
               <div className="space-y-4">
-                <label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 italic ml-2">CPF ou CNPJ</label>
+                <label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 italic ml-2">Documento (CPF/CNPJ)</label>
                 <div className="relative group">
                   <CreditCard className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#FF4D4D] transition-colors" size={20} />
                   <input name="cpf_cnpj" value={formData.cpf_cnpj} onChange={handleChange} placeholder="000.000.000-00" className="w-full bg-slate-50 border-none rounded-3xl py-6 pl-16 pr-8 text-slate-900 font-bold placeholder:text-slate-300 focus:ring-4 focus:ring-[#FF4D4D]/10 transition-all" />
@@ -382,10 +379,10 @@ function PerfilContent() {
                 </div>
               </div>
               <div className="md:col-span-2 space-y-4">
-                <label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 italic ml-2">Bio / Descrição</label>
+                <label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 italic ml-2">Bio / Descrição Profissional</label>
                 <div className="relative group">
                   <AlignLeft className="absolute left-6 top-8 text-slate-300 group-focus-within:text-[#FF4D4D] transition-colors" size={20} />
-                  <textarea name="bio" value={formData.bio} onChange={handleChange} placeholder="Conte um pouco sobre você..." rows={3} className="w-full bg-slate-50 border-none rounded-3xl py-6 pl-16 pr-8 text-slate-900 font-bold placeholder:text-slate-300 focus:ring-4 focus:ring-[#FF4D4D]/10 transition-all resize-none" />
+                  <textarea name="bio" value={formData.bio} onChange={handleChange} placeholder="Fale um pouco sobre seu trabalho..." rows={3} className="w-full bg-slate-50 border-none rounded-3xl py-6 pl-16 pr-8 text-slate-900 font-bold placeholder:text-slate-300 focus:ring-4 focus:ring-[#FF4D4D]/10 transition-all resize-none" />
                 </div>
               </div>
             </div>
@@ -395,7 +392,7 @@ function PerfilContent() {
                 <label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 italic ml-2">LinkedIn</label>
                 <div className="relative group">
                   <Linkedin className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#FF4D4D] transition-colors" size={20} />
-                  <input name="linkedin" value={formData.linkedin} onChange={handleChange} placeholder="url do seu perfil" className="w-full bg-slate-50 border-none rounded-3xl py-6 pl-16 pr-8 text-slate-900 font-bold placeholder:text-slate-300 focus:ring-4 focus:ring-[#FF4D4D]/10 transition-all" />
+                  <input name="linkedin" value={formData.linkedin} onChange={handleChange} placeholder="linkedin.com/in/usuario" className="w-full bg-slate-50 border-none rounded-3xl py-6 pl-16 pr-8 text-slate-900 font-bold placeholder:text-slate-300 focus:ring-4 focus:ring-[#FF4D4D]/10 transition-all" />
                 </div>
               </div>
               <div className="space-y-4">
@@ -408,23 +405,31 @@ function PerfilContent() {
             </div>
 
             <div className="pt-10 flex flex-col md:flex-row gap-6">
-              <button type="submit" disabled={isSaving} className="flex-1 bg-[#FF4D4D] text-white rounded-[2rem] py-8 font-black uppercase tracking-[0.4em] italic text-xs shadow-2xl shadow-[#FF4D4D]/40 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-4 disabled:opacity-50">
+              <button 
+                type="submit" 
+                disabled={isSaving} 
+                className="flex-1 bg-[#FF4D4D] text-white rounded-[2.5rem] py-8 font-black uppercase tracking-[0.4em] italic text-xs shadow-2xl shadow-[#FF4D4D]/40 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-4 disabled:opacity-50"
+              >
                 {isSaving ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
-                {isSaving ? 'Salvando...' : 'Salvar Alterações'}
+                {isSaving ? 'Sincronizando...' : 'Salvar Alterações'}
               </button>
               
               {!stripeAtivo ? (
-                <button type="button" onClick={handleConectarStripe} className="flex-1 bg-slate-950 text-white rounded-[2rem] py-8 font-black uppercase tracking-[0.4em] italic text-xs shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-4">
+                <button 
+                  type="button" 
+                  onClick={handleConectarStripe} 
+                  className="flex-1 bg-slate-950 text-white rounded-[2.5rem] py-8 font-black uppercase tracking-[0.4em] italic text-xs shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-4"
+                >
                   <Zap size={20} className="text-yellow-400" /> Conectar Pagamentos
                 </button>
               ) : (
-                <div className="flex-1 bg-emerald-50 border-2 border-emerald-100 rounded-[2rem] p-6 flex items-center gap-6">
-                  <div className="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-200">
-                    <CheckCircle2 className="text-white" size={24} />
+                <div className="flex-1 bg-emerald-50 border-2 border-emerald-100 rounded-[2.5rem] p-6 flex items-center gap-6">
+                  <div className="w-14 h-14 bg-emerald-500 rounded-[1.5rem] flex items-center justify-center shadow-lg shadow-emerald-200 shrink-0">
+                    <CheckCircle2 className="text-white" size={28} />
                   </div>
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600 italic">Stripe Ativo</p>
-                    <p className="text-slate-900 font-bold text-sm">{stripeDetails?.business_name}</p>
+                  <div className="overflow-hidden">
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600 italic">Checkout Ativo</p>
+                    <p className="text-slate-900 font-bold text-sm truncate">{stripeDetails?.business_name}</p>
                   </div>
                 </div>
               )}
@@ -438,7 +443,12 @@ function PerfilContent() {
 
 export default function PerfilPage() {
   return (
-    <Suspense fallback={<div className="h-screen w-screen flex items-center justify-center"><Loader2 className="animate-spin text-[#FF4D4D]" size={48} /></div>}>
+    <Suspense fallback={
+      <div className="h-screen w-screen flex flex-col items-center justify-center gap-4">
+        <Loader2 className="animate-spin text-[#FF4D4D]" size={48} />
+        <p className="font-black uppercase tracking-widest text-[10px] text-slate-400 italic">Aguarde...</p>
+      </div>
+    }>
       <PerfilContent />
     </Suspense>
   );
