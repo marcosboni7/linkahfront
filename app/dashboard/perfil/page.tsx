@@ -81,7 +81,11 @@ function PerfilContent() {
     try {
       const userStorage = localStorage.getItem('@Linkah:User');
       const parsedUser = userStorage ? JSON.parse(userStorage) : null;
-      const emailLogado = parsedUser?.email || localStorage.getItem('userEmail') || '';
+      const emailLogado =
+        parsedUser?.email ||
+        parsedUser?.user?.email ||
+        localStorage.getItem('userEmail') ||
+        '';
       const token = localStorage.getItem('@Linkah:Token')?.replace(/['"]+/g, '') || '';
 
       return { userStorage, parsedUser, emailLogado, token };
@@ -128,7 +132,10 @@ function PerfilContent() {
   useEffect(() => {
     const carregarDados = async () => {
       const { emailLogado, token } = getUsuarioLogado();
-      if (!emailLogado) { router.push('/site/login'); return; }
+      if (!emailLogado) {
+        router.push('/site/login');
+        return;
+      }
 
       try {
         const headers: Record<string, string> = { Accept: 'application/json' };
@@ -164,24 +171,38 @@ function PerfilContent() {
 
           setFormData(dadosPerfil);
 
+          const completo = perfilJaCompleto(dadosPerfil);
+
           // Atualiza LocalStorage para sincronizar com o Chat
           const userStorage = localStorage.getItem('@Linkah:User');
           if (userStorage) {
             const userAtual = JSON.parse(userStorage);
-            localStorage.setItem('@Linkah:User', JSON.stringify({ ...userAtual, ...dadosPerfil }));
+            localStorage.setItem(
+              '@Linkah:User',
+              JSON.stringify({
+                ...userAtual,
+                ...dadosPerfil,
+                perfil_completo: completo,
+              })
+            );
           }
+
+          localStorage.setItem('perfil_completo', completo ? 'true' : 'false');
 
           setStripeAccountId(data.stripe_account_id || null);
           if (data.stripe_account_id) await checarStatusStripe(emailLogado);
+        } else {
+          localStorage.setItem('perfil_completo', 'false');
         }
       } catch (error) {
         console.error('❌ Erro carregar perfil:', error);
+        localStorage.setItem('perfil_completo', 'false');
       } finally {
         setIsLoading(false);
       }
     };
     carregarDados();
-  }, [router, checarStatusStripe, getUsuarioLogado]);
+  }, [router, checarStatusStripe, getUsuarioLogado, perfilJaCompleto]);
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -212,7 +233,10 @@ function PerfilContent() {
       const userStorage = localStorage.getItem('@Linkah:User');
       if (userStorage) {
         const userParsed = JSON.parse(userStorage);
-        localStorage.setItem('@Linkah:User', JSON.stringify({ ...userParsed, avatar: data.avatar }));
+        localStorage.setItem(
+          '@Linkah:User',
+          JSON.stringify({ ...userParsed, avatar: data.avatar })
+        );
       }
 
       Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Foto atualizada!', showConfirmButton: false, timer: 2000 });
@@ -241,15 +265,33 @@ function PerfilContent() {
 
       if (!response.ok) throw new Error('Erro ao salvar');
       
+      const dadosAtualizados = { ...formData };
+      const completo = perfilJaCompleto(dadosAtualizados);
+
       // Sincroniza o localStorage ao salvar o perfil completo
       const userStorage = localStorage.getItem('@Linkah:User');
       if (userStorage) {
         const userAtual = JSON.parse(userStorage);
-        localStorage.setItem('@Linkah:User', JSON.stringify({ ...userAtual, ...formData }));
+        localStorage.setItem(
+          '@Linkah:User',
+          JSON.stringify({
+            ...userAtual,
+            ...dadosAtualizados,
+            perfil_completo: completo,
+          })
+        );
       }
 
-      localStorage.setItem('perfil_completo', 'true');
-      Swal.fire({ title: 'SUCESSO!', text: 'Perfil sincronizado.', icon: 'success', confirmButtonColor: '#FF4D4D', customClass: { popup: 'rounded-[2rem]' } });
+      localStorage.setItem('perfil_completo', completo ? 'true' : 'false');
+
+      await Swal.fire({
+        title: 'SUCESSO!',
+        text: 'Perfil sincronizado.',
+        icon: 'success',
+        confirmButtonColor: '#FF4D4D',
+        customClass: { popup: 'rounded-[2rem]' }
+      });
+
       router.replace('/dashboard/eventos');
     } catch (error: any) {
       Swal.fire('Erro', error.message, 'error');
