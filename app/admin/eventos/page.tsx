@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Search,
   Trash2,
@@ -23,6 +23,7 @@ const API_URL = 'https://api-linkah.onrender.com/api/eventos';
 
 export default function AdminEventos() {
   const { t } = useLanguage();
+
   const [eventos, setEventos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState<string | number | null>(null);
@@ -151,7 +152,7 @@ export default function AdminEventos() {
       }
 
       if (Number.isNaN(taxaNumero)) {
-        Swal.fire('Erro', 'Taxa da plataforma inválida.', 'error');
+        Swal.fire('Erro', 'Taxa inválida.', 'error');
         return;
       }
 
@@ -166,8 +167,8 @@ export default function AdminEventos() {
         taxa_plataforma: taxaNumero,
       };
 
-      console.log('📤 payloadEvento:', payloadEvento);
-      console.log('💰 precoNumero:', precoNumero);
+      console.log('📤 PUT evento:', payloadEvento);
+      console.log('💰 POST ingressos preço:', precoNumero);
 
       const resEvento = await fetch(`${API_URL}/${eventoParaEditar.id}`, {
         method: 'PUT',
@@ -179,6 +180,8 @@ export default function AdminEventos() {
       });
 
       const dataEvento = await resEvento.json().catch(() => null);
+
+      console.log('✅ resposta PUT:', dataEvento);
 
       if (!resEvento.ok) {
         throw new Error(dataEvento?.error || 'Falha ao atualizar evento');
@@ -203,8 +206,10 @@ export default function AdminEventos() {
 
       const dataIngressos = await resIngressos.json().catch(() => null);
 
+      console.log('✅ resposta POST ingressos:', dataIngressos);
+
       if (!resIngressos.ok) {
-        throw new Error(dataIngressos?.error || 'Falha ao sincronizar ingressos');
+        throw new Error(dataIngressos?.error || 'Falha ao salvar ingressos');
       }
 
       setIsModalOpen(false);
@@ -212,15 +217,15 @@ export default function AdminEventos() {
       await Swal.fire({
         icon: 'success',
         title: 'Salvo com sucesso!',
-        text: 'Evento e valor sincronizados.',
+        text: 'Evento e ingresso atualizados.',
         showConfirmButton: false,
-        timer: 1400,
+        timer: 1500,
       });
 
       await carregarDados();
     } catch (err: any) {
-      console.error('❌ Erro ao salvar:', err);
-      Swal.fire('Erro', err.message || 'Falha ao salvar no Render', 'error');
+      console.error('❌ Erro ao salvar edição:', err);
+      Swal.fire('Erro', err.message || 'Erro ao salvar.', 'error');
     } finally {
       setIsProcessing(null);
     }
@@ -396,7 +401,7 @@ export default function AdminEventos() {
 
                       <td className="px-10 py-6 text-center">
                         <span className="text-slate-900 font-black italic text-sm">
-                          {Number(ev.preco || 0).toFixed(2)}
+                          R$ {Number(ev.preco || 0).toFixed(2)}
                         </span>
                       </td>
 
@@ -501,8 +506,22 @@ export default function AdminEventos() {
               </div>
 
               <div className="col-span-2 space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  Descrição
+                </label>
+                <textarea
+                  rows={4}
+                  className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none focus:bg-white text-slate-800 resize-none"
+                  value={eventoParaEditar.descricao}
+                  onChange={(e) =>
+                    setEventoParaEditar({ ...eventoParaEditar, descricao: e.target.value })
+                  }
+                />
+              </div>
+
+              <div className="col-span-2 space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-widest text-rose-500 flex items-center gap-1 italic">
-                  <DollarSign size={12} /> Preço Base (Card)
+                  <DollarSign size={12} /> Preço Base
                 </label>
                 <input
                   type="number"
@@ -526,7 +545,7 @@ export default function AdminEventos() {
                       <Activity size={14} /> Taxa da Plataforma
                     </label>
                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">
-                      Lucro Linkah por venda
+                      Lucro da Linkah por venda
                     </p>
                   </div>
 
@@ -553,6 +572,23 @@ export default function AdminEventos() {
                 />
               </div>
 
+              <div className="col-span-2 space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  Status
+                </label>
+                <select
+                  className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none focus:bg-white text-slate-800"
+                  value={eventoParaEditar.status}
+                  onChange={(e) =>
+                    setEventoParaEditar({ ...eventoParaEditar, status: e.target.value })
+                  }
+                >
+                  <option value="Ativo">Ativo</option>
+                  <option value="Pausado">Pausado</option>
+                  <option value="Excluído">Excluído</option>
+                </select>
+              </div>
+
               <button
                 type="submit"
                 disabled={isProcessing === 'salvando'}
@@ -563,7 +599,7 @@ export default function AdminEventos() {
                 ) : (
                   <Save size={20} />
                 )}
-                Sincronizar no Render
+                Salvar Alterações
               </button>
             </form>
           </div>
