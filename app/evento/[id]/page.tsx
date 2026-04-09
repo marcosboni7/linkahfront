@@ -89,7 +89,7 @@ function formatCurrency(value: number | string, currency?: string) {
   }).format(amount);
 }
 
-export default function DetalhesLumaCompleto() {
+export default function DetalhesLumaRoxo() {
   const { id } = useParams();
   const router = useRouter();
 
@@ -203,19 +203,19 @@ export default function DetalhesLumaCompleto() {
   const linkVenda = `/venda?eventoId=${id}&payload=${encodeURIComponent(JSON.stringify(quantidades))}`;
 
   return (
-    <div className="min-h-screen bg-white text-[#121212] antialiased selection:bg-indigo-100">
+    <div className="min-h-screen bg-white text-[#121212] antialiased selection:bg-violet-100">
       <Navbar />
 
       <main className="max-w-[1100px] mx-auto px-6 pt-10 pb-32">
-        {/* Topo / Voltar */}
+        {/* Topo / Voltar Minimalista Luma */}
         <div className="flex items-center justify-between mb-10">
           <button
             onClick={() => router.back()}
-            className="flex items-center gap-2 text-slate-400 hover:text-black transition-colors text-sm font-semibold"
+            className="flex items-center gap-2 text-slate-400 hover:text-violet-600 transition-colors text-sm font-semibold"
           >
             <ChevronLeft size={20} /> Voltar
           </button>
-          <button className="p-2.5 rounded-full border border-slate-100 text-slate-400 hover:text-black hover:bg-slate-50 transition-all">
+          <button className="p-2.5 rounded-full border border-slate-100 text-slate-400 hover:text-violet-600 hover:bg-violet-50 transition-all">
             <Share2 size={18} />
           </button>
         </div>
@@ -225,7 +225,7 @@ export default function DetalhesLumaCompleto() {
           {/* COLUNA ESQUERDA: IMAGEM (ESTILO LUMA) */}
           <div className="w-full lg:w-[420px] shrink-0">
             <div className="sticky top-28 space-y-8">
-              <div className="relative aspect-[3/4] w-full rounded-[2rem] overflow-hidden bg-slate-100 shadow-sm border border-slate-100">
+              <div className="relative aspect-[3/4] w-full rounded-[2rem] overflow-hidden bg-slate-50 shadow-inner border border-slate-100">
                 <img
                   src={urlFinalImagem}
                   className="w-full h-full object-cover"
@@ -233,22 +233,22 @@ export default function DetalhesLumaCompleto() {
                 />
                 <div className="absolute top-4 left-4">
                   <div className="bg-white/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/50 shadow-sm flex items-center gap-1.5">
-                    <Verified size={14} className="text-indigo-600" />
+                    <Verified size={14} className="text-violet-600" />
                     <span className="text-[9px] font-black uppercase tracking-wider text-slate-800">
-                      Verificado
+                      Oficial
                     </span>
                   </div>
                 </div>
               </div>
 
-              {/* Produtor sutil abaixo da foto */}
+              {/* Produtor sutil Luma */}
               <div className="flex items-center gap-3 px-2">
-                <div className="w-10 h-10 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xs uppercase">
+                <div className="w-11 h-11 rounded-full bg-violet-50 border border-violet-100 flex items-center justify-center text-violet-600 font-extrabold text-sm uppercase">
                   {evento.produtor_nome?.charAt(0) || 'P'}
                 </div>
                 <div>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-none mb-1">By</p>
-                  <p className="text-sm font-bold text-slate-900">{evento.produtor_nome || 'Produtor Linkah'}</p>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-none mb-1">Host</p>
+                  <p className="text-base font-bold text-slate-900">{evento.produtor_nome || 'Produtor Verificado'}</p>
                 </div>
               </div>
             </div>
@@ -261,47 +261,47 @@ export default function DetalhesLumaCompleto() {
             <section className="space-y-6">
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <span className="inline-block px-2.5 py-0.5 bg-slate-100 text-slate-500 rounded-lg text-[10px] font-bold uppercase tracking-wider">
+                  <span className="inline-block px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-bold uppercase tracking-wider">
                     {evento.categoria || 'Evento'}
                   </span>
                   {evento.tipo === 'Online' && (
-                    <span className="inline-block px-2.5 py-0.5 bg-blue-50 text-blue-600 rounded-lg text-[10px] font-bold uppercase tracking-wider">
-                      Online
+                    <span className="inline-block px-3 py-1 bg-violet-50 text-violet-700 rounded-lg text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5">
+                      <Globe size={12} /> Online
                     </span>
                   )}
                 </div>
-                <h1 className="text-4xl md:text-6xl font-black tracking-tight text-slate-900 leading-[1.1]">
+                <h1 className="text-4xl md:text-6xl font-black tracking-tight text-slate-900 leading-[1.05]">
                   {evento.nome}
                 </h1>
               </div>
 
-              {/* Cards de Infos Minimalistas */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex items-center gap-4 bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
-                  <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-slate-600 shadow-sm">
-                    <Calendar size={20} />
+              {/* Grid de Infos Luma (Minimalista) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 py-6 border-y border-slate-100">
+                <div className="flex gap-4 items-start">
+                  <div className="w-11 h-11 rounded-xl bg-violet-50 flex items-center justify-center text-violet-600 shrink-0 border border-violet-100">
+                    <Calendar size={22} />
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-slate-900">
+                    <p className="text-base font-bold text-slate-900">
                       {new Date(evento.data_inicio).toLocaleDateString('pt-BR', {
+                        weekday: 'long',
                         day: '2-digit',
                         month: 'long',
-                        year: 'numeric'
                       })}
                     </p>
-                    <p className="text-xs text-slate-500 font-medium">Início às {evento.hora_inicio}</p>
+                    <p className="text-sm text-slate-500 font-medium">{evento.hora_inicio} até {evento.hora_termino || 'fim'}</p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4 bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
-                  <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-slate-600 shadow-sm">
-                    <MapPin size={20} />
+                <div className="flex gap-4 items-start">
+                  <div className="w-11 h-11 rounded-xl bg-violet-50 flex items-center justify-center text-violet-600 shrink-0 border border-violet-100">
+                    <MapPin size={22} />
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-slate-900 truncate max-w-[180px]">
+                    <p className="text-base font-bold text-slate-900 truncate max-w-[200px]">
                       {evento.local_nome}
                     </p>
-                    <p className="text-xs text-slate-500 font-medium">{evento.cidade}, {evento.estado}</p>
+                    <p className="text-sm text-slate-500 font-medium">{evento.cidade}, {evento.estado}</p>
                   </div>
                 </div>
               </div>
@@ -311,18 +311,18 @@ export default function DetalhesLumaCompleto() {
             <section className="grid grid-cols-1 md:grid-cols-12 gap-10">
               <div className="md:col-span-8 space-y-4">
                 <h4 className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] flex items-center gap-2">
-                  <Info size={14} /> Detalhes
+                  <Info size={14} /> Sobre a Experiência
                 </h4>
                 <div
-                  className="text-slate-600 leading-relaxed font-medium prose prose-slate max-w-none"
+                  className="text-slate-600 leading-relaxed font-medium prose prose-slate max-w-none prose-p:mb-5 prose-li:mb-2 prose-strong:text-slate-900"
                   dangerouslySetInnerHTML={{ __html: evento.descricao }}
                 />
               </div>
 
-              {/* Banner de Patrocínio Estilo Luma Sidebar */}
+              {/* Patrocinador Sidebar Luma */}
               {urlFinalPatrocinador && (
                 <div className="md:col-span-4">
-                  <div className="rounded-2xl overflow-hidden border border-slate-100 p-1.5 bg-white shadow-sm">
+                  <div className="rounded-2xl overflow-hidden border border-slate-100 p-2 bg-white shadow-sm">
                     <img
                       src={urlFinalPatrocinador}
                       className="w-full h-auto rounded-xl object-contain"
@@ -333,33 +333,30 @@ export default function DetalhesLumaCompleto() {
               )}
             </section>
 
-            {/* Seleção de Ingressos */}
-            <section className="space-y-6 pt-6 border-t border-slate-100">
+            {/* Ingressos Luma Style (Roxo) */}
+            <section className="space-y-6 pt-10 border-t border-slate-100">
               <div className="flex items-center justify-between">
-                <h3 className="text-xs font-black text-slate-900 uppercase tracking-[0.2em]">
-                  Ingressos Disponíveis
+                <h3 className="text-sm font-black text-slate-900 uppercase tracking-[0.2em]">
+                  Escolha seu Acesso
                 </h3>
-                <span className="text-[10px] font-bold text-slate-400 uppercase">
-                  Pague com Pix ou Cartão
-                </span>
               </div>
 
               <div className="space-y-3">
                 {evento.ingressos?.map((ing: any) => (
                   <div
                     key={ing.id}
-                    className="flex items-center justify-between p-5 rounded-2xl border border-slate-200 bg-white hover:border-slate-300 transition-all shadow-sm"
+                    className="flex items-center justify-between p-6 rounded-2xl border border-slate-200 bg-white hover:border-violet-300 transition-all shadow-sm focus-within:border-violet-400 focus-within:ring-2 focus-within:ring-violet-100"
                   >
                     <div className="space-y-1">
-                      <p className="text-sm font-bold text-slate-900 uppercase tracking-wide">
+                      <p className="text-base font-bold text-slate-900 uppercase tracking-wide">
                         {ing.nome}
                       </p>
-                      <p className="text-indigo-600 font-bold text-sm">
+                      <p className="text-violet-600 font-extrabold text-base">
                         {ing.preco === 0 ? 'Gratuito' : formatCurrency(getTicketPrice(ing), ing.moeda || evento.moeda)}
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-4 bg-slate-50 p-1 rounded-xl border border-slate-100">
+                    <div className="flex items-center gap-4 bg-violet-50/50 p-1 rounded-xl border border-violet-100">
                       <button
                         onClick={() =>
                           setQuantidades((prev) => ({
@@ -367,13 +364,13 @@ export default function DetalhesLumaCompleto() {
                             [String(ing.id)]: Math.max(0, (prev[String(ing.id)] || 0) - 1),
                           }))
                         }
-                        className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white text-slate-400 hover:text-black transition-all"
+                        className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-white text-violet-400 hover:text-violet-700 transition-all active:scale-95"
                         type="button"
                       >
-                        <Minus size={14} strokeWidth={3} />
+                        <Minus size={16} strokeWidth={3} />
                       </button>
 
-                      <span className="text-sm font-black w-4 text-center">
+                      <span className="text-base font-black w-5 text-center text-violet-950">
                         {quantidades[String(ing.id)] || 0}
                       </span>
 
@@ -384,10 +381,10 @@ export default function DetalhesLumaCompleto() {
                             [String(ing.id)]: (prev[String(ing.id)] || 0) + 1,
                           }))
                         }
-                        className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white text-slate-400 hover:text-black transition-all"
+                        className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-white text-violet-400 hover:text-violet-700 transition-all active:scale-95"
                         type="button"
                       >
-                        <Plus size={14} strokeWidth={3} />
+                        <Plus size={16} strokeWidth={3} />
                       </button>
                     </div>
                   </div>
@@ -395,53 +392,57 @@ export default function DetalhesLumaCompleto() {
               </div>
             </section>
 
-            {/* Barra de Checkout Fixa Sutil ou Footer do Card */}
+            {/* CTA Final Grande e Roxo (Marca Registrada Luma) */}
             <div className="pt-10">
-              <div className="bg-[#121212] p-6 md:p-8 rounded-[2.5rem] flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl">
-                <div className="text-center md:text-left">
-                  <p className="text-[10px] font-bold tracking-[0.3em] text-slate-500 uppercase mb-1">
-                    Total do Pedido
-                  </p>
-                  <p className="text-3xl font-black text-white">
-                    {formatCurrency(totalGeral, evento.moeda)}
-                  </p>
-                </div>
+              <div className="bg-white p-6 rounded-[2.5rem] flex flex-col items-center gap-6 border border-slate-100 shadow-lg shadow-slate-100">
+                 
+                 <div className="w-full flex items-center justify-between px-4">
+                    <p className="text-sm font-bold text-slate-900">Total a investir</p>
+                    <p className="text-3xl font-black text-violet-600">
+                      {formatCurrency(totalGeral, evento.moeda)}
+                    </p>
+                 </div>
 
                 <Link
                   href={totalGeral > 0 || Object.values(quantidades).some(q => q > 0) ? linkVenda : '#'}
-                  className={`group w-full md:w-auto flex items-center justify-center gap-4 px-12 py-5 rounded-2xl font-bold transition-all duration-300 ${
+                  className={`group w-full flex items-center justify-center gap-4 px-12 py-6 rounded-2xl font-bold transition-all duration-300 text-lg ${
                     totalGeral > 0 || Object.values(quantidades).some(q => q > 0)
-                      ? 'bg-white text-black hover:scale-[1.03] active:scale-[0.97]'
-                      : 'bg-slate-800 text-slate-600 cursor-not-allowed pointer-events-none'
+                      ? 'bg-violet-600 text-white hover:bg-violet-700 hover:scale-[1.01] active:scale-[0.99] shadow-xl shadow-violet-200'
+                      : 'bg-slate-100 text-slate-400 cursor-not-allowed pointer-events-none'
                   }`}
                 >
-                  <span className="text-xs uppercase tracking-widest">Garantir Vaga</span>
-                  <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                  <span className="uppercase tracking-widest text-sm">Garantir minha vaga</span>
+                  <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
                 </Link>
+                
+                <p className="text-center text-[10px] font-medium text-slate-400 flex items-center justify-center gap-2">
+                   Pagamento seguro via Linkah • Sem taxas escondidas
+                </p>
               </div>
-              <p className="text-center mt-6 text-[10px] font-medium text-slate-400 flex items-center justify-center gap-2">
-                 Compra segura via Linkah • <Verified size={10} /> Processamento imediato
-              </p>
             </div>
+
           </div>
         </div>
       </main>
 
       <Footer />
 
+      {/* Estilos Globais e Tipografia Luma (Inter) */}
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
         
         body { 
           font-family: 'Inter', sans-serif;
           background-color: white;
+          -webkit-font-smoothing: antialiased;
         }
 
         .prose ul { list-style-type: disc !important; padding-left: 1.5rem !important; margin: 1rem 0 !important; }
         .prose ol { list-style-type: decimal !important; padding-left: 1.5rem !important; margin: 1rem 0 !important; }
-        .prose li { margin-bottom: 0.5rem !important; color: #475569 !important; }
-        .prose strong { font-weight: 800 !important; color: #0f172a !important; }
-        .prose p { margin-bottom: 1rem !important; }
+        .prose li { margin-bottom: 0.6rem !important; color: #475569 !important; }
+        .prose strong { font-weight: 800 !important; color: #1e293b !important; }
+        .prose p { margin-bottom: 1.2rem !important; }
+        .prose a { color: #7c3aed !important; text-decoration: underline !important; }
       `}</style>
     </div>
   );
