@@ -73,7 +73,7 @@ export default function LoginPage() {
                 <span className="text-[10px] font-black text-white uppercase tracking-[0.2em]">Sua JORNADA EXTRAORDINÁRIA</span>
             </div>
             {/* MANCHETE EM TAMANHO GRANDE (7xl) */}
-            <h1 className="text-7xl font-black text-white leading-[0.95] tracking-tighter mb-6 italic uppercase text-balance">
+            <h1 className="text-7xl font-black text-[#FF4D4D] leading-[0.95] tracking-tighter mb-6 italic uppercase text-balance">
               Transforme-se <br/>agora<span className="text-[#FF4D4D]">.</span>
             </h1>
             <p className="text-gray-400 text-lg font-medium max-w-sm">Entre para gerenciar seus ingressos e explorar novas experiências.</p>
