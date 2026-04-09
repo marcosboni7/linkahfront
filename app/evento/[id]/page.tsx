@@ -25,21 +25,56 @@ function normalizeCurrency(input?: string) {
   const raw = String(input || '').trim().toUpperCase();
   if (raw === 'R$' || raw === 'REAL' || raw === 'REAIS' || raw === 'BRL') return 'BRL';
   if (raw === '€' || raw === 'EURO' || raw === 'EUROS' || raw === 'EUR') return 'EUR';
-  if (raw === '$' || raw === 'DOLAR' || raw === 'DÓLAR' || raw === 'DOLARES' || raw === 'DÓLARES' || raw === 'USD') return 'USD';
+  if (
+    raw === '$' ||
+    raw === 'DOLAR' ||
+    raw === 'DÓLAR' ||
+    raw === 'DOLARES' ||
+    raw === 'DÓLARES' ||
+    raw === 'USD'
+  ) return 'USD';
   return 'BRL';
 }
 
+function parsePrice(value: any) {
+  if (value === null || value === undefined) return 0;
+  if (typeof value === 'number') return isNaN(value) ? 0 : value;
+
+  let raw = String(value).trim();
+
+  if (!raw) return 0;
+
+  // remove símbolos e espaços
+  raw = raw.replace(/[^\d,.-]/g, '');
+
+  // se tiver ponto e vírgula, assume formato BR: 1.234,56
+  if (raw.includes('.') && raw.includes(',')) {
+    raw = raw.replace(/\./g, '').replace(',', '.');
+  }
+  // se tiver só vírgula, converte para ponto
+  else if (raw.includes(',')) {
+    raw = raw.replace(',', '.');
+  }
+
+  const parsed = parseFloat(raw);
+  return isNaN(parsed) ? 0 : parsed;
+}
+
 function formatCurrency(value: number | string, currency?: string) {
-  const amount = Number(value || 0);
+  const amount = parsePrice(value);
   const moeda = normalizeCurrency(currency);
+
   const localeMap: Record<string, string> = {
     BRL: 'pt-BR',
     EUR: 'de-DE',
     USD: 'en-US',
   };
+
   return new Intl.NumberFormat(localeMap[moeda] || 'pt-BR', {
     style: 'currency',
     currency: moeda,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(amount);
 }
 
@@ -62,17 +97,16 @@ export default function DetalhesEquilibrado() {
         if (!res.ok) throw new Error('Erro ao carregar evento');
 
         const data = await res.json();
-        
+
         const moedaEvento = normalizeCurrency(
           data?.moeda || data?.currency || data?.moeda_evento || 'BRL'
         );
 
-        // CORREÇÃO 1: Normalizar ingressos e garantir que ID seja sempre STRING
         const ingressosTratados = Array.isArray(data?.ingressos)
           ? data.ingressos.map((ing: any) => ({
               ...ing,
-              id: String(ing.id || ing._id), // Garante ID como string
-              preco: Number(ing?.preco || 0), // Garante Preço como número
+              id: String(ing.id || ing._id || Math.random()),
+              preco: parsePrice(ing?.preco),
               moeda: normalizeCurrency(ing?.moeda || moedaEvento),
             }))
           : [];
@@ -83,14 +117,18 @@ export default function DetalhesEquilibrado() {
           ingressos: ingressosTratados,
         });
 
-        // Inicializa quantidades com 1 no primeiro ingresso
         const qts: Record<string, number> = {};
-        ingressosTratados.forEach((ing: any) => { qts[String(ing.id)] = 0; });
+        ingressosTratados.forEach((ing: any) => {
+          qts[String(ing.id)] = 0;
+        });
+
         if (ingressosTratados.length > 0) {
           qts[String(ingressosTratados[0].id)] = 1;
         }
+
         setQuantidades(qts);
 
+        console.log('🎟️ Ingressos tratados:', ingressosTratados);
       } catch (err) {
         console.error('❌ Erro ao carregar evento:', err);
         setEvento(null);
@@ -102,22 +140,31 @@ export default function DetalhesEquilibrado() {
     if (id) carregarEvento();
   }, [id]);
 
-  // CORREÇÃO 2: Cálculo do total garantindo match de tipos
   const totalGeral = useMemo(() => {
     if (!Array.isArray(evento?.ingressos)) return 0;
+
     return evento.ingressos.reduce((acc: number, ing: any) => {
-      const quantidade = quantidades[String(ing.id)] || 0;
-      return acc + (Number(ing.preco) * quantidade);
+      const quantidade = Number(quantidades[String(ing.id)] || 0);
+      const preco = parsePrice(ing.preco);
+      return acc + preco * quantidade;
     }, 0);
   }, [evento, quantidades]);
 
-  if (loading) return (
-    <div className="h-screen flex items-center justify-center bg-slate-50">
-      <Loader2 className="animate-spin text-indigo-600" size={32} />
-    </div>
-  );
+  if (loading) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-slate-50">
+        <Loader2 className="animate-spin text-indigo-600" size={32} />
+      </div>
+    );
+  }
 
-  if (!evento) return <div className="h-screen flex items-center justify-center font-bold">Evento não encontrado.</div>;
+  if (!evento) {
+    return (
+      <div className="h-screen flex items-center justify-center font-bold">
+        Evento não encontrado.
+      </div>
+    );
+  }
 
   const urlFinalImagem = evento.imagem_capa?.startsWith('http')
     ? evento.imagem_capa
@@ -142,7 +189,6 @@ export default function DetalhesEquilibrado() {
         </button>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20">
-          
           <div className="lg:col-span-6">
             <div className="sticky top-28">
               <div className="relative aspect-[1080/1350] w-full rounded-[2.5rem] overflow-hidden shadow-2xl shadow-indigo-900/10 border-4 border-white">
@@ -205,15 +251,14 @@ export default function DetalhesEquilibrado() {
               </div>
             </section>
 
-            {/* DESCRIÇÃO COM HTML DA IA */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
               <div className="md:col-span-8 bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm">
                 <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
                   <Info size={14} /> Sobre o evento
                 </h4>
-                <div 
+                <div
                   className="text-slate-600 leading-relaxed font-medium prose prose-slate max-w-none"
-                  dangerouslySetInnerHTML={{ __html: evento.descricao }} 
+                  dangerouslySetInnerHTML={{ __html: evento.descricao }}
                 />
               </div>
 
@@ -230,7 +275,6 @@ export default function DetalhesEquilibrado() {
               </div>
             </div>
 
-            {/* SELEÇÃO DE INGRESSOS */}
             <section className="space-y-6">
               <div className="flex items-center justify-between gap-4">
                 <h3 className="text-sm font-bold text-slate-900 uppercase tracking-[0.2em] ml-2">
@@ -291,7 +335,6 @@ export default function DetalhesEquilibrado() {
                 ))}
               </div>
 
-              {/* CHECKOUT COM VALOR CORRIGIDO */}
               <div className="mt-12 bg-slate-900 p-8 rounded-[2.5rem] flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl">
                 <div>
                   <p className="text-[10px] font-bold tracking-[0.3em] text-slate-500 uppercase">
