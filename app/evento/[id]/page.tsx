@@ -63,12 +63,10 @@ export default function DetalhesEquilibrado() {
 
         const data = await res.json();
         
-        // Normalização da moeda base do evento
         const moedaEvento = normalizeCurrency(
           data?.moeda || data?.currency || data?.moeda_evento || 'BRL'
         );
 
-        // Tratamento dos ingressos
         const ingressosTratados = Array.isArray(data?.ingressos)
           ? data.ingressos.map((ing: any) => ({
               ...ing,
@@ -83,7 +81,6 @@ export default function DetalhesEquilibrado() {
           ingressos: ingressosTratados,
         });
 
-        // Inicializa quantidades (primeiro ingresso com 1 por padrão)
         const qts: Record<string, number> = {};
         ingressosTratados.forEach((ing: any) => { qts[ing.id] = 0; });
         if (ingressosTratados.length > 0) {
@@ -118,7 +115,6 @@ export default function DetalhesEquilibrado() {
 
   if (!evento) return <div className="h-screen flex items-center justify-center font-bold">Evento não encontrado.</div>;
 
-  // URLs das Imagens
   const urlFinalImagem = evento.imagem_capa?.startsWith('http')
     ? evento.imagem_capa
     : `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${evento.imagem_capa}`;
@@ -134,7 +130,6 @@ export default function DetalhesEquilibrado() {
       <Navbar />
 
       <main className="max-w-7xl mx-auto px-6 lg:px-12 pt-8 pb-32">
-        {/* Botão Voltar */}
         <button
           onClick={() => router.back()}
           className="mb-10 inline-flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-sm border border-slate-100 text-slate-500 hover:text-indigo-600 hover:border-indigo-100 transition-all text-xs font-semibold"
@@ -177,7 +172,6 @@ export default function DetalhesEquilibrado() {
                 </h1>
               </div>
 
-              {/* Badges de Info */}
               <div className="flex flex-wrap gap-4">
                 <div className="flex items-center gap-3 bg-white px-5 py-3 rounded-2xl border border-slate-100 shadow-sm">
                   <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600">
@@ -209,16 +203,21 @@ export default function DetalhesEquilibrado() {
               </div>
             </section>
 
-            {/* SOBRE O EVENTO COM FIX DE QUEBRA DE LINHA */}
+            {/* SOBRE O EVENTO - RENDERIZANDO HTML DA IA */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
               <div className="md:col-span-8 bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm">
                 <h4 className="text-xs font-bold text-slate-300 uppercase tracking-widest mb-4 flex items-center gap-2">
                   <Info size={14} /> Sobre o evento
                 </h4>
-                {/* AQUI ESTÁ O SEGREDO: whitespace-pre-wrap */}
-                <p className="text-slate-600 leading-relaxed font-medium whitespace-pre-wrap">
-                  {evento.descricao}
-                </p>
+                
+                {/* AQUI FOI A MUDANÇA:
+                  1. 'prose prose-slate' para listas e negritos automáticos.
+                  2. 'dangerouslySetInnerHTML' para processar o HTML que veio do TipTap/IA.
+                */}
+                <div 
+                  className="text-slate-600 leading-relaxed font-medium prose prose-slate max-w-none prose-p:leading-relaxed prose-strong:text-slate-900 prose-ul:list-disc prose-li:my-1"
+                  dangerouslySetInnerHTML={{ __html: evento.descricao }} 
+                />
               </div>
 
               {/* Patrocinador */}
@@ -327,6 +326,33 @@ export default function DetalhesEquilibrado() {
       </main>
 
       <Footer />
+
+      {/* ESTILOS GLOBAIS PARA GARANTIR QUE LISTAS APAREÇAM */}
+      <style jsx global>{`
+        .prose ul {
+          list-style-type: disc !important;
+          padding-left: 1.5rem !important;
+          margin-top: 1rem !important;
+          margin-bottom: 1rem !important;
+        }
+        .prose ol {
+          list-style-type: decimal !important;
+          padding-left: 1.5rem !important;
+          margin-top: 1rem !important;
+          margin-bottom: 1rem !important;
+        }
+        .prose li {
+          margin-bottom: 0.5rem !important;
+        }
+        .prose strong {
+          font-weight: 800 !important;
+          color: #0f172a !important;
+        }
+        .prose a {
+          color: #4f46e5 !important;
+          text-decoration: underline !important;
+        }
+      `}</style>
     </div>
   );
 }
