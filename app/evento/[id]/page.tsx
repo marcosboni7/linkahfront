@@ -20,7 +20,6 @@ import Link from 'next/link';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api-linkah.onrender.com';
 const CLOUDINARY_CLOUD_NAME = 'dj32txsol';
 
-// Utilitários de Formatação
 function normalizeCurrency(input?: string) {
   const raw = String(input || '').trim().toUpperCase();
   if (raw === 'R$' || raw === 'REAL' || raw === 'REAIS' || raw === 'BRL') return 'BRL';
@@ -38,26 +37,34 @@ function normalizeCurrency(input?: string) {
 
 function parsePrice(value: any) {
   if (value === null || value === undefined) return 0;
-  if (typeof value === 'number') return isNaN(value) ? 0 : value;
+  if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
 
   let raw = String(value).trim();
-
   if (!raw) return 0;
 
-  // remove símbolos e espaços
   raw = raw.replace(/[^\d,.-]/g, '');
 
-  // se tiver ponto e vírgula, assume formato BR: 1.234,56
   if (raw.includes('.') && raw.includes(',')) {
     raw = raw.replace(/\./g, '').replace(',', '.');
-  }
-  // se tiver só vírgula, converte para ponto
-  else if (raw.includes(',')) {
+  } else if (raw.includes(',')) {
     raw = raw.replace(',', '.');
   }
 
   const parsed = parseFloat(raw);
-  return isNaN(parsed) ? 0 : parsed;
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function getTicketPrice(ing: any) {
+  return parsePrice(
+    ing?.preco ??
+    ing?.valor ??
+    ing?.price ??
+    ing?.preco_ingresso ??
+    ing?.valor_ingresso ??
+    ing?.lote_valor ??
+    ing?.amount ??
+    0
+  );
 }
 
 function formatCurrency(value: number | string, currency?: string) {
@@ -97,18 +104,32 @@ export default function DetalhesEquilibrado() {
         if (!res.ok) throw new Error('Erro ao carregar evento');
 
         const data = await res.json();
+        console.log('📦 EVENTO RAW:', data);
+        console.log('🎟️ INGRESSOS RAW:', data?.ingressos);
 
         const moedaEvento = normalizeCurrency(
           data?.moeda || data?.currency || data?.moeda_evento || 'BRL'
         );
 
         const ingressosTratados = Array.isArray(data?.ingressos)
-          ? data.ingressos.map((ing: any) => ({
-              ...ing,
-              id: String(ing.id || ing._id || Math.random()),
-              preco: parsePrice(ing?.preco),
-              moeda: normalizeCurrency(ing?.moeda || moedaEvento),
-            }))
+          ? data.ingressos.map((ing: any, index: number) => {
+              const precoFinal = getTicketPrice(ing);
+
+              const ingressoTratado = {
+                ...ing,
+                id: String(ing?.id || ing?._id || `ingresso-${index}`),
+                preco: precoFinal,
+                moeda: normalizeCurrency(
+                  ing?.moeda ||
+                  ing?.currency ||
+                  ing?.moeda_ingresso ||
+                  moedaEvento
+                ),
+              };
+
+              console.log('🎫 INGRESSO TRATADO:', ingressoTratado);
+              return ingressoTratado;
+            })
           : [];
 
         setEvento({
@@ -127,8 +148,6 @@ export default function DetalhesEquilibrado() {
         }
 
         setQuantidades(qts);
-
-        console.log('🎟️ Ingressos tratados:', ingressosTratados);
       } catch (err) {
         console.error('❌ Erro ao carregar evento:', err);
         setEvento(null);
@@ -143,11 +162,14 @@ export default function DetalhesEquilibrado() {
   const totalGeral = useMemo(() => {
     if (!Array.isArray(evento?.ingressos)) return 0;
 
-    return evento.ingressos.reduce((acc: number, ing: any) => {
+    const total = evento.ingressos.reduce((acc: number, ing: any) => {
       const quantidade = Number(quantidades[String(ing.id)] || 0);
-      const preco = parsePrice(ing.preco);
+      const preco = getTicketPrice(ing);
       return acc + preco * quantidade;
     }, 0);
+
+    console.log('💰 TOTAL GERAL:', total);
+    return total;
   }, [evento, quantidades]);
 
   if (loading) {
@@ -296,7 +318,7 @@ export default function DetalhesEquilibrado() {
                         {ing.nome}
                       </p>
                       <p className="text-indigo-600 font-bold text-sm mt-1 group-hover:text-indigo-200 transition-colors">
-                        {formatCurrency(ing.preco, ing.moeda || evento.moeda)}
+                        {formatCurrency(getTicketPrice(ing), ing.moeda || evento.moeda)}
                       </p>
                     </div>
 
