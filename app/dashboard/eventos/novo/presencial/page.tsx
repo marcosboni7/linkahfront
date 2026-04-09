@@ -138,9 +138,9 @@ export default function NovoEventoPresencial() {
       });
 
       if (searchInputRef.current && !autocompleteRef.current) {
+        // CORREÇÃO: Removido o componentRestrictions para permitir busca mundial
         autocompleteRef.current = new Autocomplete(searchInputRef.current, {
           types: ['establishment', 'geocode'],
-          componentRestrictions: { country: 'br' },
           fields: ['address_components', 'formatted_address', 'name', 'geometry']
         });
 
@@ -461,7 +461,7 @@ export default function NovoEventoPresencial() {
                   <Search size={18} className="absolute left-6 top-1/2 -translate-y-1/2 text-pink-400" />
                   <input
                     ref={searchInputRef}
-                    placeholder="Digite o nome do local ou endereço..."
+                    placeholder="Busque cidades ou locais em qualquer lugar do mundo..."
                     className="w-full bg-slate-900 text-white p-7 pl-16 rounded-[2rem] outline-none font-bold text-sm shadow-2xl focus:ring-4 focus:ring-pink-500/10 transition-all"
                   />
                 </div>
@@ -478,7 +478,7 @@ export default function NovoEventoPresencial() {
                     name="cep"
                     value={formData.cep}
                     onChange={handleChange}
-                    placeholder="CEP"
+                    placeholder="CEP / Postal Code"
                     className="w-full bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner"
                   />
                   <input
@@ -513,7 +513,7 @@ export default function NovoEventoPresencial() {
                     name="estado"
                     value={formData.estado}
                     onChange={handleChange}
-                    placeholder="Estado"
+                    placeholder="Estado / Província / UF"
                     className="w-full bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner"
                   />
                 </div>
