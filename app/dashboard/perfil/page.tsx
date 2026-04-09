@@ -1,3 +1,5 @@
+//perfil/page
+
 'use client';
 
 import { useEffect, useState, useCallback, Suspense, useRef } from 'react';
