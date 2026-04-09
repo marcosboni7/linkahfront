@@ -13,16 +13,14 @@ import {
   ChevronLeft,
   ArrowRight,
   Verified,
-  Info,
-  ExternalLink,
-  Users,
-  AlignLeft
+  Info
 } from 'lucide-react';
 import Link from 'next/link';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api-linkah.onrender.com';
 const CLOUDINARY_CLOUD_NAME = 'dj32txsol';
 
+// Utilitários de Formatação
 function normalizeCurrency(input?: string) {
   const raw = String(input || '').trim().toUpperCase();
   if (raw === 'R$' || raw === 'REAL' || raw === 'REAIS' || raw === 'BRL') return 'BRL';
@@ -34,14 +32,18 @@ function normalizeCurrency(input?: string) {
 function formatCurrency(value: number | string, currency?: string) {
   const amount = Number(value || 0);
   const moeda = normalizeCurrency(currency);
-  const localeMap: Record<string, string> = { BRL: 'pt-BR', EUR: 'de-DE', USD: 'en-US' };
+  const localeMap: Record<string, string> = {
+    BRL: 'pt-BR',
+    EUR: 'de-DE',
+    USD: 'en-US',
+  };
   return new Intl.NumberFormat(localeMap[moeda] || 'pt-BR', {
     style: 'currency',
     currency: moeda,
   }).format(amount);
 }
 
-export default function DetalhesLumaStyle() {
+export default function DetalhesEquilibrado() {
   const { id } = useParams();
   const router = useRouter();
 
@@ -56,162 +58,275 @@ export default function DetalhesLumaStyle() {
         const res = await fetch(`${API_URL}/api/eventos/${id}?t=${timestamp}`, {
           cache: 'no-store',
         });
+
         if (!res.ok) throw new Error('Erro ao carregar evento');
+
         const data = await res.json();
-        const moedaEvento = normalizeCurrency(data?.moeda || data?.currency || data?.moeda_evento || 'BRL');
+        
+        const moedaEvento = normalizeCurrency(
+          data?.moeda || data?.currency || data?.moeda_evento || 'BRL'
+        );
+
+        // CORREÇÃO 1: Normalizar ingressos e garantir que ID seja sempre STRING
         const ingressosTratados = Array.isArray(data?.ingressos)
           ? data.ingressos.map((ing: any) => ({
               ...ing,
-              preco: Number(ing?.preco || 0),
+              id: String(ing.id || ing._id), // Garante ID como string
+              preco: Number(ing?.preco || 0), // Garante Preço como número
               moeda: normalizeCurrency(ing?.moeda || moedaEvento),
             }))
           : [];
-        setEvento({ ...data, moeda: moedaEvento, ingressos: ingressosTratados });
+
+        setEvento({
+          ...data,
+          moeda: moedaEvento,
+          ingressos: ingressosTratados,
+        });
+
+        // Inicializa quantidades com 1 no primeiro ingresso
         const qts: Record<string, number> = {};
-        ingressosTratados.forEach((ing: any) => { qts[ing.id] = 0; });
-        if (ingressosTratados.length > 0) qts[ingressosTratados[0].id] = 1;
+        ingressosTratados.forEach((ing: any) => { qts[String(ing.id)] = 0; });
+        if (ingressosTratados.length > 0) {
+          qts[String(ingressosTratados[0].id)] = 1;
+        }
         setQuantidades(qts);
+
       } catch (err) {
+        console.error('❌ Erro ao carregar evento:', err);
         setEvento(null);
       } finally {
         setLoading(false);
       }
     }
+
     if (id) carregarEvento();
   }, [id]);
 
+  // CORREÇÃO 2: Cálculo do total garantindo match de tipos
   const totalGeral = useMemo(() => {
     if (!Array.isArray(evento?.ingressos)) return 0;
     return evento.ingressos.reduce((acc: number, ing: any) => {
-      const quantidade = quantidades[ing.id] || 0;
-      return acc + (Number(ing.preco || 0) * quantidade);
+      const quantidade = quantidades[String(ing.id)] || 0;
+      return acc + (Number(ing.preco) * quantidade);
     }, 0);
   }, [evento, quantidades]);
 
   if (loading) return (
-    <div className="h-screen flex items-center justify-center bg-white">
-      <Loader2 className="animate-spin text-[#7047EB]" size={32} />
+    <div className="h-screen flex items-center justify-center bg-slate-50">
+      <Loader2 className="animate-spin text-indigo-600" size={32} />
     </div>
   );
 
-  if (!evento) return <div className="h-screen flex items-center justify-center">Evento não encontrado.</div>;
+  if (!evento) return <div className="h-screen flex items-center justify-center font-bold">Evento não encontrado.</div>;
 
   const urlFinalImagem = evento.imagem_capa?.startsWith('http')
     ? evento.imagem_capa
     : `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${evento.imagem_capa}`;
 
+  const urlFinalPatrocinador = evento.banner_patrocinio?.startsWith('http')
+    ? evento.banner_patrocinio
+    : `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${evento.banner_patrocinio}`;
+
   const linkVenda = `/venda?eventoId=${id}&payload=${encodeURIComponent(JSON.stringify(quantidades))}`;
 
   return (
-    <div className="min-h-screen bg-[#FBFBFE] text-[#121212] antialiased font-sans">
+    <div className="min-h-screen bg-[#F8F9FA] text-slate-900 antialiased">
       <Navbar />
 
-      <main className="max-w-[1100px] mx-auto px-6 pt-12 pb-32">
-        
-        {/* HEADER / COVER AREA */}
-        <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-12">
-            
-            {/* Imagem de Capa */}
-            <div className="md:col-span-5 aspect-square md:aspect-auto relative bg-slate-100">
-              <img src={urlFinalImagem} className="w-full h-full object-cover" alt={evento.nome} />
-              <div className="absolute top-4 left-4">
-                 <div className="bg-white/90 backdrop-blur px-3 py-1.5 rounded-full flex items-center gap-2 border border-slate-200 shadow-sm">
-                    <Verified size={14} className="text-[#7047EB]" />
-                    <span className="text-[10px] font-bold tracking-tight text-slate-700">OFICIAL</span>
-                 </div>
+      <main className="max-w-7xl mx-auto px-6 lg:px-12 pt-8 pb-32">
+        <button
+          onClick={() => router.back()}
+          className="mb-10 inline-flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-sm border border-slate-100 text-slate-500 hover:text-indigo-600 hover:border-indigo-100 transition-all text-xs font-semibold"
+        >
+          <ChevronLeft size={16} /> Voltar
+        </button>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20">
+          
+          <div className="lg:col-span-6">
+            <div className="sticky top-28">
+              <div className="relative aspect-[1080/1350] w-full rounded-[2.5rem] overflow-hidden shadow-2xl shadow-indigo-900/10 border-4 border-white">
+                <img
+                  src={urlFinalImagem}
+                  className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
+                  alt={evento.nome}
+                />
+                <div className="absolute top-6 left-6">
+                  <div className="bg-white/70 backdrop-blur-md px-4 py-2 rounded-2xl flex items-center gap-2 border border-white/50 shadow-sm">
+                    <Verified size={16} className="text-indigo-600" />
+                    <span className="text-[10px] font-bold tracking-widest uppercase text-slate-800">
+                      Evento Oficial
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="lg:col-span-6 space-y-10">
+            <section className="space-y-6">
+              <div className="space-y-2">
+                <span className="inline-block px-3 py-1 bg-indigo-50 text-indigo-700 rounded-lg text-[10px] font-bold uppercase tracking-wider">
+                  {evento.categoria || 'Destaque'}
+                </span>
+                <h1 className="text-4xl md:text-6xl font-black tracking-tight text-slate-900 leading-tight">
+                  {evento.nome}
+                </h1>
+              </div>
+
+              <div className="flex flex-wrap gap-4">
+                <div className="flex items-center gap-3 bg-white px-5 py-3 rounded-2xl border border-slate-100 shadow-sm">
+                  <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600">
+                    <Calendar size={18} />
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase">Data e Hora</p>
+                    <p className="text-sm font-bold">
+                      {new Date(evento.data_inicio).toLocaleDateString('pt-BR', {
+                        day: '2-digit',
+                        month: 'long',
+                      })}{' '}
+                      • {evento.hora_inicio}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 bg-white px-5 py-3 rounded-2xl border border-slate-100 shadow-sm">
+                  <div className="p-2 bg-emerald-50 rounded-lg text-emerald-600">
+                    <MapPin size={18} />
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase">Localização</p>
+                    <p className="text-sm font-bold">
+                      {evento.local_nome}, {evento.cidade}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* DESCRIÇÃO COM HTML DA IA */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+              <div className="md:col-span-8 bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm">
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                  <Info size={14} /> Sobre o evento
+                </h4>
+                <div 
+                  className="text-slate-600 leading-relaxed font-medium prose prose-slate max-w-none"
+                  dangerouslySetInnerHTML={{ __html: evento.descricao }} 
+                />
+              </div>
+
+              <div className="md:col-span-4 flex justify-center">
+                <div className="w-full max-w-[200px] aspect-[236/354] bg-white p-2 rounded-[1.5rem] shadow-sm border border-slate-100">
+                  <div className="w-full h-full rounded-[1.2rem] overflow-hidden">
+                    <img
+                      src={urlFinalPatrocinador}
+                      className="w-full h-full object-cover"
+                      alt="Sponsor"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Info Principal com o Headline Especial */}
-            <div className="md:col-span-7 p-8 md:p-12 flex flex-col justify-center bg-[#7047EB]">
-                <div className="flex items-center gap-2 mb-6">
-                    <span className="px-2.5 py-0.5 bg-white/20 text-white rounded-md text-[11px] font-bold uppercase tracking-wider backdrop-blur-md">
-                        {evento.categoria || 'Evento'}
-                    </span>
-                </div>
-
-                {/* O HEADLINE QUE VOCÊ PEDIU COM O "AGORA" EM BRANCO */}
-                <h1 className="text-5xl md:text-7xl font-black text-[#FF4D4D] leading-[0.95] tracking-tighter mb-8 italic uppercase text-balance">
-                  Transforme-se <br/>
-                  <span className="text-white">agora</span>
-                  <span className="text-[#FF4D4D]">.</span>
-                </h1>
-
-                <h2 className="text-2xl font-bold text-white mb-8 opacity-90">{evento.nome}</h2>
-
-                <div className="space-y-4 text-white/90">
-                    <div className="flex items-center gap-3">
-                        <Calendar size={20} className="text-white/60" />
-                        <span className="font-semibold text-sm">
-                            {new Date(evento.data_inicio).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })} • {evento.hora_inicio}
-                        </span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <MapPin size={20} className="text-white/60" />
-                        <span className="font-semibold text-sm">{evento.local_nome}, {evento.cidade}</span>
-                    </div>
-                </div>
-            </div>
-          </div>
-        </div>
-
-        {/* CONTENT AREA */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          <div className="lg:col-span-7 space-y-8">
-            <div className="bg-white rounded-[32px] p-8 md:p-10 border border-slate-100 shadow-sm">
-                <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
-                    <AlignLeft className="text-[#7047EB]" size={20} />
-                    Sobre o Evento
+            {/* SELEÇÃO DE INGRESSOS */}
+            <section className="space-y-6">
+              <div className="flex items-center justify-between gap-4">
+                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-[0.2em] ml-2">
+                  Escolha seu acesso
                 </h3>
-                <div 
-                  className="prose prose-slate max-w-none text-slate-600 leading-relaxed font-normal"
-                  dangerouslySetInnerHTML={{ __html: evento.descricao }} 
-                />
-            </div>
-          </div>
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
+                  Moeda: {evento.moeda}
+                </span>
+              </div>
 
-          {/* Ingressos Sticky */}
-          <div className="lg:col-span-5">
-            <div className="sticky top-24 space-y-6">
-                <div className="bg-white rounded-[32px] p-8 border border-slate-100 shadow-sm">
-                    <h3 className="text-lg font-bold mb-6">Ingressos</h3>
-                    <div className="space-y-4">
-                        {evento.ingressos?.map((ing: any) => (
-                            <div key={ing.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-100 hover:border-[#7047EB]/30 transition-all group">
-                                <div className="flex justify-between items-start mb-4">
-                                    <div>
-                                        <p className="font-bold text-slate-900 group-hover:text-[#7047EB] transition-colors">{ing.nome}</p>
-                                        <p className="text-[#7047EB] font-extrabold text-sm">{formatCurrency(ing.preco, ing.moeda || evento.moeda)}</p>
-                                    </div>
-                                    <div className="flex items-center gap-4 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm">
-                                        <button onClick={() => setQuantidades(p => ({...p, [ing.id]: Math.max(0, (p[ing.id]||0)-1)}))} className="text-slate-400 hover:text-black transition-colors"><Minus size={14} strokeWidth={3} /></button>
-                                        <span className="text-sm font-bold w-4 text-center">{quantidades[ing.id] || 0}</span>
-                                        <button onClick={() => setQuantidades(p => ({...p, [ing.id]: (p[ing.id]||0)+1}))} className="text-slate-400 hover:text-black transition-colors"><Plus size={14} strokeWidth={3} /></button>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
+              <div className="space-y-3">
+                {evento.ingressos?.map((ing: any) => (
+                  <div
+                    key={ing.id}
+                    className="group bg-white hover:bg-indigo-600 p-6 rounded-[1.8rem] border border-slate-100 hover:border-indigo-400 transition-all duration-300 flex items-center justify-between shadow-sm hover:shadow-xl hover:shadow-indigo-200"
+                  >
+                    <div>
+                      <p className="text-sm font-bold uppercase tracking-wide text-slate-900 group-hover:text-white transition-colors">
+                        {ing.nome}
+                      </p>
+                      <p className="text-indigo-600 font-bold text-sm mt-1 group-hover:text-indigo-200 transition-colors">
+                        {formatCurrency(ing.preco, ing.moeda || evento.moeda)}
+                      </p>
                     </div>
-                    <div className="mt-8 pt-6 border-t border-slate-100">
-                        <div className="flex justify-between items-end mb-6">
-                            <span className="text-sm font-medium text-slate-500">Total</span>
-                            <span className="text-3xl font-black">{formatCurrency(totalGeral, evento.moeda)}</span>
-                        </div>
-                        <Link href={totalGeral > 0 ? linkVenda : '#'} className={`w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg ${totalGeral > 0 ? 'bg-[#7047EB] text-white hover:bg-[#5d39cc] shadow-[#7047EB]/20' : 'bg-slate-100 text-slate-400 cursor-not-allowed'}`}>
-                            Registrar Agora <ArrowRight size={18} />
-                        </Link>
+
+                    <div className="flex items-center gap-6 bg-slate-50 group-hover:bg-white/10 px-5 py-2.5 rounded-2xl transition-colors">
+                      <button
+                        onClick={() =>
+                          setQuantidades((prev) => ({
+                            ...prev,
+                            [String(ing.id)]: Math.max(0, (prev[String(ing.id)] || 0) - 1),
+                          }))
+                        }
+                        className="text-slate-400 hover:text-indigo-600 group-hover:text-white"
+                        type="button"
+                      >
+                        <Minus size={16} strokeWidth={3} />
+                      </button>
+
+                      <span className="text-md font-black w-4 text-center group-hover:text-white">
+                        {quantidades[String(ing.id)] || 0}
+                      </span>
+
+                      <button
+                        onClick={() =>
+                          setQuantidades((prev) => ({
+                            ...prev,
+                            [String(ing.id)]: (prev[String(ing.id)] || 0) + 1,
+                          }))
+                        }
+                        className="text-slate-400 hover:text-indigo-600 group-hover:text-white"
+                        type="button"
+                      >
+                        <Plus size={16} strokeWidth={3} />
+                      </button>
                     </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* CHECKOUT COM VALOR CORRIGIDO */}
+              <div className="mt-12 bg-slate-900 p-8 rounded-[2.5rem] flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl">
+                <div>
+                  <p className="text-[10px] font-bold tracking-[0.3em] text-slate-500 uppercase">
+                    Valor do investimento
+                  </p>
+                  <p className="text-4xl font-black text-white mt-1">
+                    {formatCurrency(totalGeral, evento.moeda)}
+                  </p>
                 </div>
-            </div>
+
+                <Link
+                  href={totalGeral > 0 ? linkVenda : '#'}
+                  className={`group flex items-center gap-4 px-10 py-5 rounded-2xl font-bold transition-all duration-300 ${
+                    totalGeral > 0
+                      ? 'bg-indigo-600 text-white hover:bg-white hover:text-indigo-600'
+                      : 'bg-slate-800 text-slate-600 cursor-not-allowed pointer-events-none'
+                  }`}
+                >
+                  <span className="text-sm uppercase tracking-widest">Confirmar Pedido</span>
+                  <ArrowRight size={20} className="group-hover:translate-x-2 transition-transform" />
+                </Link>
+              </div>
+            </section>
           </div>
         </div>
       </main>
+
       <Footer />
+
       <style jsx global>{`
-        .prose p { margin-bottom: 1.25rem; }
-        .prose strong { font-weight: 700; color: #000; }
-        body { font-family: 'Inter', sans-serif; }
+        .prose ul { list-style-type: disc !important; padding-left: 1.5rem !important; margin: 1rem 0 !important; }
+        .prose ol { list-style-type: decimal !important; padding-left: 1.5rem !important; margin: 1rem 0 !important; }
+        .prose li { margin-bottom: 0.5rem !important; }
+        .prose strong { font-weight: 800 !important; color: #0f172a !important; }
+        .prose p { margin-bottom: 1rem !important; }
       `}</style>
     </div>
   );
