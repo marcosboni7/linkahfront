@@ -20,26 +20,23 @@ import Link from 'next/link';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api-linkah.onrender.com';
 const CLOUDINARY_CLOUD_NAME = 'dj32txsol';
 
+// Utilitários de Formatação
 function normalizeCurrency(input?: string) {
   const raw = String(input || '').trim().toUpperCase();
-
   if (raw === 'R$' || raw === 'REAL' || raw === 'REAIS' || raw === 'BRL') return 'BRL';
   if (raw === '€' || raw === 'EURO' || raw === 'EUROS' || raw === 'EUR') return 'EUR';
   if (raw === '$' || raw === 'DOLAR' || raw === 'DÓLAR' || raw === 'DOLARES' || raw === 'DÓLARES' || raw === 'USD') return 'USD';
-
   return 'BRL';
 }
 
 function formatCurrency(value: number | string, currency?: string) {
   const amount = Number(value || 0);
   const moeda = normalizeCurrency(currency);
-
   const localeMap: Record<string, string> = {
     BRL: 'pt-BR',
     EUR: 'de-DE',
     USD: 'en-US',
   };
-
   return new Intl.NumberFormat(localeMap[moeda] || 'pt-BR', {
     style: 'currency',
     currency: moeda,
@@ -62,62 +59,38 @@ export default function DetalhesEquilibrado() {
           cache: 'no-store',
         });
 
-        if (!res.ok) {
-          throw new Error('Erro ao carregar evento');
-        }
+        if (!res.ok) throw new Error('Erro ao carregar evento');
 
         const data = await res.json();
-
-        console.log('🔥 EVENTO RAW API:', data);
-        console.log('🔥 MOEDA RAW EVENTO:', data?.moeda);
-        console.log('🔥 INGRESSOS RAW:', data?.ingressos);
-
+        
+        // Normalização da moeda base do evento
         const moedaEvento = normalizeCurrency(
-          data?.moeda ||
-          data?.currency ||
-          data?.moeda_evento ||
-          data?.tipo_moeda ||
-          data?.valor_moeda
+          data?.moeda || data?.currency || data?.moeda_evento || 'BRL'
         );
 
+        // Tratamento dos ingressos
         const ingressosTratados = Array.isArray(data?.ingressos)
-          ? data.ingressos.map((ing: any) => {
-              const moedaIngresso = normalizeCurrency(
-                ing?.moeda ||
-                ing?.currency ||
-                ing?.moeda_ingresso ||
-                ing?.tipo_moeda ||
-                moedaEvento
-              );
-
-              return {
-                ...ing,
-                preco: Number(ing?.preco || 0),
-                moeda: moedaIngresso,
-              };
-            })
+          ? data.ingressos.map((ing: any) => ({
+              ...ing,
+              preco: Number(ing?.preco || 0),
+              moeda: normalizeCurrency(ing?.moeda || moedaEvento),
+            }))
           : [];
 
-        const eventoTratado = {
+        setEvento({
           ...data,
           moeda: moedaEvento,
           ingressos: ingressosTratados,
-        };
-
-        console.log('✅ EVENTO TRATADO:', eventoTratado);
-
-        setEvento(eventoTratado);
-
-        const qts: Record<string, number> = {};
-        ingressosTratados.forEach((ing: any) => {
-          qts[ing.id] = 0;
         });
 
+        // Inicializa quantidades (primeiro ingresso com 1 por padrão)
+        const qts: Record<string, number> = {};
+        ingressosTratados.forEach((ing: any) => { qts[ing.id] = 0; });
         if (ingressosTratados.length > 0) {
           qts[ingressosTratados[0].id] = 1;
         }
-
         setQuantidades(qts);
+
       } catch (err) {
         console.error('❌ Erro ao carregar evento:', err);
         setEvento(null);
@@ -129,33 +102,23 @@ export default function DetalhesEquilibrado() {
     if (id) carregarEvento();
   }, [id]);
 
-  const moedaEvento = useMemo(() => normalizeCurrency(evento?.moeda), [evento]);
-
   const totalGeral = useMemo(() => {
     if (!Array.isArray(evento?.ingressos)) return 0;
-
     return evento.ingressos.reduce((acc: number, ing: any) => {
       const quantidade = quantidades[ing.id] || 0;
-      return acc + Number(ing.preco || 0) * quantidade;
+      return acc + (Number(ing.preco || 0) * quantidade);
     }, 0);
   }, [evento, quantidades]);
 
-  if (loading) {
-    return (
-      <div className="h-screen flex items-center justify-center bg-slate-50">
-        <Loader2 className="animate-spin text-indigo-600" size={32} />
-      </div>
-    );
-  }
+  if (loading) return (
+    <div className="h-screen flex items-center justify-center bg-slate-50">
+      <Loader2 className="animate-spin text-indigo-600" size={32} />
+    </div>
+  );
 
-  if (!evento) {
-    return (
-      <div className="h-screen flex items-center justify-center">
-        Evento não encontrado.
-      </div>
-    );
-  }
+  if (!evento) return <div className="h-screen flex items-center justify-center font-bold">Evento não encontrado.</div>;
 
+  // URLs das Imagens
   const urlFinalImagem = evento.imagem_capa?.startsWith('http')
     ? evento.imagem_capa
     : `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${evento.imagem_capa}`;
@@ -171,6 +134,7 @@ export default function DetalhesEquilibrado() {
       <Navbar />
 
       <main className="max-w-7xl mx-auto px-6 lg:px-12 pt-8 pb-32">
+        {/* Botão Voltar */}
         <button
           onClick={() => router.back()}
           className="mb-10 inline-flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-sm border border-slate-100 text-slate-500 hover:text-indigo-600 hover:border-indigo-100 transition-all text-xs font-semibold"
@@ -179,6 +143,8 @@ export default function DetalhesEquilibrado() {
         </button>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20">
+          
+          {/* LADO ESQUERDO: CAPA */}
           <div className="lg:col-span-6">
             <div className="sticky top-28">
               <div className="relative aspect-[1080/1350] w-full rounded-[2.5rem] overflow-hidden shadow-2xl shadow-indigo-900/10 border-4 border-white">
@@ -187,7 +153,6 @@ export default function DetalhesEquilibrado() {
                   className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
                   alt={evento.nome}
                 />
-
                 <div className="absolute top-6 left-6">
                   <div className="bg-white/70 backdrop-blur-md px-4 py-2 rounded-2xl flex items-center gap-2 border border-white/50 shadow-sm">
                     <Verified size={16} className="text-indigo-600" />
@@ -200,18 +165,19 @@ export default function DetalhesEquilibrado() {
             </div>
           </div>
 
+          {/* LADO DIREITO: INFO E INGRESSOS */}
           <div className="lg:col-span-6 space-y-10">
             <section className="space-y-6">
               <div className="space-y-2">
                 <span className="inline-block px-3 py-1 bg-indigo-50 text-indigo-700 rounded-lg text-[10px] font-bold uppercase tracking-wider">
                   {evento.categoria || 'Destaque'}
                 </span>
-
                 <h1 className="text-4xl md:text-6xl font-black tracking-tight text-slate-900 leading-tight">
                   {evento.nome}
                 </h1>
               </div>
 
+              {/* Badges de Info */}
               <div className="flex flex-wrap gap-4">
                 <div className="flex items-center gap-3 bg-white px-5 py-3 rounded-2xl border border-slate-100 shadow-sm">
                   <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600">
@@ -224,7 +190,7 @@ export default function DetalhesEquilibrado() {
                         day: '2-digit',
                         month: 'long',
                       })}{' '}
-                      • {evento.hora_inicio || '20:00'}
+                      • {evento.hora_inicio}
                     </p>
                   </div>
                 </div>
@@ -243,16 +209,19 @@ export default function DetalhesEquilibrado() {
               </div>
             </section>
 
+            {/* SOBRE O EVENTO COM FIX DE QUEBRA DE LINHA */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
               <div className="md:col-span-8 bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm">
                 <h4 className="text-xs font-bold text-slate-300 uppercase tracking-widest mb-4 flex items-center gap-2">
                   <Info size={14} /> Sobre o evento
                 </h4>
-                <p className="text-slate-600 leading-relaxed font-medium">
+                {/* AQUI ESTÁ O SEGREDO: whitespace-pre-wrap */}
+                <p className="text-slate-600 leading-relaxed font-medium whitespace-pre-wrap">
                   {evento.descricao}
                 </p>
               </div>
 
+              {/* Patrocinador */}
               <div className="md:col-span-4 flex justify-center">
                 <div className="w-full max-w-[200px] aspect-[236/354] bg-white p-2 rounded-[1.5rem] shadow-sm border border-slate-100">
                   <div className="w-full h-full rounded-[1.2rem] overflow-hidden">
@@ -266,14 +235,14 @@ export default function DetalhesEquilibrado() {
               </div>
             </div>
 
+            {/* SELEÇÃO DE INGRESSOS */}
             <section className="space-y-6">
               <div className="flex items-center justify-between gap-4">
                 <h3 className="text-sm font-bold text-slate-900 uppercase tracking-[0.2em] ml-2">
                   Escolha seu acesso
                 </h3>
-
                 <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
-                  Moeda: {moedaEvento}
+                  Moeda: {evento.moeda}
                 </span>
               </div>
 
@@ -287,13 +256,8 @@ export default function DetalhesEquilibrado() {
                       <p className="text-sm font-bold uppercase tracking-wide text-slate-900 group-hover:text-white transition-colors">
                         {ing.nome}
                       </p>
-
                       <p className="text-indigo-600 font-bold text-sm mt-1 group-hover:text-indigo-200 transition-colors">
-                        {formatCurrency(ing.preco, ing.moeda || moedaEvento)}
-                      </p>
-
-                      <p className="text-[10px] mt-1 text-slate-400 group-hover:text-indigo-100 transition-colors">
-                      moeda: {moedaEvento}
+                        {formatCurrency(ing.preco, ing.moeda || evento.moeda)}
                       </p>
                     </div>
 
@@ -332,13 +296,14 @@ export default function DetalhesEquilibrado() {
                 ))}
               </div>
 
+              {/* BARRA DE CHECKOUT */}
               <div className="mt-12 bg-slate-900 p-8 rounded-[2.5rem] flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl">
                 <div>
                   <p className="text-[10px] font-bold tracking-[0.3em] text-slate-500 uppercase">
                     Valor do investimento
                   </p>
                   <p className="text-4xl font-black text-white mt-1">
-                    {formatCurrency(totalGeral, moedaEvento)}
+                    {formatCurrency(totalGeral, evento.moeda)}
                   </p>
                 </div>
 
