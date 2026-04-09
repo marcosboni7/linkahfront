@@ -78,7 +78,7 @@ export default function LoginPage() {
   <span className="text-white">agora</span>
   <span className="text-[#FF4D4D]">.</span>
 </h1>
-            <p className="text-gray-400 text-lg font-medium max-w-sm">Entre para gerenciar seus ingressos e explorar novas experiências.</p>
+            <p className="text-gray-400 text-lg font-medium max-w-sm">Entre para gerenciar seus eventos e explorar novas experiências.</p>
           </div>
           <div className="text-white/20 text-[10px] font-black uppercase tracking-[0.4em]">Linkah Protocol © 2026</div>
         </div>
