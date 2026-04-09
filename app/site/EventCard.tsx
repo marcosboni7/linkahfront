@@ -1,83 +1,259 @@
+//eventcard
+
 'use client';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { MapPin, ArrowUpRight, Calendar } from 'lucide-react';
+import { MapPin, Calendar, ArrowUpRight } from 'lucide-react';
+import { useLanguage } from '@/app/context/LanguageContext';
+
+const API_URL_BASE =
+  process.env.NEXT_PUBLIC_API_URL || 'https://api-linkah.onrender.com';
+
+const CLOUDINARY_CLOUD_NAME = 'dj32txsol';
 
 export function EventCard({ evento }: { evento: any }) {
+  const { language, t }: any = useLanguage();
   const [isMounted, setIsMounted] = useState(false);
-  useEffect(() => setIsMounted(true), []);
 
-  if (!isMounted) return <div className="h-32 w-full bg-slate-50 rounded-3xl mb-6 animate-pulse" />;
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
-  const imgUrl = evento?.imagem_capa || evento?.imagem;
-  const imagem = imgUrl?.startsWith('http') 
-    ? imgUrl 
-    : `https://res.cloudinary.com/dj32txsol/image/upload/${imgUrl}`;
+  const locale = language === 'PT' ? 'pt-BR' : 'en-US';
 
-  const dataObj = new Date(evento?.data_inicio || evento?.data);
-  const dia = dataObj.getUTCDate();
-  const mes = dataObj.toLocaleString('pt-BR', { month: 'short', timeZone: 'UTC' }).toUpperCase().replace('.', '');
+  useEffect(() => {
+    if (isMounted && evento) {
+      console.log(`--- DEBUG EVENTO: ${evento.nome} ---`);
+      console.log('Data Raw da API:', evento.data_inicio || evento.data);
+      console.log('Preço Mínimo:', evento.preco_minimo);
+      console.log('Imagem Raw:', evento.imagem_capa || evento.imagem);
+    }
+  }, [isMounted, evento]);
+
+  const renderImagem = () => {
+    const img = evento?.imagem_capa || evento?.imagem;
+
+    if (!img || img === 'null' || img === 'undefined') {
+      return 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4';
+    }
+
+    const valor = String(img).trim();
+
+    // URL completa
+    if (valor.startsWith('http://') || valor.startsWith('https://')) {
+      return valor;
+    }
+
+    // Public ID da Cloudinary
+    if (valor.startsWith('linkah/eventos/')) {
+      return `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${valor}`;
+    }
+
+    // Imagens antigas locais
+    return `${API_URL_BASE}/uploads/${valor.replace(/^\/+/, '')}`;
+  };
+
+  const getCurrencySymbol = () => {
+    const m = String(evento?.moeda || evento?.currency || '').toUpperCase();
+
+    if (m === 'EUR') return '€';
+    if (m === 'USD') return '$';
+    if (m === 'BRL') return 'R$';
+
+    return language === 'PT' ? 'R$' : '$';
+  };
+
+  const formatarDataVitrine = () => {
+    if (!isMounted) {
+      return { diaSemana: '', dia: '', mes: '', hora: '' };
+    }
+
+    const dataRaw = evento?.data_inicio || evento?.data;
+    if (!dataRaw) {
+      return { diaSemana: '', dia: '', mes: '', hora: '' };
+    }
+
+    try {
+      const apenasData = String(dataRaw).split('T')[0];
+      const partes = apenasData.split('-');
+
+      if (partes.length !== 3) {
+        return { diaSemana: '', dia: '', mes: '', hora: '' };
+      }
+
+      const ano = Number(partes[0]);
+      const mesNum = Number(partes[1]);
+      const diaNum = Number(partes[2]);
+
+      if (!ano || !mesNum || !diaNum) {
+        return { diaSemana: '', dia: '', mes: '', hora: '' };
+      }
+
+      const dataUTC = new Date(Date.UTC(ano, mesNum - 1, diaNum));
+
+      if (isNaN(dataUTC.getTime())) {
+        return { diaSemana: '', dia: '', mes: '', hora: '' };
+      }
+
+      const diasSemanaPt = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
+      const diasSemanaEn = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+
+      const mesesPt = [
+        'JAN',
+        'FEV',
+        'MAR',
+        'ABR',
+        'MAI',
+        'JUN',
+        'JUL',
+        'AGO',
+        'SET',
+        'OUT',
+        'NOV',
+        'DEZ'
+      ];
+
+      const mesesEn = [
+        'JAN',
+        'FEB',
+        'MAR',
+        'APR',
+        'MAY',
+        'JUN',
+        'JUL',
+        'AUG',
+        'SEP',
+        'OCT',
+        'NOV',
+        'DEC'
+      ];
+
+      const diaSemana =
+        locale === 'pt-BR'
+          ? diasSemanaPt[dataUTC.getUTCDay()]
+          : diasSemanaEn[dataUTC.getUTCDay()];
+
+      const dia = String(diaNum).padStart(2, '0');
+
+      const mes =
+        locale === 'pt-BR'
+          ? mesesPt[mesNum - 1]
+          : mesesEn[mesNum - 1];
+
+      const horaRaw = String(evento?.horario || evento?.hora_inicio || '');
+      let horaFormatada = horaRaw.slice(0, 5);
+
+      if (horaFormatada === '00:00' || !horaFormatada) {
+        horaFormatada = '';
+      }
+
+      console.log(`Data Processada (${evento.nome}):`, {
+        dataRaw,
+        apenasData,
+        diaSemana,
+        dia,
+        mes,
+        horaFormatada
+      });
+
+      return {
+        diaSemana,
+        dia,
+        mes,
+        hora: horaFormatada
+      };
+    } catch (e) {
+      console.error('Erro ao formatar data:', e);
+      return { diaSemana: '', dia: '', mes: '', hora: '' };
+    }
+  };
+
+  const { diaSemana, dia, mes, hora } = formatarDataVitrine();
+
+  const traduzirCategoria = (cat: string) => {
+    if (!isMounted || !t) return cat;
+
+    const categorias: Record<string, string> = {
+      'Arte & Cultura': t?.catArt || 'Arte & Cultura',
+      'Entretenimento': t?.catEnt || 'Entretenimento',
+      'Negócios': t?.catBiz || 'Negócios',
+      'Educação & Desenvolvimento': t?.catEdu || 'Educação',
+      'Esportes & Bem-estar': t?.catHealth || 'Bem-estar',
+      'Experiências & Lifestyle': t?.catLife || 'Lifestyle',
+      'Família & Comunidade': t?.catFamily || 'Comunidade',
+    };
+
+    return categorias[cat] || cat;
+  };
+
+  if (!isMounted) {
+    return (
+      <div className="w-full aspect-[16/10] bg-slate-50 rounded-2xl animate-pulse border border-gray-100" />
+    );
+  }
 
   return (
     <Link
-      href={`/evento/${evento?.id}`}
-      className="group relative block w-full mb-6"
+      href={`/evento/${evento?.id || ''}`}
+      className="group block w-full bg-white rounded-2xl overflow-hidden hover:shadow-[0_30px_60px_-15px_rgba(255,77,77,0.15)] transition-all duration-500 border border-gray-100 flex flex-col h-full"
     >
-      <div className="flex items-center gap-8 p-6 bg-white rounded-[2.5rem] border border-transparent hover:border-slate-100 hover:shadow-[0_20px_50px_rgba(0,0,0,0.04)] transition-all duration-500">
-        
-        {/* 1. DATA COM DESTAQUE (BOX) */}
-        <div className="flex flex-col items-center justify-center min-w-[70px] h-[70px] bg-slate-50 rounded-2xl group-hover:bg-rose-50 transition-colors duration-500">
-          <span className="text-[10px] font-black text-slate-400 group-hover:text-rose-500 tracking-widest">{mes}</span>
-          <span className="text-2xl font-black text-slate-900 leading-none">{dia}</span>
+      <div className="relative aspect-[16/10] overflow-hidden bg-gray-100">
+        <img
+          src={renderImagem()}
+          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+          alt={String(evento?.nome || 'Evento')}
+          onError={(e) => {
+            e.currentTarget.src =
+              'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4';
+          }}
+        />
+
+        <div className="absolute top-4 left-4">
+          <span className="bg-white/95 backdrop-blur-sm text-slate-900 text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-lg shadow-sm">
+            {traduzirCategoria(String(evento?.categoria || 'Evento'))}
+          </span>
+        </div>
+      </div>
+
+      <div className="p-6 flex flex-col flex-grow">
+        <div className="flex items-center gap-2 text-[#ff4d4d] text-[11px] font-bold uppercase tracking-wider mb-4">
+          <Calendar size={14} strokeWidth={2.5} />
+          <span>
+            {diaSemana ? `${diaSemana}, ${dia} ${mes}` : 'Data a definir'}
+            {hora && ` • ${hora}`}
+          </span>
         </div>
 
-        {/* 2. IMAGEM COM MOLDURA LARGA */}
-        <div className="relative h-24 w-24 md:h-28 md:w-28 flex-shrink-0 overflow-hidden rounded-[1.8rem] shadow-sm">
-          <img
-            src={imagem}
-            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
-            alt={evento?.nome}
-          />
+        <h3 className="text-slate-900 font-bold text-lg leading-tight mb-3 group-hover:text-[#ff4d4d] transition-colors line-clamp-2 min-h-[56px]">
+          {String(evento?.nome || 'Evento sem nome')}
+        </h3>
+
+        <div className="flex items-center gap-1.5 text-gray-400 mb-6">
+          <MapPin size={14} className="flex-shrink-0 text-gray-300" />
+          <span className="text-xs font-medium truncate">
+            {String(evento?.local_nome || 'Local')}, {String(evento?.cidade || '')}
+          </span>
         </div>
 
-        {/* 3. CONTEÚDO COM ESPAÇAMENTO INTERNO */}
-        <div className="flex flex-col flex-grow min-w-0 space-y-2">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 rounded-full">
-              <Calendar size={10} className="text-slate-500" />
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">
-                {evento?.horario || 'A definir'}
-              </span>
-            </div>
-            <span className="text-[10px] font-black text-rose-500 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-              • {evento?.categoria}
-            </span>
+        <div className="mt-auto pt-5 border-t border-gray-50 flex items-center justify-between">
+          <div>
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
+              {String(t?.from || 'A partir de')}
+            </p>
+
+            <p className="text-xl font-black text-slate-900 tracking-tight">
+              <span className="text-sm font-bold mr-0.5">{getCurrencySymbol()}</span>
+              {evento?.preco_minimo
+                ? Number(evento.preco_minimo).toLocaleString(locale, {
+                    minimumFractionDigits: 2
+                  })
+                : '0.00'}
+            </p>
           </div>
 
-          <h3 className="text-slate-900 font-bold text-xl md:text-2xl leading-tight group-hover:text-rose-500 transition-colors duration-300">
-            {evento?.nome}
-          </h3>
-
-          <div className="flex items-center gap-1.5 text-slate-400">
-            <MapPin size={14} className="text-slate-300" />
-            <span className="text-sm font-medium truncate">
-              {evento?.local_nome || 'Local'} • <span className="text-slate-300">{evento?.cidade}</span>
-            </span>
-          </div>
-        </div>
-
-        {/* 4. PREÇO & ACTION */}
-        <div className="flex items-center gap-6 pl-4 border-l border-slate-50">
-          <div className="hidden lg:flex flex-col items-end">
-            <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">Entry</span>
-            <span className="text-lg font-black text-slate-900">
-              {evento?.preco_minimo > 0 ? `R$ ${Number(evento.preco_minimo).toFixed(0)}` : 'FREE'}
-            </span>
-          </div>
-          
-          <div className="w-12 h-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center group-hover:bg-rose-500 group-hover:shadow-[0_10px_20px_rgba(244,63,94,0.3)] transition-all duration-500">
-            <ArrowUpRight size={22} />
+          <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-[#ff4d4d] group-hover:text-white group-hover:rotate-45 transition-all duration-500">
+            <ArrowUpRight size={20} />
           </div>
         </div>
       </div>
