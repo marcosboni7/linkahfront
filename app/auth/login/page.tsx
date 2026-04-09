@@ -22,6 +22,8 @@ type Usuario = {
   role?: string;
   perfil?: string;
   perfil_completo?: boolean;
+  cpf_cnpj?: string;
+  cep?: string;
 };
 
 export default function LoginPage() {
@@ -91,9 +93,11 @@ export default function LoginPage() {
       const usuarioParaSalvar: Usuario = data?.user || data?.usuario || data?.data?.user || data?.data?.usuario || {
         id: data.user?.id || data.id,
         nome: data.user?.nome || email.split('@')[0],
-        email: email,
+        email: email.trim().toLowerCase(),
         perfil: data.user?.perfil || 'produtor',
-        perfil_completo: data.user?.perfil_completo || false
+        perfil_completo: data.user?.perfil_completo || false,
+        cpf_cnpj: data.user?.cpf_cnpj || '',
+        cep: data.user?.cep || '',
       };
 
       // --- PERSISTÊNCIA COMPLETA ---
@@ -104,7 +108,24 @@ export default function LoginPage() {
 
       localStorage.setItem('@Linkah:User', JSON.stringify(usuarioParaSalvar));
       localStorage.setItem('userEmail', email.trim().toLowerCase());
-      localStorage.setItem('perfil_completo', JSON.stringify(usuarioParaSalvar));
+
+      const completo =
+        usuarioParaSalvar?.perfil_completo === true ||
+        Boolean(
+          usuarioParaSalvar?.nome?.trim() &&
+          usuarioParaSalvar?.cpf_cnpj?.trim() &&
+          usuarioParaSalvar?.cep?.trim()
+        );
+
+      localStorage.setItem('perfil_completo', completo ? 'true' : 'false');
+
+      localStorage.setItem(
+        '@Linkah:User',
+        JSON.stringify({
+          ...usuarioParaSalvar,
+          perfil_completo: completo,
+        })
+      );
       
       // Cookie para o Middleware
       document.cookie = `userEmail=${email.trim().toLowerCase()}; path=/; max-age=86400; SameSite=Lax`;
@@ -112,7 +133,7 @@ export default function LoginPage() {
       console.log('✅ Sessão salva no LocalStorage');
 
       // Redirecionamento Inteligente
-      const targetPath = usuarioParaSalvar.perfil_completo ? '/dashboard/eventos' : '/dashboard/perfil';
+      const targetPath = completo ? '/dashboard/eventos' : '/dashboard/perfil';
       
       setTimeout(() => {
         window.location.href = targetPath;
