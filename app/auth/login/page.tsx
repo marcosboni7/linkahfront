@@ -247,7 +247,7 @@ export default function LoginPage() {
           <footer className="mt-8 pt-8 border-t border-gray-100 text-center">
             <p className="text-[11px] font-black uppercase tracking-widest text-gray-400">
               Ainda não possui conta? 
-              <Link href="/auth/register" className="text-black hover:text-[#FF4D4D] transition-colors ml-2 underline decoration-gray-200 underline-offset-4">
+              <Link href="/auth/registro" className="text-black hover:text-[#FF4D4D] transition-colors ml-2 underline decoration-gray-200 underline-offset-4">
                 Criar Agora
               </Link>
             </p>
