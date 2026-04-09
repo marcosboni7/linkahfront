@@ -26,7 +26,7 @@ export function ExploreLocal({ activeCity, onSelect }: ExploreLocalProps) {
     { id: 'Remoto', name: 'Remoto' },
   ];
 
-  const normalizeText = (text: string) =>
+  const normalizeText = (text: string = '') =>
     text
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
@@ -77,6 +77,7 @@ export function ExploreLocal({ activeCity, onSelect }: ExploreLocalProps) {
         <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500">
           <Navigation size={18} strokeWidth={2.5} />
         </div>
+
         <div>
           <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">
             Explorar por Local
@@ -108,6 +109,7 @@ export function ExploreLocal({ activeCity, onSelect }: ExploreLocalProps) {
             >
               {city.id === 'Remoto' ? <Globe size={14} /> : <MapPin size={14} />}
             </div>
+
             <span className="text-sm font-black uppercase tracking-tight">
               {city.name}
             </span>
@@ -130,6 +132,7 @@ export function ExploreLocal({ activeCity, onSelect }: ExploreLocalProps) {
           >
             <Search size={14} />
           </div>
+
           <span className="text-sm font-black uppercase tracking-tight">
             {isCustom ? activeCity : 'Outros'}
           </span>
@@ -166,6 +169,7 @@ export function ExploreLocal({ activeCity, onSelect }: ExploreLocalProps) {
                 size={18}
                 className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400"
               />
+
               <input
                 autoFocus
                 placeholder="Ex: Porto, Lisboa, Curitiba..."
@@ -178,6 +182,7 @@ export function ExploreLocal({ activeCity, onSelect }: ExploreLocalProps) {
                 }}
                 className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-5 pl-14 pr-12 text-slate-900 font-bold outline-none focus:ring-2 focus:ring-violet-500/20"
               />
+
               {searchTerm && (
                 <button
                   onClick={() => setSearchTerm('')}
@@ -197,12 +202,9 @@ export function ExploreLocal({ activeCity, onSelect }: ExploreLocalProps) {
                     className="w-full flex items-center gap-3 px-4 py-4 rounded-2xl bg-slate-50 hover:bg-violet-50 border border-transparent hover:border-violet-100 transition text-left"
                   >
                     <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center text-slate-500">
-                      {city.id === 'Remoto' ? (
-                        <Globe size={16} />
-                      ) : (
-                        <MapPin size={16} />
-                      )}
+                      {city.id === 'Remoto' ? <Globe size={16} /> : <MapPin size={16} />}
                     </div>
+
                     <span className="text-sm font-black text-slate-800 uppercase tracking-tight">
                       {city.name}
                     </span>
