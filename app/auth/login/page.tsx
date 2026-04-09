@@ -179,7 +179,7 @@ export default function LoginPage() {
                <span className="text-[10px] font-black text-white uppercase tracking-[0.3em]">Ambiente Seguro v2.6</span>
             </div>
             <h1 className="text-8xl font-black text-white leading-[0.95] tracking-tighter mb-8 italic uppercase text-balance">
-              Transforme <br/>o <span className="text-[#FF4D4D]">Agora.</span>
+              Transforme-se <br/>o <span className="text-[#FF4D4D]">Agora.</span>
             </h1>
             <p className="text-gray-400 text-xl font-medium leading-relaxed max-w-md">
               Acesse sua central de inteligência para gestão de eventos e audiência.
