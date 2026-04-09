@@ -4,9 +4,9 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Mail, Lock, User, ChevronLeft, ArrowRight, Loader2, Sparkles } from 'lucide-react';
+import Swal from 'sweetalert2'; // Adicionei a importação do SweetAlert2
 
 // --- CONFIGURAÇÃO DA API ---
-// Centralizado para evitar erros de digitação (Baseado no seu back do Render)
 const API_URL = 'https://api-linkah.onrender.com';
 
 export default function RegisterPage() {
@@ -23,7 +23,6 @@ export default function RegisterPage() {
     setLoading(true);
     setError('');
 
-    // Validação básica antes de enviar ao servidor
     if (senha.length < 6) {
       setError('A senha precisa de no mínimo 6 caracteres.');
       setLoading(false);
@@ -47,28 +46,46 @@ export default function RegisterPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        // Se o erro for 500, provavelmente é e-mail duplicado ou erro de banco no Render
         if (response.status === 500) {
           throw new Error('Servidor instável ou e-mail já cadastrado. Tente outro.');
         }
         throw new Error(data.message || 'Erro ao criar conta. Tente novamente.');
       }
 
-      // Registro bem sucedido -> Salva os dados e autentica
+      // --- SUCESSO NO REGISTRO ---
+      await Swal.fire({
+        icon: 'success',
+        title: 'CONTA CRIADA!',
+        text: 'Seja bem-vindo à Linkah.',
+        showConfirmButton: false,
+        timer: 2000,
+        timerProgressBar: true,
+        customClass: {
+          popup: 'rounded-[3rem] border-none shadow-2xl',
+          title: 'font-black italic uppercase tracking-tighter text-slate-900',
+        }
+      });
+
       if (data.token) {
         localStorage.setItem('@Linkah:Token', data.token);
         localStorage.setItem('@Linkah:User', JSON.stringify(data.user));
-        
-        // Redireciona forçando o recarregamento do estado de login
         window.location.href = '/'; 
       } else {
-        // Se não vier token, manda para o login manual
-        router.push('/login');
+        router.push('/site/login');
       }
 
     } catch (err: any) {
       setError(err.message || 'Não foi possível conectar ao servidor.');
       console.error("Erro no Registro:", err);
+      
+      // Alerta de erro visual também (opcional)
+      Swal.fire({
+        icon: 'error',
+        title: 'Oops...',
+        text: err.message,
+        confirmButtonColor: '#000',
+        customClass: { popup: 'rounded-[2rem]' }
+      });
     } finally {
       setLoading(false);
     }
@@ -127,7 +144,6 @@ export default function RegisterPage() {
           </div>
 
           <form onSubmit={handleRegister} className="space-y-5">
-            {/* NOME */}
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Nome Completo</label>
               <div className="relative group">
@@ -143,7 +159,6 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            {/* E-MAIL */}
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">E-mail</label>
               <div className="relative group">
@@ -159,7 +174,6 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            {/* SENHA */}
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Criar Senha</label>
               <div className="relative group">

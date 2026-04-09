@@ -89,15 +89,12 @@ export default function RegisterPage() {
       nome: String(raw.nome || '').trim(),
       email,
       senha,
-
       cpf_cnpj: String(raw.cpf_cnpj || '').trim(),
       telefone: String(raw.telefone || '').trim(),
       data_nascimento: raw.data_nascimento ? String(raw.data_nascimento) : null,
-
       cep: String(raw.cep || '').trim(),
       rua: String(raw.rua || '').trim(),
       estado: String(raw.estado || '').trim().toUpperCase(),
-
       numero: raw.numero ? String(raw.numero).trim() : null,
       bairro: raw.bairro ? String(raw.bairro).trim() : null,
       cidade: raw.cidade ? String(raw.cidade).trim() : null,
@@ -108,7 +105,6 @@ export default function RegisterPage() {
             ? String(raw.razao_social).trim()
             : String(raw.nome || '').trim()
           : null,
-
       tipo: tipoPessoa,
       perfil: 'produtor',
     };
@@ -123,7 +119,6 @@ export default function RegisterPage() {
       });
 
       let result: any = {};
-
       try {
         result = await response.json();
       } catch {
@@ -133,21 +128,26 @@ export default function RegisterPage() {
       console.log('📥 REGISTER RESPONSE:', response.status, result);
 
       if (response.ok) {
-        Swal.fire({
-          title:
-            '<span style="font-family: sans-serif; font-weight: 900; font-style: italic;">SISTEMA ATUALIZADO</span>',
+        // Alerta de Sucesso Premium
+        await Swal.fire({
+          title: '<span style="font-family: sans-serif; font-weight: 900; font-style: italic;">CONTA CRIADA!</span>',
           text: 'Sua conta de produtor foi provisionada com sucesso.',
           icon: 'success',
+          showConfirmButton: false,
+          timer: 2500,
+          timerProgressBar: true,
           confirmButtonColor: '#000',
-          customClass: { popup: 'rounded-[3rem]' }
-        }).then(() => router.push('/auth/login'));
+          customClass: { 
+            popup: 'rounded-[3rem] border-none shadow-2xl',
+            title: 'tracking-tighter'
+          }
+        });
+        
+        router.push('/auth/login');
       } else {
         Swal.fire({
           title: 'Atenção',
-          text:
-            result?.message ||
-            result?.error ||
-            `Erro interno no servidor (${response.status})`,
+          text: result?.message || result?.error || `Erro interno no servidor (${response.status})`,
           icon: 'warning',
           confirmButtonColor: '#000',
           customClass: { popup: 'rounded-[3rem]' }
@@ -155,12 +155,13 @@ export default function RegisterPage() {
       }
     } catch (error: any) {
       console.error('❌ ERRO FRONT REGISTER:', error);
-
-      Swal.fire(
-        'Erro Crítico',
-        error?.message || 'Falha de comunicação com o servidor.',
-        'error'
-      );
+      Swal.fire({
+        title: 'Erro Crítico',
+        text: error?.message || 'Falha de comunicação com o servidor.',
+        icon: 'error',
+        confirmButtonColor: '#000',
+        customClass: { popup: 'rounded-[2rem]' }
+      });
     } finally {
       setIsLoading(false);
     }
@@ -168,6 +169,7 @@ export default function RegisterPage() {
 
   return (
     <div className="flex min-h-screen bg-white font-sans antialiased text-[#1D1D1F]">
+      {/* LADO ESQUERDO: INFRAESTRUTURA VISUAL */}
       <div className="hidden lg:flex w-[40%] relative overflow-hidden bg-black sticky top-0 h-screen">
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-40 grayscale-[0.5]"
@@ -204,6 +206,7 @@ export default function RegisterPage() {
         </div>
       </div>
 
+      {/* LADO DIREITO: FORMULÁRIO COMPLETO */}
       <div className="flex-1 flex flex-col items-center bg-white px-6 py-16 lg:px-24">
         <div className="w-full max-w-xl animate-in fade-in slide-in-from-bottom-4 duration-1000">
           <Link
@@ -215,7 +218,7 @@ export default function RegisterPage() {
           </Link>
 
           <header className="mb-14">
-            <h2 className="text-5xl font-black text-black italic uppercase tracking-tighter mb-3 text-shadow-sm">
+            <h2 className="text-5xl font-black text-black italic uppercase tracking-tighter mb-3">
               Cadastro
             </h2>
             <p className="text-gray-400 font-bold text-sm uppercase tracking-tight">
@@ -224,6 +227,7 @@ export default function RegisterPage() {
           </header>
 
           <form onSubmit={handleRegister} className="space-y-10">
+            {/* TIPO DE PESSOA */}
             <div className="space-y-4">
               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 ml-1">
                 Natureza Jurídica
@@ -255,6 +259,7 @@ export default function RegisterPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-10">
+              {/* NOME */}
               <div className="space-y-3">
                 <div className="flex justify-between items-center px-1">
                   <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">
@@ -267,10 +272,7 @@ export default function RegisterPage() {
                   )}
                 </div>
                 <div className="relative group">
-                  <User
-                    className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-black transition-colors"
-                    size={18}
-                  />
+                  <User className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-black transition-colors" size={18} />
                   <input
                     name="nome"
                     onChange={handleInputChange}
@@ -280,6 +282,7 @@ export default function RegisterPage() {
                 </div>
               </div>
 
+              {/* CPF / CNPJ */}
               <div className="space-y-3">
                 <div className="flex justify-between items-center px-1">
                   <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">
@@ -292,10 +295,7 @@ export default function RegisterPage() {
                   )}
                 </div>
                 <div className="relative group">
-                  <Fingerprint
-                    className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-black transition-colors"
-                    size={18}
-                  />
+                  <Fingerprint className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-black transition-colors" size={18} />
                   <input
                     name="cpf_cnpj"
                     onChange={handleInputChange}
@@ -305,6 +305,7 @@ export default function RegisterPage() {
                 </div>
               </div>
 
+              {/* E-MAIL */}
               <div className="md:col-span-2 space-y-3">
                 <div className="flex justify-between items-center px-1">
                   <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">
@@ -317,10 +318,7 @@ export default function RegisterPage() {
                   )}
                 </div>
                 <div className="relative group">
-                  <Mail
-                    className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-black transition-colors"
-                    size={18}
-                  />
+                  <Mail className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-black transition-colors" size={18} />
                   <input
                     name="email"
                     type="email"
@@ -331,6 +329,7 @@ export default function RegisterPage() {
                 </div>
               </div>
 
+              {/* SENHA */}
               <div className="md:col-span-2 space-y-3">
                 <div className="flex justify-between items-center px-1">
                   <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">
@@ -343,10 +342,7 @@ export default function RegisterPage() {
                   )}
                 </div>
                 <div className="relative group">
-                  <Lock
-                    className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-black transition-colors"
-                    size={18}
-                  />
+                  <Lock className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-black transition-colors" size={18} />
                   <input
                     name="senha"
                     type="password"
@@ -357,6 +353,7 @@ export default function RegisterPage() {
                 </div>
               </div>
 
+              {/* DATA NASCIMENTO */}
               <div className="space-y-3">
                 <div className="flex justify-between items-center px-1">
                   <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 ml-1">
@@ -369,10 +366,7 @@ export default function RegisterPage() {
                   )}
                 </div>
                 <div className="relative group">
-                  <Calendar
-                    className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-black transition-colors"
-                    size={18}
-                  />
+                  <Calendar className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-black transition-colors" size={18} />
                   <input
                     name="data_nascimento"
                     type="date"
@@ -382,6 +376,7 @@ export default function RegisterPage() {
                 </div>
               </div>
 
+              {/* TELEFONE */}
               <div className="space-y-3">
                 <div className="flex justify-between items-center px-1">
                   <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 ml-1">
@@ -394,10 +389,7 @@ export default function RegisterPage() {
                   )}
                 </div>
                 <div className="relative group">
-                  <Phone
-                    className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-black transition-colors"
-                    size={18}
-                  />
+                  <Phone className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-black transition-colors" size={18} />
                   <input
                     name="telefone"
                     onChange={handleInputChange}
@@ -407,6 +399,7 @@ export default function RegisterPage() {
                 </div>
               </div>
 
+              {/* LOGRADOURO E UF */}
               <div className="md:col-span-2 grid grid-cols-4 gap-4">
                 <div className="col-span-3 space-y-3">
                   <div className="flex justify-between items-center px-1">
@@ -420,10 +413,7 @@ export default function RegisterPage() {
                     )}
                   </div>
                   <div className="relative group">
-                    <MapPin
-                      className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-black transition-colors"
-                      size={18}
-                    />
+                    <MapPin className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-black transition-colors" size={18} />
                     <input
                       name="rua"
                       onChange={handleInputChange}
@@ -453,6 +443,7 @@ export default function RegisterPage() {
                 </div>
               </div>
 
+              {/* CEP */}
               <div className="md:col-span-2 space-y-3">
                 <div className="flex justify-between items-center px-1">
                   <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 ml-1">
@@ -465,10 +456,7 @@ export default function RegisterPage() {
                   )}
                 </div>
                 <div className="relative group">
-                  <Hash
-                    className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-black transition-colors"
-                    size={18}
-                  />
+                  <Hash className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-black transition-colors" size={18} />
                   <input
                     name="cep"
                     onChange={handleInputChange}
@@ -479,6 +467,7 @@ export default function RegisterPage() {
               </div>
             </div>
 
+            {/* BOTÃO SUBMIT */}
             <button
               disabled={isLoading}
               className="w-full bg-[#030712] text-white py-7 rounded-[2rem] font-black uppercase text-xs tracking-[0.3em] shadow-2xl shadow-gray-200 hover:bg-black hover:-translate-y-1 transition-all flex items-center justify-center gap-4 active:scale-[0.98] disabled:opacity-70 mt-4"
