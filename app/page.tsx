@@ -1,5 +1,3 @@
-//app/page
-
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
@@ -32,6 +30,11 @@ const EventCard = dynamic(() => import('./site/EventCard').then(mod => mod.Event
 });
 
 const CategoryFilter = dynamic(() => import('./site/CategoryFilter').then(mod => mod.CategoryFilter), { 
+  ssr: false 
+});
+
+// NOVO COMPONENTE ESTILO LUMA
+const CategoryGrid = dynamic(() => import('./site/CategoryGrid').then(mod => mod.CategoryGrid), { 
   ssr: false 
 });
 
@@ -123,13 +126,11 @@ export default function BuyTicketHome() {
     amanha.setDate(hoje.getDate() + 1);
 
     return (eventos || []).filter((ev) => {
-      // 🔥 CORREÇÃO FUSO NO FILTRO
       const dataString = String(ev.data_inicio || ev.data || '').split('T')[0];
       const partes = dataString.split('-');
       
       let dataEv = new Date(0);
       if (partes.length === 3) {
-        // Criando a data ignorando UTC
         dataEv = new Date(Number(partes[0]), Number(partes[1]) - 1, Number(partes[2]));
       }
       dataEv.setHours(0, 0, 0, 0);
@@ -154,7 +155,7 @@ export default function BuyTicketHome() {
   const slide = SLIDES[currentSlide];
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-[#ff4d4d]/20">
+    <div className="min-h-screen bg-[#fafafa] text-slate-900 font-sans selection:bg-[#ff4d4d]/20">
       <Navbar />
 
       <section className="relative h-[60vh] flex items-center justify-center overflow-hidden">
@@ -196,13 +197,26 @@ export default function BuyTicketHome() {
         </div>
       </section>
 
+      {/* FILTRO FIXO NO TOPO (Mantido) */}
       <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-100 py-4">
         <div className="mx-auto max-w-7xl px-6">
           <CategoryFilter categories={CATEGORIAS_FIXAS} activeCategory={categoriaAtiva} onSelect={setCategoriaAtiva} iconMap={iconMap} />
         </div>
       </div>
 
-      <main className="mx-auto max-w-7xl px-6 py-16 space-y-24">
+      <main className="mx-auto max-w-7xl px-6 py-16 space-y-32">
+        
+        {/* NOVO: GRADE VISUAL DE CATEGORIAS LUMA */}
+        <section>
+          <h2 className="text-2xl font-black text-slate-950 tracking-tight uppercase mb-8">Navegar por Categoria</h2>
+          <CategoryGrid 
+            categories={CATEGORIAS_FIXAS} 
+            activeCategory={categoriaAtiva} 
+            onSelect={setCategoriaAtiva} 
+          />
+        </section>
+
+        {/* VITRINE DE EVENTOS */}
         <section id="vitrine-principal" className="scroll-mt-32">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
             <div>
@@ -236,13 +250,14 @@ export default function BuyTicketHome() {
             {vitrineFiltrada.length > 0 ? (
               vitrineFiltrada.map((ev) => <EventCard key={`vitrine-${ev.id}`} evento={ev} />)
             ) : (
-              <div className="col-span-full py-20 text-center bg-slate-50 rounded-3xl border border-slate-100">
+              <div className="col-span-full py-20 text-center bg-white rounded-[2.5rem] border border-slate-100 shadow-sm">
                 <p className="text-slate-400 font-medium uppercase tracking-widest text-sm">Nenhum evento para esta data.</p>
               </div>
             )}
           </div>
         </section>
 
+        {/* COMUNIDADES */}
         {!loading && comunidades.length > 0 && (
           <section className="space-y-10">
             <div className="flex items-end justify-between border-b border-slate-100 pb-6">
@@ -259,20 +274,20 @@ export default function BuyTicketHome() {
                   : 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?q=80&w=2070';
                 
                 return (
-                  <Link key={com.id} href={`/comunidades/${com.id}`} className="group bg-white rounded-3xl border border-slate-100 hover:border-slate-200 hover:shadow-xl transition-all duration-300 flex flex-col overflow-hidden">
+                  <Link key={com.id} href={`/comunidades/${com.id}`} className="group bg-white rounded-[2rem] border border-slate-100 hover:border-violet-200 hover:shadow-2xl hover:shadow-violet-100/50 transition-all duration-500 flex flex-col overflow-hidden h-full">
                     <div className="relative h-48 w-full overflow-hidden bg-slate-50">
-                      <Image src={fotoFinal} alt={com.nome || "Comunidade"} fill unoptimized className="object-cover group-hover:scale-105 transition-transform duration-500" />
+                      <Image src={fotoFinal} alt={com.nome || "Comunidade"} fill unoptimized className="object-cover group-hover:scale-105 transition-transform duration-700" />
                     </div>
-                    <div className="p-6 flex-grow">
-                      <div className="bg-slate-100 w-fit px-3 py-1 rounded-full text-[9px] font-bold text-slate-600 mb-4 flex items-center gap-1.5 uppercase">
+                    <div className="p-8 flex-grow">
+                      <div className="bg-slate-50 w-fit px-4 py-1.5 rounded-full text-[9px] font-black text-slate-500 mb-4 flex items-center gap-2 uppercase tracking-widest border border-slate-100">
                         <Users size={12} /> {com.membros_count || 0} Membros
                       </div>
-                      <h3 className="text-xl font-black text-slate-900 mb-2 group-hover:text-[#ff4d4d] transition-colors uppercase tracking-tight">{com.nome || "Sem Nome"}</h3>
-                      <p className="text-slate-500 text-sm line-clamp-2 leading-relaxed">{com.descricao || "Participe das discussões exclusivas."}</p>
+                      <h3 className="text-xl font-black text-slate-950 mb-3 group-hover:text-violet-600 transition-colors uppercase tracking-tight leading-tight">{com.nome || "Sem Nome"}</h3>
+                      <p className="text-slate-400 text-sm line-clamp-2 leading-relaxed font-medium">{com.descricao || "Participe das discussões exclusivas."}</p>
                     </div>
-                    <div className="px-6 pb-6">
-                      <div className="w-full py-4 bg-slate-900 rounded-xl flex items-center justify-center gap-2 text-white font-bold text-[10px] uppercase tracking-widest group-hover:bg-slate-800 transition-all">
-                        <MessageCircle size={16} /> Entrar no Chat
+                    <div className="px-8 pb-8">
+                      <div className="w-full py-4 bg-slate-950 rounded-2xl flex items-center justify-center gap-2 text-white font-black text-[10px] uppercase tracking-[0.2em] group-hover:bg-violet-600 transition-all duration-300 shadow-lg shadow-slate-200">
+                        <MessageCircle size={16} strokeWidth={3} /> Entrar no Chat
                       </div>
                     </div>
                   </Link>
