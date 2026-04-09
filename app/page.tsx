@@ -29,10 +29,6 @@ const EventCard = dynamic(() => import('./site/EventCard').then(mod => mod.Event
   loading: () => <div className="h-64 bg-slate-50 animate-pulse rounded-3xl" /> 
 });
 
-const CategoryFilter = dynamic(() => import('./site/CategoryFilter').then(mod => mod.CategoryFilter), { 
-  ssr: false 
-});
-
 // NOVO COMPONENTE ESTILO LUMA
 const CategoryGrid = dynamic(() => import('./site/CategoryGrid').then(mod => mod.CategoryGrid), { 
   ssr: false 
@@ -126,6 +122,7 @@ export default function BuyTicketHome() {
     amanha.setDate(hoje.getDate() + 1);
 
     return (eventos || []).filter((ev) => {
+      // 🔥 MANTIDA SUA LÓGICA DE CORREÇÃO DE FUSO
       const dataString = String(ev.data_inicio || ev.data || '').split('T')[0];
       const partes = dataString.split('-');
       
@@ -197,18 +194,14 @@ export default function BuyTicketHome() {
         </div>
       </section>
 
-      {/* FILTRO FIXO NO TOPO (Mantido) */}
-      <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-100 py-4">
-        <div className="mx-auto max-w-7xl px-6">
-          <CategoryFilter categories={CATEGORIAS_FIXAS} activeCategory={categoriaAtiva} onSelect={setCategoriaAtiva} iconMap={iconMap} />
-        </div>
-      </div>
-
       <main className="mx-auto max-w-7xl px-6 py-16 space-y-32">
         
-        {/* NOVO: GRADE VISUAL DE CATEGORIAS LUMA */}
+        {/* NAVEGAR POR CATEGORIA (Estilo Luma Cards) */}
         <section>
-          <h2 className="text-2xl font-black text-slate-950 tracking-tight uppercase mb-8">Navegar por Categoria</h2>
+          <div className="flex flex-col mb-8">
+            <h2 className="text-2xl font-black text-slate-950 tracking-tight uppercase">Navegar por Categoria</h2>
+            <div className="h-1 w-10 bg-violet-600 rounded-full mt-2" />
+          </div>
           <CategoryGrid 
             categories={CATEGORIAS_FIXAS} 
             activeCategory={categoriaAtiva} 
@@ -224,7 +217,8 @@ export default function BuyTicketHome() {
               <div className="h-1 w-12 bg-slate-900 rounded-full mt-2" />
             </div>
 
-            <div className="flex flex-wrap gap-2 p-1 bg-slate-100 rounded-xl">
+            {/* Filtros de Data (Atualizados para o novo visual) */}
+            <div className="flex flex-wrap gap-2 p-1 bg-white border border-slate-100 rounded-2xl shadow-sm">
               {[
                 { id: 'todos', label: 'Todos', icon: Ticket },
                 { id: 'hoje', label: 'Hoje', icon: Zap },
@@ -234,10 +228,10 @@ export default function BuyTicketHome() {
                 <button
                   key={item.id}
                   onClick={() => setFiltroData(item.id)}
-                  className={`flex items-center gap-2 px-5 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${
+                  className={`flex items-center gap-2 px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
                     filtroData === item.id 
-                    ? 'bg-white text-slate-900 shadow-sm' 
-                    : 'text-slate-500 hover:text-slate-700'
+                    ? 'bg-slate-950 text-white shadow-lg shadow-slate-200' 
+                    : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
                   }`}
                 >
                   <item.icon size={14} /> {item.label}
@@ -250,8 +244,11 @@ export default function BuyTicketHome() {
             {vitrineFiltrada.length > 0 ? (
               vitrineFiltrada.map((ev) => <EventCard key={`vitrine-${ev.id}`} evento={ev} />)
             ) : (
-              <div className="col-span-full py-20 text-center bg-white rounded-[2.5rem] border border-slate-100 shadow-sm">
-                <p className="text-slate-400 font-medium uppercase tracking-widest text-sm">Nenhum evento para esta data.</p>
+              <div className="col-span-full py-24 text-center bg-white rounded-[2.5rem] border border-slate-100 shadow-sm">
+                <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300">
+                  <Ticket size={32} />
+                </div>
+                <p className="text-slate-400 font-bold uppercase tracking-widest text-sm">Nenhum evento para esta seleção.</p>
               </div>
             )}
           </div>
@@ -266,6 +263,7 @@ export default function BuyTicketHome() {
                 Explorar <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
               </Link>
             </div>
+            
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {comunidades.map((com) => {
                 const rawFoto = com.foto_url || com.imagem || com.capa;
