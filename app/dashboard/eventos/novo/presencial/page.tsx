@@ -138,7 +138,6 @@ export default function NovoEventoPresencial() {
       });
 
       if (searchInputRef.current && !autocompleteRef.current) {
-        // CORREÇÃO: Removido o componentRestrictions para permitir busca mundial
         autocompleteRef.current = new Autocomplete(searchInputRef.current, {
           types: ['establishment', 'geocode'],
           fields: ['address_components', 'formatted_address', 'name', 'geometry']
@@ -537,17 +536,26 @@ export default function NovoEventoPresencial() {
 
           <div className="lg:col-span-4 space-y-10">
             <div className="bg-white rounded-[3.5rem] p-8 shadow-sm border border-slate-100">
-              <h4 className="text-[9px] text-slate-300 font-black uppercase mb-8 text-center tracking-[0.4em] italic">
-                Media Center: Capa
-              </h4>
+              <div className="flex items-center justify-between mb-8 gap-4">
+                <h4 className="text-[9px] text-slate-300 font-black uppercase text-center tracking-[0.4em] italic">
+                  Media Center: Capa
+                </h4>
+                <span className="px-4 py-2 rounded-full bg-pink-50 text-[#C22973] text-[10px] font-black uppercase tracking-widest whitespace-nowrap">
+                  1080 x 1350
+                </span>
+              </div>
+
               <div className="relative">
                 {previewImage ? (
-                  <div className="relative w-full aspect-[3/4] rounded-[3rem] overflow-hidden shadow-2xl group border-4 border-white">
+                  <div className="relative w-full aspect-[4/5] rounded-[3rem] overflow-hidden shadow-2xl group border-4 border-white">
                     <img
                       src={previewImage}
                       alt="Preview"
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                     />
+                    <div className="absolute left-5 top-5 bg-black/70 text-white px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest backdrop-blur-md">
+                      1080 x 1350
+                    </div>
                     <button
                       type="button"
                       onClick={() => {
@@ -560,7 +568,7 @@ export default function NovoEventoPresencial() {
                     </button>
                   </div>
                 ) : (
-                  <label className="aspect-[3/4] border-2 border-dashed border-slate-100 rounded-[3rem] bg-slate-50/50 cursor-pointer flex flex-col items-center justify-center hover:bg-white hover:border-pink-200 transition-all group overflow-hidden">
+                  <label className="aspect-[4/5] border-2 border-dashed border-slate-100 rounded-[3rem] bg-slate-50/50 cursor-pointer flex flex-col items-center justify-center hover:bg-white hover:border-pink-200 transition-all group overflow-hidden px-6 text-center">
                     <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
                     <div className="w-20 h-20 bg-white rounded-[2rem] flex items-center justify-center shadow-sm mb-6 group-hover:scale-110 transition-all">
                       <ImageIcon size={36} className="text-[#C22973]" />
@@ -568,23 +576,35 @@ export default function NovoEventoPresencial() {
                     <p className="text-[11px] font-black text-slate-800 uppercase tracking-widest italic">
                       Capa do Evento
                     </p>
+                    <p className="mt-3 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">
+                      Tamanho ideal: 1080 x 1350 px
+                    </p>
                   </label>
                 )}
               </div>
             </div>
 
             <div className="bg-white rounded-[3.5rem] p-8 shadow-sm border border-slate-100">
-              <h4 className="text-[9px] text-slate-300 font-black uppercase mb-8 text-center tracking-[0.4em] italic">
-                Media Center: Banner
-              </h4>
+              <div className="flex items-center justify-between mb-8 gap-4">
+                <h4 className="text-[9px] text-slate-300 font-black uppercase text-center tracking-[0.4em] italic">
+                  Media Center: Patrocinador
+                </h4>
+                <span className="px-4 py-2 rounded-full bg-blue-50 text-blue-600 text-[10px] font-black uppercase tracking-widest whitespace-nowrap">
+                  236 x 354
+                </span>
+              </div>
+
               <div className="relative">
                 {previewBanner ? (
-                  <div className="relative w-full aspect-video rounded-[2rem] overflow-hidden shadow-2xl group border-4 border-white">
+                  <div className="relative w-full aspect-[2/3] rounded-[2rem] overflow-hidden shadow-2xl group border-4 border-white">
                     <img
                       src={previewBanner}
                       alt="Preview Banner"
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                     />
+                    <div className="absolute left-4 top-4 bg-black/70 text-white px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest backdrop-blur-md">
+                      236 x 354
+                    </div>
                     <button
                       type="button"
                       onClick={() => {
@@ -597,13 +617,16 @@ export default function NovoEventoPresencial() {
                     </button>
                   </div>
                 ) : (
-                  <label className="aspect-video border-2 border-dashed border-slate-100 rounded-[2rem] bg-slate-50/50 cursor-pointer flex flex-col items-center justify-center hover:bg-white hover:border-blue-200 transition-all group">
+                  <label className="aspect-[2/3] border-2 border-dashed border-slate-100 rounded-[2rem] bg-slate-50/50 cursor-pointer flex flex-col items-center justify-center hover:bg-white hover:border-blue-200 transition-all group px-6 text-center">
                     <input type="file" accept="image/*" onChange={handleBannerChange} className="hidden" />
                     <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center mb-3 shadow-sm group-hover:scale-110 transition-transform">
                       <Building2 size={24} className="text-blue-500" />
                     </div>
                     <p className="text-[9px] font-black text-slate-800 uppercase tracking-widest italic">
-                      Banner Patrocinador
+                      Capa Patrocinador
+                    </p>
+                    <p className="mt-3 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">
+                      Tamanho ideal: 236 x 354 px
                     </p>
                   </label>
                 )}
