@@ -38,6 +38,8 @@ import TextAlign from '@tiptap/extension-text-align';
 
 const API_URL = 'https://api-linkah.onrender.com';
 const CLOUDINARY_CLOUD_NAME = 'dj32txsol';
+const FALLBACK_IMAGE =
+  'https://placehold.co/600x400/f8fafc/cbd5e1?text=Event+Cover';
 
 const CATEGORIAS_VALIDAS = [
   'Arte & Cultura',
@@ -96,14 +98,12 @@ function isEventoExcluido(evento: any) {
 
 function resolverImagemEvento(url: any) {
   if (!url || url === 'null' || url === 'undefined' || String(url).includes('[object Object]')) {
-    return 'https://placehold.co/600x400/f8fafc/cbd5e1?text=Event+Cover';
+    return FALLBACK_IMAGE;
   }
 
   const valor = String(url).trim();
 
-  if (!valor) {
-    return 'https://placehold.co/600x400/f8fafc/cbd5e1?text=Event+Cover';
-  }
+  if (!valor) return FALLBACK_IMAGE;
 
   if (valor.startsWith('http://') || valor.startsWith('https://')) {
     return valor;
@@ -337,7 +337,13 @@ export default function TabelaEventos() {
 
       if (res.ok) {
         const lista = Array.isArray(data) ? data : [];
-        const listaFiltrada = lista.filter((evento) => !isEventoExcluido(evento));
+        const listaFiltrada = lista
+          .filter((evento) => !isEventoExcluido(evento))
+          .map((evento) => ({
+            ...evento,
+            imagem_capa_url: resolverImagemEvento(evento.imagem_capa),
+          }));
+
         setEventos(listaFiltrada);
       } else {
         setEventos([]);
@@ -620,12 +626,11 @@ export default function TabelaEventos() {
                     <td className="px-8 py-6">
                       <div className="flex items-center gap-5">
                         <img
-                          src={resolverImagemEvento(evento.imagem_capa)}
-                          className="w-14 h-14 rounded-2xl object-cover ring-1 ring-slate-100"
+                          src={evento.imagem_capa_url || resolverImagemEvento(evento.imagem_capa)}
+                          className="w-14 h-14 rounded-2xl object-cover ring-1 ring-slate-100 bg-slate-50"
                           alt={evento.nome || 'Evento'}
                           onError={(e) => {
-                            e.currentTarget.src =
-                              'https://placehold.co/600x400/f8fafc/cbd5e1?text=Event+Cover';
+                            e.currentTarget.src = FALLBACK_IMAGE;
                           }}
                         />
                         <div>
@@ -728,8 +733,7 @@ export default function TabelaEventos() {
                         className="w-full h-full object-cover"
                         alt="Prévia"
                         onError={(e) => {
-                          e.currentTarget.src =
-                            'https://placehold.co/600x400/f8fafc/cbd5e1?text=Event+Cover';
+                          e.currentTarget.src = FALLBACK_IMAGE;
                         }}
                       />
                     ) : (
