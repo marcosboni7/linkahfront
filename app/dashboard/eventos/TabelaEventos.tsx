@@ -46,7 +46,7 @@ const CATEGORIAS_VALIDAS = [
   'Educação & Desenvolvimento',
   'Esportes & Bem-estar',
   'Experiências & Lifestyle',
-  'Família & Comunidade'
+  'Família & Comunidade',
 ];
 
 function formatDateToInput(dateValue: any): string {
@@ -249,6 +249,14 @@ export default function TabelaEventos() {
     immediatelyRender: false,
   });
 
+  useEffect(() => {
+    if (!editor) return;
+    if (!isEditModalOpen) return;
+
+    const html = eventoParaEditar?.descricao || '';
+    editor.commands.setContent(html, false);
+  }, [editor, isEditModalOpen, eventoParaEditar?.descricao]);
+
   const eventosFiltrados = eventos.filter((evento) => {
     if (isEventoExcluido(evento)) return false;
 
@@ -348,10 +356,6 @@ export default function TabelaEventos() {
     setPreviewUrl(validarImagem(evento.imagem_capa));
     setSelectedFile(null);
     setIsEditModalOpen(true);
-
-    setTimeout(() => {
-      editor?.commands.setContent(eventoFormatado.descricao || '');
-    }, 50);
   };
 
   const handleSalvarEdicao = async (e: React.FormEvent) => {
