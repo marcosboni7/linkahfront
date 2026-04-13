@@ -55,6 +55,7 @@ function formatDateToInput(dateValue: any): string {
   if (!dateValue) return '';
   if (typeof dateValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateValue)) return dateValue;
   if (typeof dateValue === 'string' && dateValue.includes('T')) return dateValue.split('T')[0];
+
   const d = new Date(dateValue);
   if (!isNaN(d.getTime())) {
     const ano = d.getFullYear();
@@ -76,6 +77,7 @@ function formatDateToBR(dateValue: any): string {
 function formatDateToBackend(dateValue: any): string {
   if (!dateValue) return '';
   if (typeof dateValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateValue)) return dateValue;
+
   const d = new Date(dateValue);
   if (!isNaN(d.getTime())) {
     const ano = d.getFullYear();
@@ -124,26 +126,43 @@ function resolverImagemEvento(url: any) {
   return `${API_URL}/uploads/${valor}`;
 }
 
-function obterPrecoBase(data: any) {
+function parseMoney(value: any): number {
+  if (value === null || value === undefined || value === '') return 0;
+
+  if (typeof value === 'number') {
+    return Number.isNaN(value) ? 0 : value;
+  }
+
+  const normalized = String(value)
+    .trim()
+    .replace(/\s/g, '')
+    .replace(/[^\d,.-]/g, '')
+    .replace(/\.(?=\d{3}(\D|$))/g, '')
+    .replace(',', '.');
+
+  const parsed = parseFloat(normalized);
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function obterPrecoBase(data: any, fallbackEvento?: any) {
   const ingressos = Array.isArray(data?.ingressos) ? data.ingressos : [];
 
   const precosValidos = ingressos
-    .map((ing: any) => Number(ing?.preco))
-    .filter((preco: number) => !Number.isNaN(preco) && preco > 0);
+    .map((ing: any) => parseMoney(ing?.preco))
+    .filter((preco: number) => preco > 0);
 
   if (precosValidos.length > 0) {
     return Math.min(...precosValidos);
   }
 
-  const precoMinimo = Number(data?.preco_minimo);
-  if (!Number.isNaN(precoMinimo) && precoMinimo > 0) {
-    return precoMinimo;
-  }
+  const precoMinimo = parseMoney(data?.preco_minimo);
+  if (precoMinimo > 0) return precoMinimo;
 
-  const precoEvento = Number(data?.preco);
-  if (!Number.isNaN(precoEvento) && precoEvento > 0) {
-    return precoEvento;
-  }
+  const precoEventoDetalhe = parseMoney(data?.preco);
+  if (precoEventoDetalhe > 0) return precoEventoDetalhe;
+
+  const precoTabela = parseMoney(fallbackEvento?.preco);
+  if (precoTabela > 0) return precoTabela;
 
   return 0;
 }
@@ -402,13 +421,21 @@ export default function TabelaEventos() {
         throw new Error(data?.error || data?.message || 'Erro ao carregar evento');
       }
 
+      const precoBase = obterPrecoBase(data, evento);
+
+      console.log('🧾 EVENTO TABELA PREÇO:', evento?.preco);
+      console.log('🧾 EVENTO DETALHE PREÇO:', data?.preco);
+      console.log('🧾 EVENTO DETALHE PREÇO_MINIMO:', data?.preco_minimo);
+      console.log('🧾 EVENTO DETALHE INGRESSOS:', data?.ingressos);
+      console.log('💰 PREÇO BASE FINAL:', precoBase);
+
       const eventoCompleto = {
         ...data,
         categoria: data.categoria || CATEGORIAS_VALIDAS[0],
         nome: data.nome || '',
         descricao: data.descricao || '',
         local_nome: data.local_nome || '',
-        preco: obterPrecoBase(data),
+        preco: precoBase > 0 ? String(precoBase) : '',
         data_inicio: formatDateToInput(data.data_inicio),
         imagem_capa: data.imagem_capa || '',
       };
@@ -437,7 +464,7 @@ export default function TabelaEventos() {
       const token = rawToken?.replace(/['"]+/g, '').trim() || '';
       const formData = new FormData();
 
-      const precoBase = Number(eventoParaEditar.preco || 0);
+      const precoBase = parseMoney(eventoParaEditar.preco);
 
       formData.append('nome', eventoParaEditar.nome || '');
       formData.append('categoria', eventoParaEditar.categoria || '');
@@ -462,9 +489,10 @@ export default function TabelaEventos() {
         body: formData,
       });
 
+      const responseEvento = await res.json().catch(() => null);
+
       if (!res.ok) {
-        const responseData = await res.json().catch(() => null);
-        throw new Error(responseData?.error || 'Erro ao salvar alterações');
+        throw new Error(responseEvento?.error || 'Erro ao salvar alterações');
       }
 
       const resIngressos = await fetch(`${API_URL}/api/eventos/${eventoParaEditar.id}/ingressos`, {
@@ -484,8 +512,9 @@ export default function TabelaEventos() {
         }),
       });
 
+      const responseIngressos = await resIngressos.json().catch(() => null);
+
       if (!resIngressos.ok) {
-        const responseIngressos = await resIngressos.json().catch(() => null);
         throw new Error(responseIngressos?.error || 'Erro ao salvar valor base do ingresso');
       }
 
@@ -824,12 +853,20 @@ export default function TabelaEventos() {
                       <DollarSign size={14} /> Valor Base
                     </label>
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="decimal"
                       className="w-full p-3.5 bg-purple-50/50 border border-purple-100 rounded-xl font-bold text-purple-700 outline-none focus:ring-2 focus:ring-purple-100 focus:border-purple-600 transition-all"
                       value={eventoParaEditar.preco ?? ''}
-                      onChange={(e) =>
-                        setEventoParaEditar({ ...eventoParaEditar, preco: e.target.value })
-                      }
+                      onChange={(e) => {
+                        const value = e.target.value.replace(',', '.');
+                        if (/^\d*\.?\d*$/.test(value)) {
+                          setEventoParaEditar({
+                            ...eventoParaEditar,
+                            preco: value,
+                          });
+                        }
+                      }}
+                      placeholder="0.00"
                     />
                   </div>
 
