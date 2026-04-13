@@ -321,7 +321,7 @@ export default function CadastroIngressos() {
                 </div>
                 <div>
                   <p className="font-medium text-slate-900">
-                    {t.stepInfo || 'Informações'}
+                    {t.stepEvent || 'Evento'}
                   </p>
                   <p className="text-slate-400 text-xs">Concluído</p>
                 </div>
@@ -484,7 +484,7 @@ export default function CadastroIngressos() {
 
                       <div className="relative flex-1 min-w-0">
                         <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-semibold text-sm z-10">
-                          {currencyMap[ing.moeda]}
+                          {currencyMap[ing.moeda] || '$'}
                         </span>
 
                         <input
@@ -493,8 +493,9 @@ export default function CadastroIngressos() {
                           value={ing.preco}
                           onBlur={(e) => validateField(index, 'preco', e.target.value)}
                           onChange={(e) => {
+                            // Permite apenas números e um único ponto ou vírgula
                             const value = e.target.value.replace(',', '.');
-                            if (/^\d*\.?\d*$/.test(value)) {
+                            if (value === '' || /^\d*\.?\d*$/.test(value)) {
                               handleChange(index, 'preco', value);
                             }
                           }}
