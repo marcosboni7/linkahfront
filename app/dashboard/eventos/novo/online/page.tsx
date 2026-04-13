@@ -1,20 +1,19 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import {
-  ChevronLeft, ImageIcon, Globe, X, Loader2,
-  Users, Sparkles, Link2, Clock, Layout,
-  Building2, Wand2, Bold, Italic, List, 
-  ListOrdered, Palette
+  ChevronLeft, ImageIcon, Search, MapPin, X, Loader2,
+  Users, Ticket, Sparkles, Navigation, Clock, Building2,
+  Wand2, Bold, Italic, List, Type, ListOrdered, Palette
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/app/context/LanguageContext';
 import Swal from 'sweetalert2';
 
-// --- IMPORTS TIPTAP (RICHTEXT) ---
+// Imports do Editor Rich Text (TipTap)
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import { Color } from '@tiptap/extension-color';
+import Color from '@tiptap/extension-color';
 import { TextStyle } from '@tiptap/extension-text-style';
 import Placeholder from '@tiptap/extension-placeholder';
 
@@ -69,43 +68,58 @@ const MenuBar = ({ editor }: any) => {
   );
 };
 
-export default function NovoEventoOnline() {
+// --- COMPONENTE PRINCIPAL ---
+export default function NovoEventoPresencial() {
   const { t }: any = useLanguage();
   const router = useRouter();
-
   const [isLoading, setIsLoading] = useState(false);
-  const [isGeneratingIA, setIsGeneratingIA] = useState(false);
+  const [isAiLoading, setIsAiLoading] = useState(false);
+
+  // Refs para Google Maps
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const googleMap = useRef<any>(null);
+  const marker = useRef<any>(null);
+  const autocompleteRef = useRef<any>(null);
+
+  // Estados de Imagem
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewBanner, setPreviewBanner] = useState<string | null>(null);
   const [selectedBanner, setSelectedBanner] = useState<File | null>(null);
 
+  // Estado do Formulário
   const [formData, setFormData] = useState({
     nome: '',
     categoria: '',
     status: 'Ativo',
-    descricao: '', // Será atualizado pelo TipTap
+    descricao: '',
     data_inicio: '',
     hora_inicio: '',
     data_termino: '',
     hora_termino: '',
-    local_nome: 'Plataforma Online',
-    link_reuniao: '',
+    local_nome: '',
+    cep: '',
+    endereco: '',
+    numero: '',
+    complemento: '',
+    cidade: '',
+    estado: '',
     capacidade: '',
-    tipo: 'Online',
+    tipo: 'Presencial',
     moeda: 'BRL',
     regras: '',
     visibilidade: 'Publico'
   });
 
-  // --- CONFIGURAÇÃO DO TIPTAP ---
+  // CONFIGURAÇÃO DO EDITOR TIPTAP
   const editor = useEditor({
     extensions: [
       StarterKit,
       TextStyle,
       Color,
       Placeholder.configure({
-        placeholder: 'Descreva a experiência digital, adicione links importantes ou cronograma da live...',
+        placeholder: 'Conte os detalhes da experiência, use negrito para destacar e listas para cronogramas...',
       }),
     ],
     content: '',
@@ -114,92 +128,164 @@ export default function NovoEventoOnline() {
     },
     editorProps: {
       attributes: {
-        class: 'prose prose-slate max-w-none focus:outline-none min-h-[200px] p-6 text-slate-600 font-medium leading-relaxed',
+        class: 'prose prose-slate max-w-none focus:outline-none min-h-[250px] p-6 text-slate-600 font-medium leading-relaxed',
       },
     },
   });
 
-  useEffect(() => {
-    return () => {
-      if (previewImage) URL.revokeObjectURL(previewImage);
-      if (previewBanner) URL.revokeObjectURL(previewBanner);
-    };
-  }, [previewImage, previewBanner]);
-
-  const handleIA = async () => {
+  // Lógica de IA
+  const handleGerarComIA = async () => {
     const { value: text } = await Swal.fire({
-      title: 'GERADOR INTELIGENTE',
+      title: 'Gerar Evento com IA',
       input: 'textarea',
-      inputLabel: 'Cole o texto do seu evento (WhatsApp, E-mail, Post)',
-      inputPlaceholder: 'Ex: Webinar de Inovação dia 12/06 as 20h no Meet...',
+      inputLabel: 'Cole aqui o texto do evento (ex: post do insta, mensagem de zap...)',
+      inputPlaceholder: 'Ex: Workshop de Design dia 20/05 às 14h no SESC...',
       showCancelButton: true,
-      confirmButtonText: 'Mágica ✨',
+      confirmButtonText: 'Mágica! ✨',
+      confirmButtonColor: '#C22973',
       cancelButtonText: 'Cancelar',
-      confirmButtonColor: '#000',
-      customClass: { popup: 'rounded-[2rem] font-sans' }
+      customClass: { popup: 'rounded-[2rem]' }
     });
 
     if (!text) return;
 
-    setIsGeneratingIA(true);
-    const token = typeof window !== 'undefined' ? localStorage.getItem('@Linkah:Token') : null;
-
+    setIsAiLoading(true);
     try {
       const response = await fetch(`${API_URL}/api/eventos/gerar-ia`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ texto: text })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ texto: text }),
       });
 
-      const data = await response.json();
+      if (!response.ok) throw new Error('Falha na IA');
+      const aiData = await response.json();
 
-      if (response.ok) {
-        setFormData(prev => ({
-          ...prev,
-          ...data,
-          tipo: 'Online',
-          local_nome: data.local_nome || 'Plataforma Online'
-        }));
+      setFormData(prev => ({
+        ...prev,
+        nome: aiData.nome || prev.nome,
+        categoria: aiData.categoria || prev.categoria,
+        data_inicio: aiData.data_inicio || prev.data_inicio,
+        hora_inicio: aiData.hora_inicio || prev.hora_inicio,
+        data_termino: aiData.data_termino || aiData.data_inicio || prev.data_termino,
+        hora_termino: aiData.hora_termino || prev.hora_termino,
+        local_nome: aiData.local_nome || prev.local_nome,
+        endereco: aiData.rua || prev.endereco,
+        numero: aiData.numero || prev.numero,
+        cidade: aiData.cidade || prev.cidade,
+        estado: aiData.estado || prev.estado,
+        cep: aiData.cep || prev.cep,
+        capacidade: aiData.capacidade || prev.capacidade,
+        moeda: aiData.moeda || prev.moeda,
+      }));
 
-        if (data.descricao) {
-            editor?.commands.setContent(data.descricao);
-        }
-
-        Swal.fire({
-          icon: 'success',
-          title: 'DADOS EXTRAÍDOS',
-          timer: 2000,
-          showConfirmButton: false,
-          customClass: { popup: 'rounded-[2rem]' }
-        });
+      if (aiData.descricao) {
+        editor?.commands.setContent(aiData.descricao);
       }
+
+      Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'success',
+        title: 'Campos preenchidos!',
+        showConfirmButton: false,
+        timer: 3000
+      });
     } catch (error) {
-      Swal.fire('Erro na IA', 'Não conseguimos processar agora.', 'error');
+      Swal.fire('Erro', 'A IA não conseguiu processar esse texto.', 'error');
     } finally {
-      setIsGeneratingIA(false);
+      setIsAiLoading(false);
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  // Google Maps
+  const initGoogleMaps = useCallback(async () => {
+    if (typeof window === 'undefined' || !window.google || !mapContainerRef.current) return;
+    if (googleMap.current) return;
+
+    try {
+      const [{ Map }, { AdvancedMarkerElement }] = await Promise.all([
+        window.google.maps.importLibrary('maps') as any,
+        window.google.maps.importLibrary('marker') as any,
+      ]);
+
+      const { Autocomplete } = await window.google.maps.importLibrary('places') as any;
+
+      googleMap.current = new Map(mapContainerRef.current, {
+        center: { lat: -23.5505, lng: -46.6333 },
+        zoom: 15,
+        mapId: 'LINKAH_MAP_ID',
+        disableDefaultUI: true,
+      });
+
+      marker.current = new AdvancedMarkerElement({
+        map: googleMap.current,
+        position: { lat: -23.5505, lng: -46.6333 },
+      });
+
+      if (searchInputRef.current && !autocompleteRef.current) {
+        autocompleteRef.current = new Autocomplete(searchInputRef.current, {
+          types: ['establishment', 'geocode'],
+          fields: ['address_components', 'formatted_address', 'name', 'geometry']
+        });
+
+        autocompleteRef.current.addListener('place_changed', () => {
+          const place = autocompleteRef.current.getPlace();
+          if (!place.geometry || !place.geometry.location) return;
+
+          googleMap.current.setCenter(place.geometry.location);
+          googleMap.current.setZoom(17);
+          marker.current.position = place.geometry.location;
+
+          const getComp = (type: string) =>
+            place.address_components?.find((c: any) => c.types.includes(type))?.long_name || '';
+
+          setFormData(prev => ({
+            ...prev,
+            local_nome: place.name || prev.local_nome,
+            endereco: getComp('route'),
+            numero: getComp('street_number'),
+            cep: getComp('postal_code').replace(/\D/g, ''),
+            cidade: getComp('administrative_area_level_2') || getComp('locality'),
+            estado: place.address_components?.find((c: any) =>
+              c.types.includes('administrative_area_level_1')
+            )?.short_name || '',
+          }));
+        });
+      }
+    } catch (error: any) {
+      console.error('Erro no mapa:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(initGoogleMaps, 500);
+    return () => clearTimeout(timer);
+  }, [initGoogleMaps]);
+
+  // Handlers comuns
+  const handleChange = (e: any) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = (e: any) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-    setSelectedFile(file);
-    setPreviewImage(URL.createObjectURL(file));
+    if (file) {
+      setSelectedFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setPreviewImage(reader.result as string);
+      reader.readAsDataURL(file);
+    }
   };
 
-  const handleBannerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleBannerChange = (e: any) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-    setSelectedBanner(file);
-    setPreviewBanner(URL.createObjectURL(file));
+    if (file) {
+      setSelectedBanner(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setPreviewBanner(reader.result as string);
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSalvar = async () => {
@@ -214,38 +300,37 @@ export default function NovoEventoOnline() {
         emailProdutor = userObj.email || userObj.user?.email || '';
         nomeUsuario = userObj.nome || userObj.user?.nome || 'Organizador';
       }
-    } catch (e) { nomeUsuario = 'Admin'; }
-
-    if (!formData.nome || !formData.categoria || !formData.data_inicio) {
-      Swal.fire('Aviso', 'Preencha os campos obrigatórios.', 'warning');
-      return;
+    } catch (e) {
+      nomeUsuario = 'Admin';
     }
 
+    if (!token) return Swal.fire('Erro', 'Sessão expirada', 'warning');
+
     setIsLoading(true);
+    const dataToSend = new FormData();
+
+    Object.entries(formData).forEach(([key, value]) => {
+      if (value !== null) dataToSend.append(key, value.toString());
+    });
+
+    dataToSend.append('produtor_email', emailProdutor);
+    dataToSend.append('usuario_nome', nomeUsuario);
+
+    if (selectedFile) dataToSend.append('imagem_capa', selectedFile);
+    if (selectedBanner) dataToSend.append('banner_patrocinio', selectedBanner);
 
     try {
-      const dataToSend = new FormData();
-      dataToSend.append('produtor_email', emailProdutor);
-      dataToSend.append('usuario_nome', nomeUsuario);
-
-      Object.entries(formData).forEach(([key, value]) => {
-        dataToSend.append(key, value);
-      });
-
-      if (selectedFile) dataToSend.append('imagem_capa', selectedFile);
-      if (selectedBanner) dataToSend.append('banner_patrocinio', selectedBanner);
-
-      const response = await fetch(`${API_URL}/api/eventos/novo-online`, {
+      const response = await fetch(`${API_URL}/api/eventos/novo-presencial`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
-        body: dataToSend
+        body: dataToSend,
       });
 
-      const result = await response.json();
+      const data = await response.json();
       if (response.ok) {
-        router.push(`/dashboard/eventos/novo/ingressos/${result.id}`);
+        router.push(`/dashboard/eventos/novo/ingressos/${data.id || data.evento?.id}`);
       } else {
-        Swal.fire('Erro', result.error || 'Erro ao salvar', 'error');
+        Swal.fire('Erro', data.message || 'Erro ao salvar', 'error');
       }
     } catch (error) {
       Swal.fire('Erro', 'Falha na conexão', 'error');
@@ -256,6 +341,7 @@ export default function NovoEventoOnline() {
 
   return (
     <div className="min-h-screen bg-[#F8F9FD] font-sans antialiased pb-24 text-slate-900">
+      {/* HEADER FIXO */}
       <header className="border-b border-slate-200/50 px-6 md:px-12 py-6 flex justify-between items-center bg-white/80 backdrop-blur-2xl sticky top-0 z-50">
         <div className="flex items-center gap-6">
           <button
@@ -264,183 +350,191 @@ export default function NovoEventoOnline() {
           >
             <ChevronLeft size={20} className="text-slate-400" />
           </button>
-
           <div>
-            <div className="flex items-center gap-2 mb-0.5">
-              <span className="bg-black text-[8px] text-white px-2 py-0.5 rounded-full font-black uppercase tracking-widest italic">
-                Cloud Engine
-              </span>
-              <Globe className="text-[#C22973] animate-pulse" size={14} />
-            </div>
-            <h1 className="text-slate-900 font-black text-xl tracking-tighter uppercase italic leading-none">
-              Evento Online
+            <h1 className="text-slate-900 font-black text-xl tracking-tighter uppercase italic flex items-center gap-2">
+              <MapPin className="text-[#C22973]" size={18} /> Novo Evento Presencial
             </h1>
+            <p className="text-slate-400 text-[9px] font-black uppercase tracking-[0.3em]">Step 01: Core Information</p>
           </div>
         </div>
 
         <button
           onClick={handleSalvar}
           disabled={isLoading}
-          className="bg-black text-white px-8 py-4 rounded-[1.3rem] font-black uppercase text-[10px] tracking-[0.2em] hover:bg-[#C22973] transition-all flex items-center gap-3 shadow-2xl disabled:opacity-50 active:scale-95"
+          className="bg-black text-white px-10 py-4 rounded-[1.3rem] font-black uppercase text-[10px] tracking-[0.2em] hover:bg-[#C22973] transition-all shadow-xl disabled:opacity-50 flex items-center gap-3 active:scale-95"
         >
           {isLoading ? (
             <Loader2 className="animate-spin" size={16} />
           ) : (
-            <>
-              <span>Configurar Ingressos</span>
-              <Sparkles size={14} className="text-pink-400" />
-            </>
+            <>Próximo Passo <Sparkles size={14} className="text-pink-400" /></>
           )}
         </button>
       </header>
 
       <main className="max-w-7xl mx-auto p-6 md:p-12">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+          
           <div className="lg:col-span-8 space-y-10">
-            {/* --- SEÇÃO PRINCIPAL --- */}
+            {/* --- SEÇÃO 1: INFOS BÁSICAS --- */}
             <section className="bg-white rounded-[3rem] p-10 shadow-sm border border-slate-100 space-y-8">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400">
-                    <Layout size={20} />
+              <div className="space-y-6">
+                <div className="space-y-3 relative">
+                  <div className="flex justify-between items-end mb-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 italic">Título da Experiência</label>
+                    <button
+                      onClick={handleGerarComIA}
+                      disabled={isAiLoading}
+                      className="bg-slate-900 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-[#C22973] transition-all active:scale-95"
+                    >
+                      {isAiLoading ? <Loader2 size={12} className="animate-spin" /> : <Wand2 size={12} />} IA Linkah
+                    </button>
                   </div>
-                  <h2 className="font-black italic uppercase text-xs tracking-widest text-slate-800">Dados da Experiência</h2>
-                </div>
-
-                <button
-                  onClick={handleIA}
-                  disabled={isGeneratingIA}
-                  className="flex items-center gap-2 bg-slate-900 text-white px-5 py-3 rounded-2xl text-[9px] font-black uppercase tracking-widest hover:bg-[#C22973] transition-all active:scale-95"
-                >
-                  {isGeneratingIA ? <Loader2 size={12} className="animate-spin" /> : <Wand2 size={12} />}
-                  IA Linkah
-                </button>
-              </div>
-
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 italic">Nome do Evento</label>
-                <input
-                  name="nome"
-                  value={formData.nome}
-                  onChange={handleChange}
-                  placeholder="Ex: Webinar Internacional de Design"
-                  className="w-full bg-slate-50 border-2 border-transparent p-6 rounded-[2rem] outline-none font-bold text-xl focus:border-pink-100 focus:bg-white transition-all shadow-inner"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 italic">Categoria</label>
-                  <select
-                    name="categoria"
-                    value={formData.categoria}
+                  <input
+                    name="nome"
+                    value={formData.nome}
                     onChange={handleChange}
-                    className="w-full bg-slate-50 border-2 border-transparent p-6 rounded-[2rem] outline-none font-bold text-slate-600 focus:border-pink-100 focus:bg-white transition-all shadow-inner appearance-none"
-                  >
-                    <option value="">Defina o estilo...</option>
-                    <option value="Arte & Cultura">🎨 Arte & Cultura</option>
-                    <option value="Entretenimento">🎭 Entretenimento</option>
-                    <option value="Negócios">💼 Negócios</option>
-                    <option value="Educação & Desenvolvimento">🎓 Educação & Desenvolvimento</option>
-                    <option value="Esportes & Bem-estar">💙 Esportes & Bem-estar</option>
-                    <option value="Experiências & Lifestyle">✨ Experiências & Lifestyle</option>
-                  </select>
+                    placeholder="Ex: Festival de Jazz 2026"
+                    className="w-full bg-slate-50 p-6 rounded-[2rem] outline-none font-bold text-xl focus:bg-white border-2 border-transparent focus:border-pink-100 transition-all shadow-inner"
+                  />
                 </div>
 
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 italic">Capacidade</label>
-                  <div className="relative">
-                    <input
-                      name="capacidade"
-                      type="number"
-                      value={formData.capacidade}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 italic">Vibe / Categoria</label>
+                    <select
+                      name="categoria"
+                      value={formData.categoria}
                       onChange={handleChange}
-                      placeholder="Ilimitado"
-                      className="w-full bg-slate-50 border-2 border-transparent p-6 rounded-[2rem] outline-none font-bold focus:border-pink-100 focus:bg-white transition-all shadow-inner"
-                    />
-                    <Users className="absolute right-8 top-6 text-slate-300" size={20} />
+                      className="w-full bg-slate-50 p-6 rounded-[2rem] outline-none font-bold text-slate-600 focus:bg-white border-2 border-transparent focus:border-pink-100 transition-all shadow-inner appearance-none"
+                    >
+                      <option value="">Selecione...</option>
+                      <option value="Arte & Cultura">🎨 Arte & Cultura</option>
+                      <option value="Entretenimento">🎭 Entretenimento</option>
+                      <option value="Negócios">💼 Negócios</option>
+                      <option value="Educação & Desenvolvimento">🎓 Educação & Desenvolvimento</option>
+                      <option value="Esportes & Bem-estar">💙 Esportes & Bem-estar</option>
+                      <option value="Experiências & Lifestyle">✨ Experiências & Lifestyle</option>
+                      <option value="Família & Comunidade">👥 Família & Comunidade</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 italic">Capacidade Estimada</label>
+                    <div className="relative">
+                      <input
+                        name="capacidade"
+                        value={formData.capacidade}
+                        onChange={handleChange}
+                        type="number"
+                        placeholder="0"
+                        className="w-full bg-slate-50 p-6 rounded-[2rem] outline-none font-bold text-slate-800 shadow-inner"
+                      />
+                      <Users className="absolute right-8 top-6 text-slate-300" size={20} />
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 italic">Moeda do Evento</label>
+                    <select
+                      name="moeda"
+                      value={formData.moeda}
+                      onChange={handleChange}
+                      className="w-full bg-slate-50 p-6 rounded-[2rem] outline-none font-bold text-slate-600 focus:bg-white border-2 border-transparent focus:border-pink-100 transition-all shadow-inner appearance-none"
+                    >
+                      <option value="BRL">🇧🇷 Real (BRL)</option>
+                      <option value="EUR">🇪🇺 Euro (EUR)</option>
+                      <option value="USD">🇺🇸 Dólar (USD)</option>
+                    </select>
                   </div>
                 </div>
 
+                {/* --- ÁREA DO EDITOR RICH TEXT --- */}
                 <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 italic">Moeda</label>
-                  <select
-                    name="moeda"
-                    value={formData.moeda}
-                    onChange={handleChange}
-                    className="w-full bg-slate-50 border-2 border-transparent p-6 rounded-[2rem] outline-none font-bold text-slate-600 focus:border-pink-100 focus:bg-white transition-all shadow-inner appearance-none"
-                  >
-                    <option value="BRL">🇧🇷 Real (BRL)</option>
-                    <option value="EUR">🇪🇺 Euro (EUR)</option>
-                    <option value="USD">🇺🇸 Dólar (USD)</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* TRANSFORMEI DESCRIÇÃO EM RICH TEXT */}
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 italic">Sobre o Evento (Editor)</label>
-                <div className="bg-slate-50 rounded-[2.5rem] p-2 border-2 border-transparent focus-within:border-pink-100 transition-all shadow-inner bg-white overflow-hidden">
-                  <MenuBar editor={editor} />
-                  <div className="max-h-[400px] overflow-y-auto">
-                    <EditorContent editor={editor} />
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 italic">Descrição Detalhada</label>
+                  <div className="bg-slate-50 rounded-[2.5rem] p-2 border-2 border-transparent focus-within:border-pink-100 transition-all shadow-inner bg-white overflow-hidden">
+                    <MenuBar editor={editor} />
+                    <div className="max-h-[500px] overflow-y-auto custom-scrollbar">
+                      <EditorContent editor={editor} />
+                    </div>
                   </div>
                 </div>
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 ml-2">
-                  <Link2 size={14} className="text-[#C22973]" />
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Link da Transmissão</label>
-                </div>
-                <input
-                  name="link_reuniao"
-                  value={formData.link_reuniao}
-                  onChange={handleChange}
-                  placeholder="https://zoom.us/j/..."
-                  className="w-full bg-slate-900 text-pink-400 p-6 rounded-2xl outline-none font-mono text-sm border-2 border-slate-800 focus:border-[#C22973] transition-all"
-                />
               </div>
             </section>
 
-            {/* --- CRONOGRAMA --- */}
-            <section className="bg-white rounded-[3rem] p-10 shadow-sm border border-slate-100 space-y-8">
-              <div className="flex items-center gap-3">
+            {/* --- SEÇÃO 2: DATAS --- */}
+            <section className="bg-white rounded-[3rem] p-10 shadow-sm border border-slate-100">
+              <div className="flex items-center gap-3 mb-8">
                 <div className="w-10 h-10 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400"><Clock size={20} /></div>
                 <h2 className="font-black italic uppercase text-xs tracking-widest text-slate-800">Datas & Horários</h2>
               </div>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                 <div className="space-y-4">
                   <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-2">Início</label>
                   <div className="flex gap-4">
-                    <input name="data_inicio" type="date" value={formData.data_inicio} onChange={handleChange} className="flex-1 bg-slate-50 p-5 rounded-2xl font-bold outline-none" />
-                    <input name="hora_inicio" type="time" value={formData.hora_inicio} onChange={handleChange} className="w-32 bg-slate-50 p-5 rounded-2xl font-bold outline-none" />
+                    <input name="data_inicio" value={formData.data_inicio} onChange={handleChange} type="date" className="flex-1 bg-slate-50 p-5 rounded-2xl font-bold outline-none" />
+                    <input name="hora_inicio" value={formData.hora_inicio} onChange={handleChange} type="time" className="w-32 bg-slate-50 p-5 rounded-2xl font-bold outline-none" />
                   </div>
                 </div>
                 <div className="space-y-4">
                   <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-2">Término</label>
                   <div className="flex gap-4">
-                    <input name="data_termino" type="date" value={formData.data_termino} onChange={handleChange} className="flex-1 bg-slate-50 p-5 rounded-2xl font-bold outline-none" />
-                    <input name="hora_termino" type="time" value={formData.hora_termino} onChange={handleChange} className="w-32 bg-slate-50 p-5 rounded-2xl font-bold outline-none" />
+                    <input name="data_termino" value={formData.data_termino} onChange={handleChange} type="date" className="flex-1 bg-slate-50 p-5 rounded-2xl font-bold outline-none" />
+                    <input name="hora_termino" value={formData.hora_termino} onChange={handleChange} type="time" className="w-32 bg-slate-50 p-5 rounded-2xl font-bold outline-none" />
                   </div>
                 </div>
               </div>
             </section>
+
+            {/* --- SEÇÃO 3: LOCALIZAÇÃO --- */}
+            <section className="bg-white rounded-[3rem] p-10 shadow-sm border border-slate-100 space-y-8">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-slate-50 rounded-2xl flex items-center justify-center text-[#C22973]"><Navigation size={20} /></div>
+                <h2 className="font-black italic uppercase text-xs tracking-widest text-slate-800">Localização</h2>
+              </div>
+              <div className="relative">
+                <Search size={18} className="absolute left-6 top-1/2 -translate-y-1/2 text-pink-400" />
+                <input ref={searchInputRef} placeholder="Busque o endereço no Google Maps..." className="w-full bg-slate-900 text-white p-7 pl-16 rounded-[2rem] outline-none font-bold text-sm shadow-2xl" />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <input name="local_nome" value={formData.local_nome} onChange={handleChange} placeholder="Nome do Local (Ex: Teatro Municipal)" className="w-full bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner" />
+                <input name="cep" value={formData.cep} onChange={handleChange} placeholder="CEP" className="w-full bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner" />
+                <input name="endereco" value={formData.endereco} onChange={handleChange} placeholder="Rua / Avenida" className="w-full bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner md:col-span-2" />
+                <input name="numero" value={formData.numero} onChange={handleChange} placeholder="Número" className="w-full bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner" />
+                <input name="complemento" value={formData.complemento} onChange={handleChange} placeholder="Complemento" className="w-full bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner" />
+                <input name="cidade" value={formData.cidade} onChange={handleChange} placeholder="Cidade" className="w-full bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner" />
+                <input name="estado" value={formData.estado} onChange={handleChange} placeholder="Estado" className="w-full bg-slate-50 p-5 rounded-2xl outline-none font-bold shadow-inner" />
+              </div>
+
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 italic">Regras / Informações Extras</label>
+                <textarea
+                  name="regras"
+                  value={formData.regras}
+                  onChange={handleChange}
+                  rows={4}
+                  className="w-full bg-slate-50 p-6 rounded-[2.5rem] outline-none resize-none font-medium text-slate-600 focus:bg-white border-2 border-transparent focus:border-pink-100 transition-all shadow-inner"
+                  placeholder="Ex: Proibida entrada com bebidas, classificação 18 anos..."
+                />
+              </div>
+            </section>
           </div>
 
+          {/* --- COLUNA LATERAL (IMAGENS & MAPA) --- */}
           <div className="lg:col-span-4 space-y-10">
-            {/* MEDIA CENTER: CAPA */}
+            {/* CAPA DO EVENTO */}
             <div className="bg-white rounded-[3.5rem] p-8 shadow-sm border border-slate-100">
-              <h4 className="text-[9px] text-slate-300 font-black uppercase mb-8 text-center tracking-[0.4em] italic">Media Center: Capa</h4>
+              <div className="flex items-center justify-between mb-8">
+                <h4 className="text-[9px] text-slate-300 font-black uppercase tracking-[0.4em] italic">Media Center: Capa</h4>
+                <span className="px-4 py-2 rounded-full bg-pink-50 text-[#C22973] text-[10px] font-black uppercase tracking-widest">1080x1350</span>
+              </div>
               <div className="relative">
                 {previewImage ? (
-                  <div className="relative w-full aspect-[3/4] rounded-[3rem] overflow-hidden shadow-2xl group border-4 border-white">
-                    <img src={previewImage} alt="Preview" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                  <div className="relative w-full aspect-[4/5] rounded-[3rem] overflow-hidden shadow-2xl group border-4 border-white">
+                    <img src={previewImage} alt="Preview" className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-700" />
                     <button type="button" onClick={() => { setPreviewImage(null); setSelectedFile(null); }} className="absolute top-6 right-6 bg-white w-14 h-14 rounded-3xl text-[#C22973] flex items-center justify-center shadow-2xl hover:scale-110 transition-transform"><X size={24} /></button>
                   </div>
                 ) : (
-                  <label className="aspect-[3/4] border-2 border-dashed border-slate-100 rounded-[3rem] bg-slate-50/50 cursor-pointer flex flex-col items-center justify-center hover:bg-white hover:border-pink-200 transition-all group overflow-hidden">
+                  <label className="aspect-[4/5] border-2 border-dashed border-slate-100 rounded-[3rem] bg-slate-50/50 cursor-pointer flex flex-col items-center justify-center hover:bg-white hover:border-pink-200 transition-all group overflow-hidden px-6 text-center">
                     <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
                     <div className="w-20 h-20 bg-white rounded-[2rem] flex items-center justify-center shadow-sm mb-6 group-hover:scale-110 transition-all"><ImageIcon size={36} className="text-[#C22973]" /></div>
                     <p className="text-[11px] font-black text-slate-800 uppercase tracking-widest italic">Capa do Evento</p>
@@ -449,38 +543,45 @@ export default function NovoEventoOnline() {
               </div>
             </div>
 
-            {/* BANNER PATROCÍNIO */}
+            {/* BANNER PATROCINADOR */}
             <div className="bg-white rounded-[3.5rem] p-8 shadow-sm border border-slate-100">
-              <h4 className="text-[9px] text-slate-300 font-black uppercase mb-8 text-center tracking-[0.4em] italic">Media Center: Patrocínio</h4>
+              <div className="flex items-center justify-between mb-8">
+                <h4 className="text-[9px] text-slate-300 font-black uppercase tracking-[0.4em] italic">Media Center: Patrocínio</h4>
+                <span className="px-4 py-2 rounded-full bg-blue-50 text-blue-600 text-[10px] font-black uppercase tracking-widest">236x354</span>
+              </div>
               <div className="relative">
                 {previewBanner ? (
-                  <div className="relative w-full aspect-video rounded-[2rem] overflow-hidden shadow-2xl group border-4 border-white">
-                    <img src={previewBanner} className="w-full h-full object-cover" />
-                    <button type="button" onClick={() => { setPreviewBanner(null); setSelectedBanner(null); }} className="absolute top-4 right-4 bg-white/90 backdrop-blur w-10 h-10 rounded-2xl text-slate-900 shadow-xl flex items-center justify-center hover:scale-110"><X size={20} /></button>
+                  <div className="relative w-full aspect-[2/3] rounded-[2rem] overflow-hidden shadow-2xl group border-4 border-white">
+                    <img src={previewBanner} className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-700" />
+                    <button type="button" onClick={() => { setPreviewBanner(null); setSelectedBanner(null); }} className="absolute top-4 right-4 bg-white w-12 h-12 rounded-2xl text-blue-500 flex items-center justify-center shadow-xl hover:scale-110 transition-transform"><X size={20} /></button>
                   </div>
                 ) : (
-                  <label className="aspect-video border-2 border-dashed border-slate-100 rounded-[2rem] bg-slate-50/50 cursor-pointer flex flex-col items-center justify-center hover:bg-white transition-all group">
+                  <label className="aspect-[2/3] border-2 border-dashed border-slate-100 rounded-[2rem] bg-slate-50/50 cursor-pointer flex flex-col items-center justify-center hover:bg-white transition-all group text-center px-4">
                     <input type="file" accept="image/*" onChange={handleBannerChange} className="hidden" />
                     <Building2 size={24} className="text-blue-500 mb-3" />
-                    <p className="text-[9px] font-black uppercase italic">Banner Patrocinador</p>
+                    <p className="text-[9px] font-black uppercase italic">Capa Patrocinador</p>
                   </label>
                 )}
               </div>
             </div>
 
-            {/* SETUP NUVEM */}
-            <div className="p-8 bg-slate-900 rounded-[3.5rem] text-white">
-              <div className="flex items-center gap-4 mb-4">
-                <Globe className="text-emerald-400" size={20} />
-                <p className="text-[10px] font-black uppercase tracking-widest italic">Setup de Nuvem</p>
-              </div>
-              <p className="text-[11px] opacity-60 font-bold leading-relaxed uppercase">O ambiente virtual será provisionado automaticamente após a criação.</p>
-              <p className="mt-4 text-[11px] font-black uppercase text-pink-300">Moeda: {formData.moeda}</p>
+            {/* MAPA PREVIEW */}
+            <div className="bg-white rounded-[3.5rem] p-8 shadow-sm border border-slate-100 h-[350px] relative overflow-hidden">
+              <div ref={mapContainerRef} className="w-full h-full rounded-[3.2rem]" />
+            </div>
+
+            {/* CARD FINANCEIRO */}
+            <div className="bg-gradient-to-br from-black to-slate-800 rounded-[3.5rem] p-10 text-white shadow-2xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-8 opacity-10"><Ticket size={120} /></div>
+              <h4 className="font-black italic text-2xl uppercase leading-tight mb-4 tracking-tighter text-white">Financeiro</h4>
+              <p className="text-[11px] font-bold opacity-60 uppercase tracking-[0.2em]">Tickets e Lotes serão configurados no próximo estágio.</p>
+              <p className="mt-6 text-sm font-bold text-pink-300">Moeda atual: {formData.moeda}</p>
             </div>
           </div>
         </div>
       </main>
 
+      {/* ESTILOS CSS PARA O EDITOR (Opcional, pode colocar no seu CSS global) */}
       <style jsx global>{`
         .ProseMirror p.is-editor-empty:first-child::before {
           content: attr(data-placeholder);
@@ -489,6 +590,10 @@ export default function NovoEventoOnline() {
           pointer-events: none;
           height: 0;
         }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
       `}</style>
     </div>
   );
