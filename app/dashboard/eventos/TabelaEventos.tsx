@@ -14,7 +14,8 @@ import {
   Calendar,
   DollarSign,
   Plus,
-  Trash2
+  Trash2,
+  FileText
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Swal from 'sweetalert2';
@@ -628,15 +629,26 @@ export default function TabelaEventos() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-700 ml-1">Descrição</label>
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 ml-1">
+                  <FileText size={16} className="text-purple-500" />
+                  <label className="text-xs font-bold text-slate-700">Descrição</label>
+                </div>
+
                 <textarea
-                  rows={4}
-                  className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl font-medium outline-none focus:ring-2 focus:ring-purple-100 focus:border-purple-600 transition-all resize-none"
+                  rows={8}
+                  className="w-full min-h-[180px] p-5 bg-slate-50 border border-slate-200 rounded-[1.5rem] font-medium outline-none focus:ring-2 focus:ring-purple-100 focus:border-purple-600 transition-all resize-none leading-relaxed text-slate-700"
                   value={eventoParaEditar.descricao || ''}
                   onChange={(e) =>
                     setEventoParaEditar({ ...eventoParaEditar, descricao: e.target.value })
                   }
+                  placeholder={`Descreva seu evento aqui...
+
+Ex:
+• O que está incluso
+• Regras importantes
+• Programação
+• Informações para os participantes`}
                 />
               </div>
 
