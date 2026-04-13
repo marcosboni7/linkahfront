@@ -254,7 +254,7 @@ export default function TabelaEventos() {
     if (!isEditModalOpen) return;
 
     const html = eventoParaEditar?.descricao || '';
-    editor.commands.setContent(html, false);
+    editor.commands.setContent(html, { emitUpdate: false });
   }, [editor, isEditModalOpen, eventoParaEditar?.descricao]);
 
   const eventosFiltrados = eventos.filter((evento) => {
