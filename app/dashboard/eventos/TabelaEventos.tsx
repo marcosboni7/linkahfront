@@ -124,6 +124,30 @@ function resolverImagemEvento(url: any) {
   return `${API_URL}/uploads/${valor}`;
 }
 
+function obterPrecoBase(data: any) {
+  const ingressos = Array.isArray(data?.ingressos) ? data.ingressos : [];
+
+  const precosValidos = ingressos
+    .map((ing: any) => Number(ing?.preco))
+    .filter((preco: number) => !Number.isNaN(preco) && preco > 0);
+
+  if (precosValidos.length > 0) {
+    return Math.min(...precosValidos);
+  }
+
+  const precoMinimo = Number(data?.preco_minimo);
+  if (!Number.isNaN(precoMinimo) && precoMinimo > 0) {
+    return precoMinimo;
+  }
+
+  const precoEvento = Number(data?.preco);
+  if (!Number.isNaN(precoEvento) && precoEvento > 0) {
+    return precoEvento;
+  }
+
+  return 0;
+}
+
 const MenuBar = ({ editor }: any) => {
   if (!editor) return null;
 
@@ -384,7 +408,7 @@ export default function TabelaEventos() {
         nome: data.nome || '',
         descricao: data.descricao || '',
         local_nome: data.local_nome || '',
-        preco: data.preco_minimo || data.preco || 0,
+        preco: obterPrecoBase(data),
         data_inicio: formatDateToInput(data.data_inicio),
         imagem_capa: data.imagem_capa || '',
       };
@@ -413,11 +437,13 @@ export default function TabelaEventos() {
       const token = rawToken?.replace(/['"]+/g, '').trim() || '';
       const formData = new FormData();
 
+      const precoBase = Number(eventoParaEditar.preco || 0);
+
       formData.append('nome', eventoParaEditar.nome || '');
       formData.append('categoria', eventoParaEditar.categoria || '');
       formData.append('descricao', eventoParaEditar.descricao || '');
       formData.append('local_nome', eventoParaEditar.local_nome || '');
-      formData.append('preco', String(eventoParaEditar.preco || 0));
+      formData.append('preco', String(precoBase));
 
       const dataInicioFormatada = formatDateToBackend(eventoParaEditar.data_inicio);
       if (dataInicioFormatada) {
@@ -436,21 +462,43 @@ export default function TabelaEventos() {
         body: formData,
       });
 
-      if (res.ok) {
-        setIsEditModalOpen(false);
-
-        Swal.fire({
-          title: 'Atualizado!',
-          text: 'As alterações foram salvas com sucesso.',
-          icon: 'success',
-          confirmButtonColor: '#7C3AED',
-        });
-
-        await carregarEventos();
-      } else {
+      if (!res.ok) {
         const responseData = await res.json().catch(() => null);
         throw new Error(responseData?.error || 'Erro ao salvar alterações');
       }
+
+      const resIngressos = await fetch(`${API_URL}/api/eventos/${eventoParaEditar.id}/ingressos`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          ingressos: [
+            {
+              nome: 'Ingresso Geral',
+              preco: precoBase,
+              quantidade: 9999,
+            },
+          ],
+        }),
+      });
+
+      if (!resIngressos.ok) {
+        const responseIngressos = await resIngressos.json().catch(() => null);
+        throw new Error(responseIngressos?.error || 'Erro ao salvar valor base do ingresso');
+      }
+
+      setIsEditModalOpen(false);
+
+      Swal.fire({
+        title: 'Atualizado!',
+        text: 'As alterações foram salvas com sucesso.',
+        icon: 'success',
+        confirmButtonColor: '#7C3AED',
+      });
+
+      await carregarEventos();
     } catch (err: any) {
       Swal.fire({
         title: 'Erro',
@@ -778,7 +826,7 @@ export default function TabelaEventos() {
                     <input
                       type="number"
                       className="w-full p-3.5 bg-purple-50/50 border border-purple-100 rounded-xl font-bold text-purple-700 outline-none focus:ring-2 focus:ring-purple-100 focus:border-purple-600 transition-all"
-                      value={eventoParaEditar.preco || ''}
+                      value={eventoParaEditar.preco ?? ''}
                       onChange={(e) =>
                         setEventoParaEditar({ ...eventoParaEditar, preco: e.target.value })
                       }
