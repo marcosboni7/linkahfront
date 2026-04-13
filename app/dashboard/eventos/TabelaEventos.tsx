@@ -253,7 +253,7 @@ export default function TabelaEventos() {
     if (!editor) return;
     if (!isEditModalOpen) return;
 
-    const html = eventoParaEditar?.descricao || '';
+    const html = eventoParaEditar?.descricao || '<p></p>';
     editor.commands.setContent(html, { emitUpdate: false });
   }, [editor, isEditModalOpen, eventoParaEditar?.descricao]);
 
@@ -340,22 +340,48 @@ export default function TabelaEventos() {
     carregarEventos();
   }, []);
 
-  const abrirModalEdicao = (evento: any) => {
-    const eventoFormatado = {
-      ...evento,
-      categoria: evento.categoria || CATEGORIAS_VALIDAS[0],
-      nome: evento.nome || '',
-      descricao: evento.descricao || '',
-      local_nome: evento.local_nome || '',
-      preco: evento.preco_minimo || evento.preco || 0,
-      data_inicio: formatDateToInput(evento.data_inicio),
-      imagem_capa: evento.imagem_capa || '',
-    };
+  const abrirModalEdicao = async (evento: any) => {
+    try {
+      const rawToken = localStorage.getItem('@Linkah:Token');
+      const token = rawToken?.replace(/['"]+/g, '').trim() || '';
 
-    setEventoParaEditar(eventoFormatado);
-    setPreviewUrl(validarImagem(evento.imagem_capa));
-    setSelectedFile(null);
-    setIsEditModalOpen(true);
+      const res = await fetch(`${API_URL}/api/eventos/${evento.id}?t=${Date.now()}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        cache: 'no-store',
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        throw new Error(data?.error || data?.message || 'Erro ao carregar evento');
+      }
+
+      const eventoCompleto = {
+        ...data,
+        categoria: data.categoria || CATEGORIAS_VALIDAS[0],
+        nome: data.nome || '',
+        descricao: data.descricao || '',
+        local_nome: data.local_nome || '',
+        preco: data.preco_minimo || data.preco || 0,
+        data_inicio: formatDateToInput(data.data_inicio),
+        imagem_capa: data.imagem_capa || '',
+      };
+
+      setEventoParaEditar(eventoCompleto);
+      setPreviewUrl(validarImagem(data.imagem_capa));
+      setSelectedFile(null);
+      setIsEditModalOpen(true);
+    } catch (err: any) {
+      console.error('Erro ao abrir edição:', err);
+
+      Swal.fire({
+        title: 'Erro',
+        text: err.message || 'Não foi possível carregar os dados completos do evento.',
+        icon: 'error',
+      });
+    }
   };
 
   const handleSalvarEdicao = async (e: React.FormEvent) => {
