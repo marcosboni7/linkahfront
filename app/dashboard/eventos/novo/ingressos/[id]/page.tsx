@@ -156,12 +156,16 @@ export default function CadastroIngressos() {
     }
   };
 
-  const handleChange = (index: number, field: string, value: string) => {
+  const handleChange = (
+    index: number,
+    field: string,
+    value: string | number
+  ) => {
     const novos = [...ingressos];
-    novos[index] = { ...novos[index], [field]: value };
+    novos[index] = { ...novos[index], [field]: String(value) };
     setIngressos(novos);
 
-    if (value && errors[`${index}-${field}`]) {
+    if (String(value) && errors[`${index}-${field}`]) {
       setErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors[`${index}-${field}`];
@@ -491,10 +495,16 @@ export default function CadastroIngressos() {
                         </span>
 
                         <input
-                          type="number"
+                          type="text"
+                          inputMode="decimal"
                           value={ing.preco}
                           onBlur={(e) => validateField(index, 'preco', e.target.value)}
-                          onChange={(e) => handleChange(index, 'preco', e.target.value)}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(',', '.');
+                            if (/^\d*\.?\d*$/.test(value)) {
+                              handleChange(index, 'preco', value);
+                            }
+                          }}
                           className={`w-full rounded-2xl border ${
                             errors[`${index}-preco`] ? 'border-red-400' : 'border-slate-200'
                           } bg-slate-50/70 pl-11 pr-4 py-4 outline-none focus:bg-white focus:border-violet-400 text-slate-900 font-semibold transition-all`}
@@ -513,10 +523,14 @@ export default function CadastroIngressos() {
                     </label>
 
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
                       value={ing.quantidade}
                       onBlur={(e) => validateField(index, 'quantidade', e.target.value)}
-                      onChange={(e) => handleChange(index, 'quantidade', e.target.value)}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, '');
+                        handleChange(index, 'quantidade', value);
+                      }}
                       className={`w-full rounded-2xl border ${
                         errors[`${index}-quantidade`] ? 'border-red-400' : 'border-slate-200'
                       } bg-slate-50/70 px-5 py-4 outline-none focus:bg-white focus:border-violet-400 text-slate-900 font-semibold text-center transition-all`}
