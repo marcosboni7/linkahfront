@@ -20,6 +20,9 @@ import {
   Palette,
   Trash2,
   Save,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/app/context/LanguageContext';
@@ -30,6 +33,7 @@ import StarterKit from '@tiptap/starter-kit';
 import Color from '@tiptap/extension-color';
 import { TextStyle } from '@tiptap/extension-text-style';
 import Placeholder from '@tiptap/extension-placeholder';
+import TextAlign from '@tiptap/extension-text-align';
 
 const API_URL = 'https://api-linkah.onrender.com';
 const DRAFT_KEY = '@Linkah:NovoEventoPresencial:Draft';
@@ -87,6 +91,44 @@ const MenuBar = ({ editor }: any) => {
         }`}
       >
         <ListOrdered size={18} />
+      </button>
+
+      <div className="w-[1px] h-8 bg-slate-200 mx-1" />
+
+      <button
+        type="button"
+        onClick={() => editor.chain().focus().setTextAlign('left').run()}
+        className={`p-2 rounded-xl transition-all ${
+          editor.isActive({ textAlign: 'left' })
+            ? 'bg-slate-900 text-white shadow-lg'
+            : 'bg-white text-slate-400 hover:text-pink-500'
+        }`}
+      >
+        <AlignLeft size={18} />
+      </button>
+
+      <button
+        type="button"
+        onClick={() => editor.chain().focus().setTextAlign('center').run()}
+        className={`p-2 rounded-xl transition-all ${
+          editor.isActive({ textAlign: 'center' })
+            ? 'bg-slate-900 text-white shadow-lg'
+            : 'bg-white text-slate-400 hover:text-pink-500'
+        }`}
+      >
+        <AlignCenter size={18} />
+      </button>
+
+      <button
+        type="button"
+        onClick={() => editor.chain().focus().setTextAlign('right').run()}
+        className={`p-2 rounded-xl transition-all ${
+          editor.isActive({ textAlign: 'right' })
+            ? 'bg-slate-900 text-white shadow-lg'
+            : 'bg-white text-slate-400 hover:text-pink-500'
+        }`}
+      >
+        <AlignRight size={18} />
       </button>
 
       <div className="w-[1px] h-8 bg-slate-200 mx-1" />
@@ -176,6 +218,9 @@ export default function NovoEventoPresencial() {
       StarterKit,
       TextStyle,
       Color,
+      TextAlign.configure({
+        types: ['heading', 'paragraph'],
+      }),
       Placeholder.configure({
         placeholder:
           'Conte os detalhes da experiência, use negrito para destacar e listas para cronogramas...',
