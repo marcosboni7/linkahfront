@@ -72,21 +72,16 @@ export default function CadastroIngressos() {
   useEffect(() => {
     const fetchEvento = async () => {
       if (!id) {
-        console.log('❌ ID PARAM ausente:', params);
         setLoadingEvento(false);
         return;
       }
 
       try {
-        console.log('🆔 ID PARAM:', id);
-
         const res = await fetch(`${API_URL}/api/eventos/${id}`, {
           cache: 'no-store',
         });
 
         const data = await res.json().catch(() => null);
-
-        console.log('🔥 EVENTO RAW:', data);
 
         if (!res.ok) {
           throw new Error(
@@ -221,8 +216,6 @@ export default function CadastroIngressos() {
         })),
         moeda_global: evento?.moeda || ingressos[0].moeda,
       };
-
-      console.log('📤 PAYLOAD INGRESSOS:', payload);
 
       const response = await fetch(`${API_URL}/api/eventos/${id}/ingressos`, {
         method: 'POST',
@@ -482,15 +475,15 @@ export default function CadastroIngressos() {
                       <select
                         value={ing.moeda}
                         onChange={(e) => handleChange(index, 'moeda', e.target.value)}
-                        className="rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-4 font-semibold text-slate-900 outline-none focus:border-violet-400"
+                        className="shrink-0 rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-4 font-semibold text-slate-900 outline-none focus:border-violet-400"
                       >
                         <option value="BRL">BRL</option>
                         <option value="EUR">EUR</option>
                         <option value="USD">USD</option>
                       </select>
 
-                      <div className="relative flex-1">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-semibold text-sm">
+                      <div className="relative flex-1 min-w-0">
+                        <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-semibold text-sm z-10">
                           {currencyMap[ing.moeda]}
                         </span>
 
@@ -505,7 +498,7 @@ export default function CadastroIngressos() {
                               handleChange(index, 'preco', value);
                             }
                           }}
-                          className={`w-full rounded-2xl border ${
+                          className={`block w-full min-w-0 rounded-2xl border ${
                             errors[`${index}-preco`] ? 'border-red-400' : 'border-slate-200'
                           } bg-slate-50/70 pl-11 pr-4 py-4 outline-none focus:bg-white focus:border-violet-400 text-slate-900 font-semibold transition-all`}
                           placeholder="0.00"
