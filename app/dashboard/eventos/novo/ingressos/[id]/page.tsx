@@ -257,24 +257,31 @@ export default function CadastroIngressos() {
   };
 
   return (
-    <div className="min-h-screen bg-white text-slate-900">
-      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_top,_rgba(124,58,237,0.08),transparent_35%)]" />
+    <div className="min-h-screen bg-[#F8FAFC] text-slate-900 font-sans">
+      {/* Background Decorativo */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute -top-[10%] -right-[10%] w-[40%] h-[40%] rounded-full bg-violet-100/40 blur-[120px]" />
+        <div className="absolute top-[20%] -left-[10%] w-[30%] h-[30%] rounded-full bg-blue-50/50 blur-[100px]" />
+      </div>
 
-      <header className="sticky top-0 z-50 border-b border-slate-100 bg-white/90 backdrop-blur-xl">
-        <div className="max-w-6xl mx-auto px-6 md:px-10 py-5 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+      <header className="sticky top-0 z-50 border-b border-slate-200/60 bg-white/80 backdrop-blur-xl">
+        <div className="max-w-7xl mx-auto px-6 md:px-10 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-5">
             <button
               onClick={() => router.back()}
-              className="w-11 h-11 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 hover:text-slate-900 transition-all flex items-center justify-center shadow-sm"
+              className="group w-10 h-10 rounded-xl border border-slate-200 bg-white hover:border-violet-200 hover:bg-violet-50 text-slate-500 hover:text-violet-600 transition-all flex items-center justify-center shadow-sm"
             >
-              <ChevronLeft size={20} />
+              <ChevronLeft size={20} className="group-hover:-translate-x-0.5 transition-transform" />
             </button>
 
             <div>
-              <p className="text-[11px] uppercase tracking-[0.25em] font-bold text-violet-500 mb-1">
-                Checkout Setup
-              </p>
-              <h1 className="text-xl md:text-2xl font-semibold tracking-tight text-slate-900">
+              <div className="flex items-center gap-2 mb-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse" />
+                <p className="text-[10px] uppercase tracking-[0.2em] font-bold text-slate-400">
+                  Checkout Setup
+                </p>
+              </div>
+              <h1 className="text-lg md:text-xl font-bold tracking-tight text-slate-900">
                 {t.setupTickets || 'Configurar Ingressos'}
               </h1>
             </div>
@@ -283,284 +290,265 @@ export default function CadastroIngressos() {
           <button
             onClick={handleFinalizar}
             disabled={loading || loadingEvento}
-            className="inline-flex items-center gap-2 rounded-2xl bg-violet-600 hover:bg-violet-700 text-white px-5 md:px-7 py-3.5 font-semibold shadow-lg shadow-violet-200 transition-all disabled:opacity-50"
+            className="group relative inline-flex items-center gap-2.5 rounded-xl bg-slate-900 hover:bg-violet-600 text-white px-6 py-3 font-bold shadow-lg shadow-slate-200 transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
           >
             {loading ? (
               <Loader2 className="animate-spin" size={18} />
             ) : (
               <>
-                <Sparkles size={16} />
-                {t.btnPublish || 'Publicar Evento'}
+                <Sparkles size={16} className="group-hover:rotate-12 transition-transform" />
+                <span className="text-sm">{t.btnPublish || 'Publicar Evento'}</span>
               </>
             )}
           </button>
         </div>
       </header>
 
-      <main className="relative max-w-6xl mx-auto px-6 md:px-10 py-10 md:py-14">
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
-          <aside className="xl:col-span-4 space-y-6">
-            <div className="rounded-[2rem] border border-violet-100 bg-gradient-to-br from-violet-50 to-white p-6 shadow-sm">
-              <div className="flex items-center gap-3 mb-5">
-                <div className="w-11 h-11 rounded-2xl bg-violet-600 text-white flex items-center justify-center shadow-md shadow-violet-200">
-                  <Ticket size={20} />
+      <main className="relative max-w-7xl mx-auto px-6 md:px-10 py-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+          
+          {/* Sidebar */}
+          <aside className="lg:col-span-4 space-y-6">
+            <div className="sticky top-28 space-y-6">
+              <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-12 h-12 rounded-2xl bg-violet-600 text-white flex items-center justify-center shadow-lg shadow-violet-100">
+                    <Ticket size={22} />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-bold text-slate-900">
+                      Gestão de Lotes
+                    </h2>
+                    <p className="text-xs text-slate-400 font-medium">Etapa 2 de 2</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-[10px] uppercase tracking-[0.25em] text-violet-500 font-bold">
-                    Etapa Final
-                  </p>
-                  <h2 className="text-lg font-semibold text-slate-900">
-                    Ingressos & Pricing
-                  </h2>
+
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3 p-3 rounded-2xl bg-emerald-50/50 border border-emerald-100/50">
+                    <div className="w-8 h-8 rounded-lg bg-white text-emerald-500 flex items-center justify-center shadow-sm">
+                      <CheckCircle2 size={16} />
+                    </div>
+                    <span className="text-sm font-semibold text-emerald-700">Evento Criado</span>
+                  </div>
+                  
+                  <div className="flex items-center gap-3 p-3 rounded-2xl bg-violet-50 border border-violet-100">
+                    <div className="w-8 h-8 rounded-lg bg-violet-600 text-white flex items-center justify-center shadow-sm">
+                      <span className="text-xs font-bold">02</span>
+                    </div>
+                    <span className="text-sm font-semibold text-violet-700">Configurar Ingressos</span>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 text-sm">
-                <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-500 border border-emerald-100 flex items-center justify-center">
-                  <CheckCircle2 size={16} />
+              {loadingEvento ? (
+                <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+                  <Loader2 className="animate-spin mx-auto text-violet-500" size={24} />
+                  <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-4">Carregando...</p>
                 </div>
-                <div>
-                  <p className="font-medium text-slate-900">
-                    {t.stepEvent || 'Evento'}
-                  </p>
-                  <p className="text-slate-400 text-xs">Concluído</p>
+              ) : evento && (
+                <div className="rounded-3xl border border-slate-200 bg-white overflow-hidden shadow-sm">
+                  <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
+                    <p className="text-[10px] uppercase tracking-widest font-black text-slate-400">Resumo do Evento</p>
+                  </div>
+                  <div className="p-6 space-y-4">
+                    <h3 className="text-xl font-bold text-slate-900 leading-tight">{evento.nome}</h3>
+                    <div className="flex flex-wrap gap-2">
+                      <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-100 text-slate-600 text-[11px] font-bold">
+                        <CalendarDays size={12} />
+                        {formatDate(evento.data_inicio)}
+                      </div>
+                      <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-100 text-slate-600 text-[11px] font-bold">
+                        <Tag size={12} />
+                        {evento.categoria}
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              <div className="h-8 w-px bg-slate-200 ml-4 my-2" />
-
-              <div className="flex items-center gap-3 text-sm">
-                <div className="w-9 h-9 rounded-xl bg-violet-600 text-white flex items-center justify-center shadow-md shadow-violet-200">
-                  2
+              <div className="p-6 rounded-3xl bg-slate-900 text-white shadow-xl shadow-slate-200">
+                <div className="flex items-center gap-3 mb-3">
+                  <Info size={18} className="text-violet-400" />
+                  <h4 className="text-sm font-bold">Dica Pro</h4>
                 </div>
-                <div>
-                  <p className="font-medium text-slate-900">
-                    {t.stepTickets || 'Ingressos'}
-                  </p>
-                  <p className="text-violet-500 text-xs font-medium">Em edição</p>
-                </div>
-              </div>
-            </div>
-
-            {loadingEvento ? (
-              <div className="rounded-[2rem] border border-slate-200 bg-white p-8 text-center shadow-sm">
-                <Loader2 className="animate-spin mx-auto text-violet-500" size={28} />
-                <p className="text-slate-500 font-medium mt-4">
-                  Carregando informações do evento...
+                <p className="text-xs text-slate-400 leading-relaxed font-medium">
+                  Crie diferentes lotes (ex: Lote 1, Lote 2) para incentivar a compra antecipada. Você pode ajustar a quantidade de cada um.
                 </p>
-              </div>
-            ) : evento ? (
-              <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm space-y-5">
-                <div>
-                  <p className="text-[10px] uppercase tracking-[0.25em] font-bold text-violet-500 mb-2">
-                    Evento
-                  </p>
-                  <h2 className="text-2xl font-semibold tracking-tight text-slate-900">
-                    {evento.nome || 'Evento sem nome'}
-                  </h2>
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  <span className="inline-flex items-center gap-2 rounded-full bg-slate-50 border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700">
-                    <Tag size={13} />
-                    {evento.categoria || 'Sem categoria'}
-                  </span>
-
-                  <span className="inline-flex items-center gap-2 rounded-full bg-slate-50 border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700">
-                    <Coins size={13} />
-                    {evento.moeda || 'BRL'}
-                  </span>
-
-                  <span className="inline-flex items-center gap-2 rounded-full bg-slate-50 border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700">
-                    <CalendarDays size={13} />
-                    {formatDate(evento.data_inicio)}
-                  </span>
-                </div>
-
-                <div className="rounded-2xl bg-violet-50 border border-violet-100 px-4 py-4">
-                  <p className="text-[10px] uppercase tracking-[0.22em] text-violet-500 font-bold mb-1">
-                    Identificador
-                  </p>
-                  <p className="text-sm font-medium text-slate-800 break-all">{id}</p>
-                </div>
-              </div>
-            ) : (
-              <div className="rounded-[2rem] border border-red-100 bg-white p-6 shadow-sm">
-                <p className="text-red-500 font-semibold mb-1">Evento não carregado</p>
-                <p className="text-slate-500 text-sm">
-                  Não foi possível encontrar as informações do evento para este ID.
-                </p>
-              </div>
-            )}
-
-            <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="flex items-start gap-4">
-                <div className="w-11 h-11 rounded-2xl bg-violet-50 text-violet-500 flex items-center justify-center border border-violet-100">
-                  <Info size={20} />
-                </div>
-                <div>
-                  <h4 className="text-sm font-semibold text-slate-900 mb-1">
-                    Gestão de Inventário
-                  </h4>
-                  <p className="text-sm text-slate-500 leading-relaxed">
-                    {t.ticketAlert ||
-                      'Defina os preços e quantidades. Estes valores alimentam o checkout da plataforma em tempo real.'}
-                  </p>
-                </div>
               </div>
             </div>
           </aside>
 
-          <section className="xl:col-span-8 space-y-6">
+          {/* Main Content */}
+          <section className="lg:col-span-8 space-y-8">
             {ingressos.map((ing, index) => (
               <div
                 key={index}
-                className="relative rounded-[2rem] border border-slate-200 bg-white p-6 md:p-7 shadow-sm hover:shadow-lg hover:border-violet-200 transition-all"
+                className="group relative rounded-[2.5rem] border border-slate-200 bg-white p-8 md:p-10 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 hover:border-violet-200 transition-all duration-300"
               >
-                <div className="absolute top-5 right-5">
-                  <span className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-violet-50 text-violet-600 text-sm font-semibold border border-violet-100">
-                    {index + 1}
-                  </span>
+                {/* Badge de Número */}
+                <div className="absolute -top-3 -left-3 w-10 h-10 rounded-2xl bg-white border-2 border-slate-900 text-slate-900 flex items-center justify-center font-black text-sm shadow-md z-10">
+                  {String(index + 1).padStart(2, '0')}
                 </div>
 
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-slate-900">
-                    Categoria de ingresso
-                  </h3>
-                  <p className="text-sm text-slate-500 mt-1">
-                    Configure nome, descrição, preço e capacidade.
-                  </p>
+                {/* Header do Card */}
+                <div className="flex items-center justify-between mb-10">
+                  <div>
+                    <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">
+                      Categoria de Ingresso
+                    </h3>
+                    <div className="h-1 w-12 bg-violet-500 rounded-full mt-1" />
+                  </div>
+                  
+                  {ingressos.length > 1 && (
+                    <button
+                      onClick={() => removeIngresso(index)}
+                      className="w-10 h-10 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center shadow-sm"
+                      title="Remover Categoria"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  )}
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-                  <div className="lg:col-span-5 space-y-2">
-                    <label className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] font-bold text-slate-400">
-                      <Ticket size={14} />
-                      {t.labelTicketName || 'Nome do Lote'}
-                    </label>
+                <div className="space-y-8">
+                  {/* Nome e Descrição */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-3">
+                      <label className="text-[10px] uppercase tracking-[0.2em] font-black text-slate-400 flex items-center gap-2">
+                        <Ticket size={12} className="text-violet-500" />
+                        Nome do Lote
+                      </label>
+                      <input
+                        value={ing.nome}
+                        onBlur={(e) => validateField(index, 'nome', e.target.value)}
+                        onChange={(e) => handleChange(index, 'nome', e.target.value)}
+                        className={`w-full rounded-2xl border-2 ${
+                          errors[`${index}-nome`] ? 'border-red-200 bg-red-50/30' : 'border-slate-100 bg-slate-50/50'
+                        } px-6 py-4 outline-none focus:bg-white focus:border-violet-400 text-slate-900 font-bold transition-all placeholder:text-slate-300`}
+                        placeholder="Ex: VIP Experience"
+                      />
+                    </div>
 
-                    <input
-                      value={ing.nome}
-                      onBlur={(e) => validateField(index, 'nome', e.target.value)}
-                      onChange={(e) => handleChange(index, 'nome', e.target.value)}
-                      className={`w-full rounded-2xl border ${
-                        errors[`${index}-nome`] ? 'border-red-400' : 'border-slate-200'
-                      } bg-slate-50/70 px-5 py-4 outline-none focus:bg-white focus:border-violet-400 text-slate-900 font-medium transition-all`}
-                      placeholder={t.placeholderTicket || 'Ex: VIP Experience'}
-                    />
+                    <div className="space-y-3">
+                      <label className="text-[10px] uppercase tracking-[0.2em] font-black text-slate-400 flex items-center gap-2">
+                        <FileText size={12} className="text-violet-500" />
+                        Descrição (Opcional)
+                      </label>
+                      <input
+                        value={ing.descricao || ''}
+                        onChange={(e) => handleChange(index, 'descricao', e.target.value)}
+                        className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50/50 px-6 py-4 outline-none focus:bg-white focus:border-violet-400 text-slate-900 font-semibold transition-all placeholder:text-slate-300"
+                        placeholder="O que está incluso?"
+                      />
+                    </div>
                   </div>
 
-                  <div className="lg:col-span-4 space-y-2">
-                    <label className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] font-bold text-slate-400">
-                      <FileText size={14} />
-                      Descrição
-                    </label>
+                  {/* Preço e Quantidade - DESTAQUE */}
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-end">
+                    
+                    {/* Campo de Preço - Aumentado */}
+                    <div className="md:col-span-8 space-y-4">
+                      <label className="text-[10px] uppercase tracking-[0.2em] font-black text-slate-400 flex items-center gap-2">
+                        <Coins size={12} className="text-violet-500" />
+                        Valor do Ingresso
+                      </label>
+                      
+                      <div className="flex gap-3">
+                        <div className="relative shrink-0">
+                          <select
+                            value={ing.moeda}
+                            onChange={(e) => handleChange(index, 'moeda', e.target.value)}
+                            className="appearance-none h-[72px] rounded-2xl border-2 border-slate-100 bg-slate-50/50 pl-6 pr-10 font-black text-slate-900 outline-none focus:border-violet-400 transition-all cursor-pointer"
+                          >
+                            <option value="BRL">BRL</option>
+                            <option value="EUR">EUR</option>
+                            <option value="USD">USD</option>
+                          </select>
+                          <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
+                            <ChevronLeft size={14} className="-rotate-90" />
+                          </div>
+                        </div>
 
-                    <textarea
-                      value={ing.descricao || ''}
-                      onChange={(e) => handleChange(index, 'descricao', e.target.value)}
-                      rows={4}
-                      className="w-full rounded-2xl border border-slate-200 bg-slate-50/70 px-5 py-4 outline-none focus:bg-white focus:border-violet-400 text-slate-900 font-medium transition-all resize-none"
-                      placeholder="Ex: acesso VIP, open bar, área exclusiva, brindes..."
-                    />
-                  </div>
+                        <div className="relative flex-1 group/input">
+                          <div className="absolute left-6 top-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none z-10">
+                            <span className="text-2xl font-black text-slate-300 group-focus-within/input:text-violet-500 transition-colors">
+                              {currencyMap[ing.moeda] || '$'}
+                            </span>
+                          </div>
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            value={ing.preco}
+                            onBlur={(e) => validateField(index, 'preco', e.target.value)}
+                            onChange={(e) => {
+                              const value = e.target.value.replace(',', '.');
+                              if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                                handleChange(index, 'preco', value);
+                              }
+                            }}
+                            className={`block w-full h-[72px] rounded-2xl border-2 ${
+                              errors[`${index}-preco`] ? 'border-red-200 bg-red-50/30' : 'border-slate-100 bg-slate-50/50'
+                            } pl-16 pr-8 outline-none focus:bg-white focus:border-violet-400 text-3xl font-black text-slate-900 transition-all placeholder:text-slate-200`}
+                            placeholder="0.00"
+                          />
+                        </div>
+                      </div>
+                    </div>
 
-                  <div className="lg:col-span-3 space-y-2">
-                    <label className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] font-bold text-slate-400">
-                      <Coins size={14} />
-                      Preço de Venda
-                    </label>
-
-                    <div className="flex gap-2">
-                      <select
-                        value={ing.moeda}
-                        onChange={(e) => handleChange(index, 'moeda', e.target.value)}
-                        className="shrink-0 rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-4 font-semibold text-slate-900 outline-none focus:border-violet-400"
-                      >
-                        <option value="BRL">BRL</option>
-                        <option value="EUR">EUR</option>
-                        <option value="USD">USD</option>
-                      </select>
-
-                      <div className="relative flex-1 min-w-0">
-                        <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-semibold text-sm z-10">
-                          {currencyMap[ing.moeda] || '$'}
-                        </span>
-
+                    {/* Campo de Quantidade */}
+                    <div className="md:col-span-4 space-y-4">
+                      <label className="text-[10px] uppercase tracking-[0.2em] font-black text-slate-400 flex items-center gap-2">
+                        <Layers size={12} className="text-violet-500" />
+                        Qtd. Disponível
+                      </label>
+                      <div className="relative">
                         <input
                           type="text"
-                          inputMode="decimal"
-                          value={ing.preco}
-                          onBlur={(e) => validateField(index, 'preco', e.target.value)}
+                          inputMode="numeric"
+                          value={ing.quantidade}
+                          onBlur={(e) => validateField(index, 'quantidade', e.target.value)}
                           onChange={(e) => {
-                            // Permite apenas números e um único ponto ou vírgula
-                            const value = e.target.value.replace(',', '.');
-                            if (value === '' || /^\d*\.?\d*$/.test(value)) {
-                              handleChange(index, 'preco', value);
-                            }
+                            const value = e.target.value.replace(/\D/g, '');
+                            handleChange(index, 'quantidade', value);
                           }}
-                          className={`block w-full min-w-0 rounded-2xl border ${
-                            errors[`${index}-preco`] ? 'border-red-400' : 'border-slate-200'
-                          } bg-slate-50/70 pl-11 pr-4 py-4 outline-none focus:bg-white focus:border-violet-400 text-slate-900 font-semibold transition-all`}
-                          placeholder="0.00"
+                          className={`w-full h-[72px] rounded-2xl border-2 ${
+                            errors[`${index}-quantidade`] ? 'border-red-200 bg-red-50/30' : 'border-slate-100 bg-slate-50/50'
+                          } px-6 outline-none focus:bg-white focus:border-violet-400 text-2xl font-black text-center text-slate-900 transition-all placeholder:text-slate-200`}
+                          placeholder="0"
                         />
                       </div>
                     </div>
                   </div>
                 </div>
-
-                <div className="mt-5 flex flex-col sm:flex-row sm:items-end gap-4">
-                  <div className="w-full sm:w-52 space-y-2">
-                    <label className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] font-bold text-slate-400">
-                      <Layers size={14} />
-                      Capacidade
-                    </label>
-
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      value={ing.quantidade}
-                      onBlur={(e) => validateField(index, 'quantidade', e.target.value)}
-                      onChange={(e) => {
-                        const value = e.target.value.replace(/\D/g, '');
-                        handleChange(index, 'quantidade', value);
-                      }}
-                      className={`w-full rounded-2xl border ${
-                        errors[`${index}-quantidade`] ? 'border-red-400' : 'border-slate-200'
-                      } bg-slate-50/70 px-5 py-4 outline-none focus:bg-white focus:border-violet-400 text-slate-900 font-semibold text-center transition-all`}
-                      placeholder="100"
-                    />
-                  </div>
-
-                  {ingressos.length > 1 && (
-                    <button
-                      onClick={() => removeIngresso(index)}
-                      className="inline-flex items-center justify-center gap-2 rounded-2xl border border-red-100 bg-red-50 px-5 py-4 text-red-500 hover:bg-red-100 transition-all font-medium"
-                    >
-                      <Trash2 size={18} />
-                      Remover
-                    </button>
-                  )}
-                </div>
               </div>
             ))}
 
+            {/* Botão Adicionar */}
             <button
               onClick={addIngresso}
-              className="w-full rounded-[2rem] border-2 border-dashed border-violet-200 bg-violet-50/40 py-8 text-violet-600 hover:bg-violet-50 hover:border-violet-300 transition-all flex items-center justify-center gap-3 font-semibold"
+              className="group w-full rounded-[2.5rem] border-2 border-dashed border-slate-200 bg-white py-10 text-slate-400 hover:border-violet-300 hover:bg-violet-50/30 hover:text-violet-600 transition-all flex flex-col items-center justify-center gap-4"
             >
-              <Plus size={18} />
-              {t.btnAddCategory || 'Gerar Nova Categoria de Ingresso'}
+              <div className="w-14 h-14 rounded-2xl bg-slate-50 group-hover:bg-white group-hover:scale-110 group-hover:rotate-90 text-slate-400 group-hover:text-violet-600 flex items-center justify-center transition-all shadow-sm">
+                <Plus size={28} />
+              </div>
+              <span className="text-sm font-black uppercase tracking-widest">
+                {t.btnAddCategory || 'Adicionar Nova Categoria'}
+              </span>
             </button>
           </section>
         </div>
       </main>
 
-      <footer className="border-t border-slate-100 py-10 mt-10">
-        <div className="max-w-6xl mx-auto px-6 md:px-10 text-center">
-          <p className="text-[11px] font-medium text-slate-400 tracking-[0.2em] uppercase">
+      <footer className="py-12 mt-10">
+        <div className="max-w-7xl mx-auto px-6 md:px-10 flex flex-col md:flex-row items-center justify-between gap-6">
+          <p className="text-[10px] font-black text-slate-300 tracking-[0.3em] uppercase">
             Linkah Cloud Nodes © 2026
           </p>
+          <div className="flex items-center gap-8">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Privacidade</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Termos</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Suporte</span>
+          </div>
         </div>
       </footer>
     </div>
