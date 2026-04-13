@@ -32,18 +32,24 @@ function formatDate(dateValue: any) {
   try {
     const date = new Date(dateValue);
     if (Number.isNaN(date.getTime())) return String(dateValue);
-
     return date.toLocaleDateString('pt-BR');
   } catch {
     return String(dateValue);
   }
 }
 
+function parsePrecoInput(value: any) {
+  if (value === null || value === undefined || value === '') return '';
+  const n = Number(value);
+  return Number.isNaN(n) ? '' : String(n);
+}
+
 export default function CadastroIngressos() {
-  const { t, language }: any = useLanguage();
+  const { t }: any = useLanguage();
   const router = useRouter();
   const params = useParams();
-  const id = params?.id as string;
+
+  const id = Array.isArray(params?.id) ? params.id[0] : (params?.id as string);
 
   const [loading, setLoading] = useState(false);
   const [loadingEvento, setLoadingEvento] = useState(true);
@@ -57,34 +63,54 @@ export default function CadastroIngressos() {
   useEffect(() => {
     const fetchEvento = async () => {
       if (!id) {
+        console.log('❌ ID PARAM ausente:', params);
         setLoadingEvento(false);
         return;
       }
 
       try {
+        console.log('🆔 ID PARAM:', id);
+
         const res = await fetch(`${API_URL}/api/eventos/${id}`, {
           cache: 'no-store',
         });
 
         const data = await res.json().catch(() => null);
 
-        console.log('🔥 EVENTO CARREGADO:', data);
+        console.log('🔥 EVENTO RAW:', data);
 
         if (!res.ok) {
-          throw new Error(data?.message || data?.error || 'Não foi possível carregar o evento');
+          throw new Error(
+            data?.message || data?.error || 'Não foi possível carregar o evento'
+          );
         }
 
-        const eventoData = data?.evento || data;
+        const eventoData = data;
         setEvento(eventoData);
 
         const moedaEvento = eventoData?.moeda || 'BRL';
 
-        setIngressos((prev) =>
-          prev.map((ing) => ({
-            ...ing,
-            moeda: moedaEvento,
-          }))
-        );
+        if (Array.isArray(eventoData?.ingressos) && eventoData.ingressos.length > 0) {
+          setIngressos(
+            eventoData.ingressos.map((ing: any) => ({
+              nome: ing.nome || '',
+              preco: parsePrecoInput(ing.preco),
+              quantidade:
+                ing.quantidade === null || ing.quantidade === undefined
+                  ? ''
+                  : String(ing.quantidade),
+              tipo: 'Pago',
+              moeda: ing.moeda || moedaEvento,
+            }))
+          );
+        } else {
+          setIngressos((prev) =>
+            prev.map((ing) => ({
+              ...ing,
+              moeda: moedaEvento,
+            }))
+          );
+        }
       } catch (err: any) {
         console.error('❌ Erro ao buscar evento:', err);
         Swal.fire(
@@ -98,7 +124,7 @@ export default function CadastroIngressos() {
     };
 
     fetchEvento();
-  }, [id]);
+  }, [id, params]);
 
   const addIngresso = () => {
     setIngressos([
@@ -143,7 +169,9 @@ export default function CadastroIngressos() {
   };
 
   const handleFinalizar = async () => {
-    const hasEmpty = ingressos.some((ing) => !ing.nome || !ing.preco || !ing.quantidade);
+    const hasEmpty = ingressos.some(
+      (ing) => !String(ing.nome).trim() || !String(ing.preco).trim() || !String(ing.quantidade).trim()
+    );
 
     if (hasEmpty) {
       Swal.fire({
@@ -166,7 +194,12 @@ export default function CadastroIngressos() {
       const token = localStorage.getItem('@Linkah:Token')?.replace(/['"]+/g, '');
 
       const payload = {
-        ingressos,
+        ingressos: ingressos.map((ing) => ({
+          ...ing,
+          preco: Number(ing.preco),
+          quantidade: Number(ing.quantidade),
+          moeda: evento?.moeda || ing.moeda || 'BRL',
+        })),
         moeda_global: evento?.moeda || ingressos[0].moeda,
       };
 
@@ -289,6 +322,7 @@ export default function CadastroIngressos() {
                   <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#C22973] italic mb-3">
                     Evento carregado
                   </p>
+
                   <h2 className="text-2xl font-black text-slate-900 italic tracking-tight">
                     {evento.nome || 'Evento sem nome'}
                   </h2>
