@@ -15,14 +15,13 @@ import {
   Verified,
   Info,
   Globe,
-  Share2
+  Share2,
+  CheckCircle2,
 } from 'lucide-react';
 import Link from 'next/link';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api-linkah.onrender.com';
 const CLOUDINARY_CLOUD_NAME = 'dj32txsol';
-
-// --- FUNÇÕES DE TRATAMENTO DE DADOS (INTEGRAIS) ---
 
 function normalizeCurrency(input?: string) {
   const raw = String(input || '').trim().toUpperCase();
@@ -35,7 +34,9 @@ function normalizeCurrency(input?: string) {
     raw === 'DOLARES' ||
     raw === 'DÓLARES' ||
     raw === 'USD'
-  ) return 'USD';
+  ) {
+    return 'USD';
+  }
   return 'BRL';
 }
 
@@ -61,13 +62,13 @@ function parsePrice(value: any) {
 function getTicketPrice(ing: any) {
   return parsePrice(
     ing?.preco ??
-    ing?.valor ??
-    ing?.price ??
-    ing?.preco_ingresso ??
-    ing?.valor_ingresso ??
-    ing?.lote_valor ??
-    ing?.amount ??
-    0
+      ing?.valor ??
+      ing?.price ??
+      ing?.preco_ingresso ??
+      ing?.valor_ingresso ??
+      ing?.lote_valor ??
+      ing?.amount ??
+      0
   );
 }
 
@@ -90,7 +91,8 @@ function formatCurrency(value: number | string, currency?: string) {
 }
 
 export default function DetalhesLumaRoxo() {
-  const { id } = useParams();
+  const params = useParams();
+  const id = Array.isArray(params?.id) ? params.id[0] : (params?.id as string);
   const router = useRouter();
 
   const [evento, setEvento] = useState<any>(null);
@@ -122,12 +124,10 @@ export default function DetalhesLumaRoxo() {
               const ingressoTratado = {
                 ...ing,
                 id: String(ing?.id || ing?._id || `ingresso-${index}`),
+                descricao: ing?.descricao || '',
                 preco: precoFinal,
                 moeda: normalizeCurrency(
-                  ing?.moeda ||
-                  ing?.currency ||
-                  ing?.moeda_ingresso ||
-                  moedaEvento
+                  ing?.moeda || ing?.currency || ing?.moeda_ingresso || moedaEvento
                 ),
               };
 
@@ -166,14 +166,11 @@ export default function DetalhesLumaRoxo() {
   const totalGeral = useMemo(() => {
     if (!Array.isArray(evento?.ingressos)) return 0;
 
-    const total = evento.ingressos.reduce((acc: number, ing: any) => {
+    return evento.ingressos.reduce((acc: number, ing: any) => {
       const quantidade = Number(quantidades[String(ing.id)] || 0);
       const preco = getTicketPrice(ing);
       return acc + preco * quantidade;
     }, 0);
-
-    console.log('💰 TOTAL GERAL:', total);
-    return total;
   }, [evento, quantidades]);
 
   if (loading) {
@@ -196,18 +193,21 @@ export default function DetalhesLumaRoxo() {
     ? evento.imagem_capa
     : `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${evento.imagem_capa}`;
 
-  const urlFinalPatrocinador = evento.banner_patrocinio?.startsWith('http')
-    ? evento.banner_patrocinio
-    : `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${evento.banner_patrocinio}`;
+  const urlFinalPatrocinador = evento.banner_patrocinio
+    ? evento.banner_patrocinio?.startsWith('http')
+      ? evento.banner_patrocinio
+      : `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${evento.banner_patrocinio}`
+    : null;
 
-  const linkVenda = `/venda?eventoId=${id}&payload=${encodeURIComponent(JSON.stringify(quantidades))}`;
+  const linkVenda = `/venda?eventoId=${id}&payload=${encodeURIComponent(
+    JSON.stringify(quantidades)
+  )}`;
 
   return (
     <div className="min-h-screen bg-white text-[#121212] antialiased selection:bg-violet-100">
       <Navbar />
 
       <main className="max-w-[1100px] mx-auto px-6 pt-10 pb-32">
-        {/* Topo / Voltar Minimalista Luma */}
         <div className="flex items-center justify-between mb-10">
           <button
             onClick={() => router.back()}
@@ -215,14 +215,13 @@ export default function DetalhesLumaRoxo() {
           >
             <ChevronLeft size={20} /> Voltar
           </button>
+
           <button className="p-2.5 rounded-full border border-slate-100 text-slate-400 hover:text-violet-600 hover:bg-violet-50 transition-all">
             <Share2 size={18} />
           </button>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-16 items-start">
-          
-          {/* COLUNA ESQUERDA: IMAGEM (ESTILO LUMA) */}
           <div className="w-full lg:w-[420px] shrink-0">
             <div className="sticky top-28 space-y-8">
               <div className="relative aspect-[3/4] w-full rounded-[2rem] overflow-hidden bg-slate-50 shadow-inner border border-slate-100">
@@ -241,41 +240,42 @@ export default function DetalhesLumaRoxo() {
                 </div>
               </div>
 
-              {/* Produtor sutil Luma */}
               <div className="flex items-center gap-3 px-2">
                 <div className="w-11 h-11 rounded-full bg-violet-50 border border-violet-100 flex items-center justify-center text-violet-600 font-extrabold text-sm uppercase">
                   {evento.produtor_nome?.charAt(0) || 'P'}
                 </div>
                 <div>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-none mb-1">Host</p>
-                  <p className="text-base font-bold text-slate-900">{evento.produtor_nome || 'Produtor Verificado'}</p>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-none mb-1">
+                    Host
+                  </p>
+                  <p className="text-base font-bold text-slate-900">
+                    {evento.produtor_nome || 'Produtor Verificado'}
+                  </p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* COLUNA DIREITA: CONTEÚDO */}
           <div className="flex-1 space-y-12">
-            
-            {/* Título e Meta */}
             <section className="space-y-6">
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <span className="inline-block px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-bold uppercase tracking-wider">
                     {evento.categoria || 'Evento'}
                   </span>
+
                   {evento.tipo === 'Online' && (
                     <span className="inline-block px-3 py-1 bg-violet-50 text-violet-700 rounded-lg text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5">
                       <Globe size={12} /> Online
                     </span>
                   )}
                 </div>
+
                 <h1 className="text-4xl md:text-6xl font-black tracking-tight text-slate-900 leading-[1.05]">
                   {evento.nome}
                 </h1>
               </div>
 
-              {/* Grid de Infos Luma (Minimalista) */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5 py-6 border-y border-slate-100">
                 <div className="flex gap-4 items-start">
                   <div className="w-11 h-11 rounded-xl bg-violet-50 flex items-center justify-center text-violet-600 shrink-0 border border-violet-100">
@@ -289,7 +289,9 @@ export default function DetalhesLumaRoxo() {
                         month: 'long',
                       })}
                     </p>
-                    <p className="text-sm text-slate-500 font-medium">{evento.hora_inicio} até {evento.hora_termino || 'fim'}</p>
+                    <p className="text-sm text-slate-500 font-medium">
+                      {evento.hora_inicio} até {evento.hora_termino || 'fim'}
+                    </p>
                   </div>
                 </div>
 
@@ -301,13 +303,14 @@ export default function DetalhesLumaRoxo() {
                     <p className="text-base font-bold text-slate-900 truncate max-w-[200px]">
                       {evento.local_nome}
                     </p>
-                    <p className="text-sm text-slate-500 font-medium">{evento.cidade}, {evento.estado}</p>
+                    <p className="text-sm text-slate-500 font-medium">
+                      {evento.cidade}, {evento.estado}
+                    </p>
                   </div>
                 </div>
               </div>
             </section>
 
-            {/* Descrição e Patrocinador */}
             <section className="grid grid-cols-1 md:grid-cols-12 gap-10">
               <div className="md:col-span-8 space-y-4">
                 <h4 className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] flex items-center gap-2">
@@ -319,7 +322,6 @@ export default function DetalhesLumaRoxo() {
                 />
               </div>
 
-              {/* Patrocinador Sidebar Luma */}
               {urlFinalPatrocinador && (
                 <div className="md:col-span-4">
                   <div className="rounded-2xl overflow-hidden border border-slate-100 p-2 bg-white shadow-sm">
@@ -333,7 +335,6 @@ export default function DetalhesLumaRoxo() {
               )}
             </section>
 
-            {/* Ingressos Luma Style (Roxo) */}
             <section className="space-y-6 pt-10 border-t border-slate-100">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-black text-slate-900 uppercase tracking-[0.2em]">
@@ -345,14 +346,23 @@ export default function DetalhesLumaRoxo() {
                 {evento.ingressos?.map((ing: any) => (
                   <div
                     key={ing.id}
-                    className="flex items-center justify-between p-6 rounded-2xl border border-slate-200 bg-white hover:border-violet-300 transition-all shadow-sm focus-within:border-violet-400 focus-within:ring-2 focus-within:ring-violet-100"
+                    className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 p-6 rounded-2xl border border-slate-200 bg-white hover:border-violet-300 transition-all shadow-sm focus-within:border-violet-400 focus-within:ring-2 focus-within:ring-violet-100"
                   >
-                    <div className="space-y-1">
+                    <div className="space-y-2 max-w-xl">
                       <p className="text-base font-bold text-slate-900 uppercase tracking-wide">
                         {ing.nome}
                       </p>
+
+                      {ing.descricao && (
+                        <p className="text-sm text-slate-400 font-medium leading-relaxed">
+                          {ing.descricao}
+                        </p>
+                      )}
+
                       <p className="text-violet-600 font-extrabold text-base">
-                        {ing.preco === 0 ? 'Gratuito' : formatCurrency(getTicketPrice(ing), ing.moeda || evento.moeda)}
+                        {ing.preco === 0
+                          ? 'Gratuito'
+                          : formatCurrency(getTicketPrice(ing), ing.moeda || evento.moeda)}
                       </p>
                     </div>
 
@@ -361,7 +371,10 @@ export default function DetalhesLumaRoxo() {
                         onClick={() =>
                           setQuantidades((prev) => ({
                             ...prev,
-                            [String(ing.id)]: Math.max(0, (prev[String(ing.id)] || 0) - 1),
+                            [String(ing.id)]: Math.max(
+                              0,
+                              (prev[String(ing.id)] || 0) - 1
+                            ),
                           }))
                         }
                         className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-white text-violet-400 hover:text-violet-700 transition-all active:scale-95"
@@ -392,58 +405,40 @@ export default function DetalhesLumaRoxo() {
               </div>
             </section>
 
-            {/* CTA Final Grande e Roxo (Marca Registrada Luma) */}
             <div className="pt-10">
               <div className="bg-white p-6 rounded-[2.5rem] flex flex-col items-center gap-6 border border-slate-100 shadow-lg shadow-slate-100">
-                 
-                 <div className="w-full flex items-center justify-between px-4">
-                    <p className="text-sm font-bold text-slate-900">Total a investir</p>
-                    <p className="text-3xl font-black text-violet-600">
-                      {formatCurrency(totalGeral, evento.moeda)}
-                    </p>
-                 </div>
+                <div className="w-full flex items-center justify-between px-4">
+                  <p className="text-sm font-bold text-slate-900">Total a investir</p>
+                  <p className="text-3xl font-black text-violet-600">
+                    {formatCurrency(totalGeral, evento.moeda)}
+                  </p>
+                </div>
 
                 <Link
-                  href={totalGeral > 0 || Object.values(quantidades).some(q => q > 0) ? linkVenda : '#'}
+                  href={
+                    totalGeral > 0 || Object.values(quantidades).some((q) => q > 0)
+                      ? linkVenda
+                      : '#'
+                  }
                   className={`group w-full flex items-center justify-center gap-4 px-12 py-6 rounded-2xl font-bold transition-all duration-300 text-lg ${
-                    totalGeral > 0 || Object.values(quantidades).some(q => q > 0)
-                      ? 'bg-violet-600 text-white hover:bg-violet-700 hover:scale-[1.01] active:scale-[0.99] shadow-xl shadow-violet-200'
-                      : 'bg-slate-100 text-slate-400 cursor-not-allowed pointer-events-none'
+                    totalGeral > 0 || Object.values(quantidades).some((q) => q > 0)
+                      ? 'bg-violet-600 text-white hover:bg-violet-700'
+                      : 'bg-slate-100 text-slate-400 pointer-events-none'
                   }`}
                 >
-                  <span className="uppercase tracking-widest text-sm">Garantir minha vaga</span>
-                  <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                  Continuar compra
+                  <ArrowRight
+                    size={20}
+                    className="transition-transform group-hover:translate-x-1"
+                  />
                 </Link>
-                
-                <p className="text-center text-[10px] font-medium text-slate-400 flex items-center justify-center gap-2">
-                   Pagamento seguro via Linkah • Sem taxas escondidas
-                </p>
               </div>
             </div>
-
           </div>
         </div>
       </main>
 
       <Footer />
-
-      {/* Estilos Globais e Tipografia Luma (Inter) */}
-      <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-        
-        body { 
-          font-family: 'Inter', sans-serif;
-          background-color: white;
-          -webkit-font-smoothing: antialiased;
-        }
-
-        .prose ul { list-style-type: disc !important; padding-left: 1.5rem !important; margin: 1rem 0 !important; }
-        .prose ol { list-style-type: decimal !important; padding-left: 1.5rem !important; margin: 1rem 0 !important; }
-        .prose li { margin-bottom: 0.6rem !important; color: #475569 !important; }
-        .prose strong { font-weight: 800 !important; color: #1e293b !important; }
-        .prose p { margin-bottom: 1.2rem !important; }
-        .prose a { color: #7c3aed !important; text-decoration: underline !important; }
-      `}</style>
     </div>
   );
 }

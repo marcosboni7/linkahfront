@@ -13,6 +13,7 @@ import {
   Layers,
   CalendarDays,
   Tag,
+  FileText,
 } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
 import Swal from 'sweetalert2';
@@ -57,7 +58,14 @@ export default function CadastroIngressos() {
   const [evento, setEvento] = useState<any>(null);
 
   const [ingressos, setIngressos] = useState([
-    { nome: '', preco: '', quantidade: '', tipo: 'Pago', moeda: 'BRL' },
+    {
+      nome: '',
+      descricao: '',
+      preco: '',
+      quantidade: '',
+      tipo: 'Pago',
+      moeda: 'BRL',
+    },
   ]);
 
   useEffect(() => {
@@ -94,6 +102,7 @@ export default function CadastroIngressos() {
           setIngressos(
             eventoData.ingressos.map((ing: any) => ({
               nome: ing.nome || '',
+              descricao: ing.descricao || '',
               preco: parsePrecoInput(ing.preco),
               quantidade:
                 ing.quantidade === null || ing.quantidade === undefined
@@ -131,6 +140,7 @@ export default function CadastroIngressos() {
       ...ingressos,
       {
         nome: '',
+        descricao: '',
         preco: '',
         quantidade: '',
         tipo: 'Pago',
@@ -170,7 +180,10 @@ export default function CadastroIngressos() {
 
   const handleFinalizar = async () => {
     const hasEmpty = ingressos.some(
-      (ing) => !String(ing.nome).trim() || !String(ing.preco).trim() || !String(ing.quantidade).trim()
+      (ing) =>
+        !String(ing.nome).trim() ||
+        !String(ing.preco).trim() ||
+        !String(ing.quantidade).trim()
     );
 
     if (hasEmpty) {
@@ -196,6 +209,7 @@ export default function CadastroIngressos() {
       const payload = {
         ingressos: ingressos.map((ing) => ({
           ...ing,
+          descricao: ing.descricao || '',
           preco: Number(ing.preco),
           quantidade: Number(ing.quantidade),
           moeda: evento?.moeda || ing.moeda || 'BRL',
@@ -383,97 +397,118 @@ export default function CadastroIngressos() {
             {ingressos.map((ing, index) => (
               <div
                 key={index}
-                className="bg-white rounded-[3rem] p-10 border border-slate-100 hover:border-[#C22973]/20 shadow-sm hover:shadow-xl transition-all duration-500 flex flex-col lg:flex-row items-start lg:items-end gap-8 relative group animate-in slide-in-from-bottom-8"
+                className="bg-white rounded-[3rem] p-10 border border-slate-100 hover:border-[#C22973]/20 shadow-sm hover:shadow-xl transition-all duration-500 flex flex-col gap-8 relative group animate-in slide-in-from-bottom-8"
               >
                 <div className="absolute -left-3 top-10 w-8 h-8 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-center text-[10px] font-black text-slate-300 italic uppercase">
                   #{index + 1}
                 </div>
 
-                <div className="flex-1 w-full space-y-3">
-                  <div className="flex items-center gap-2 ml-2">
-                    <Ticket size={14} className="text-slate-300" />
-                    <label className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] italic">
-                      {t.labelTicketName || 'Nome do Lote'}
-                    </label>
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                  <div className="lg:col-span-5 space-y-3">
+                    <div className="flex items-center gap-2 ml-2">
+                      <Ticket size={14} className="text-slate-300" />
+                      <label className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] italic">
+                        {t.labelTicketName || 'Nome do Lote'}
+                      </label>
+                    </div>
+
+                    <input
+                      value={ing.nome}
+                      onBlur={(e) => validateField(index, 'nome', e.target.value)}
+                      onChange={(e) => handleChange(index, 'nome', e.target.value)}
+                      className={`w-full bg-slate-50/50 border ${
+                        errors[`${index}-nome`] ? 'border-red-400' : 'border-slate-100'
+                      } px-6 py-5 rounded-[1.5rem] outline-none focus:bg-white focus:border-black font-bold text-black transition-all placeholder:text-slate-200`}
+                      placeholder={t.placeholderTicket || 'Ex: VIP Experience'}
+                    />
                   </div>
 
-                  <input
-                    value={ing.nome}
-                    onBlur={(e) => validateField(index, 'nome', e.target.value)}
-                    onChange={(e) => handleChange(index, 'nome', e.target.value)}
-                    className={`w-full bg-slate-50/50 border ${
-                      errors[`${index}-nome`] ? 'border-red-400' : 'border-slate-100'
-                    } px-6 py-5 rounded-[1.5rem] outline-none focus:bg-white focus:border-black font-bold text-black transition-all placeholder:text-slate-200`}
-                    placeholder={t.placeholderTicket || 'Ex: VIP Experience'}
-                  />
-                </div>
+                  <div className="lg:col-span-4 space-y-3">
+                    <div className="flex items-center gap-2 ml-2">
+                      <FileText size={14} className="text-slate-300" />
+                      <label className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] italic">
+                        Descrição do ingresso
+                      </label>
+                    </div>
 
-                <div className="w-full lg:w-72 space-y-3">
-                  <div className="flex items-center gap-2 ml-2">
-                    <Coins size={14} className="text-slate-300" />
-                    <label className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] italic">
-                      Preço de Venda
-                    </label>
+                    <textarea
+                      value={ing.descricao || ''}
+                      onChange={(e) => handleChange(index, 'descricao', e.target.value)}
+                      rows={3}
+                      className="w-full bg-slate-50/50 border border-slate-100 px-6 py-4 rounded-[1.5rem] outline-none focus:bg-white focus:border-black font-medium text-black transition-all resize-none"
+                      placeholder="Ex: acesso VIP, open bar, área exclusiva, brindes..."
+                    />
                   </div>
 
-                  <div className="flex gap-3">
-                    <select
-                      value={ing.moeda}
-                      onChange={(e) => handleChange(index, 'moeda', e.target.value)}
-                      className="bg-white border border-slate-100 px-4 py-5 rounded-[1.5rem] font-black text-[10px] text-black outline-none focus:border-black shadow-sm cursor-pointer hover:bg-slate-50 transition-all"
-                    >
-                      <option value="BRL">BRL</option>
-                      <option value="EUR">EUR</option>
-                      <option value="USD">USD</option>
-                    </select>
+                  <div className="lg:col-span-3 space-y-3">
+                    <div className="flex items-center gap-2 ml-2">
+                      <Coins size={14} className="text-slate-300" />
+                      <label className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] italic">
+                        Preço de Venda
+                      </label>
+                    </div>
 
-                    <div className="relative flex-1 group/input">
-                      <span className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 font-black text-xs transition-colors group-focus-within/input:text-black">
-                        {currencyMap[ing.moeda]}
-                      </span>
+                    <div className="flex gap-3">
+                      <select
+                        value={ing.moeda}
+                        onChange={(e) => handleChange(index, 'moeda', e.target.value)}
+                        className="bg-white border border-slate-100 px-4 py-5 rounded-[1.5rem] font-black text-[10px] text-black outline-none focus:border-black shadow-sm cursor-pointer hover:bg-slate-50 transition-all"
+                      >
+                        <option value="BRL">BRL</option>
+                        <option value="EUR">EUR</option>
+                        <option value="USD">USD</option>
+                      </select>
 
-                      <input
-                        type="number"
-                        value={ing.preco}
-                        onBlur={(e) => validateField(index, 'preco', e.target.value)}
-                        onChange={(e) => handleChange(index, 'preco', e.target.value)}
-                        className={`w-full pl-14 pr-6 py-5 bg-slate-50/50 border ${
-                          errors[`${index}-preco`] ? 'border-red-400' : 'border-slate-100'
-                        } rounded-[1.5rem] outline-none focus:bg-white focus:border-black font-black text-black transition-all`}
-                        placeholder="0.00"
-                      />
+                      <div className="relative flex-1 group/input">
+                        <span className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 font-black text-xs transition-colors group-focus-within/input:text-black">
+                          {currencyMap[ing.moeda]}
+                        </span>
+
+                        <input
+                          type="number"
+                          value={ing.preco}
+                          onBlur={(e) => validateField(index, 'preco', e.target.value)}
+                          onChange={(e) => handleChange(index, 'preco', e.target.value)}
+                          className={`w-full pl-14 pr-6 py-5 bg-slate-50/50 border ${
+                            errors[`${index}-preco`] ? 'border-red-400' : 'border-slate-100'
+                          } rounded-[1.5rem] outline-none focus:bg-white focus:border-black font-black text-black transition-all`}
+                          placeholder="0.00"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="w-full lg:w-36 space-y-3">
-                  <div className="flex items-center gap-2 ml-2">
-                    <Layers size={14} className="text-slate-300" />
-                    <label className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] italic">
-                      Capacidade
-                    </label>
+                <div className="flex flex-col lg:flex-row lg:items-end gap-8">
+                  <div className="w-full lg:w-44 space-y-3">
+                    <div className="flex items-center gap-2 ml-2">
+                      <Layers size={14} className="text-slate-300" />
+                      <label className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] italic">
+                        Capacidade
+                      </label>
+                    </div>
+
+                    <input
+                      type="number"
+                      value={ing.quantidade}
+                      onBlur={(e) => validateField(index, 'quantidade', e.target.value)}
+                      onChange={(e) => handleChange(index, 'quantidade', e.target.value)}
+                      className={`w-full bg-slate-50/50 border ${
+                        errors[`${index}-quantidade`] ? 'border-red-400' : 'border-slate-100'
+                      } px-6 py-5 rounded-[1.5rem] outline-none focus:bg-white focus:border-black font-bold text-black text-center transition-all`}
+                      placeholder="100"
+                    />
                   </div>
 
-                  <input
-                    type="number"
-                    value={ing.quantidade}
-                    onBlur={(e) => validateField(index, 'quantidade', e.target.value)}
-                    onChange={(e) => handleChange(index, 'quantidade', e.target.value)}
-                    className={`w-full bg-slate-50/50 border ${
-                      errors[`${index}-quantidade`] ? 'border-red-400' : 'border-slate-100'
-                    } px-6 py-5 rounded-[1.5rem] outline-none focus:bg-white focus:border-black font-bold text-black text-center transition-all`}
-                    placeholder="100"
-                  />
+                  {ingressos.length > 1 && (
+                    <button
+                      onClick={() => removeIngresso(index)}
+                      className="p-5 text-slate-300 hover:text-[#C22973] hover:bg-red-50 rounded-[1.5rem] transition-all active:scale-90 border border-transparent hover:border-red-100"
+                    >
+                      <Trash2 size={22} />
+                    </button>
+                  )}
                 </div>
-
-                {ingressos.length > 1 && (
-                  <button
-                    onClick={() => removeIngresso(index)}
-                    className="p-5 text-slate-300 hover:text-[#C22973] hover:bg-red-50 rounded-[1.5rem] transition-all mb-1 active:scale-90 border border-transparent hover:border-red-100"
-                  >
-                    <Trash2 size={22} />
-                  </button>
-                )}
               </div>
             ))}
 
