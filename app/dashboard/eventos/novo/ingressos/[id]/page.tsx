@@ -14,6 +14,7 @@ import {
   CalendarDays,
   Tag,
   FileText,
+  Sparkles,
 } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
 import Swal from 'sweetalert2';
@@ -195,7 +196,7 @@ export default function CadastroIngressos() {
           t.errorIncompleteText ||
           'Certifique-se de que todos os lotes possuem nome, preço e quantidade.',
         icon: 'warning',
-        confirmButtonColor: '#C22973',
+        confirmButtonColor: '#7C3AED',
         customClass: { popup: 'rounded-[2.5rem]' },
       });
       return;
@@ -230,12 +231,12 @@ export default function CadastroIngressos() {
 
       if (response.ok) {
         Swal.fire({
-          title: `<span style="color: #C22973; font-family: sans-serif; font-weight: 900; font-style: italic; text-transform: uppercase;">🚀 EVENTO ONLINE</span>`,
+          title: `<span style="color: #7C3AED; font-family: sans-serif; font-weight: 900; font-style: italic; text-transform: uppercase;">✨ EVENTO PUBLICADO</span>`,
           text:
             t.publishSuccessText ||
             'Seu evento foi configurado e as vendas podem começar.',
           icon: 'success',
-          confirmButtonColor: '#000',
+          confirmButtonColor: '#7C3AED',
           confirmButtonText: t.btnViewEvents || 'Ir para o Dashboard',
           customClass: { popup: 'rounded-[3rem]' },
         }).then((result) => {
@@ -259,208 +260,233 @@ export default function CadastroIngressos() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FCFBFA] font-sans antialiased pb-24">
-      <header className="border-b border-slate-100 px-6 md:px-12 py-6 flex justify-between items-center bg-white/80 backdrop-blur-xl sticky top-0 z-50">
-        <div className="flex items-center gap-5">
-          <button
-            onClick={() => router.back()}
-            className="p-3 hover:bg-slate-50 rounded-2xl text-slate-400 hover:text-black transition-all active:scale-90 border border-transparent hover:border-slate-100"
-          >
-            <ChevronLeft size={20} />
-          </button>
+    <div className="min-h-screen bg-white text-slate-900">
+      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_top,_rgba(124,58,237,0.08),transparent_35%)]" />
 
-          <div>
-            <h1 className="text-black font-black text-xl tracking-tighter uppercase italic leading-none">
-              {t.setupTickets || 'Configurar Ingressos'}
-            </h1>
-            <p className="text-[#C22973] text-[9px] font-black uppercase tracking-[0.3em] mt-1 italic animate-pulse">
-              {t.finalStep || 'Provisionamento Final'}
-            </p>
+      <header className="sticky top-0 z-50 border-b border-slate-100 bg-white/90 backdrop-blur-xl">
+        <div className="max-w-6xl mx-auto px-6 md:px-10 py-5 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => router.back()}
+              className="w-11 h-11 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 hover:text-slate-900 transition-all flex items-center justify-center shadow-sm"
+            >
+              <ChevronLeft size={20} />
+            </button>
+
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.25em] font-bold text-violet-500 mb-1">
+                Checkout Setup
+              </p>
+              <h1 className="text-xl md:text-2xl font-semibold tracking-tight text-slate-900">
+                {t.setupTickets || 'Configurar Ingressos'}
+              </h1>
+            </div>
           </div>
-        </div>
 
-        <button
-          onClick={handleFinalizar}
-          disabled={loading || loadingEvento}
-          className="bg-black text-white px-8 md:px-12 py-4 rounded-[1.5rem] font-black uppercase text-[10px] tracking-[0.2em] hover:bg-[#C22973] transition-all shadow-2xl shadow-slate-200 disabled:opacity-50 flex items-center gap-3 active:scale-95 group"
-        >
-          {loading ? (
-            <Loader2 className="animate-spin" size={16} />
-          ) : (
-            <>
-              {t.btnPublish || 'Publicar Evento'}
-              <CheckCircle2
-                size={16}
-                className="text-[#C22973] group-hover:text-white transition-colors"
-              />
-            </>
-          )}
-        </button>
+          <button
+            onClick={handleFinalizar}
+            disabled={loading || loadingEvento}
+            className="inline-flex items-center gap-2 rounded-2xl bg-violet-600 hover:bg-violet-700 text-white px-5 md:px-7 py-3.5 font-semibold shadow-lg shadow-violet-200 transition-all disabled:opacity-50"
+          >
+            {loading ? (
+              <Loader2 className="animate-spin" size={18} />
+            ) : (
+              <>
+                <Sparkles size={16} />
+                {t.btnPublish || 'Publicar Evento'}
+              </>
+            )}
+          </button>
+        </div>
       </header>
 
-      <main className="max-w-5xl mx-auto p-6 md:p-12">
-        <div className="flex justify-center items-center mb-20">
-          <div className="flex flex-col items-center gap-3 group">
-            <div className="w-12 h-12 rounded-3xl bg-emerald-50 text-emerald-500 flex items-center justify-center border border-emerald-100 transition-transform group-hover:scale-110">
-              <CheckCircle2 size={20} />
-            </div>
-            <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest italic">
-              {t.stepInfo || 'Informações'}
-            </span>
-          </div>
-
-          <div className="w-24 h-[2px] bg-slate-100 mx-6 rounded-full" />
-
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-12 h-12 rounded-3xl bg-black text-white flex items-center justify-center shadow-2xl shadow-pink-200 font-black text-sm italic border-4 border-white">
-              2
-            </div>
-            <span className="text-[9px] font-black text-black uppercase tracking-widest italic">
-              {t.stepTickets || 'Ingressos'}
-            </span>
-          </div>
-        </div>
-
-        <div className="space-y-8">
-          {loadingEvento ? (
-            <div className="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm text-center">
-              <Loader2 className="animate-spin mx-auto text-slate-400" size={28} />
-              <p className="text-slate-400 font-bold mt-4">
-                Carregando informações do evento...
-              </p>
-            </div>
-          ) : evento ? (
-            <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
-              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#C22973] italic mb-3">
-                    Evento carregado
-                  </p>
-
-                  <h2 className="text-2xl font-black text-slate-900 italic tracking-tight">
-                    {evento.nome || 'Evento sem nome'}
-                  </h2>
-
-                  <div className="flex flex-wrap gap-3 mt-4">
-                    <span className="inline-flex items-center gap-2 bg-slate-50 border border-slate-100 px-4 py-2 rounded-2xl text-xs font-bold text-slate-600">
-                      <Tag size={14} />
-                      {evento.categoria || 'Sem categoria'}
-                    </span>
-
-                    <span className="inline-flex items-center gap-2 bg-slate-50 border border-slate-100 px-4 py-2 rounded-2xl text-xs font-bold text-slate-600">
-                      <Coins size={14} />
-                      Moeda: {evento.moeda || 'BRL'}
-                    </span>
-
-                    <span className="inline-flex items-center gap-2 bg-slate-50 border border-slate-100 px-4 py-2 rounded-2xl text-xs font-bold text-slate-600">
-                      <CalendarDays size={14} />
-                      {formatDate(evento.data_inicio)}
-                    </span>
-                  </div>
+      <main className="relative max-w-6xl mx-auto px-6 md:px-10 py-10 md:py-14">
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
+          <aside className="xl:col-span-4 space-y-6">
+            <div className="rounded-[2rem] border border-violet-100 bg-gradient-to-br from-violet-50 to-white p-6 shadow-sm">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-11 h-11 rounded-2xl bg-violet-600 text-white flex items-center justify-center shadow-md shadow-violet-200">
+                  <Ticket size={20} />
                 </div>
-
-                <div className="bg-slate-50 border border-slate-100 rounded-[2rem] px-5 py-4 min-w-[220px]">
-                  <p className="text-[10px] uppercase tracking-[0.25em] font-black text-slate-400 mb-2">
-                    ID do evento
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.25em] text-violet-500 font-bold">
+                    Etapa Final
                   </p>
-                  <p className="text-sm font-black text-slate-800 break-all">{id}</p>
+                  <h2 className="text-lg font-semibold text-slate-900">
+                    Ingressos & Pricing
+                  </h2>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 text-sm">
+                <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-500 border border-emerald-100 flex items-center justify-center">
+                  <CheckCircle2 size={16} />
+                </div>
+                <div>
+                  <p className="font-medium text-slate-900">
+                    {t.stepInfo || 'Informações'}
+                  </p>
+                  <p className="text-slate-400 text-xs">Concluído</p>
+                </div>
+              </div>
+
+              <div className="h-8 w-px bg-slate-200 ml-4 my-2" />
+
+              <div className="flex items-center gap-3 text-sm">
+                <div className="w-9 h-9 rounded-xl bg-violet-600 text-white flex items-center justify-center shadow-md shadow-violet-200">
+                  2
+                </div>
+                <div>
+                  <p className="font-medium text-slate-900">
+                    {t.stepTickets || 'Ingressos'}
+                  </p>
+                  <p className="text-violet-500 text-xs font-medium">Em edição</p>
                 </div>
               </div>
             </div>
-          ) : (
-            <div className="bg-white p-8 rounded-[2.5rem] border border-red-100 shadow-sm">
-              <p className="text-red-500 font-black uppercase text-xs tracking-[0.2em] italic mb-2">
-                Evento não carregado
-              </p>
-              <p className="text-slate-500 text-sm font-medium">
-                Não foi possível encontrar as informações do evento para este ID.
-              </p>
-            </div>
-          )}
 
-          <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm flex gap-5 items-start">
-            <div className="p-3 bg-blue-50 rounded-2xl text-blue-500">
-              <Info size={24} />
-            </div>
-            <div>
-              <h4 className="text-xs font-black text-slate-800 uppercase tracking-widest mb-1 italic">
-                Gestão de Inventário
-              </h4>
-              <p className="text-slate-400 text-sm font-medium leading-relaxed max-w-2xl">
-                {t.ticketAlert ||
-                  'Defina os preços e quantidades. Estes valores alimentam o Checkout da Linkah em tempo real.'}
-              </p>
-            </div>
-          </div>
+            {loadingEvento ? (
+              <div className="rounded-[2rem] border border-slate-200 bg-white p-8 text-center shadow-sm">
+                <Loader2 className="animate-spin mx-auto text-violet-500" size={28} />
+                <p className="text-slate-500 font-medium mt-4">
+                  Carregando informações do evento...
+                </p>
+              </div>
+            ) : evento ? (
+              <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm space-y-5">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.25em] font-bold text-violet-500 mb-2">
+                    Evento
+                  </p>
+                  <h2 className="text-2xl font-semibold tracking-tight text-slate-900">
+                    {evento.nome || 'Evento sem nome'}
+                  </h2>
+                </div>
 
-          <div className="space-y-6">
+                <div className="flex flex-wrap gap-2">
+                  <span className="inline-flex items-center gap-2 rounded-full bg-slate-50 border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700">
+                    <Tag size={13} />
+                    {evento.categoria || 'Sem categoria'}
+                  </span>
+
+                  <span className="inline-flex items-center gap-2 rounded-full bg-slate-50 border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700">
+                    <Coins size={13} />
+                    {evento.moeda || 'BRL'}
+                  </span>
+
+                  <span className="inline-flex items-center gap-2 rounded-full bg-slate-50 border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700">
+                    <CalendarDays size={13} />
+                    {formatDate(evento.data_inicio)}
+                  </span>
+                </div>
+
+                <div className="rounded-2xl bg-violet-50 border border-violet-100 px-4 py-4">
+                  <p className="text-[10px] uppercase tracking-[0.22em] text-violet-500 font-bold mb-1">
+                    Identificador
+                  </p>
+                  <p className="text-sm font-medium text-slate-800 break-all">{id}</p>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-[2rem] border border-red-100 bg-white p-6 shadow-sm">
+                <p className="text-red-500 font-semibold mb-1">Evento não carregado</p>
+                <p className="text-slate-500 text-sm">
+                  Não foi possível encontrar as informações do evento para este ID.
+                </p>
+              </div>
+            )}
+
+            <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="flex items-start gap-4">
+                <div className="w-11 h-11 rounded-2xl bg-violet-50 text-violet-500 flex items-center justify-center border border-violet-100">
+                  <Info size={20} />
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-900 mb-1">
+                    Gestão de Inventário
+                  </h4>
+                  <p className="text-sm text-slate-500 leading-relaxed">
+                    {t.ticketAlert ||
+                      'Defina os preços e quantidades. Estes valores alimentam o checkout da plataforma em tempo real.'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          <section className="xl:col-span-8 space-y-6">
             {ingressos.map((ing, index) => (
               <div
                 key={index}
-                className="bg-white rounded-[3rem] p-10 border border-slate-100 hover:border-[#C22973]/20 shadow-sm hover:shadow-xl transition-all duration-500 flex flex-col gap-8 relative group animate-in slide-in-from-bottom-8"
+                className="relative rounded-[2rem] border border-slate-200 bg-white p-6 md:p-7 shadow-sm hover:shadow-lg hover:border-violet-200 transition-all"
               >
-                <div className="absolute -left-3 top-10 w-8 h-8 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-center text-[10px] font-black text-slate-300 italic uppercase">
-                  #{index + 1}
+                <div className="absolute top-5 right-5">
+                  <span className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-violet-50 text-violet-600 text-sm font-semibold border border-violet-100">
+                    {index + 1}
+                  </span>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-                  <div className="lg:col-span-5 space-y-3">
-                    <div className="flex items-center gap-2 ml-2">
-                      <Ticket size={14} className="text-slate-300" />
-                      <label className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] italic">
-                        {t.labelTicketName || 'Nome do Lote'}
-                      </label>
-                    </div>
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-slate-900">
+                    Categoria de ingresso
+                  </h3>
+                  <p className="text-sm text-slate-500 mt-1">
+                    Configure nome, descrição, preço e capacidade.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+                  <div className="lg:col-span-5 space-y-2">
+                    <label className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] font-bold text-slate-400">
+                      <Ticket size={14} />
+                      {t.labelTicketName || 'Nome do Lote'}
+                    </label>
 
                     <input
                       value={ing.nome}
                       onBlur={(e) => validateField(index, 'nome', e.target.value)}
                       onChange={(e) => handleChange(index, 'nome', e.target.value)}
-                      className={`w-full bg-slate-50/50 border ${
-                        errors[`${index}-nome`] ? 'border-red-400' : 'border-slate-100'
-                      } px-6 py-5 rounded-[1.5rem] outline-none focus:bg-white focus:border-black font-bold text-black transition-all placeholder:text-slate-200`}
+                      className={`w-full rounded-2xl border ${
+                        errors[`${index}-nome`] ? 'border-red-400' : 'border-slate-200'
+                      } bg-slate-50/70 px-5 py-4 outline-none focus:bg-white focus:border-violet-400 text-slate-900 font-medium transition-all`}
                       placeholder={t.placeholderTicket || 'Ex: VIP Experience'}
                     />
                   </div>
 
-                  <div className="lg:col-span-4 space-y-3">
-                    <div className="flex items-center gap-2 ml-2">
-                      <FileText size={14} className="text-slate-300" />
-                      <label className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] italic">
-                        Descrição do ingresso
-                      </label>
-                    </div>
+                  <div className="lg:col-span-4 space-y-2">
+                    <label className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] font-bold text-slate-400">
+                      <FileText size={14} />
+                      Descrição
+                    </label>
 
                     <textarea
                       value={ing.descricao || ''}
                       onChange={(e) => handleChange(index, 'descricao', e.target.value)}
-                      rows={3}
-                      className="w-full bg-slate-50/50 border border-slate-100 px-6 py-4 rounded-[1.5rem] outline-none focus:bg-white focus:border-black font-medium text-black transition-all resize-none"
+                      rows={4}
+                      className="w-full rounded-2xl border border-slate-200 bg-slate-50/70 px-5 py-4 outline-none focus:bg-white focus:border-violet-400 text-slate-900 font-medium transition-all resize-none"
                       placeholder="Ex: acesso VIP, open bar, área exclusiva, brindes..."
                     />
                   </div>
 
-                  <div className="lg:col-span-3 space-y-3">
-                    <div className="flex items-center gap-2 ml-2">
-                      <Coins size={14} className="text-slate-300" />
-                      <label className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] italic">
-                        Preço de Venda
-                      </label>
-                    </div>
+                  <div className="lg:col-span-3 space-y-2">
+                    <label className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] font-bold text-slate-400">
+                      <Coins size={14} />
+                      Preço de Venda
+                    </label>
 
-                    <div className="flex gap-3">
+                    <div className="flex gap-2">
                       <select
                         value={ing.moeda}
                         onChange={(e) => handleChange(index, 'moeda', e.target.value)}
-                        className="bg-white border border-slate-100 px-4 py-5 rounded-[1.5rem] font-black text-[10px] text-black outline-none focus:border-black shadow-sm cursor-pointer hover:bg-slate-50 transition-all"
+                        className="rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-4 font-semibold text-slate-900 outline-none focus:border-violet-400"
                       >
                         <option value="BRL">BRL</option>
                         <option value="EUR">EUR</option>
                         <option value="USD">USD</option>
                       </select>
 
-                      <div className="relative flex-1 group/input">
-                        <span className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 font-black text-xs transition-colors group-focus-within/input:text-black">
+                      <div className="relative flex-1">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-semibold text-sm">
                           {currencyMap[ing.moeda]}
                         </span>
 
@@ -469,9 +495,9 @@ export default function CadastroIngressos() {
                           value={ing.preco}
                           onBlur={(e) => validateField(index, 'preco', e.target.value)}
                           onChange={(e) => handleChange(index, 'preco', e.target.value)}
-                          className={`w-full pl-14 pr-6 py-5 bg-slate-50/50 border ${
-                            errors[`${index}-preco`] ? 'border-red-400' : 'border-slate-100'
-                          } rounded-[1.5rem] outline-none focus:bg-white focus:border-black font-black text-black transition-all`}
+                          className={`w-full rounded-2xl border ${
+                            errors[`${index}-preco`] ? 'border-red-400' : 'border-slate-200'
+                          } bg-slate-50/70 pl-11 pr-4 py-4 outline-none focus:bg-white focus:border-violet-400 text-slate-900 font-semibold transition-all`}
                           placeholder="0.00"
                         />
                       </div>
@@ -479,23 +505,21 @@ export default function CadastroIngressos() {
                   </div>
                 </div>
 
-                <div className="flex flex-col lg:flex-row lg:items-end gap-8">
-                  <div className="w-full lg:w-44 space-y-3">
-                    <div className="flex items-center gap-2 ml-2">
-                      <Layers size={14} className="text-slate-300" />
-                      <label className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] italic">
-                        Capacidade
-                      </label>
-                    </div>
+                <div className="mt-5 flex flex-col sm:flex-row sm:items-end gap-4">
+                  <div className="w-full sm:w-52 space-y-2">
+                    <label className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] font-bold text-slate-400">
+                      <Layers size={14} />
+                      Capacidade
+                    </label>
 
                     <input
                       type="number"
                       value={ing.quantidade}
                       onBlur={(e) => validateField(index, 'quantidade', e.target.value)}
                       onChange={(e) => handleChange(index, 'quantidade', e.target.value)}
-                      className={`w-full bg-slate-50/50 border ${
-                        errors[`${index}-quantidade`] ? 'border-red-400' : 'border-slate-100'
-                      } px-6 py-5 rounded-[1.5rem] outline-none focus:bg-white focus:border-black font-bold text-black text-center transition-all`}
+                      className={`w-full rounded-2xl border ${
+                        errors[`${index}-quantidade`] ? 'border-red-400' : 'border-slate-200'
+                      } bg-slate-50/70 px-5 py-4 outline-none focus:bg-white focus:border-violet-400 text-slate-900 font-semibold text-center transition-all`}
                       placeholder="100"
                     />
                   </div>
@@ -503,9 +527,10 @@ export default function CadastroIngressos() {
                   {ingressos.length > 1 && (
                     <button
                       onClick={() => removeIngresso(index)}
-                      className="p-5 text-slate-300 hover:text-[#C22973] hover:bg-red-50 rounded-[1.5rem] transition-all active:scale-90 border border-transparent hover:border-red-100"
+                      className="inline-flex items-center justify-center gap-2 rounded-2xl border border-red-100 bg-red-50 px-5 py-4 text-red-500 hover:bg-red-100 transition-all font-medium"
                     >
-                      <Trash2 size={22} />
+                      <Trash2 size={18} />
+                      Remover
                     </button>
                   )}
                 </div>
@@ -514,19 +539,21 @@ export default function CadastroIngressos() {
 
             <button
               onClick={addIngresso}
-              className="w-full py-10 border-2 border-dashed border-slate-200 rounded-[3rem] text-slate-300 font-black uppercase text-[10px] tracking-[0.4em] hover:border-black hover:text-black hover:bg-slate-50 transition-all bg-white flex items-center justify-center gap-4 group italic"
+              className="w-full rounded-[2rem] border-2 border-dashed border-violet-200 bg-violet-50/40 py-8 text-violet-600 hover:bg-violet-50 hover:border-violet-300 transition-all flex items-center justify-center gap-3 font-semibold"
             >
-              <Plus size={20} className="group-hover:rotate-90 transition-transform duration-500" />
+              <Plus size={18} />
               {t.btnAddCategory || 'Gerar Nova Categoria de Ingresso'}
             </button>
-          </div>
+          </section>
         </div>
       </main>
 
-      <footer className="mt-20 py-12 text-center border-t border-slate-50">
-        <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.5em] italic">
-          Linkah Cloud Nodes &copy; 2026
-        </p>
+      <footer className="border-t border-slate-100 py-10 mt-10">
+        <div className="max-w-6xl mx-auto px-6 md:px-10 text-center">
+          <p className="text-[11px] font-medium text-slate-400 tracking-[0.2em] uppercase">
+            Linkah Cloud Nodes © 2026
+          </p>
+        </div>
       </footer>
     </div>
   );
