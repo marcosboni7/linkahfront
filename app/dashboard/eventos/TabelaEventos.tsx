@@ -94,6 +94,36 @@ function isEventoExcluido(evento: any) {
   return status === 'excluido';
 }
 
+function resolverImagemEvento(url: any) {
+  if (!url || url === 'null' || url === 'undefined' || String(url).includes('[object Object]')) {
+    return 'https://placehold.co/600x400/f8fafc/cbd5e1?text=Event+Cover';
+  }
+
+  const valor = String(url).trim();
+
+  if (!valor) {
+    return 'https://placehold.co/600x400/f8fafc/cbd5e1?text=Event+Cover';
+  }
+
+  if (valor.startsWith('http://') || valor.startsWith('https://')) {
+    return valor;
+  }
+
+  if (valor.startsWith('/uploads/')) {
+    return `${API_URL}${valor}`;
+  }
+
+  if (valor.startsWith('uploads/')) {
+    return `${API_URL}/${valor}`;
+  }
+
+  if (valor.startsWith('linkah/eventos/')) {
+    return `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${valor}`;
+  }
+
+  return `${API_URL}/uploads/${valor}`;
+}
+
 const MenuBar = ({ editor }: any) => {
   if (!editor) return null;
 
@@ -277,22 +307,6 @@ export default function TabelaEventos() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const validarImagem = (url: any) => {
-    if (!url || url === 'null' || url === 'undefined' || String(url).includes('[object Object]')) {
-      return 'https://placehold.co/600x400/f8fafc/cbd5e1?text=Event+Cover';
-    }
-
-    const valor = String(url).trim();
-
-    if (valor.startsWith('http://') || valor.startsWith('https://')) return valor;
-
-    if (valor.startsWith('linkah/eventos/')) {
-      return `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${valor}`;
-    }
-
-    return `${API_URL}/uploads/${valor}`;
-  };
-
   const carregarEventos = async () => {
     setLoading(true);
 
@@ -370,7 +384,7 @@ export default function TabelaEventos() {
       };
 
       setEventoParaEditar(eventoCompleto);
-      setPreviewUrl(validarImagem(data.imagem_capa));
+      setPreviewUrl(resolverImagemEvento(data.imagem_capa));
       setSelectedFile(null);
       setIsEditModalOpen(true);
     } catch (err: any) {
@@ -417,23 +431,6 @@ export default function TabelaEventos() {
       });
 
       if (res.ok) {
-        await fetch(`${API_URL}/api/eventos/${eventoParaEditar.id}/ingressos`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            ingressos: [
-              {
-                nome: 'Ingresso Geral',
-                preco: Number(eventoParaEditar.preco),
-                quantidade: 1000,
-              },
-            ],
-          }),
-        });
-
         setIsEditModalOpen(false);
 
         Swal.fire({
@@ -443,7 +440,7 @@ export default function TabelaEventos() {
           confirmButtonColor: '#7C3AED',
         });
 
-        carregarEventos();
+        await carregarEventos();
       } else {
         const responseData = await res.json().catch(() => null);
         throw new Error(responseData?.error || 'Erro ao salvar alterações');
@@ -623,9 +620,13 @@ export default function TabelaEventos() {
                     <td className="px-8 py-6">
                       <div className="flex items-center gap-5">
                         <img
-                          src={validarImagem(evento.imagem_capa)}
+                          src={resolverImagemEvento(evento.imagem_capa)}
                           className="w-14 h-14 rounded-2xl object-cover ring-1 ring-slate-100"
-                          alt=""
+                          alt={evento.nome || 'Evento'}
+                          onError={(e) => {
+                            e.currentTarget.src =
+                              'https://placehold.co/600x400/f8fafc/cbd5e1?text=Event+Cover';
+                          }}
                         />
                         <div>
                           <p className="font-bold text-slate-900 text-base leading-tight mb-1">
@@ -722,7 +723,15 @@ export default function TabelaEventos() {
                     className="aspect-square bg-slate-50 border-2 border-dashed border-slate-200 rounded-3xl flex items-center justify-center cursor-pointer overflow-hidden relative group hover:border-purple-300 transition-colors"
                   >
                     {previewUrl ? (
-                      <img src={previewUrl} className="w-full h-full object-cover" alt="" />
+                      <img
+                        src={previewUrl}
+                        className="w-full h-full object-cover"
+                        alt="Prévia"
+                        onError={(e) => {
+                          e.currentTarget.src =
+                            'https://placehold.co/600x400/f8fafc/cbd5e1?text=Event+Cover';
+                        }}
+                      />
                     ) : (
                       <Upload size={32} className="text-slate-300" />
                     )}
