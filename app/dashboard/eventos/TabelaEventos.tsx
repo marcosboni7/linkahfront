@@ -15,11 +15,26 @@ import {
   DollarSign,
   Plus,
   Trash2,
-  FileText
+  FileText,
+  Bold,
+  Italic,
+  List,
+  ListOrdered,
+  Palette,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Swal from 'sweetalert2';
 import { useLanguage } from '@/app/context/LanguageContext';
+
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import { Color } from '@tiptap/extension-color';
+import { TextStyle } from '@tiptap/extension-text-style';
+import Placeholder from '@tiptap/extension-placeholder';
+import TextAlign from '@tiptap/extension-text-align';
 
 const API_URL = 'https://api-linkah.onrender.com';
 const CLOUDINARY_CLOUD_NAME = 'dj32txsol';
@@ -34,7 +49,6 @@ const CATEGORIAS_VALIDAS = [
   'Família & Comunidade'
 ];
 
-// Helpers de Formatação
 function formatDateToInput(dateValue: any): string {
   if (!dateValue) return '';
   if (typeof dateValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateValue)) return dateValue;
@@ -80,6 +94,116 @@ function isEventoExcluido(evento: any) {
   return status === 'excluido';
 }
 
+const MenuBar = ({ editor }: any) => {
+  if (!editor) return null;
+
+  return (
+    <div className="flex flex-wrap gap-2 mb-4 p-3 bg-slate-50 rounded-2xl border border-slate-100 sticky top-0 z-10">
+      <button
+        type="button"
+        onClick={() => editor.chain().focus().toggleBold().run()}
+        className={`p-2 rounded-xl transition-all ${
+          editor.isActive('bold')
+            ? 'bg-slate-900 text-white shadow-lg'
+            : 'bg-white text-slate-400 hover:text-purple-600'
+        }`}
+      >
+        <Bold size={18} />
+      </button>
+
+      <button
+        type="button"
+        onClick={() => editor.chain().focus().toggleItalic().run()}
+        className={`p-2 rounded-xl transition-all ${
+          editor.isActive('italic')
+            ? 'bg-slate-900 text-white shadow-lg'
+            : 'bg-white text-slate-400 hover:text-purple-600'
+        }`}
+      >
+        <Italic size={18} />
+      </button>
+
+      <div className="w-[1px] h-8 bg-slate-200 mx-1" />
+
+      <button
+        type="button"
+        onClick={() => editor.chain().focus().toggleBulletList().run()}
+        className={`p-2 rounded-xl transition-all ${
+          editor.isActive('bulletList')
+            ? 'bg-slate-900 text-white shadow-lg'
+            : 'bg-white text-slate-400 hover:text-purple-600'
+        }`}
+      >
+        <List size={18} />
+      </button>
+
+      <button
+        type="button"
+        onClick={() => editor.chain().focus().toggleOrderedList().run()}
+        className={`p-2 rounded-xl transition-all ${
+          editor.isActive('orderedList')
+            ? 'bg-slate-900 text-white shadow-lg'
+            : 'bg-white text-slate-400 hover:text-purple-600'
+        }`}
+      >
+        <ListOrdered size={18} />
+      </button>
+
+      <div className="w-[1px] h-8 bg-slate-200 mx-1" />
+
+      <button
+        type="button"
+        onClick={() => editor.chain().focus().setTextAlign('left').run()}
+        className={`p-2 rounded-xl transition-all ${
+          editor.isActive({ textAlign: 'left' })
+            ? 'bg-slate-900 text-white shadow-lg'
+            : 'bg-white text-slate-400 hover:text-purple-600'
+        }`}
+      >
+        <AlignLeft size={18} />
+      </button>
+
+      <button
+        type="button"
+        onClick={() => editor.chain().focus().setTextAlign('center').run()}
+        className={`p-2 rounded-xl transition-all ${
+          editor.isActive({ textAlign: 'center' })
+            ? 'bg-slate-900 text-white shadow-lg'
+            : 'bg-white text-slate-400 hover:text-purple-600'
+        }`}
+      >
+        <AlignCenter size={18} />
+      </button>
+
+      <button
+        type="button"
+        onClick={() => editor.chain().focus().setTextAlign('right').run()}
+        className={`p-2 rounded-xl transition-all ${
+          editor.isActive({ textAlign: 'right' })
+            ? 'bg-slate-900 text-white shadow-lg'
+            : 'bg-white text-slate-400 hover:text-purple-600'
+        }`}
+      >
+        <AlignRight size={18} />
+      </button>
+
+      <div className="w-[1px] h-8 bg-slate-200 mx-1" />
+
+      <div className="flex items-center gap-2 bg-white px-3 rounded-xl border border-slate-100">
+        <Palette size={16} className="text-slate-400" />
+        <input
+          type="color"
+          onInput={(event: any) =>
+            editor.chain().focus().setColor(event.target.value).run()
+          }
+          value={editor.getAttributes('textStyle').color || '#64748b'}
+          className="w-6 h-6 p-0 border-none bg-transparent cursor-pointer"
+        />
+      </div>
+    </div>
+  );
+};
+
 export default function TabelaEventos() {
   const { t }: any = useLanguage();
   const [eventos, setEventos] = useState<any[]>([]);
@@ -96,6 +220,34 @@ export default function TabelaEventos() {
   const [saving, setSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      TextStyle,
+      Color,
+      TextAlign.configure({
+        types: ['heading', 'paragraph'],
+      }),
+      Placeholder.configure({
+        placeholder:
+          'Descreva seu evento aqui... adicione informações, listas, regras e destaque o que for importante.',
+      }),
+    ],
+    content: '',
+    onUpdate: ({ editor }) => {
+      setEventoParaEditar((prev: any) =>
+        prev ? { ...prev, descricao: editor.getHTML() } : prev
+      );
+    },
+    editorProps: {
+      attributes: {
+        class:
+          'prose prose-slate max-w-none focus:outline-none min-h-[220px] p-6 text-slate-700 font-medium leading-relaxed',
+      },
+    },
+    immediatelyRender: false,
+  });
 
   const eventosFiltrados = eventos.filter((evento) => {
     if (isEventoExcluido(evento)) return false;
@@ -181,7 +333,7 @@ export default function TabelaEventos() {
   }, []);
 
   const abrirModalEdicao = (evento: any) => {
-    setEventoParaEditar({
+    const eventoFormatado = {
       ...evento,
       categoria: evento.categoria || CATEGORIAS_VALIDAS[0],
       nome: evento.nome || '',
@@ -190,11 +342,16 @@ export default function TabelaEventos() {
       preco: evento.preco_minimo || evento.preco || 0,
       data_inicio: formatDateToInput(evento.data_inicio),
       imagem_capa: evento.imagem_capa || '',
-    });
+    };
 
+    setEventoParaEditar(eventoFormatado);
     setPreviewUrl(validarImagem(evento.imagem_capa));
     setSelectedFile(null);
     setIsEditModalOpen(true);
+
+    setTimeout(() => {
+      editor?.commands.setContent(eventoFormatado.descricao || '');
+    }, 50);
   };
 
   const handleSalvarEdicao = async (e: React.FormEvent) => {
@@ -635,21 +792,15 @@ export default function TabelaEventos() {
                   <label className="text-xs font-bold text-slate-700">Descrição</label>
                 </div>
 
-                <textarea
-                  rows={8}
-                  className="w-full min-h-[180px] p-5 bg-slate-50 border border-slate-200 rounded-[1.5rem] font-medium outline-none focus:ring-2 focus:ring-purple-100 focus:border-purple-600 transition-all resize-none leading-relaxed text-slate-700"
-                  value={eventoParaEditar.descricao || ''}
-                  onChange={(e) =>
-                    setEventoParaEditar({ ...eventoParaEditar, descricao: e.target.value })
-                  }
-                  placeholder={`Descreva seu evento aqui...
+                <div className="border border-slate-200 rounded-[1.7rem] bg-white overflow-hidden">
+                  <div className="p-4">
+                    <MenuBar editor={editor} />
+                  </div>
 
-Ex:
-• O que está incluso
-• Regras importantes
-• Programação
-• Informações para os participantes`}
-                />
+                  <div className="border-t border-slate-100">
+                    <EditorContent editor={editor} />
+                  </div>
+                </div>
               </div>
 
               <div className="pt-4 flex gap-4">
