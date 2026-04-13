@@ -7,7 +7,6 @@ import {
   Loader2,
   Ticket,
   Upload,
-  ChevronDown,
   Search,
   Sparkles,
   Globe,
@@ -15,7 +14,7 @@ import {
   Calendar,
   DollarSign,
   Plus,
-  MoreHorizontal
+  Trash2
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Swal from 'sweetalert2';
@@ -70,6 +69,16 @@ function formatDateToBackend(dateValue: any): string {
   return '';
 }
 
+function isEventoExcluido(evento: any) {
+  const status = String(evento?.status || '')
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+
+  return status === 'excluido';
+}
+
 export default function TabelaEventos() {
   const { t }: any = useLanguage();
   const [eventos, setEventos] = useState<any[]>([]);
@@ -84,12 +93,18 @@ export default function TabelaEventos() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState<string | number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const eventosFiltrados = eventos.filter((evento) =>
-    evento.nome?.toLowerCase().includes(busca.toLowerCase()) ||
-    evento.categoria?.toLowerCase().includes(busca.toLowerCase())
-  );
+  const eventosFiltrados = eventos.filter((evento) => {
+    if (isEventoExcluido(evento)) return false;
+
+    const nome = String(evento.nome || '').toLowerCase();
+    const categoria = String(evento.categoria || '').toLowerCase();
+    const termo = busca.toLowerCase();
+
+    return nome.includes(termo) || categoria.includes(termo);
+  });
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -105,16 +120,21 @@ export default function TabelaEventos() {
     if (!url || url === 'null' || url === 'undefined' || String(url).includes('[object Object]')) {
       return 'https://placehold.co/600x400/f8fafc/cbd5e1?text=Event+Cover';
     }
+
     const valor = String(url).trim();
+
     if (valor.startsWith('http://') || valor.startsWith('https://')) return valor;
+
     if (valor.startsWith('linkah/eventos/')) {
       return `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${valor}`;
     }
+
     return `${API_URL}/uploads/${valor}`;
   };
 
   const carregarEventos = async () => {
     setLoading(true);
+
     try {
       const rawToken = localStorage.getItem('@Linkah:Token');
       const token = rawToken?.replace(/['"]+/g, '').trim() || '';
@@ -132,15 +152,24 @@ export default function TabelaEventos() {
 
       const res = await fetch(
         `${API_URL}/api/eventos/listar?email=${encodeURIComponent(emailProdutor.toLowerCase())}&t=${Date.now()}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          cache: 'no-store',
+        }
       );
 
       const data = await res.json();
+
       if (res.ok) {
-        setEventos(Array.isArray(data) ? data : []);
+        const lista = Array.isArray(data) ? data : [];
+        const listaFiltrada = lista.filter((evento) => !isEventoExcluido(evento));
+        setEventos(listaFiltrada);
+      } else {
+        setEventos([]);
       }
     } catch (err) {
       console.error('Erro ao carregar:', err);
+      setEventos([]);
     } finally {
       setLoading(false);
     }
@@ -157,7 +186,7 @@ export default function TabelaEventos() {
       nome: evento.nome || '',
       descricao: evento.descricao || '',
       local_nome: evento.local_nome || '',
-      preco: evento.preco_minimo || 0,
+      preco: evento.preco_minimo || evento.preco || 0,
       data_inicio: formatDateToInput(evento.data_inicio),
       imagem_capa: evento.imagem_capa || '',
     });
@@ -202,53 +231,121 @@ export default function TabelaEventos() {
       if (res.ok) {
         await fetch(`${API_URL}/api/eventos/${eventoParaEditar.id}/ingressos`, {
           method: 'POST',
-          headers: { 
+          headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}` 
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
             ingressos: [
               {
                 nome: 'Ingresso Geral',
                 preco: Number(eventoParaEditar.preco),
-                quantidade: 1000
-              }
-            ]
+                quantidade: 1000,
+              },
+            ],
           }),
         });
 
         setIsEditModalOpen(false);
+
         Swal.fire({
           title: 'Atualizado!',
           text: 'As alterações foram salvas com sucesso.',
           icon: 'success',
-          confirmButtonColor: '#7C3AED'
+          confirmButtonColor: '#7C3AED',
         });
+
         carregarEventos();
       } else {
-        const responseData = await res.json();
-        throw new Error(responseData.error || 'Erro ao salvar alterações');
+        const responseData = await res.json().catch(() => null);
+        throw new Error(responseData?.error || 'Erro ao salvar alterações');
       }
     } catch (err: any) {
-      Swal.fire({ title: 'Erro', text: err.message, icon: 'error' });
+      Swal.fire({
+        title: 'Erro',
+        text: err.message || 'Erro ao salvar alterações.',
+        icon: 'error',
+      });
     } finally {
       setSaving(false);
     }
   };
 
+  const handleExcluir = async (evento: any) => {
+    const result = await Swal.fire({
+      title: 'Remover evento?',
+      text: `O evento "${evento.nome}" será ocultado da sua lista.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#7C3AED',
+      cancelButtonColor: '#ef4444',
+      confirmButtonText: 'Sim, remover',
+      cancelButtonText: 'Cancelar',
+    });
+
+    if (!result.isConfirmed) return;
+
+    setIsDeleting(evento.id);
+
+    try {
+      const rawToken = localStorage.getItem('@Linkah:Token');
+      const token = rawToken?.replace(/['"]+/g, '').trim() || '';
+
+      const res = await fetch(`${API_URL}/api/eventos/${evento.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          status: 'Excluído',
+        }),
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        throw new Error(data?.error || 'Falha ao excluir evento');
+      }
+
+      setEventos((prev) => prev.filter((ev) => String(ev.id) !== String(evento.id)));
+
+      Swal.fire({
+        title: 'Removido!',
+        text: 'O evento foi ocultado com sucesso.',
+        icon: 'success',
+        timer: 1200,
+        showConfirmButton: false,
+      });
+    } catch (err: any) {
+      console.error('Erro ao excluir evento:', err);
+      Swal.fire({
+        title: 'Erro',
+        text: err.message || 'Não foi possível excluir o evento.',
+        icon: 'error',
+      });
+    } finally {
+      setIsDeleting(null);
+    }
+  };
+
   return (
     <div className="bg-white min-h-screen">
-      {/* Header Estilo Luma */}
       <div className="max-w-7xl mx-auto px-6 py-12">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12">
           <div className="space-y-2">
             <h1 className="text-4xl font-semibold tracking-tight text-slate-900">Seus Eventos</h1>
-            <p className="text-slate-500 font-medium">Gerencie suas experiências e acompanhe as vendas em tempo real.</p>
+            <p className="text-slate-500 font-medium">
+              Gerencie suas experiências e acompanhe as vendas em tempo real.
+            </p>
           </div>
 
           <div className="flex items-center gap-3">
             <div className="relative group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-purple-600 transition-colors" size={18} />
+              <Search
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-purple-600 transition-colors"
+                size={18}
+              />
               <input
                 type="text"
                 placeholder="Pesquisar..."
@@ -278,6 +375,7 @@ export default function TabelaEventos() {
                     </div>
                     <span className="text-sm font-semibold text-slate-700">Presencial</span>
                   </button>
+
                   <button
                     onClick={() => router.push(`/dashboard/eventos/novo/online`)}
                     className="w-full flex items-center gap-3 p-3 hover:bg-purple-50 rounded-xl transition-colors text-left group"
@@ -293,23 +391,33 @@ export default function TabelaEventos() {
           </div>
         </div>
 
-        {/* Tabela Clean */}
         <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50/50">
-                <th className="px-8 py-5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Evento</th>
-                <th className="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase tracking-wider text-center">Inscritos</th>
-                <th className="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase tracking-wider text-center">Status</th>
-                <th className="px-8 py-5 text-[11px] font-bold text-slate-400 uppercase tracking-wider text-right">Ações</th>
+                <th className="px-8 py-5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                  Evento
+                </th>
+                <th className="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase tracking-wider text-center">
+                  Inscritos
+                </th>
+                <th className="px-6 py-5 text-[11px] font-bold text-slate-400 uppercase tracking-wider text-center">
+                  Status
+                </th>
+                <th className="px-8 py-5 text-[11px] font-bold text-slate-400 uppercase tracking-wider text-right">
+                  Ações
+                </th>
               </tr>
             </thead>
+
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
                   <td colSpan={4} className="py-24 text-center">
                     <Loader2 className="animate-spin mx-auto text-purple-600" size={32} />
-                    <p className="text-slate-400 text-sm mt-4 font-medium">Carregando experiências...</p>
+                    <p className="text-slate-400 text-sm mt-4 font-medium">
+                      Carregando experiências...
+                    </p>
                   </td>
                 </tr>
               ) : eventosFiltrados.length === 0 ? (
@@ -332,7 +440,9 @@ export default function TabelaEventos() {
                           alt=""
                         />
                         <div>
-                          <p className="font-bold text-slate-900 text-base leading-tight mb-1">{evento.nome}</p>
+                          <p className="font-bold text-slate-900 text-base leading-tight mb-1">
+                            {evento.nome}
+                          </p>
                           <div className="flex items-center gap-3">
                             <span className="text-xs font-semibold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-md">
                               {evento.categoria}
@@ -347,17 +457,20 @@ export default function TabelaEventos() {
                         </div>
                       </div>
                     </td>
+
                     <td className="px-6 py-6 text-center font-bold text-slate-700 text-lg">
                       {evento.vendas_count || 0}
                     </td>
+
                     <td className="px-6 py-6 text-center">
                       <span className="inline-flex items-center px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-bold uppercase">
                         <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-2 animate-pulse"></span>
-                        Ativo
+                        {evento.status || 'Ativo'}
                       </span>
                     </td>
+
                     <td className="px-8 py-6 text-right">
-                      <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex justify-end gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                         <button
                           onClick={() => abrirModalEdicao(evento)}
                           className="p-2.5 text-slate-400 hover:text-purple-600 hover:bg-purple-50 rounded-xl transition-all"
@@ -365,12 +478,26 @@ export default function TabelaEventos() {
                         >
                           <Edit3 size={18} />
                         </button>
+
                         <button
                           onClick={() => router.push(`/dashboard/eventos/novo/ingressos/${evento.id}`)}
                           className="p-2.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
                           title="Ingressos"
                         >
                           <Ticket size={18} />
+                        </button>
+
+                        <button
+                          onClick={() => handleExcluir(evento)}
+                          disabled={isDeleting === evento.id}
+                          className="p-2.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all disabled:opacity-50"
+                          title="Excluir"
+                        >
+                          {isDeleting === evento.id ? (
+                            <Loader2 size={18} className="animate-spin" />
+                          ) : (
+                            <Trash2 size={18} />
+                          )}
                         </button>
                       </div>
                     </td>
@@ -382,7 +509,6 @@ export default function TabelaEventos() {
         </div>
       </div>
 
-      {/* Modal Estilo Luma - Mais arredondado e clean */}
       {isEditModalOpen && eventoParaEditar && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
           <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
@@ -416,13 +542,20 @@ export default function TabelaEventos() {
                       <p className="text-white text-xs font-bold">Alterar Imagem</p>
                     </div>
                   </div>
-                  <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e: any) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      setSelectedFile(file);
-                      setPreviewUrl(URL.createObjectURL(file));
-                    }
-                  }} />
+
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    className="hidden"
+                    accept="image/*"
+                    onChange={(e: any) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setSelectedFile(file);
+                        setPreviewUrl(URL.createObjectURL(file));
+                      }
+                    }}
+                  />
                 </div>
 
                 <div className="space-y-5">
@@ -431,7 +564,9 @@ export default function TabelaEventos() {
                     <input
                       className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-purple-100 focus:border-purple-600 transition-all"
                       value={eventoParaEditar.nome || ''}
-                      onChange={(e) => setEventoParaEditar({ ...eventoParaEditar, nome: e.target.value })}
+                      onChange={(e) =>
+                        setEventoParaEditar({ ...eventoParaEditar, nome: e.target.value })
+                      }
                     />
                   </div>
 
@@ -443,7 +578,9 @@ export default function TabelaEventos() {
                       type="number"
                       className="w-full p-3.5 bg-purple-50/50 border border-purple-100 rounded-xl font-bold text-purple-700 outline-none focus:ring-2 focus:ring-purple-100 focus:border-purple-600 transition-all"
                       value={eventoParaEditar.preco || ''}
-                      onChange={(e) => setEventoParaEditar({ ...eventoParaEditar, preco: e.target.value })}
+                      onChange={(e) =>
+                        setEventoParaEditar({ ...eventoParaEditar, preco: e.target.value })
+                      }
                     />
                   </div>
 
@@ -453,7 +590,9 @@ export default function TabelaEventos() {
                       type="date"
                       className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-purple-100 focus:border-purple-600 transition-all"
                       value={eventoParaEditar.data_inicio || ''}
-                      onChange={(e) => setEventoParaEditar({ ...eventoParaEditar, data_inicio: e.target.value })}
+                      onChange={(e) =>
+                        setEventoParaEditar({ ...eventoParaEditar, data_inicio: e.target.value })
+                      }
                     />
                   </div>
                 </div>
@@ -465,19 +604,26 @@ export default function TabelaEventos() {
                   <select
                     className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-purple-100 focus:border-purple-600 transition-all appearance-none"
                     value={eventoParaEditar.categoria}
-                    onChange={(e) => setEventoParaEditar({ ...eventoParaEditar, categoria: e.target.value })}
+                    onChange={(e) =>
+                      setEventoParaEditar({ ...eventoParaEditar, categoria: e.target.value })
+                    }
                   >
                     {CATEGORIAS_VALIDAS.map((cat) => (
-                      <option key={cat} value={cat}>{cat}</option>
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
                     ))}
                   </select>
                 </div>
+
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-slate-700 ml-1">Localização/Link</label>
                   <input
                     className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:ring-2 focus:ring-purple-100 focus:border-purple-600 transition-all"
                     value={eventoParaEditar.local_nome || ''}
-                    onChange={(e) => setEventoParaEditar({ ...eventoParaEditar, local_nome: e.target.value })}
+                    onChange={(e) =>
+                      setEventoParaEditar({ ...eventoParaEditar, local_nome: e.target.value })
+                    }
                   />
                 </div>
               </div>
@@ -488,7 +634,9 @@ export default function TabelaEventos() {
                   rows={4}
                   className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl font-medium outline-none focus:ring-2 focus:ring-purple-100 focus:border-purple-600 transition-all resize-none"
                   value={eventoParaEditar.descricao || ''}
-                  onChange={(e) => setEventoParaEditar({ ...eventoParaEditar, descricao: e.target.value })}
+                  onChange={(e) =>
+                    setEventoParaEditar({ ...eventoParaEditar, descricao: e.target.value })
+                  }
                 />
               </div>
 
@@ -500,6 +648,7 @@ export default function TabelaEventos() {
                 >
                   Cancelar
                 </button>
+
                 <button
                   type="submit"
                   disabled={saving}

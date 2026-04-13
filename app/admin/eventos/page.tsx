@@ -21,6 +21,16 @@ import { useLanguage } from '@/app/context/LanguageContext';
 
 const API_URL = 'https://api-linkah.onrender.com/api/eventos';
 
+function isEventoExcluido(evento: any) {
+  const status = String(evento?.status || '')
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+
+  return status === 'excluido';
+}
+
 export default function AdminEventos() {
   const { t } = useLanguage();
 
@@ -59,7 +69,7 @@ export default function AdminEventos() {
 
       const formatados = Array.isArray(data)
         ? data
-            .filter((ev: any) => ev.status !== 'Excluído')
+            .filter((ev: any) => !isEventoExcluido(ev))
             .map((ev: any) => ({
               ...ev,
               imagem: ev.imagem_capa || ev.imagem || '',
@@ -269,7 +279,7 @@ export default function AdminEventos() {
         throw new Error(data?.error || 'Falha ao remover evento');
       }
 
-      setEventos((prev) => prev.filter((ev) => ev.id !== evento.id));
+      setEventos((prev) => prev.filter((ev) => String(ev.id) !== String(evento.id)));
 
       Swal.fire({
         title: 'Removido!',
@@ -284,6 +294,14 @@ export default function AdminEventos() {
       setIsProcessing(null);
     }
   };
+
+  const eventosFiltrados = eventos.filter((ev) => {
+    if (isEventoExcluido(ev)) return false;
+
+    return String(ev.nome || '')
+      .toLowerCase()
+      .includes(filtroBusca.toLowerCase());
+  });
 
   return (
     <div className="p-6 lg:p-12 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-700">
@@ -341,94 +359,94 @@ export default function AdminEventos() {
                     <Loader2 className="animate-spin mx-auto text-slate-200" size={40} />
                   </td>
                 </tr>
+              ) : eventosFiltrados.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-10 py-20 text-center text-slate-400 font-bold">
+                    Nenhum evento encontrado.
+                  </td>
+                </tr>
               ) : (
-                eventos
-                  .filter((ev) =>
-                    String(ev.nome || '')
-                      .toLowerCase()
-                      .includes(filtroBusca.toLowerCase())
-                  )
-                  .map((ev) => (
-                    <tr key={ev.id} className="hover:bg-slate-50/30 transition-colors group">
-                      <td className="px-10 py-6">
-                        <div className="flex items-center gap-5">
-                          <div className="relative w-14 h-14 shrink-0">
-                            {ev.imagem ? (
-                              <img
-                                src={ev.imagem}
-                                className="w-full h-full rounded-2xl object-cover border border-slate-100 shadow-sm"
-                                alt={ev.nome}
-                              />
-                            ) : (
-                              <div className="w-full h-full rounded-2xl bg-slate-100 flex items-center justify-center text-slate-300">
-                                <ImageIcon size={20} />
-                              </div>
-                            )}
-                          </div>
-
-                          <div>
-                            <p className="font-black text-slate-900 uppercase italic tracking-tight text-base leading-none mb-1">
-                              {ev.nome}
-                            </p>
-                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1">
-                              <MapPin size={10} className="text-rose-500" /> {ev.local || '—'}
-                            </p>
-                          </div>
+                eventosFiltrados.map((ev) => (
+                  <tr key={ev.id} className="hover:bg-slate-50/30 transition-colors group">
+                    <td className="px-10 py-6">
+                      <div className="flex items-center gap-5">
+                        <div className="relative w-14 h-14 shrink-0">
+                          {ev.imagem ? (
+                            <img
+                              src={ev.imagem}
+                              className="w-full h-full rounded-2xl object-cover border border-slate-100 shadow-sm"
+                              alt={ev.nome}
+                            />
+                          ) : (
+                            <div className="w-full h-full rounded-2xl bg-slate-100 flex items-center justify-center text-slate-300">
+                              <ImageIcon size={20} />
+                            </div>
+                          )}
                         </div>
-                      </td>
 
-                      <td className="px-10 py-6 text-center">
-                        <div className="flex flex-col items-center gap-1">
-                          <span className="px-3 py-1 bg-slate-900 text-white rounded-full text-[9px] font-black uppercase tracking-tighter">
-                            {ev.data || '--'}
-                          </span>
-                          <span className="text-[11px] font-bold text-slate-400">
-                            {ev.horario || '--:--'}
-                          </span>
+                        <div>
+                          <p className="font-black text-slate-900 uppercase italic tracking-tight text-base leading-none mb-1">
+                            {ev.nome}
+                          </p>
+                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1">
+                            <MapPin size={10} className="text-rose-500" /> {ev.local || '—'}
+                          </p>
                         </div>
-                      </td>
+                      </div>
+                    </td>
 
-                      <td className="px-10 py-6 text-center">
-                        <div className="flex flex-col items-center">
-                          <span className="text-slate-900 font-black italic text-sm">
-                            {(Number(ev.taxa_plataforma || 0.05) * 100).toFixed(1)}%
-                          </span>
-                          <span className="text-[9px] text-slate-400 font-bold uppercase">
-                            Fee Ativa
-                          </span>
-                        </div>
-                      </td>
-
-                      <td className="px-10 py-6 text-center">
-                        <span className="text-slate-900 font-black italic text-sm">
-                          R$ {Number(ev.preco || 0).toFixed(2)}
+                    <td className="px-10 py-6 text-center">
+                      <div className="flex flex-col items-center gap-1">
+                        <span className="px-3 py-1 bg-slate-900 text-white rounded-full text-[9px] font-black uppercase tracking-tighter">
+                          {ev.data || '--'}
                         </span>
-                      </td>
+                        <span className="text-[11px] font-bold text-slate-400">
+                          {ev.horario || '--:--'}
+                        </span>
+                      </div>
+                    </td>
 
-                      <td className="px-10 py-6 text-right">
-                        <div className="flex justify-end gap-3 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all">
-                          <button
-                            onClick={() => abrirEdicao(ev)}
-                            className="w-11 h-11 flex items-center justify-center bg-white hover:bg-slate-900 hover:text-white border border-slate-200 rounded-xl text-slate-400 transition-all shadow-sm"
-                          >
-                            <Edit3 size={18} />
-                          </button>
+                    <td className="px-10 py-6 text-center">
+                      <div className="flex flex-col items-center">
+                        <span className="text-slate-900 font-black italic text-sm">
+                          {(Number(ev.taxa_plataforma || 0.05) * 100).toFixed(1)}%
+                        </span>
+                        <span className="text-[9px] text-slate-400 font-bold uppercase">
+                          Fee Ativa
+                        </span>
+                      </div>
+                    </td>
 
-                          <button
-                            onClick={() => handleExcluir(ev)}
-                            className="w-11 h-11 flex items-center justify-center bg-white hover:bg-red-500 hover:text-white border border-slate-200 rounded-xl text-slate-400 transition-all shadow-sm"
-                            disabled={isProcessing === ev.id}
-                          >
-                            {isProcessing === ev.id ? (
-                              <Loader2 size={18} className="animate-spin" />
-                            ) : (
-                              <Trash2 size={18} />
-                            )}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                    <td className="px-10 py-6 text-center">
+                      <span className="text-slate-900 font-black italic text-sm">
+                        R$ {Number(ev.preco || 0).toFixed(2)}
+                      </span>
+                    </td>
+
+                    <td className="px-10 py-6 text-right">
+                      <div className="flex justify-end gap-3 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all">
+                        <button
+                          onClick={() => abrirEdicao(ev)}
+                          className="w-11 h-11 flex items-center justify-center bg-white hover:bg-slate-900 hover:text-white border border-slate-200 rounded-xl text-slate-400 transition-all shadow-sm"
+                        >
+                          <Edit3 size={18} />
+                        </button>
+
+                        <button
+                          onClick={() => handleExcluir(ev)}
+                          className="w-11 h-11 flex items-center justify-center bg-white hover:bg-red-500 hover:text-white border border-slate-200 rounded-xl text-slate-400 transition-all shadow-sm"
+                          disabled={isProcessing === ev.id}
+                        >
+                          {isProcessing === ev.id ? (
+                            <Loader2 size={18} className="animate-spin" />
+                          ) : (
+                            <Trash2 size={18} />
+                          )}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
               )}
             </tbody>
           </table>
