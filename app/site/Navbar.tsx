@@ -281,7 +281,7 @@ export function Navbar() {
                       </button>
 
                       <Link
-                        href="/dashboard/perfilperfil"
+                        href="/dashboard/perfil"
                         className="flex items-center gap-3 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors group"
                       >
                         <User size={16} className="text-gray-400 group-hover:text-blue-600" />
