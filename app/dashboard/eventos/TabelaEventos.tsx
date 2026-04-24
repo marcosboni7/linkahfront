@@ -159,25 +159,32 @@ export default function TabelaEventos() {
 
   async function carregarEventos() {
     try {
-      // Pega os dados do usuário do localStorage
       const userData = localStorage.getItem('user');
       const user = userData ? JSON.parse(userData) : null;
-      
-      // Se não houver usuário, não carrega ou lida com erro
-      if (!user || !user.id) {
-          console.warn("Usuário não identificado.");
-          setLoading(false);
-          return;
-      }
 
       const res = await fetch(`${API_URL}/api/eventos`);
       if (!res.ok) throw new Error('Erro ao carregar');
       const data = await res.json();
 
-      // FILTRO: Só mostra eventos onde o usuario_id (ou produtor_id) é igual ao do usuário logado
-      // Ajuste o nome do campo (usuario_id ou id_usuario) conforme seu banco
-      const meusEventos = data.filter((ev: any) => ev.usuario_id === user.id);
-      
+      // Se não houver utilizador logado, mostra tudo por enquanto para não ficar vazio
+      if (!user || !user.id) {
+        console.log("Utilizador não logado ou sem ID no localStorage. Mostrando todos os eventos.");
+        setEventos(data);
+        return;
+      }
+
+      // Filtro dinâmico: tenta filtrar por usuario_id ou id_usuario
+      const meusEventos = data.filter((ev: any) => {
+        return ev.usuario_id === user.id || ev.id_usuario === user.id;
+      });
+
+      // Se o filtro resultou em nada, mas o banco tem dados, pode ser o nome do campo
+      if (meusEventos.length === 0 && data.length > 0) {
+        console.log("Filtro ativo, mas nenhum evento corresponde ao seu ID. Verifique o campo de ID no Banco.");
+        // Se quiseres ver os eventos mesmo assim enquanto testas, descomenta a linha abaixo:
+        // setEventos(data); 
+      }
+
       setEventos(meusEventos);
     } catch (err) {
       console.error(err);
@@ -345,8 +352,7 @@ export default function TabelaEventos() {
 
             <div className="p-8 space-y-6">
               <p className="text-sm text-slate-500 font-medium leading-relaxed">
-                Crie um link de rastreamento para seus vendedores. Toda venda
-                feita por este link será registrada.
+                Crie um link de rastreamento para seus vendedores.
               </p>
 
               <div className="space-y-2">
