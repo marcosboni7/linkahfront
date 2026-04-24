@@ -159,10 +159,26 @@ export default function TabelaEventos() {
 
   async function carregarEventos() {
     try {
+      // Pega os dados do usuário do localStorage
+      const userData = localStorage.getItem('user');
+      const user = userData ? JSON.parse(userData) : null;
+      
+      // Se não houver usuário, não carrega ou lida com erro
+      if (!user || !user.id) {
+          console.warn("Usuário não identificado.");
+          setLoading(false);
+          return;
+      }
+
       const res = await fetch(`${API_URL}/api/eventos`);
       if (!res.ok) throw new Error('Erro ao carregar');
       const data = await res.json();
-      setEventos(data);
+
+      // FILTRO: Só mostra eventos onde o usuario_id (ou produtor_id) é igual ao do usuário logado
+      // Ajuste o nome do campo (usuario_id ou id_usuario) conforme seu banco
+      const meusEventos = data.filter((ev: any) => ev.usuario_id === user.id);
+      
+      setEventos(meusEventos);
     } catch (err) {
       console.error(err);
     } finally {
@@ -376,7 +392,7 @@ export default function TabelaEventos() {
         </div>
       )}
 
-      {/* MODAL DE EDIÇÃO COMPLETO (Original) */}
+      {/* MODAL DE EDIÇÃO COMPLETO */}
       {isEditModalOpen && selectedEvento && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
           <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl my-8 animate-in fade-in zoom-in duration-300">
