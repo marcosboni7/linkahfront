@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation'; // Adicionei useSearchParams
 import { Navbar } from '../../site/Navbar';
 import { Footer } from '../../site/Footer';
 import {
@@ -16,7 +16,6 @@ import {
   Info,
   Globe,
   Share2,
-  CheckCircle2,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -92,12 +91,17 @@ function formatCurrency(value: number | string, currency?: string) {
 
 export default function DetalhesLumaRoxo() {
   const params = useParams();
+  const searchParams = useSearchParams(); // Hook para ler a URL
   const id = Array.isArray(params?.id) ? params.id[0] : (params?.id as string);
   const router = useRouter();
 
   const [evento, setEvento] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [quantidades, setQuantidades] = useState<{ [key: string]: number }>({});
+
+  // --- LÓGICA DE AFILIADO ---
+  // Tenta pegar 'ref' ou 'afiliado_id' da URL
+  const afiliadoId = searchParams.get('ref') || searchParams.get('afiliado_id') || '';
 
   useEffect(() => {
     async function carregarEvento() {
@@ -110,9 +114,6 @@ export default function DetalhesLumaRoxo() {
         if (!res.ok) throw new Error('Erro ao carregar evento');
 
         const data = await res.json();
-        console.log('📦 EVENTO RAW:', data);
-        console.log('🎟️ INGRESSOS RAW:', data?.ingressos);
-
         const moedaEvento = normalizeCurrency(
           data?.moeda || data?.currency || data?.moeda_evento || 'BRL'
         );
@@ -120,8 +121,7 @@ export default function DetalhesLumaRoxo() {
         const ingressosTratados = Array.isArray(data?.ingressos)
           ? data.ingressos.map((ing: any, index: number) => {
               const precoFinal = getTicketPrice(ing);
-
-              const ingressoTratado = {
+              return {
                 ...ing,
                 id: String(ing?.id || ing?._id || `ingresso-${index}`),
                 descricao: ing?.descricao || '',
@@ -130,9 +130,6 @@ export default function DetalhesLumaRoxo() {
                   ing?.moeda || ing?.currency || ing?.moeda_ingresso || moedaEvento
                 ),
               };
-
-              console.log('🎫 INGRESSO TRATADO:', ingressoTratado);
-              return ingressoTratado;
             })
           : [];
 
@@ -199,7 +196,8 @@ export default function DetalhesLumaRoxo() {
       : `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${evento.banner_patrocinio}`
     : null;
 
-  const linkVenda = `/venda?eventoId=${id}&payload=${encodeURIComponent(
+  // ATUALIZADO: Incluindo o afiliadoId no link que vai para a página de venda
+  const linkVenda = `/venda?eventoId=${id}&afiliado_id=${afiliadoId}&payload=${encodeURIComponent(
     JSON.stringify(quantidades)
   )}`;
 
