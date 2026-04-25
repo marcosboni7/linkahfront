@@ -291,7 +291,7 @@ function CheckoutContent() {
                   name="nome"
                   value={formData.nome}
                   onChange={handleInputChange}
-                  placeholder="Ex: Marcos Boni"
+                  placeholder="Ex: Linkah Eventos"
                   className="w-full p-5 bg-white border-b border-slate-200 focus:border-black outline-none transition-all text-xl font-light italic"
                 />
               </div>
