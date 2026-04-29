@@ -27,6 +27,7 @@ import {
   Users,
   Copy,
   Check,
+  Percent, // Ícone adicionado para a porcentagem
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Swal from 'sweetalert2';
@@ -180,6 +181,7 @@ export default function TabelaEventos() {
   const [isAfiliadoModalOpen, setIsAfiliadoModalOpen] = useState(false);
   const [selectedEventoAfiliado, setSelectedEventoAfiliado] = useState<any>(null);
   const [nomeAfiliado, setNomeAfiliado] = useState('');
+  const [comissaoAfiliado, setComissaoAfiliado] = useState('10'); // Padrão 10%
   const [linkGerado, setLinkGerado] = useState('');
   const [copiado, setCopiado] = useState(false);
 
@@ -240,6 +242,7 @@ export default function TabelaEventos() {
   const abrirModalAfiliados = (evento: any) => {
     setSelectedEventoAfiliado(evento);
     setNomeAfiliado('');
+    setComissaoAfiliado('10'); // Reseta para o padrão ao abrir
     setLinkGerado('');
     setCopiado(false);
     setIsAfiliadoModalOpen(true);
@@ -248,7 +251,9 @@ export default function TabelaEventos() {
   const gerarLinkAfiliado = () => {
     if (!nomeAfiliado) return;
     const ref = nomeAfiliado.toLowerCase().trim().replace(/\s+/g, '_');
-    const url = `https://linkah.eu/evento/${selectedEventoAfiliado.id}?ref=${ref}`;
+    // Adicionamos o parâmetro de comissão na URL para que o sistema saiba quanto aplicar, 
+    // ou para você salvar no banco no momento da geração se preferir.
+    const url = `https://linkah.eu/evento/${selectedEventoAfiliado.id}?ref=${ref}&pct=${comissaoAfiliado}`;
     setLinkGerado(url);
   };
 
@@ -394,7 +399,6 @@ export default function TabelaEventos() {
                     </td>
                     <td className="px-8 py-6 text-right">
                       <div className="flex justify-end gap-2">
-                        {/* BOTÃO AFILIADOS ADICIONADO */}
                         <button onClick={() => abrirModalAfiliados(evento)} className="p-2.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all" title="Afiliados">
                           <Users size={18} />
                         </button>
@@ -411,7 +415,7 @@ export default function TabelaEventos() {
         </div>
       </div>
 
-      {/* MODAL AFILIADOS (NOVO) */}
+      {/* MODAL AFILIADOS */}
       {isAfiliadoModalOpen && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
           <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
@@ -423,12 +427,34 @@ export default function TabelaEventos() {
               <button onClick={() => setIsAfiliadoModalOpen(false)} className="p-2 hover:bg-white rounded-full text-slate-400 transition-colors"><X size={20} /></button>
             </div>
             <div className="p-8 space-y-6">
-              <p className="text-sm text-slate-500 font-medium">Crie um link de rastreamento para seus vendedores.</p>
+              <p className="text-sm text-slate-500 font-medium">Configure o vendedor e a taxa de comissão.</p>
+              
+              {/* NOME DO AFILIADO */}
               <div className="space-y-2">
-                <label className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">Nome do Afiliado</label>
+                <label className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">Nome do Vendedor</label>
                 <input type="text" value={nomeAfiliado} onChange={(e) => setNomeAfiliado(e.target.value)} placeholder="Ex: Marcos Boni" className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-bold text-slate-700" />
               </div>
-              <button onClick={gerarLinkAfiliado} disabled={!nomeAfiliado} className="w-full bg-emerald-600 text-white py-4 rounded-2xl font-black hover:bg-emerald-700 transition-all disabled:opacity-50">Gerar Link</button>
+
+              {/* PORCENTAGEM DE COMISSÃO */}
+              <div className="space-y-2">
+                <label className="text-xs font-black text-slate-400 uppercase tracking-widest px-1 flex items-center gap-2">
+                  <Percent size={14} className="text-emerald-500" /> Taxa de Comissão (%)
+                </label>
+                <div className="relative">
+                  <input 
+                    type="number" 
+                    min="0" 
+                    max="100" 
+                    value={comissaoAfiliado} 
+                    onChange={(e) => setComissaoAfiliado(e.target.value)} 
+                    className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-bold text-slate-700 pr-12" 
+                  />
+                  <span className="absolute right-5 top-1/2 -translate-y-1/2 font-bold text-slate-400">%</span>
+                </div>
+              </div>
+
+              <button onClick={gerarLinkAfiliado} disabled={!nomeAfiliado} className="w-full bg-emerald-600 text-white py-4 rounded-2xl font-black hover:bg-emerald-700 transition-all disabled:opacity-50">Gerar Link com Comissão</button>
+              
               {linkGerado && (
                 <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-2xl border border-dashed border-emerald-200 animate-in slide-in-from-top-2">
                   <input readOnly value={linkGerado} className="flex-1 bg-transparent border-none text-[10px] font-mono text-slate-500 px-2 outline-none" />

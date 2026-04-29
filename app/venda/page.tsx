@@ -57,6 +57,10 @@ function CheckoutContent() {
   const searchParams = useSearchParams();
   const eventoId = searchParams.get('eventoId');
   const payloadRaw = searchParams.get('payload');
+  
+  // --- ADICIONADO: Captura de Afiliados da URL ---
+  const afiliadoId = searchParams.get('afiliado_id');
+  const comissaoPercentual = searchParams.get('pct');
 
   const [loading, setLoading] = useState(false);
   const [evento, setEvento] = useState<any>(null);
@@ -220,6 +224,9 @@ function CheckoutContent() {
           usuarioNome: formData.nome,
           quantidade: totalItens,
           quantidades,
+          // --- ADICIONADO: Envio dos dados de afiliado para o Back-end ---
+          afiliadoId: afiliadoId || '',
+          comissaoPercentual: comissaoPercentual || '10',
         }),
       });
 
