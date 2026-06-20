@@ -85,7 +85,9 @@ const getImagemUrl = (foto?: string | null) => {
 
 export default function ComunidadePage() {
   const { t }: any = useLanguage();
-  const { id } = useParams();
+  
+  // CORREÇÃO: Forçando o casting com 'as any' para evitar erro de tipo no build do Next/TS
+  const { id } = useParams() as any;
   const router = useRouter();
 
   const [mensagens, setMensagens] = useState<any[]>([]);

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { useParams, useRouter, useSearchParams } from 'next/navigation'; // Adicionei useSearchParams
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { Navbar } from '../../site/Navbar';
 import { Footer } from '../../site/Footer';
 import {
@@ -39,6 +39,7 @@ function normalizeCurrency(input?: string) {
   return 'BRL';
 }
 
+// Função segura para parsear preço
 function parsePrice(value: any) {
   if (value === null || value === undefined) return 0;
   if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
@@ -91,7 +92,7 @@ function formatCurrency(value: number | string, currency?: string) {
 
 export default function DetalhesLumaRoxo() {
   const params = useParams();
-  const searchParams = useSearchParams(); // Hook para ler a URL
+  const searchParams = useSearchParams();
   const id = Array.isArray(params?.id) ? params.id[0] : (params?.id as string);
   const router = useRouter();
 
@@ -99,9 +100,8 @@ export default function DetalhesLumaRoxo() {
   const [loading, setLoading] = useState(true);
   const [quantidades, setQuantidades] = useState<{ [key: string]: number }>({});
 
-  // --- LÓGICA DE AFILIADO ---
-  // Tenta pegar 'ref' ou 'afiliado_id' da URL
-  const afiliadoId = searchParams.get('ref') || searchParams.get('afiliado_id') || '';
+  // --- LÓGICA DE AFILIADO BLINDADA ---
+  const afiliadoId = searchParams?.get?.('ref') || searchParams?.get?.('afiliado_id') || '';
 
   useEffect(() => {
     async function carregarEvento() {
@@ -160,6 +160,7 @@ export default function DetalhesLumaRoxo() {
     if (id) carregarEvento();
   }, [id]);
 
+  // CORRIGIDO: Removido o lixo de tradução do array de dependências
   const totalGeral = useMemo(() => {
     if (!Array.isArray(evento?.ingressos)) return 0;
 
@@ -196,7 +197,6 @@ export default function DetalhesLumaRoxo() {
       : `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${evento.banner_patrocinio}`
     : null;
 
-  // ATUALIZADO: Incluindo o afiliadoId no link que vai para a página de venda
   const linkVenda = `/venda?eventoId=${id}&afiliado_id=${afiliadoId}&payload=${encodeURIComponent(
     JSON.stringify(quantidades)
   )}`;

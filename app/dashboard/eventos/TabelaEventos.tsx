@@ -27,7 +27,11 @@ import {
   Users,
   Copy,
   Check,
-  Percent, // Ícone adicionado para a porcentagem
+  Percent,
+  User,
+  Instagram,
+  AlertTriangle,
+  HelpCircle,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Swal from 'sweetalert2';
@@ -55,7 +59,6 @@ const CATEGORIAS_VALIDAS = [
   'Família & Comunidade',
 ];
 
-// --- FUNÇÕES AUXILIARES ORIGINAIS ---
 function formatDateToInput(dateValue: any): string {
   if (!dateValue) return '';
   if (typeof dateValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateValue)) return dateValue;
@@ -93,6 +96,7 @@ function formatDateToBackend(dateValue: any): string {
   return '';
 }
 
+// Verifica status excluído
 function isEventoExcluido(evento: any) {
   const status = String(evento?.status || '')
     .trim()
@@ -110,7 +114,7 @@ function resolverImagemEvento(url: any) {
   const valor = String(url).trim();
   if (!valor) return FALLBACK_IMAGE;
   if (valor.startsWith('http://') || valor.startsWith('https://')) return valor;
-  if (valor.startsWith('/uploads/')) return `${API_URL}${valor}`;
+  if (valor.startsWith('/uploads/')) return `${API_URL}${url}`;
   if (valor.startsWith('uploads/')) return `${API_URL}/${valor}`;
   if (valor.startsWith('linkah/eventos/')) return `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${valor}`;
   return `${API_URL}/uploads/${valor}`;
@@ -177,13 +181,20 @@ export default function TabelaEventos() {
   const [isDeleting, setIsDeleting] = useState<string | number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // --- NOVOS ESTADOS: AFILIADOS ---
+  // --- ESTADOS: AFILIADOS ---
   const [isAfiliadoModalOpen, setIsAfiliadoModalOpen] = useState(false);
   const [selectedEventoAfiliado, setSelectedEventoAfiliado] = useState<any>(null);
   const [nomeAfiliado, setNomeAfiliado] = useState('');
-  const [comissaoAfiliado, setComissaoAfiliado] = useState('10'); // Padrão 10%
+  const [comissaoAfiliado, setComissaoAfiliado] = useState('10');
   const [linkGerado, setLinkGerado] = useState('');
   const [copiado, setCopiado] = useState(false);
+
+  // --- ESTADOS: LISTA DE PARTICIPANTES CUSTOMIZADA ---
+  const [isParticipantesModalOpen, setIsParticipantesModalOpen] = useState(false);
+  const [selectedEventoParticipantes, setSelectedEventoParticipantes] = useState<any>(null);
+  const [participantes, setParticipantes] = useState<any[]>([]);
+  const [loadingParticipantes, setLoadingParticipantes] = useState(false);
+  const [buscaParticipante, setBuscaParticipante] = useState('');
 
   const editor = useEditor({
     extensions: [
@@ -242,7 +253,7 @@ export default function TabelaEventos() {
   const abrirModalAfiliados = (evento: any) => {
     setSelectedEventoAfiliado(evento);
     setNomeAfiliado('');
-    setComissaoAfiliado('10'); // Reseta para o padrão ao abrir
+    setComissaoAfiliado('10');
     setLinkGerado('');
     setCopiado(false);
     setIsAfiliadoModalOpen(true);
@@ -251,8 +262,6 @@ export default function TabelaEventos() {
   const gerarLinkAfiliado = () => {
     if (!nomeAfiliado) return;
     const ref = nomeAfiliado.toLowerCase().trim().replace(/\s+/g, '_');
-    // Adicionamos o parâmetro de comissão na URL para que o sistema saiba quanto aplicar, 
-    // ou para você salvar no banco no momento da geração se preferir.
     const url = `https://linkah.eu/evento/${selectedEventoAfiliado.id}?ref=${ref}&pct=${comissaoAfiliado}`;
     setLinkGerado(url);
   };
@@ -262,6 +271,44 @@ export default function TabelaEventos() {
     setCopiado(true);
     setTimeout(() => setCopiado(false), 2000);
   };
+
+  // --- LÓGICA DE CARREGAMENTO DOS PARTICIPANTES DO CONGRESSO ---
+  const abrirModalParticipantes = async (evento: any) => {
+    setSelectedEventoParticipantes(evento);
+    setIsParticipantesModalOpen(true);
+    setLoadingParticipantes(true);
+    setParticipantes([]);
+    setBuscaParticipante('');
+
+    try {
+      const rawToken = localStorage.getItem('@Linkah:Token');
+      const token = rawToken?.replace(/['"]+/g, '').trim() || '';
+
+      const res = await fetch(`${API_URL}/api/pagamento/compras-evento/${evento.id}?t=${Date.now()}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      
+      if (res.ok && Array.isArray(data)) {
+        setParticipantes(data);
+      } else {
+        setParticipantes([]);
+      }
+    } catch (err) {
+      console.error('Erro ao buscar participantes:', err);
+    } finally {
+      setLoadingParticipantes(false);
+    }
+  };
+
+  // CORRIGIDO: Removido o ponto fantasma e mantida a sintaxe limpa do filter
+  const participantesFiltrados = participantes.filter((p) => {
+    const email = String(p.usuario_email || '').toLowerCase();
+    const cracha = String(p.nome_cracha || '').toLowerCase();
+    const insta = String(p.instagram_user || '').toLowerCase();
+    const termo = buscaParticipante.toLowerCase();
+    return email.includes(termo) || cracha.includes(termo) || insta.includes(termo);
+  });
 
   // --- MÉTODOS ORIGINAIS ---
   const abrirModalEdicao = async (evento: any) => {
@@ -399,6 +446,9 @@ export default function TabelaEventos() {
                     </td>
                     <td className="px-8 py-6 text-right">
                       <div className="flex justify-end gap-2">
+                        <button onClick={() => abrirModalParticipantes(evento)} className="p-2.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all" title="Ver Participantes / Crachás">
+                          <FileText size={18} />
+                        </button>
                         <button onClick={() => abrirModalAfiliados(evento)} className="p-2.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all" title="Afiliados">
                           <Users size={18} />
                         </button>
@@ -415,6 +465,75 @@ export default function TabelaEventos() {
         </div>
       </div>
 
+      {/* MODAL PARTICIPANTES (CONGRESSO / FORMULÁRIO AVANÇADO) */}
+      {isParticipantesModalOpen && selectedEventoParticipantes && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white w-full max-w-4xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 max-h-[85vh] flex flex-col">
+            <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-blue-50/30 shrink-0">
+              <div className="flex items-center gap-3 text-blue-600">
+                <FileText size={24} />
+                <div>
+                  <h3 className="text-xl font-black tracking-tight">Lista de Participantes</h3>
+                  <p className="text-xs text-slate-400 font-medium">{selectedEventoParticipantes.nome}</p>
+                </div>
+              </div>
+              <button onClick={() => setIsParticipantesModalOpen(false)} className="p-2 hover:bg-white rounded-full text-slate-400 transition-colors"><X size={20} /></button>
+            </div>
+
+            <div className="p-6 bg-slate-50 border-b border-slate-100 shrink-0">
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                <input type="text" placeholder="Buscar por e-mail, nome no crachá ou instagram..." value={buscaParticipante} onChange={(e) => setBuscaParticipante(e.target.value)} className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-blue-100" />
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-8">
+              {loadingParticipantes ? (
+                <div className="py-12 text-center"><Loader2 className="animate-spin mx-auto text-blue-600" size={28} /></div>
+              ) : participantesFiltrados.length === 0 ? (
+                <div className="py-12 text-center text-slate-400 font-medium">Nenhum participante encontrado com os critérios digitados.</div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {participantesFiltrados.map((p, i) => (
+                    <div key={i} className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm space-y-4 hover:border-blue-300 transition-colors">
+                      <div className="flex items-start justify-between border-b border-slate-50 pb-3">
+                        <div className="space-y-0.5">
+                          <p className="text-[10px] uppercase tracking-widest font-black text-slate-300">Comprador</p>
+                          <p className="text-sm font-bold text-slate-700 truncate max-w-[250px]">{p.usuario_email}</p>
+                        </div>
+                        <span className="text-[10px] font-bold bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-md uppercase">Aprovado</span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 text-xs">
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1"><User size={12} /> No Crachá</span>
+                          <p className="font-extrabold text-slate-900">{p.nome_cracha || 'Não informado'}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1"><Instagram size={12} /> Instagram</span>
+                          <p className="font-extrabold text-purple-600">{p.instagram_user ? `@${p.instagram_user.replace('@', '')}` : 'Não informado'}</p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 text-xs pt-1">
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1"><AlertTriangle size={12} className="text-amber-500" /> Alergias</span>
+                          <p className="font-medium text-slate-600 line-clamp-2">{p.alergias || 'Nenhuma restrição'}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1"><HelpCircle size={12} /> Origem</span>
+                          <p className="font-semibold text-slate-700">{p.como_conheceu || 'Não informado'}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* MODAL AFILIADOS */}
       {isAfiliadoModalOpen && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
@@ -429,26 +548,17 @@ export default function TabelaEventos() {
             <div className="p-8 space-y-6">
               <p className="text-sm text-slate-500 font-medium">Configure o vendedor e a taxa de comissão.</p>
               
-              {/* NOME DO AFILIADO */}
               <div className="space-y-2">
                 <label className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">Nome do Vendedor</label>
                 <input type="text" value={nomeAfiliado} onChange={(e) => setNomeAfiliado(e.target.value)} placeholder="Ex: Marcos Boni" className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-bold text-slate-700" />
               </div>
 
-              {/* PORCENTAGEM DE COMISSÃO */}
               <div className="space-y-2">
                 <label className="text-xs font-black text-slate-400 uppercase tracking-widest px-1 flex items-center gap-2">
                   <Percent size={14} className="text-emerald-500" /> Taxa de Comissão (%)
                 </label>
                 <div className="relative">
-                  <input 
-                    type="number" 
-                    min="0" 
-                    max="100" 
-                    value={comissaoAfiliado} 
-                    onChange={(e) => setComissaoAfiliado(e.target.value)} 
-                    className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-bold text-slate-700 pr-12" 
-                  />
+                  <input type="number" min="0" max="100" value={comissaoAfiliado} onChange={(e) => setComissaoAfiliado(e.target.value)} className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-bold text-slate-700 pr-12" />
                   <span className="absolute right-5 top-1/2 -translate-y-1/2 font-bold text-slate-400">%</span>
                 </div>
               </div>
@@ -468,7 +578,7 @@ export default function TabelaEventos() {
         </div>
       )}
 
-      {/* MODAL EDIÇÃO (ORIGINAL) */}
+      {/* MODAL EDIÇÃO */}
       {isEditModalOpen && eventoParaEditar && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">

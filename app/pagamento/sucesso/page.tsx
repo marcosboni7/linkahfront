@@ -14,7 +14,10 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api-linkah.onrender.
 
 function TicketVisual() {
   const searchParams = useSearchParams();
-  const sessionId = searchParams.get('session_id');
+  
+  // CORREÇÃO: Blindagem com Optional Chaining para não quebrar no build do Next/TS
+  const sessionId = searchParams?.get?.('session_id');
+  
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState(false);
   const [compra, setCompra] = useState<any>(null);
@@ -84,7 +87,6 @@ function TicketVisual() {
     </div>
   );
 
-  // Lógica para identificar se o evento é online
   const isOnline = compra.tipo_evento === 'Online' || !!compra.link_reuniao;
 
   return (
@@ -162,11 +164,10 @@ function TicketVisual() {
             </div>
           </div>
 
-          {/* SEÇÃO DO LINK ONLINE DENTRO DO CARD - Condicional para Evento Online */}
           {isOnline && compra.link_reuniao && (
             <div className="bg-pink-50/50 border-2 border-pink-100 rounded-[2.5rem] p-6 text-center animate-in zoom-in-95 duration-500">
               <div className="flex items-center justify-center gap-2 mb-3 text-[#C22973]">
-                <Globe size={18} className="animate-spin-slow" />
+                <Globe size={18} />
                 <p className="text-[10px] font-black uppercase tracking-[0.2em]">
                   {language === 'PT' ? 'Acesso Liberado para a Live' : 'Live Stream Access Granted'}
                 </p>
@@ -194,16 +195,15 @@ function TicketVisual() {
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">
                    {language === 'PT' ? 'Apresente este QR Code' : 'Show this QR Code'}
                 </p>
-                <code className="inline-block text-[11px] bg-slate-900 px-4 py-1.5 rounded-full text-white font-mono font-bold tracking-widest">
+                <div className="inline-block text-[11px] bg-slate-900 px-4 py-1.5 rounded-full text-white font-mono font-bold tracking-widest">
                   {sessionId?.slice(-12).toUpperCase()}
-                </code>
+                </div>
             </div>
           </div>
         </div>
       </div>
 
       <div className="space-y-4 no-print max-w-sm mx-auto">
-        {/* BOTÃO PRINCIPAL DE ACESSO - Só aparece para eventos online */}
         {isOnline && (
           <a 
             href={compra.link_reuniao}
@@ -233,6 +233,7 @@ function TicketVisual() {
   );
 }
 
+// Componente Wrapper principal exportado no Next.js
 export default function PaginaSucesso() {
   return (
     <div className="bg-slate-50 min-h-screen">

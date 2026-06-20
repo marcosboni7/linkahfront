@@ -2,7 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Mail, Lock, ChevronLeft, ArrowRight, Loader2, Sparkles } from 'lucide-react';
+import {
+  Mail,
+  Lock,
+  ChevronLeft,
+  ArrowRight,
+  Loader2,
+  Sparkles,
+  Eye,
+  EyeOff,
+} from 'lucide-react';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api-linkah.onrender.com';
 
@@ -18,6 +27,7 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
+  const [mostrarSenha, setMostrarSenha] = useState(false);
 
   useEffect(() => {
     if (error) setError('');
@@ -34,11 +44,6 @@ export default function LoginPage() {
     try {
       const url = `${API_URL}/api/auth/login`;
 
-      console.log('='.repeat(70));
-      console.log('🚀 Tentando login em:', url);
-      console.log('🌍 Origin atual:', window.location.origin);
-      console.log('📨 Payload:', { email, senha: '********' });
-
       const response = await fetch(url, {
         method: 'POST',
         mode: 'cors',
@@ -51,23 +56,14 @@ export default function LoginPage() {
         signal: controller.signal,
       });
 
-      console.log('📡 Status:', response.status);
-      console.log('📡 OK:', response.ok);
-      console.log('📡 Type:', response.type);
-      console.log('📡 Content-Type:', response.headers.get('content-type'));
-
       const rawText = await response.text();
-      console.log('📄 Resposta bruta:', rawText);
 
       let data: any = {};
       try {
         data = rawText ? JSON.parse(rawText) : {};
-      } catch (parseError) {
-        console.error('❌ Erro ao parsear JSON:', parseError);
+      } catch {
         throw new Error('A API respondeu, mas não retornou JSON válido.');
       }
-
-      console.log('📦 Resposta da API:', data);
 
       if (!response.ok) {
         throw new Error(
@@ -102,9 +98,6 @@ export default function LoginPage() {
 
       if (token) {
         localStorage.setItem('@Linkah:Token', token);
-        console.log('🔑 Token salvo');
-      } else {
-        console.log('ℹ️ Login sem token. Seguindo com user/cookie.');
       }
 
       localStorage.setItem('@Linkah:User', JSON.stringify(usuarioParaSalvar));
@@ -115,19 +108,12 @@ export default function LoginPage() {
 
       localStorage.setItem('perfil_completo', JSON.stringify(usuarioParaSalvar));
 
-      console.log('✅ @Linkah:User:', localStorage.getItem('@Linkah:User'));
-      console.log('✅ userEmail:', localStorage.getItem('userEmail'));
-      console.log('✅ perfil_completo:', localStorage.getItem('perfil_completo'));
-      console.log('✅ @Linkah:Token:', localStorage.getItem('@Linkah:Token'));
-
       alert('Logado com sucesso!');
 
       setTimeout(() => {
         window.location.href = '/';
       }, 500);
     } catch (err: any) {
-      console.error('❌ Erro no Login:', err);
-
       if (err?.name === 'AbortError') {
         setError('A API demorou demais para responder. O backend pode estar dormindo ou fora do ar.');
       } else if (err?.message === 'Failed to fetch') {
@@ -138,8 +124,6 @@ export default function LoginPage() {
     } finally {
       clearTimeout(timeout);
       setLoading(false);
-      console.log('🏁 Fim do login');
-      console.log('='.repeat(70));
     }
   }
 
@@ -158,9 +142,11 @@ export default function LoginPage() {
             <div className="inline-flex items-center gap-2 bg-white/5 border border-white/10 px-4 py-2 rounded-full text-white/60 text-[10px] font-bold tracking-[0.2em] uppercase mb-4">
               <Sparkles size={14} className="text-[#ff4d4d]" /> Acesso Exclusivo
             </div>
+
             <h2 className="text-white text-6xl font-bold leading-[1.1] tracking-tight">
               Sua jornada <br /> para o <span className="text-[#ff4d4d]">extraordinário</span>.
             </h2>
+
             <p className="text-slate-400 text-lg font-light leading-relaxed">
               Entre para gerenciar seus ingressos e explorar novas experiências.
             </p>
@@ -188,6 +174,7 @@ export default function LoginPage() {
             <h1 className="text-4xl font-black text-slate-950 tracking-tight mb-3 italic uppercase">
               Login
             </h1>
+
             <p className="text-slate-500 font-medium">Bem-vindo de volta à Linkah.</p>
 
             {error && (
@@ -203,11 +190,13 @@ export default function LoginPage() {
               <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
                 E-mail
               </label>
+
               <div className="relative group">
                 <Mail
                   className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#ff4d4d] transition-colors"
                   size={18}
                 />
+
                 <input
                   required
                   autoComplete="email"
@@ -225,6 +214,7 @@ export default function LoginPage() {
                 <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
                   Senha
                 </label>
+
                 <button
                   type="button"
                   className="text-[11px] font-bold text-slate-400 hover:text-[#ff4d4d] transition-colors"
@@ -238,15 +228,25 @@ export default function LoginPage() {
                   className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#ff4d4d] transition-colors"
                   size={18}
                 />
+
                 <input
                   required
                   autoComplete="current-password"
-                  type="password"
+                  type={mostrarSenha ? 'text' : 'password'}
                   value={senha}
                   onChange={(e) => setSenha(e.target.value)}
                   placeholder="Sua senha"
-                  className="w-full bg-white border border-slate-100 rounded-[1.25rem] py-4 pl-14 pr-6 text-sm outline-none focus:ring-4 focus:ring-[#ff4d4d]/5 focus:border-[#ff4d4d] shadow-sm transition-all placeholder:text-slate-300 font-medium text-slate-900"
+                  className="w-full bg-white border border-slate-100 rounded-[1.25rem] py-4 pl-14 pr-14 text-sm outline-none focus:ring-4 focus:ring-[#ff4d4d]/5 focus:border-[#ff4d4d] shadow-sm transition-all placeholder:text-slate-300 font-medium text-slate-900"
                 />
+
+                <button
+                  type="button"
+                  onClick={() => setMostrarSenha((prev) => !prev)}
+                  className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 hover:text-[#ff4d4d] transition-colors"
+                  aria-label={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}
+                >
+                  {mostrarSenha ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
             </div>
 

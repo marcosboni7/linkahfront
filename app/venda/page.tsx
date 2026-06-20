@@ -1,143 +1,223 @@
 'use client';
 
-import { useState, useEffect, Suspense, useMemo } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { Navbar } from '../site/Navbar';
 import { Footer } from '../site/Footer';
-import { useLanguage } from '@/app/context/LanguageContext';
 import {
-  ShieldCheck,
-  Lock,
-  Loader2,
   ArrowLeft,
-  CreditCard,
   CheckCircle2,
+  CreditCard,
+  Loader2,
+  Lock,
+  ShieldCheck,
+  Sparkles,
+  Ticket,
 } from 'lucide-react';
-import Link from 'next/link';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api-linkah.onrender.com';
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  'https://api-linkah.onrender.com';
 
-// Função segura para normalizar moeda
 function normalizeCurrency(input?: any) {
-  if (input === null || input === undefined) return 'BRL';
+  const raw = String(input || 'BRL')
+    .trim()
+    .toUpperCase();
 
-  const raw =
-    typeof input === 'string'
-      ? input.trim().toUpperCase()
-      : String(input).trim().toUpperCase();
+  if (['R$', 'REAL', 'REAIS', 'BRL'].includes(raw))
+    return 'BRL';
 
-  if (['R$', 'REAL', 'REAIS', 'BRL'].includes(raw)) return 'BRL';
-  if (['€', 'EURO', 'EUROS', 'EUR'].includes(raw)) return 'EUR';
-  if (['$', 'DOLAR', 'DÓLAR', 'DOLARES', 'DÓLARES', 'USD'].includes(raw)) return 'USD';
+  if (['€', 'EURO', 'EUROS', 'EUR'].includes(raw))
+    return 'EUR';
+
+  if (
+    ['$', 'DOLAR', 'DÓLAR', 'DOLARES', 'DÓLARES', 'USD'].includes(raw)
+  )
+    return 'USD';
 
   return 'BRL';
 }
 
-// Função segura para número
 function safeNumber(value: any, fallback = 0) {
   const num = Number(value);
   return Number.isFinite(num) ? num : fallback;
 }
 
-// Função segura para texto de erro
+function money(value: number, currency: string) {
+  try {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: normalizeCurrency(currency),
+    }).format(safeNumber(value));
+  } catch {
+    return `R$ ${safeNumber(value)
+      .toFixed(2)
+      .replace('.', ',')}`;
+  }
+}
+
 function getErrorMessage(err: any) {
   if (!err) return 'Erro desconhecido';
+
   if (typeof err === 'string') return err;
-  if (typeof err?.message === 'string' && err.message.trim()) return err.message;
-  if (typeof err?.toString === 'function') {
-    const asString = err.toString();
-    if (typeof asString === 'string' && asString.trim() && asString !== '[object Object]') {
-      return asString;
-    }
-  }
+
+  if (typeof err?.message === 'string')
+    return err.message;
+
   return 'Erro desconhecido';
+}
+
+function Input({
+  label,
+  name,
+  value,
+  onChange,
+  placeholder,
+  type = 'text',
+  full = false,
+}: any) {
+  return (
+    <div className={full ? 'md:col-span-2' : ''}>
+      <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.22em] text-[#6b7280]">
+        {label}
+      </label>
+
+      <input
+        name={name}
+        type={type}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        className="h-[58px] w-full rounded-2xl border border-[#e5e7eb] bg-[#fafafa] px-5 text-sm text-[#111827] outline-none transition placeholder:text-[#9ca3af] focus:border-[#c4b5fd] focus:bg-white"
+      />
+    </div>
+  );
+}
+
+function Badge({ icon, text }: any) {
+  return (
+    <div className="inline-flex items-center gap-2 rounded-full border border-[#ebeef5] bg-[#f8fafc] px-4 py-3 text-[11px] uppercase tracking-[0.18em] text-[#6b7280]">
+      {icon}
+      {text}
+    </div>
+  );
 }
 
 function CheckoutContent() {
   const searchParams = useSearchParams();
-  const eventoId = searchParams.get('eventoId');
-  const payloadRaw = searchParams.get('payload');
-  
-  // --- ADICIONADO: Captura de Afiliados da URL ---
-  const afiliadoId = searchParams.get('afiliado_id');
-  const comissaoPercentual = searchParams.get('pct');
+
+  const eventoId =
+    searchParams?.get('eventoId') || '';
+
+  const payloadRaw =
+    searchParams?.get('payload') || '';
+
+  const afiliadoId =
+    searchParams?.get('afiliado_id') ||
+    searchParams?.get('id_afiliado') ||
+    '';
+
+  const comissaoPercentual =
+    searchParams?.get('pct') || '10';
 
   const [loading, setLoading] = useState(false);
+
   const [evento, setEvento] = useState<any>(null);
-  const [formData, setFormData] = useState({ nome: '', email: '' });
-  const [quantidades, setQuantidades] = useState<{ [key: string]: number }>({});
 
-  const { language }: any = useLanguage();
+  const [quantidades, setQuantidades] =
+    useState<Record<string, number>>({});
 
-  // Decodifica o payload de ingressos vindo da página anterior
+  const [formData, setFormData] = useState({
+    nome: '',
+    email: '',
+    nomeCracha: '',
+    instagramUser: '',
+    alergias: '',
+    comoConheceu: '',
+  });
+
   useEffect(() => {
     if (!payloadRaw) return;
 
     try {
-      const decoded = JSON.parse(decodeURIComponent(payloadRaw));
+      const decoded = JSON.parse(
+        decodeURIComponent(payloadRaw)
+      );
 
-      if (decoded && typeof decoded === 'object' && !Array.isArray(decoded)) {
-        const quantidadesTratadas: { [key: string]: number } = {};
+      const result: Record<string, number> = {};
 
-        Object.entries(decoded).forEach(([key, value]) => {
-          quantidadesTratadas[String(key)] = safeNumber(value, 0);
-        });
-
-        setQuantidades(quantidadesTratadas);
-      } else {
-        setQuantidades({});
+      if (
+        decoded &&
+        typeof decoded === 'object' &&
+        !Array.isArray(decoded)
+      ) {
+        Object.entries(decoded).forEach(
+          ([key, value]) => {
+            result[String(key)] =
+              safeNumber(value);
+          }
+        );
       }
-    } catch (err) {
-      console.error('Erro ao decodificar payload:', err);
+
+      setQuantidades(result);
+    } catch {
       setQuantidades({});
     }
   }, [payloadRaw]);
 
-  // Carrega os dados do evento e trata a moeda/ingressos
   useEffect(() => {
     async function carregarEvento() {
       if (!eventoId) return;
 
       try {
-        const res = await fetch(`${API_URL}/api/eventos/${eventoId}`, {
-          cache: 'no-store',
-        });
-
-        if (!res.ok) {
-          throw new Error('Não foi possível carregar o evento.');
-        }
-
-        let data: any = null;
-
-        try {
-          data = await res.json();
-        } catch {
-          throw new Error('Resposta inválida do servidor ao carregar evento.');
-        }
-
-        const moedaEvento = normalizeCurrency(
-          data?.moeda ?? data?.currency ?? data?.moeda_evento
+        const res = await fetch(
+          `${API_URL}/api/eventos/${eventoId}`,
+          {
+            cache: 'no-store',
+          }
         );
 
-        const ingressosTratados = Array.isArray(data?.ingressos)
-          ? data.ingressos.map((ing: any, index: number) => ({
-              ...ing,
-              id: String(ing?.id ?? index),
-              nome: ing?.nome ?? 'Ingresso',
-              preco: safeNumber(ing?.preco, 0),
-              moeda: normalizeCurrency(
-                ing?.moeda ?? ing?.currency ?? ing?.moeda_evento ?? moedaEvento
-              ),
-            }))
+        if (!res.ok) {
+          throw new Error(
+            'Não foi possível carregar o evento.'
+          );
+        }
+
+        const data = await res.json();
+
+        const moeda = normalizeCurrency(
+          data?.moeda ??
+            data?.currency ??
+            data?.moeda_evento
+        );
+
+        const ingressos = Array.isArray(
+          data?.ingressos
+        )
+          ? data.ingressos.map(
+              (ing: any, index: number) => ({
+                ...ing,
+                id: String(
+                  ing?.id ?? index
+                ),
+                nome:
+                  ing?.nome ?? 'Ingresso',
+                preco: safeNumber(
+                  ing?.preco
+                ),
+                moeda,
+              })
+            )
           : [];
 
         setEvento({
           ...data,
-          moeda: moedaEvento,
-          ingressos: ingressosTratados,
+          moeda,
+          ingressos,
         });
       } catch (err) {
-        console.error('🚨 Erro de conexão:', err);
+        console.error(err);
         setEvento(null);
       }
     }
@@ -145,274 +225,478 @@ function CheckoutContent() {
     carregarEvento();
   }, [eventoId]);
 
-  const moedaEvento = useMemo(() => {
-    return normalizeCurrency(evento?.moeda);
-  }, [evento]);
-
-  const locale = useMemo(() => {
-    const localeMap: Record<string, string> = {
-      BRL: 'pt-BR',
-      EUR: 'de-DE',
-      USD: 'en-US',
-    };
-
-    return localeMap[moedaEvento] || 'pt-BR';
-  }, [moedaEvento]);
-
-  const formatarPreco = (valor: number) => {
-    try {
-      return new Intl.NumberFormat(locale, {
-        style: 'currency',
-        currency: moedaEvento,
-      }).format(safeNumber(valor, 0));
-    } catch {
-      return safeNumber(valor, 0).toFixed(2);
-    }
-  };
+  const moedaEvento = normalizeCurrency(
+    evento?.moeda
+  );
 
   const totalGeral = useMemo(() => {
-    if (!Array.isArray(evento?.ingressos)) return 0;
+    if (!Array.isArray(evento?.ingressos))
+      return 0;
 
-    return evento.ingressos.reduce((acc: number, ing: any) => {
-      const key = String(ing?.id ?? '');
-      const qtdSelecionada = safeNumber(quantidades[key], 0);
-      const preco = safeNumber(ing?.preco, 0);
+    return evento.ingressos.reduce(
+      (acc: number, ing: any) => {
+        const qtd = safeNumber(
+          quantidades[String(ing?.id)]
+        );
 
-      return acc + preco * qtdSelecionada;
-    }, 0);
+        return (
+          acc +
+          safeNumber(ing?.preco) * qtd
+        );
+      },
+      0
+    );
   }, [evento, quantidades]);
 
   const totalItens = useMemo(() => {
-    return Object.values(quantidades).reduce((a, b) => a + safeNumber(b, 0), 0);
+    return Object.values(quantidades).reduce(
+      (acc, value) =>
+        acc + safeNumber(value),
+      0
+    );
   }, [quantidades]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const imageUrl = useMemo(() => {
+    const img = evento?.imagem_capa;
+
+    if (!img) return '';
+
+    const src = String(img);
+
+    if (src.startsWith('http'))
+      return src;
+
+    return `https://res.cloudinary.com/dj32txsol/image/upload/${src}`;
+  }, [evento]);
+
+  const handleInputChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement
+    >
+  ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
-  const handleFinalizarCompra = async () => {
-    if (!formData.email || !formData.nome) {
-      alert('Por favor, preencha nome e e-mail.');
-      return;
-    }
-
-    if (!eventoId) {
-      alert('Evento inválido.');
-      return;
-    }
-
-    if (totalItens <= 0 || totalGeral <= 0) {
-      alert('Selecione pelo menos 1 ingresso.');
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const response = await fetch(`${API_URL}/api/pagamento/checkout`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          evento: {
-            id: eventoId,
-            titulo: evento?.nome ?? 'Evento',
-            preco: totalGeral / totalItens,
-            moeda: moedaEvento,
-          },
-          usuarioEmail: formData.email,
-          usuarioNome: formData.nome,
-          quantidade: totalItens,
-          quantidades,
-          // --- ADICIONADO: Envio dos dados de afiliado para o Back-end ---
-          afiliadoId: afiliadoId || '',
-          comissaoPercentual: comissaoPercentual || '10',
-        }),
-      });
-
-      let data: any = {};
-
-      try {
-        data = await response.json();
-      } catch {
-        throw new Error('Resposta inválida do servidor');
-      }
-
-      if (!response.ok) {
-        throw new Error(data?.error || 'Erro ao gerar sessão de pagamento.');
-      }
-
-      if (data?.url) {
-        window.location.assign(data.url);
+  const handleFinalizarCompra =
+    async () => {
+      if (!eventoId) {
+        alert('Evento inválido.');
         return;
       }
 
-      throw new Error(data?.error || 'Erro ao gerar sessão de pagamento.');
-    } catch (err: any) {
-      const errorMessage = getErrorMessage(err);
-      console.error('🚨 Erro:', err);
-      alert(`Erro: ${errorMessage}`);
-    } finally {
-      setLoading(false);
-    }
-  };
+      if (
+        !formData.nome ||
+        !formData.email
+      ) {
+        alert(
+          'Preencha nome e e-mail.'
+        );
+        return;
+      }
 
-  if (!eventoId) {
-    return (
-      <div className="p-20 text-center uppercase tracking-widest text-slate-400">
-        ID do evento não encontrado.
-      </div>
-    );
-  }
+      if (
+        totalItens <= 0 ||
+        totalGeral <= 0
+      ) {
+        alert(
+          'Nenhum ingresso selecionado.'
+        );
+        return;
+      }
+
+      setLoading(true);
+
+      try {
+        const response = await fetch(
+          `${API_URL}/api/pagamento/checkout`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type':
+                'application/json',
+            },
+            body: JSON.stringify({
+              evento: {
+                id: eventoId,
+                titulo:
+                  evento?.nome ??
+                  'Evento',
+                preco:
+                  totalItens > 0
+                    ? totalGeral /
+                      totalItens
+                    : totalGeral,
+                moeda: moedaEvento,
+              },
+              usuarioEmail:
+                formData.email,
+              usuarioNome:
+                formData.nome,
+              quantidade: totalItens,
+              quantidades,
+              afiliadoId,
+              comissaoPercentual,
+              nomeCracha:
+                formData.nomeCracha,
+              instagramUser:
+                formData.instagramUser,
+              alergias:
+                formData.alergias,
+              comoConheceu:
+                formData.comoConheceu,
+            }),
+          }
+        );
+
+        const text =
+          await response.text();
+
+        const data = text
+          ? JSON.parse(text)
+          : {};
+
+        if (!response.ok) {
+          throw new Error(
+            data?.error ||
+              'Erro ao gerar pagamento.'
+          );
+        }
+
+        if (data?.url) {
+          window.location.href =
+            data.url;
+        }
+      } catch (err) {
+        alert(
+          `Erro: ${getErrorMessage(
+            err
+          )}`
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
 
   return (
-    <main className="max-w-6xl mx-auto px-6 py-12 min-h-[80vh]">
-      <div className="mb-12">
-        <Link
-          href={`/evento/${eventoId}`}
-          className="group inline-flex items-center gap-2 text-slate-400 hover:text-slate-900 transition-all text-[10px] tracking-[0.3em] uppercase font-bold"
-        >
-          <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
-          Voltar
-        </Link>
-      </div>
+    <main className="relative min-h-[88vh] overflow-hidden bg-[#f6f7fb] px-4 py-8 text-[#111827] sm:px-6 lg:px-8">
+      <div className="absolute left-[-160px] top-[-180px] h-[420px] w-[420px] rounded-full bg-[#dbeafe] blur-[120px]" />
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-start">
-        <div className="lg:col-span-7 space-y-12">
-          <header className="space-y-4">
-            <h1 className="text-4xl md:text-5xl font-extralight tracking-tighter text-slate-950 italic uppercase">
-              Finalizar Pedido
-            </h1>
-            <p className="text-slate-400 font-light text-lg">
-              Insira os detalhes para o envio dos seus ingressos digitais.
-            </p>
-          </header>
+      <div className="absolute right-[-120px] top-[180px] h-[420px] w-[420px] rounded-full bg-[#ede9fe] blur-[120px]" />
 
-          <section className="space-y-8">
-            <div className="grid grid-cols-1 gap-6">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-300 uppercase tracking-widest ml-1">
-                  Nome Completo
-                </label>
-                <input
-                  name="nome"
-                  value={formData.nome}
-                  onChange={handleInputChange}
-                  placeholder="Ex: Linkah Eventos"
-                  className="w-full p-5 bg-white border-b border-slate-200 focus:border-black outline-none transition-all text-xl font-light italic"
-                />
+      <div className="relative mx-auto max-w-7xl">
+        <div className="mb-8">
+          <Link
+            href={
+              eventoId
+                ? `/evento/${eventoId}`
+                : '/'
+            }
+            className="inline-flex items-center gap-2 rounded-full border border-[#e5e7eb] bg-white px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-[#6b7280] transition hover:text-[#111827]"
+          >
+            <ArrowLeft size={14} />
+            Voltar
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_430px]">
+          <section className="rounded-[34px] border border-[#e5e7eb] bg-white/90 shadow-[0_20px_80px_rgba(15,23,42,0.06)] backdrop-blur-2xl">
+            <div className="border-b border-[#eef0f4] p-6 sm:p-8 lg:p-10">
+              <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#ebeef5] bg-[#f8fafc] px-4 py-2 text-[11px] font-bold uppercase tracking-[0.24em] text-[#7c3aed]">
+                <Sparkles size={14} />
+                Checkout seguro
               </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-300 uppercase tracking-widest ml-1">
-                  E-mail de Recebimento
-                </label>
-                <input
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  placeholder="seu@email.com"
-                  className="w-full p-5 bg-white border-b border-slate-200 focus:border-black outline-none transition-all text-xl font-light italic"
-                />
-              </div>
+              <h1 className="text-4xl font-semibold tracking-[-0.06em] text-[#111827] sm:text-6xl">
+                Finalizar pedido
+              </h1>
+
+              <p className="mt-5 max-w-2xl text-base font-light leading-7 text-[#6b7280]">
+                Preencha seus dados para
+                concluir sua inscrição.
+              </p>
             </div>
 
-            <div className="flex flex-wrap gap-6 pt-6">
-              <div className="flex items-center gap-3 text-slate-400">
-                <CreditCard size={18} strokeWidth={1} />
-                <span className="text-[10px] uppercase tracking-widest">Stripe Gateway</span>
+            <div className="grid grid-cols-1 gap-5 p-6 sm:p-8 lg:p-10 md:grid-cols-2">
+              <Input
+                label="Nome completo"
+                name="nome"
+                value={formData.nome}
+                onChange={
+                  handleInputChange
+                }
+                placeholder="Ex: Marcos Boni"
+                full
+              />
+
+              <Input
+                label="E-mail"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={
+                  handleInputChange
+                }
+                placeholder="seu@email.com"
+                full
+              />
+
+              <Input
+                label="Nome no crachá"
+                name="nomeCracha"
+                value={
+                  formData.nomeCracha
+                }
+                onChange={
+                  handleInputChange
+                }
+                placeholder="Como quer ser chamado"
+              />
+
+              <Input
+                label="Instagram"
+                name="instagramUser"
+                value={
+                  formData.instagramUser
+                }
+                onChange={
+                  handleInputChange
+                }
+                placeholder="@usuario"
+              />
+
+              <Input
+                label="Restrições / alergias"
+                name="alergias"
+                value={formData.alergias}
+                onChange={
+                  handleInputChange
+                }
+                placeholder="Nenhuma..."
+                full
+              />
+
+              <div className="md:col-span-2">
+                <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.22em] text-[#6b7280]">
+                  Por onde conheceu?
+                </label>
+
+                <select
+                  name="comoConheceu"
+                  value={
+                    formData.comoConheceu
+                  }
+                  onChange={
+                    handleInputChange
+                  }
+                  className="h-[58px] w-full rounded-2xl border border-[#e5e7eb] bg-[#fafafa] px-5 text-sm text-[#111827] outline-none transition focus:border-[#c4b5fd] focus:bg-white"
+                >
+                  <option value="">
+                    Selecione uma opção
+                  </option>
+
+                  <option value="Instagram">
+                    Instagram / Redes
+                    Sociais
+                  </option>
+
+                  <option value="Amigos">
+                    Indicação de
+                    amigo/colega
+                  </option>
+
+                  <option value="Afiliado">
+                    Link de
+                    vendedor/afiliado
+                  </option>
+
+                  <option value="Email">
+                    E-mail ou Google
+                  </option>
+
+                  <option value="Outros">
+                    Outros
+                  </option>
+                </select>
               </div>
-              <div className="flex items-center gap-3 text-slate-400">
-                <ShieldCheck size={18} strokeWidth={1} />
-                <span className="text-[10px] uppercase tracking-widest">AWS Encrypted</span>
+
+              <div className="md:col-span-2 mt-5 flex flex-wrap gap-3">
+                <Badge
+                  icon={
+                    <CreditCard
+                      size={15}
+                    />
+                  }
+                  text="Stripe Gateway"
+                />
+
+                <Badge
+                  icon={
+                    <ShieldCheck
+                      size={15}
+                    />
+                  }
+                  text="Pagamento seguro"
+                />
               </div>
             </div>
           </section>
-        </div>
 
-        <div className="lg:col-span-5">
-          <div className="bg-slate-50 p-10 rounded-sm border border-slate-100 sticky top-28 space-y-10">
-            <div className="flex items-start gap-6">
-              <div className="w-16 h-20 bg-slate-200 rounded-sm overflow-hidden flex-shrink-0">
-                {evento?.imagem_capa && (
+          <aside className="lg:sticky lg:top-8">
+            <div className="overflow-hidden rounded-[34px] border border-[#e5e7eb] bg-white/95 shadow-[0_20px_80px_rgba(15,23,42,0.08)] backdrop-blur-2xl">
+              <div className="relative h-[260px] overflow-hidden bg-[#f3f4f6]">
+                {imageUrl ? (
                   <img
-                    src={
-                      String(evento.imagem_capa).startsWith('http')
-                        ? evento.imagem_capa
-                        : `https://res.cloudinary.com/dj32txsol/image/upload/${evento.imagem_capa}`
+                    src={imageUrl}
+                    alt={
+                      evento?.nome ||
+                      'Evento'
                     }
-                    className="w-full h-full object-cover grayscale"
-                    alt={evento?.nome || 'Evento'}
+                    className="h-full w-full object-cover"
                   />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center">
+                    <Ticket
+                      className="text-[#d1d5db]"
+                      size={54}
+                    />
+                  </div>
                 )}
+
+                <div className="absolute inset-0 bg-gradient-to-t from-white via-white/20 to-transparent" />
+
+                <div className="absolute bottom-5 left-5 right-5">
+                  <p className="mb-3 inline-flex rounded-full bg-white/80 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-[#6b7280] backdrop-blur-md">
+                    Seu pedido
+                  </p>
+
+                  <h2 className="text-2xl font-semibold tracking-[-0.04em] text-[#111827]">
+                    {evento?.nome ||
+                      'Carregando evento...'}
+                  </h2>
+                </div>
               </div>
 
-              <div className="flex-1">
-                <h4 className="font-bold text-slate-900 uppercase italic tracking-tighter leading-tight">
-                  {evento?.nome || 'Carregando...'}
-                </h4>
+              <div className="space-y-6 p-6">
+                <div className="space-y-3">
+                  {Array.isArray(
+                    evento?.ingressos
+                  ) &&
+                    evento.ingressos.map(
+                      (ing: any) => {
+                        const key = String(
+                          ing?.id ?? ''
+                        );
 
-                <div className="mt-4 space-y-2">
-                  {Array.isArray(evento?.ingressos) &&
-                    evento.ingressos.map((ing: any) => {
-                      const key = String(ing?.id ?? '');
-                      const qtd = safeNumber(quantidades[key], 0);
+                        const qtd =
+                          safeNumber(
+                            quantidades[
+                              key
+                            ]
+                          );
 
-                      if (qtd > 0) {
+                        if (qtd <= 0)
+                          return null;
+
                         return (
-                          <div key={key} className="flex justify-between items-center group">
-                            <span className="text-[10px] text-slate-400 uppercase tracking-widest">
-                              {qtd}x {ing?.nome || 'Ingresso'}
-                            </span>
-                            <span className="text-xs font-bold italic text-slate-900">
-                              {formatarPreco(safeNumber(ing?.preco, 0) * qtd)}
-                            </span>
+                          <div
+                            key={key}
+                            className="flex items-center justify-between rounded-2xl border border-[#edf0f4] bg-[#fafafa] p-4"
+                          >
+                            <div>
+                              <p className="text-sm font-semibold text-[#111827]">
+                                {qtd}x{' '}
+                                {ing?.nome}
+                              </p>
+
+                              <p className="mt-1 text-[11px] uppercase tracking-[0.2em] text-[#9ca3af]">
+                                Ingresso
+                              </p>
+                            </div>
+
+                            <strong className="text-sm text-[#111827]">
+                              {money(
+                                safeNumber(
+                                  ing?.preco
+                                ) * qtd,
+                                moedaEvento
+                              )}
+                            </strong>
                           </div>
                         );
                       }
+                    )}
 
-                      return null;
-                    })}
+                  {totalItens === 0 && (
+                    <div className="rounded-2xl border border-[#edf0f4] bg-[#fafafa] p-5 text-sm text-[#9ca3af]">
+                      Nenhum ingresso
+                      selecionado.
+                    </div>
+                  )}
+                </div>
+
+                <div className="border-t border-[#eef0f4] pt-6">
+                  <div className="mb-5 flex items-end justify-between gap-5">
+                    <span className="text-[11px] font-bold uppercase tracking-[0.24em] text-[#9ca3af]">
+                      Total
+                    </span>
+
+                    <span className="text-4xl font-semibold tracking-[-0.07em] text-[#111827]">
+                      {money(
+                        totalGeral,
+                        moedaEvento
+                      )}
+                    </span>
+                  </div>
+
+                  <button
+                    onClick={
+                      handleFinalizarCompra
+                    }
+                    disabled={
+                      loading ||
+                      !formData.nome ||
+                      !formData.email ||
+                      totalGeral === 0
+                    }
+                    className={`flex h-[62px] w-full items-center justify-center gap-3 rounded-full text-[11px] font-black uppercase tracking-[0.22em] transition ${
+                      loading ||
+                      !formData.nome ||
+                      !formData.email ||
+                      totalGeral === 0
+                        ? 'cursor-not-allowed bg-[#eef1f5] text-[#9ca3af]'
+                        : 'bg-[#111827] text-white hover:bg-[#1f2937]'
+                    }`}
+                  >
+                    {loading ? (
+                      <Loader2
+                        className="animate-spin"
+                        size={18}
+                      />
+                    ) : (
+                      <>
+                        <Lock size={14} />
+                        Finalizar
+                        pagamento
+                      </>
+                    )}
+                  </button>
+
+                  <div className="mt-4 flex items-center justify-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#9ca3af]">
+                    <CheckCircle2
+                      size={13}
+                      className="text-emerald-500"
+                    />
+                    Compra segura
+                  </div>
                 </div>
               </div>
             </div>
-
-            <div className="space-y-4 pt-8 border-t border-slate-200">
-              <div className="flex justify-between items-end">
-                <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">
-                  Total a pagar
-                </span>
-                <span className="text-4xl font-extralight italic tracking-tighter text-slate-950">
-                  {formatarPreco(totalGeral)}
-                </span>
-              </div>
-
-              <button
-                onClick={handleFinalizarCompra}
-                disabled={loading || !formData.nome || !formData.email || totalGeral === 0}
-                className={`w-full py-6 rounded-full flex items-center justify-center gap-3 transition-all duration-500 uppercase text-[10px] font-black tracking-[0.2em] shadow-sm ${
-                  loading || !formData.nome || !formData.email || totalGeral === 0
-                    ? 'bg-slate-100 text-slate-300 cursor-not-allowed'
-                    : 'bg-black text-white hover:bg-slate-800 shadow-xl active:scale-95'
-                }`}
-              >
-                {loading ? (
-                  <Loader2 className="animate-spin" size={18} />
-                ) : (
-                  <>
-                    <Lock size={14} />
-                    Finalizar Pagamento
-                  </>
-                )}
-              </button>
-
-              <div className="flex items-center justify-center gap-2 text-[9px] text-slate-400 uppercase tracking-widest pt-2">
-                <CheckCircle2 size={12} className="text-emerald-500" />
-                Sua compra é processada com segurança
-              </div>
-            </div>
-          </div>
+          </aside>
         </div>
       </div>
     </main>
@@ -421,20 +705,26 @@ function CheckoutContent() {
 
 export default function CheckoutPage() {
   return (
-    <div className="bg-white min-h-screen">
+    <div className="min-h-screen bg-[#f6f7fb]">
       <Navbar />
+
       <Suspense
         fallback={
-          <div className="h-[60vh] flex flex-col items-center justify-center gap-4">
-            <Loader2 className="animate-spin text-slate-200" size={40} />
-            <span className="text-[10px] uppercase tracking-[0.4em] text-slate-400">
-              Preparando Checkout
+          <div className="flex h-[70vh] flex-col items-center justify-center gap-4 bg-[#f6f7fb] text-[#111827]">
+            <Loader2
+              className="animate-spin text-[#9ca3af]"
+              size={42}
+            />
+
+            <span className="text-[10px] uppercase tracking-[0.4em] text-[#9ca3af]">
+              Preparando checkout
             </span>
           </div>
         }
       >
         <CheckoutContent />
       </Suspense>
+
       <Footer />
     </div>
   );

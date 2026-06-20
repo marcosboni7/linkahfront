@@ -1,141 +1,246 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Mail, Lock, ChevronLeft, ArrowRight, Loader2, ShieldCheck, Sparkles } from 'lucide-react';
+import { Mail, Lock, Loader2, ArrowRight, Sparkles } from 'lucide-react';
 
 const API_URL = 'https://api-linkah.onrender.com';
 
 export default function LoginPage() {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [form, setForm] = useState({ email: '', senha: '' });
 
-  useEffect(() => { if (error) setError(''); }, [form]);
+  const [form, setForm] = useState({
+    email: '',
+    senha: '',
+  });
+
+  useEffect(() => {
+    if (error) setError('');
+  }, [form]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+
     setLoading(true);
     setError('');
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
 
     try {
       const response = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: form.email.trim().toLowerCase(), senha: form.senha }),
-        signal: controller.signal,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: form.email.trim().toLowerCase(),
+          senha: form.senha,
+        }),
       });
 
       const data = await response.json().catch(() => ({}));
 
-      if (!response.ok) throw new Error(data?.message || data?.error || 'Erro no acesso');
+      if (!response.ok) {
+        throw new Error(data?.message || 'Erro ao acessar');
+      }
 
-      const token = data?.token || data?.accessToken || data?.data?.token;
-      const user = data?.user || data?.usuario || data?.data?.user || {};
-      
-      const completo = !!(user.perfil_completo || (user.nome && user.cpf_cnpj && user.cep));
+      const token = data?.token || data?.accessToken;
+      const user = data?.user || {};
 
-      // Persistência Direta
-      if (token) localStorage.setItem('@Linkah:Token', token);
-      localStorage.setItem('@Linkah:User', JSON.stringify({ ...user, perfil_completo: completo }));
-      document.cookie = `userEmail=${form.email.trim().toLowerCase()}; path=/; max-age=86400; SameSite=Lax`;
+      if (token) {
+        localStorage.setItem('@Linkah:Token', token);
+      }
 
-      window.location.href = completo ? '/dashboard/eventos' : '/dashboard/perfil';
+      localStorage.setItem('@Linkah:User', JSON.stringify(user));
 
+      window.location.href = '/dashboard/eventos';
     } catch (err: any) {
-      setError(err.name === 'AbortError' ? 'Servidor demorou a responder.' : err.message);
+      setError(err.message || 'Falha ao entrar');
     } finally {
-      clearTimeout(timeout);
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex min-h-screen bg-white font-sans antialiased text-[#1D1D1F]">
-      {/* LADO ESQUERDO: VISUAL */}
-      <div className="hidden lg:flex w-[55%] relative bg-black sticky top-0 h-screen overflow-hidden">
-        <div className="absolute inset-0 bg-cover bg-center opacity-40 scale-105" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1492684223066-81342ee5ff30?q=80&w=2070&auto=format&fit=crop')" }} />
-        <div className="absolute inset-0 bg-gradient-to-tr from-black via-black/40 to-transparent" />
-        
-        <div className="relative z-10 flex flex-col justify-between p-16 w-full">
-          <Link href="/" className="text-3xl font-black tracking-tighter text-white italic group">
-            LINKAH<span className="text-[#FF4D4D]">.</span>
-          </Link>
+    <main className="min-h-screen bg-[#f5f5f2]">
+      <div className="grid min-h-screen lg:grid-cols-[1.1fr_0.9fr]">
+        {/* LEFT */}
+        <section className="relative hidden overflow-hidden bg-black lg:flex">
+          <div
+            className="absolute inset-0 bg-cover bg-center opacity-50"
+            style={{
+              backgroundImage:
+                "url('https://images.unsplash.com/photo-1492684223066-81342ee5ff30?q=80&w=2070&auto=format&fit=crop')",
+            }}
+          />
 
-          <div>
-            <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-white/5 backdrop-blur-xl border border-white/10 mb-6">
-                <Sparkles className="w-4 h-4 text-[#FF4D4D]" />
-                <span className="text-[10px] font-black text-white uppercase tracking-[0.2em]">Sua JORNADA EXTRAORDINÁRIA</span>
+          <div className="absolute inset-0 bg-gradient-to-br from-black via-black/60 to-black/20" />
+
+          <div className="relative z-10 flex h-full flex-col justify-between p-14">
+            <Link
+              href="/"
+              className="w-fit text-3xl font-black tracking-[-0.08em] text-white"
+            >
+              LINKAH<span className="text-[#ff4d4d]">.</span>
+            </Link>
+
+            <div className="max-w-[520px]">
+              <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2 backdrop-blur-xl">
+                <Sparkles className="h-4 w-4 text-[#ff4d4d]" />
+
+                <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/70">
+                  Plataforma de eventos
+                </span>
+              </div>
+
+              <h1 className="text-[90px] font-black uppercase leading-[0.88] tracking-[-0.08em] text-white">
+                Entre e
+                <br />
+                continue.
+              </h1>
+
+              <p className="mt-7 max-w-md text-[16px] leading-8 text-white/55">
+                Gerencie eventos, ingressos e experiências em uma plataforma
+                moderna e minimalista.
+              </p>
             </div>
-            {/* MANCHETE EM TAMANHO GRANDE (7xl) */}
-          <h1 className="text-7xl font-black text-[#FF4D4D] leading-[0.95] tracking-tighter mb-6 italic uppercase text-balance">
-  Transforme-se <br/>
-  <span className="text-white">agora</span>
-  <span className="text-[#FF4D4D]">.</span>
-</h1>
-            <p className="text-gray-400 text-lg font-medium max-w-sm">Entre para gerenciar seus eventos e explorar novas experiências.</p>
+
+            <div className="text-[11px] font-bold uppercase tracking-[0.3em] text-white/25">
+              Linkah © 2026
+            </div>
           </div>
-          <div className="text-white/20 text-[10px] font-black uppercase tracking-[0.4em]">Linkah Protocol © 2026</div>
-        </div>
+        </section>
+
+        {/* RIGHT */}
+        <section className="flex items-center justify-center px-6 py-10">
+          <div className="w-full max-w-[440px]">
+            <Link
+              href="/"
+              className="mb-10 inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-4 py-2 text-[11px] font-bold uppercase tracking-[0.15em] text-black/50 transition hover:text-black"
+            >
+              Voltar
+            </Link>
+
+            <div className="mb-10">
+              <div className="mb-4 inline-flex rounded-full bg-black px-4 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-white">
+                Login
+              </div>
+
+              <h2 className="text-[58px] font-black leading-[0.9] tracking-[-0.08em] text-black">
+                Bem-vindo de volta.
+              </h2>
+
+              <p className="mt-4 text-[15px] leading-7 text-black/45">
+                Faça login para acessar sua conta.
+              </p>
+            </div>
+
+            <form
+              onSubmit={handleLogin}
+              className="rounded-[32px] border border-black/10 bg-white p-5 shadow-[0_20px_80px_rgba(0,0,0,0.06)]"
+            >
+              {error && (
+                <div className="mb-5 rounded-[18px] border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-500">
+                  {error}
+                </div>
+              )}
+
+              <div className="space-y-5">
+                {/* EMAIL */}
+                <div>
+                  <label className="mb-2 block px-1 text-[11px] font-black uppercase tracking-[0.16em] text-black/40">
+                    E-mail
+                  </label>
+
+                  <div className="relative">
+                    <Mail
+                      size={18}
+                      className="absolute left-5 top-1/2 -translate-y-1/2 text-black/25"
+                    />
+
+                    <input
+                      type="email"
+                      required
+                      placeholder="voce@email.com"
+                      value={form.email}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          email: e.target.value,
+                        })
+                      }
+                      className="h-[62px] w-full rounded-[20px] border border-black/10 bg-[#f7f7f5] pl-14 pr-5 text-[15px] font-semibold text-black outline-none transition-all placeholder:text-black/25 focus:border-black focus:bg-white"
+                    />
+                  </div>
+                </div>
+
+                {/* SENHA */}
+                <div>
+                  <div className="mb-2 flex items-center justify-between px-1">
+                    <label className="text-[11px] font-black uppercase tracking-[0.16em] text-black/40">
+                      Senha
+                    </label>
+
+                    <button
+                      type="button"
+                      className="text-[11px] font-bold text-black/30 transition hover:text-[#ff4d4d]"
+                    >
+                      Esqueceu?
+                    </button>
+                  </div>
+
+                  <div className="relative">
+                    <Lock
+                      size={18}
+                      className="absolute left-5 top-1/2 -translate-y-1/2 text-black/25"
+                    />
+
+                    <input
+                      type="password"
+                      required
+                      placeholder="••••••••"
+                      value={form.senha}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          senha: e.target.value,
+                        })
+                      }
+                      className="h-[62px] w-full rounded-[20px] border border-black/10 bg-[#f7f7f5] pl-14 pr-5 text-[15px] font-semibold text-black outline-none transition-all placeholder:text-black/25 focus:border-black focus:bg-white"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="mt-7 flex h-[64px] w-full items-center justify-center gap-3 rounded-[22px] bg-black text-[12px] font-black uppercase tracking-[0.22em] text-white shadow-[0_20px_40px_rgba(0,0,0,0.18)] transition-all hover:-translate-y-0.5 hover:bg-[#111] active:scale-[0.98] disabled:opacity-60"
+              >
+                {loading ? (
+                  <Loader2 className="animate-spin text-[#ff4d4d]" />
+                ) : (
+                  <>
+                    Entrar
+                    <ArrowRight size={18} className="text-[#ff4d4d]" />
+                  </>
+                )}
+              </button>
+            </form>
+
+            <div className="mt-6 rounded-[24px] border border-black/10 bg-white px-5 py-5 text-center">
+              <p className="text-[12px] font-bold uppercase tracking-[0.14em] text-black/35">
+                Não possui conta?{' '}
+                <Link
+                  href="/auth/registro"
+                  className="text-black underline underline-offset-4 transition hover:text-[#ff4d4d]"
+                >
+                  Criar conta
+                </Link>
+              </p>
+            </div>
+          </div>
+        </section>
       </div>
-
-      {/* LADO DIREITO: FORMULÁRIO */}
-      <div className="flex-1 flex flex-col items-center px-8 lg:px-20 py-12 lg:py-20 bg-[#FCFBFA] overflow-y-auto">
-        <div className="w-full max-w-[400px]">
-          <Link href="/" className="flex items-center gap-2 text-gray-400 hover:text-black transition-all text-[10px] font-black uppercase mb-12">
-            <ChevronLeft size={16} /> Voltar para o início
-          </Link>
-
-          <header className="mb-10">
-            <h2 className="text-5xl font-black italic uppercase tracking-tighter mb-2">Login</h2>
-            <div className="flex items-center gap-2 text-gray-400">
-              <ShieldCheck size={16} className="text-emerald-500" />
-              <p className="font-bold text-xs uppercase">Bem-vindo de volta à Linkah.</p>
-            </div>
-            {error && (
-              <div className="mt-4 bg-rose-50 border border-rose-100 p-3 rounded-xl flex items-center gap-2 text-rose-600">
-                <span className="text-[10px] font-black uppercase italic">{error}</span>
-              </div>
-            )}
-          </header>
-
-          <form onSubmit={handleLogin} className="space-y-5">
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">E-mail</label>
-              <div className="relative">
-                <Mail className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-300" size={18} />
-                <input required type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="exemplo@linkah.com" className="w-full pl-14 pr-6 py-5 bg-white border border-gray-100 rounded-3xl outline-none focus:border-black transition-all font-bold" />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex justify-between px-1">
-                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Senha</label>
-                <button type="button" className="text-[10px] font-black text-gray-300 hover:text-[#FF4D4D]">Esqueceu?</button>
-              </div>
-              <div className="relative">
-                <Lock className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-300" size={18} />
-                <input required type="password" value={form.senha} onChange={e => setForm({...form, senha: e.target.value})} placeholder="••••••••" className="w-full pl-14 pr-6 py-5 bg-white border border-gray-100 rounded-3xl outline-none focus:border-black transition-all font-bold" />
-              </div>
-            </div>
-
-            <button disabled={loading} type="submit" className="w-full bg-black text-white py-6 rounded-3xl font-black uppercase text-xs tracking-[0.2em] hover:-translate-y-1 transition-all flex items-center justify-center gap-3 disabled:opacity-50 mt-4">
-              {loading ? <Loader2 className="animate-spin" /> : <>ACESSAR CONTA <ArrowRight size={18} className="text-[#FF4D4D]" /></>}
-            </button>
-          </form>
-
-          <footer className="mt-10 pt-6 border-t border-gray-100 text-center">
-            <p className="text-[11px] font-black uppercase text-gray-400">
-              Ainda não faz parte? <Link href="/auth/registro" className="text-black hover:text-[#FF4D4D] underline underline-offset-4 ml-1">Criar Conta</Link>
-            </p>
-          </footer>
-        </div>
-      </div>
-    </div>
+    </main>
   );
 }
