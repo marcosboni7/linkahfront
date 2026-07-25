@@ -2,11 +2,10 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
-  const userEmail = request.cookies.get('userEmail')?.value;
+  const token = request.cookies.get('token')?.value;
   const { pathname } = request.nextUrl;
 
   // 1. LISTA BRANCA: Rotas que NUNCA devem ser bloqueadas
-  // Adicionei 'public' e arquivos estáticos comuns
   const isPublicRoute = 
     pathname === '/' || 
     pathname.startsWith('/auth') || 
@@ -23,39 +22,28 @@ export function middleware(request: NextRequest) {
   }
 
   // 2. PROTEÇÃO DE ROTAS PRIVADAS
-  // Se NÃO está logado e tenta acessar Dashboard ou Venda (e suas sub-rotas)
   const isPrivateRoute = 
     pathname.startsWith('/dashboard') || 
     pathname.startsWith('/venda') || 
     pathname.startsWith('/perfil') ||
     pathname.startsWith('/admin');
 
-  if (!userEmail && isPrivateRoute) {
-    // Adicionamos o ?from= para o usuário voltar de onde parou após logar
+  if (!token && isPrivateRoute) {
     const loginUrl = new URL('/auth/login', request.url);
-    // loginUrl.searchParams.set('from', pathname); 
+    // loginUrl.searchParams.set('from', pathname);
     return NextResponse.redirect(loginUrl);
   }
 
   // 3. LOGADO TENTANDO ACESSAR LOGIN/REGISTER
-  // Se já está logado, não faz sentido ver a tela de login
-  if (userEmail && pathname.startsWith('/auth')) {
+  if (token && pathname.startsWith('/auth')) {
     return NextResponse.redirect(new URL('/', request.url));
   }
 
   return NextResponse.next();
 }
 
-// O Matcher é o segredo para não pesar o site
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
     '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
 };
