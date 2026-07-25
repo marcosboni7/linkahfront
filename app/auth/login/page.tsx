@@ -57,16 +57,19 @@ export default function LoginPage() {
         nome: user?.nome || user?.name || emailFinal.split('@')[0],
       };
 
- if (token) {
+      if (token) {
         localStorage.setItem('@Linkah:Token', token);
-        // Salva o token em cookie com Secure para funcionar perfeitamente em HTTPS (Vercel)
-        document.cookie = `token=${token}; path=/; max-age=86400; SameSite=Lax; Secure`;
+        // Salva o token em cookie com Secure e domain para persistir perfeitamente em HTTPS (Vercel)
+        document.cookie = `token=${token}; path=/; max-age=86400; SameSite=Lax; Secure; domain=.linkah.eu`;
       }
       localStorage.setItem('@Linkah:User', JSON.stringify(usuarioNormalizado));
       // Chave usada como fallback em outras telas (Navbar, Perfil)
       localStorage.setItem('userEmail', emailFinal);
 
-      window.location.href = '/dashboard/eventos';
+      // Pequeno atraso para garantir a gravação do cookie/localStorage antes do redirecionamento
+      setTimeout(() => {
+        window.location.href = '/dashboard/eventos';
+      }, 100);
     } catch (err: any) {
       setError(err.message || 'Falha ao entrar');
     } finally {
