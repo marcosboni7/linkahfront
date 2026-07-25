@@ -19,7 +19,7 @@ export default function LoginPage() {
     if (error) setError('');
   }, [form]);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent | React.MouseEvent) => {
     e.preventDefault();
 
     setLoading(true);
@@ -46,8 +46,6 @@ export default function LoginPage() {
       const token = data?.token || data?.accessToken;
       const user = data?.user || {};
 
-      // Garante que sempre temos um e-mail confiável, com fallback pro
-      // e-mail digitado no formulário caso a API não devolva `user.email`.
       const emailFinal =
         user?.email || user?.Email || form.email.trim().toLowerCase();
 
@@ -59,14 +57,11 @@ export default function LoginPage() {
 
       if (token) {
         localStorage.setItem('@Linkah:Token', token);
-        // Salva o token em cookie com Secure e domain para persistir perfeitamente em HTTPS (Vercel)
         document.cookie = `token=${token}; path=/; max-age=86400; SameSite=Lax; Secure; domain=.linkah.eu`;
       }
       localStorage.setItem('@Linkah:User', JSON.stringify(usuarioNormalizado));
-      // Chave usada como fallback em outras telas (Navbar, Perfil)
       localStorage.setItem('userEmail', emailFinal);
 
-      // Pequeno atraso para garantir a gravação do cookie/localStorage antes do redirecionamento
       setTimeout(() => {
         window.location.href = '/dashboard/eventos';
       }, 100);
@@ -152,7 +147,10 @@ export default function LoginPage() {
             </div>
 
             <form
-              onSubmit={handleLogin}
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleLogin(e);
+              }}
               className="rounded-[32px] border border-black/10 bg-white p-5 shadow-[0_20px_80px_rgba(0,0,0,0.06)]"
             >
               {error && (
@@ -229,7 +227,8 @@ export default function LoginPage() {
               </div>
 
               <button
-                type="submit"
+                type="button"
+                onClick={handleLogin}
                 disabled={loading}
                 className="mt-7 flex h-[64px] w-full items-center justify-center gap-3 rounded-[22px] bg-black text-[12px] font-black uppercase tracking-[0.22em] text-white shadow-[0_20px_40px_rgba(0,0,0,0.18)] transition-all hover:-translate-y-0.5 hover:bg-[#111] active:scale-[0.98] disabled:opacity-60"
               >
