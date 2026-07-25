@@ -48,6 +48,8 @@ export default function LoginPage() {
 
       if (token) {
         localStorage.setItem('@Linkah:Token', token);
+        // Salva o token também em cookie para evitar bloqueio de layout/rotas
+        document.cookie = `token=${token}; path=/; max-age=86400; SameSite=Lax`;
       }
 
       localStorage.setItem('@Linkah:User', JSON.stringify(user));
