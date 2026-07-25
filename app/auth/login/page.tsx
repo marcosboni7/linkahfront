@@ -21,6 +21,7 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent | React.MouseEvent) => {
     e.preventDefault();
+    console.log('CLICOU NO LOGIN', form);
 
     setLoading(true);
     setError('');
