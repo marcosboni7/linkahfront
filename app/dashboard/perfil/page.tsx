@@ -70,21 +70,57 @@ function PerfilContent() {
     bio: '',
   });
 
+  // ---- ÚNICA FUNÇÃO ALTERADA ----
+  // Agora verifica @Linkah:User, perfil_completo e userEmail,
+  // igual a Navbar faz, em vez de depender só de @Linkah:User.
   const getUsuarioLogado = useCallback(() => {
     try {
-      const userStorage = localStorage.getItem('@Linkah:User');
-      const parsedUser = userStorage ? JSON.parse(userStorage) : null;
+      const savedUser = localStorage.getItem('@Linkah:User');
+      const perfilCompleto = localStorage.getItem('perfil_completo');
+      const userEmail = localStorage.getItem('userEmail');
+      const token =
+        localStorage.getItem('@Linkah:Token')?.replace(/['"]+/g, '') || '';
+
+      let usuarioEncontrado: any = null;
+
+      if (savedUser) {
+        try {
+          usuarioEncontrado = JSON.parse(savedUser);
+        } catch {
+          usuarioEncontrado = null;
+        }
+      }
+
+      if (!usuarioEncontrado && perfilCompleto) {
+        try {
+          usuarioEncontrado = JSON.parse(perfilCompleto);
+        } catch {
+          usuarioEncontrado = null;
+        }
+      }
+
       const emailLogado =
-        parsedUser?.email ||
-        parsedUser?.user?.email ||
-        localStorage.getItem('userEmail') ||
+        usuarioEncontrado?.email ||
+        usuarioEncontrado?.Email ||
+        usuarioEncontrado?.user?.email ||
+        userEmail ||
         '';
-      const token = localStorage.getItem('@Linkah:Token')?.replace(/['"]+/g, '') || '';
+
+      // Se achamos e-mail mas @Linkah:User não tinha, sincroniza pra
+      // não cair de novo nesse caminho da próxima vez.
+      if (emailLogado && !usuarioEncontrado?.email) {
+        localStorage.setItem(
+          '@Linkah:User',
+          JSON.stringify({ ...usuarioEncontrado, email: emailLogado })
+        );
+      }
+
       return { emailLogado, token };
     } catch (error) {
       return { emailLogado: '', token: '' };
     }
   }, []);
+  // ---- FIM DA ALTERAÇÃO ----
 
   const aplicarMascara = (name: string, value: string) => {
     let v = value.replace(/\D/g, '');

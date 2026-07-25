@@ -46,13 +46,26 @@ export default function LoginPage() {
       const token = data?.token || data?.accessToken;
       const user = data?.user || {};
 
+      // Garante que sempre temos um e-mail confiável, com fallback pro
+      // e-mail digitado no formulário caso a API não devolva `user.email`.
+      const emailFinal =
+        user?.email || user?.Email || form.email.trim().toLowerCase();
+
+      const usuarioNormalizado = {
+        ...user,
+        email: emailFinal,
+        nome: user?.nome || user?.name || emailFinal.split('@')[0],
+      };
+
       if (token) {
         localStorage.setItem('@Linkah:Token', token);
         // Salva o token também em cookie para evitar bloqueio de layout/rotas
         document.cookie = `token=${token}; path=/; max-age=86400; SameSite=Lax`;
       }
 
-      localStorage.setItem('@Linkah:User', JSON.stringify(user));
+      localStorage.setItem('@Linkah:User', JSON.stringify(usuarioNormalizado));
+      // Chave usada como fallback em outras telas (Navbar, Perfil)
+      localStorage.setItem('userEmail', emailFinal);
 
       window.location.href = '/dashboard/eventos';
     } catch (err: any) {
