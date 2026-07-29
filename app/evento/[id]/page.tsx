@@ -17,7 +17,6 @@ import {
   Globe,
   Share2,
 } from 'lucide-react';
-import Link from 'next/link';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api-linkah.onrender.com';
 const CLOUDINARY_CLOUD_NAME = 'dj32txsol';
@@ -114,6 +113,8 @@ export default function DetalhesLumaRoxo() {
         if (!res.ok) throw new Error('Erro ao carregar evento');
 
         const data = await res.json();
+        console.log('📦 Evento carregado da API:', data);
+
         const moedaEvento = normalizeCurrency(
           data?.moeda || data?.currency || data?.moeda_evento || 'BRL'
         );
@@ -133,6 +134,8 @@ export default function DetalhesLumaRoxo() {
             })
           : [];
 
+        console.log('🎟️ Ingressos tratados:', ingressosTratados);
+
         setEvento({
           ...data,
           moeda: moedaEvento,
@@ -148,6 +151,7 @@ export default function DetalhesLumaRoxo() {
           qts[String(ingressosTratados[0].id)] = 1;
         }
 
+        console.log('🔢 Quantidades iniciais definidas:', qts);
         setQuantidades(qts);
       } catch (err) {
         console.error('❌ Erro ao carregar evento:', err);
@@ -196,10 +200,6 @@ export default function DetalhesLumaRoxo() {
       ? evento.banner_patrocinio
       : `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${evento.banner_patrocinio}`
     : null;
-
-  const linkVenda = `/venda?eventoId=${id}&afiliado_id=${afiliadoId}&payload=${encodeURIComponent(
-    JSON.stringify(quantidades)
-  )}`;
 
   return (
     <div className="min-h-screen bg-white text-[#121212] antialiased selection:bg-violet-100">
@@ -367,13 +367,14 @@ export default function DetalhesLumaRoxo() {
                     <div className="flex items-center gap-4 bg-violet-50/50 p-1 rounded-xl border border-violet-100">
                       <button
                         onClick={() =>
-                          setQuantidades((prev) => ({
-                            ...prev,
-                            [String(ing.id)]: Math.max(
-                              0,
-                              (prev[String(ing.id)] || 0) - 1
-                            ),
-                          }))
+                          setQuantidades((prev) => {
+                            const novo = {
+                              ...prev,
+                              [String(ing.id)]: Math.max(0, (prev[String(ing.id)] || 0) - 1),
+                            };
+                            console.log('➖ Quantidade decrementada:', novo);
+                            return novo;
+                          })
                         }
                         className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-white text-violet-400 hover:text-violet-700 transition-all active:scale-95"
                         type="button"
@@ -387,10 +388,14 @@ export default function DetalhesLumaRoxo() {
 
                       <button
                         onClick={() =>
-                          setQuantidades((prev) => ({
-                            ...prev,
-                            [String(ing.id)]: (prev[String(ing.id)] || 0) + 1,
-                          }))
+                          setQuantidades((prev) => {
+                            const novo = {
+                              ...prev,
+                              [String(ing.id)]: (prev[String(ing.id)] || 0) + 1,
+                            };
+                            console.log('➕ Quantidade incrementada:', novo);
+                            return novo;
+                          })
                         }
                         className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-white text-violet-400 hover:text-violet-700 transition-all active:scale-95"
                         type="button"
@@ -412,16 +417,22 @@ export default function DetalhesLumaRoxo() {
                   </p>
                 </div>
 
-                <Link
-                  href={
-                    totalGeral > 0 || Object.values(quantidades).some((q) => q > 0)
-                      ? linkVenda
-                      : '#'
-                  }
+                <button
+                  type="button"
+                  onClick={() => {
+                    const finalPayload = encodeURIComponent(JSON.stringify(quantidades));
+                    console.log('🚀 CLIQUE NO BOTÃO! Quantidades atuais:', quantidades);
+                    console.log('📦 Payload gerado para a URL:', finalPayload);
+
+                    router.push(
+                      `/venda?eventoId=${id}&afiliado_id=${afiliadoId}&payload=${finalPayload}`
+                    );
+                  }}
+                  disabled={!Object.values(quantidades).some((q) => q > 0)}
                   className={`group w-full flex items-center justify-center gap-4 px-12 py-6 rounded-2xl font-bold transition-all duration-300 text-lg ${
-                    totalGeral > 0 || Object.values(quantidades).some((q) => q > 0)
-                      ? 'bg-violet-600 text-white hover:bg-violet-700'
-                      : 'bg-slate-100 text-slate-400 pointer-events-none'
+                    Object.values(quantidades).some((q) => q > 0)
+                      ? 'bg-violet-600 text-white hover:bg-violet-700 cursor-pointer'
+                      : 'bg-slate-100 text-slate-400 cursor-not-allowed'
                   }`}
                 >
                   Continuar compra
@@ -429,7 +440,7 @@ export default function DetalhesLumaRoxo() {
                     size={20}
                     className="transition-transform group-hover:translate-x-1"
                   />
-                </Link>
+                </button>
               </div>
             </div>
           </div>

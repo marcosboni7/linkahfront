@@ -23,6 +23,7 @@ import {
   AlignLeft,
   AlignCenter,
   AlignRight,
+  Tag,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/app/context/LanguageContext';
@@ -178,6 +179,7 @@ export default function NovoEventoPresencial() {
   const [isLoading, setIsLoading] = useState(false);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [isRestoringDraft, setIsRestoringDraft] = useState(true);
+  const [isGratis, setIsGratis] = useState(false);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -195,6 +197,7 @@ export default function NovoEventoPresencial() {
     categoria: '',
     status: 'Ativo',
     descricao: '',
+    preco: '0',
     data_inicio: '',
     hora_inicio: '',
     data_termino: '',
@@ -254,6 +257,10 @@ export default function NovoEventoPresencial() {
             ...prev,
             ...draft.formData,
           }));
+
+          if (Number(draft.formData.preco) === 0) {
+            setIsGratis(true);
+          }
 
           if (draft.formData.descricao && editor) {
             editor.commands.setContent(draft.formData.descricao);
@@ -362,6 +369,7 @@ export default function NovoEventoPresencial() {
         ...prev,
         nome: aiData.nome || prev.nome,
         categoria: aiData.categoria || prev.categoria,
+        preco: aiData.preco !== undefined ? String(aiData.preco) : prev.preco,
         data_inicio: aiData.data_inicio || prev.data_inicio,
         hora_inicio: aiData.hora_inicio || prev.hora_inicio,
         data_termino: aiData.data_termino || aiData.data_inicio || prev.data_termino,
@@ -375,6 +383,10 @@ export default function NovoEventoPresencial() {
         capacidade: aiData.capacidade || prev.capacidade,
         moeda: aiData.moeda || prev.moeda,
       }));
+
+      if (aiData.preco !== undefined && Number(aiData.preco) === 0) {
+        setIsGratis(true);
+      }
 
       if (aiData.descricao) {
         editor?.commands.setContent(aiData.descricao);
@@ -475,6 +487,14 @@ export default function NovoEventoPresencial() {
   const handleChange = (e: any) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleToggleGratis = (e: any) => {
+    const marcado = e.target.checked;
+    setIsGratis(marcado);
+    if (marcado) {
+      setFormData((prev) => ({ ...prev, preco: '0' }));
+    }
   };
 
   const handleImageChange = (e: any) => {
@@ -701,19 +721,33 @@ export default function NovoEventoPresencial() {
                   </div>
 
                   <div className="space-y-3">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 italic">
-                      Moeda do Evento
-                    </label>
-                    <select
-                      name="moeda"
-                      value={formData.moeda}
-                      onChange={handleChange}
-                      className="w-full bg-slate-50 p-6 rounded-[2rem] outline-none font-bold text-slate-600 focus:bg-white border-2 border-transparent focus:border-pink-100 transition-all shadow-inner appearance-none"
-                    >
-                      <option value="BRL">R$ BRL</option>
-                      <option value="USD">$ USD</option>
-                      <option value="EUR">€ EUR</option>
-                    </select>
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 italic">
+                        Preço Base
+                      </label>
+                      <label className="flex items-center gap-1.5 text-[11px] font-bold text-slate-600 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={isGratis}
+                          onChange={handleToggleGratis}
+                          className="rounded border-slate-300 text-black focus:ring-black w-4 h-4"
+                        />
+                        Gratuito
+                      </label>
+                    </div>
+                    <div className="relative">
+                      <input
+                        name="preco"
+                        value={isGratis ? '0' : formData.preco}
+                        onChange={handleChange}
+                        disabled={isGratis}
+                        type="number"
+                        step="0.01"
+                        placeholder="0.00"
+                        className="w-full bg-slate-50 p-6 rounded-[2rem] outline-none font-bold text-slate-800 shadow-inner disabled:opacity-50"
+                      />
+                      <Tag className="absolute right-8 top-6 text-slate-300" size={20} />
+                    </div>
                   </div>
                 </div>
 

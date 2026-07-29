@@ -288,7 +288,7 @@ export default function TabelaEventos() {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
-      
+
       if (res.ok && Array.isArray(data)) {
         setParticipantes(data);
       } else {
@@ -301,7 +301,6 @@ export default function TabelaEventos() {
     }
   };
 
-  // CORRIGIDO: Removido o ponto fantasma e mantida a sintaxe limpa do filter
   const participantesFiltrados = participantes.filter((p) => {
     const email = String(p.usuario_email || '').toLowerCase();
     const cracha = String(p.nome_cracha || '').toLowerCase();
@@ -362,22 +361,51 @@ export default function TabelaEventos() {
     } catch (err) { console.error(err); } finally { setSaving(false); }
   };
 
+  // ---------------------------------------------------------------------
+  // CORRIGIDO: agora chama PATCH /api/eventos/:id/status (rota dedicada,
+  // sem multer/multipart no meio) em vez de PUT /api/eventos/:id, que caía
+  // na rota de edição completa (com multer) e descartava o "status" quando
+  // o body vinha como JSON puro, fazendo o evento "voltar" após excluir.
+  // ---------------------------------------------------------------------
   const handleExcluir = async (evento: any) => {
     const result = await Swal.fire({
-      title: 'Remover?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#7C3AED',
+      title: 'Remover?',
+      text: 'Este evento será marcado como excluído e sumirá da sua lista.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#7C3AED',
+      confirmButtonText: 'Sim, remover',
+      cancelButtonText: 'Cancelar',
     });
     if (!result.isConfirmed) return;
+
     setIsDeleting(evento.id);
     try {
       const rawToken = localStorage.getItem('@Linkah:Token');
       const token = rawToken?.replace(/['"]+/g, '').trim() || '';
-      await fetch(`${API_URL}/api/eventos/${evento.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+
+      const res = await fetch(`${API_URL}/api/eventos/${evento.id}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ status: 'Excluído' }),
       });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData?.error || 'Falha ao excluir evento');
+      }
+
       setEventos(prev => prev.filter(ev => String(ev.id) !== String(evento.id)));
-    } catch (err) { console.error(err); } finally { setIsDeleting(null); }
+      Swal.fire('Removido!', 'O evento foi excluído.', 'success');
+    } catch (err) {
+      console.error(err);
+      Swal.fire('Erro', 'Não foi possível excluir o evento. Tente novamente.', 'error');
+    } finally {
+      setIsDeleting(null);
+    }
   };
 
   return (
@@ -454,7 +482,13 @@ export default function TabelaEventos() {
                         </button>
                         <button onClick={() => abrirModalEdicao(evento)} className="p-2.5 text-slate-400 hover:text-purple-600 hover:bg-purple-50 rounded-xl transition-all"><Edit3 size={18} /></button>
                         <button onClick={() => router.push(`/dashboard/eventos/novo/ingressos/${evento.id}`)} className="p-2.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"><Ticket size={18} /></button>
-                        <button onClick={() => handleExcluir(evento)} className="p-2.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"><Trash2 size={18} /></button>
+                        <button
+                          onClick={() => handleExcluir(evento)}
+                          disabled={isDeleting === evento.id}
+                          className="p-2.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all disabled:opacity-50"
+                        >
+                          {isDeleting === evento.id ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />}
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -547,7 +581,7 @@ export default function TabelaEventos() {
             </div>
             <div className="p-8 space-y-6">
               <p className="text-sm text-slate-500 font-medium">Configure o vendedor e a taxa de comissão.</p>
-              
+
               <div className="space-y-2">
                 <label className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">Nome do Vendedor</label>
                 <input type="text" value={nomeAfiliado} onChange={(e) => setNomeAfiliado(e.target.value)} placeholder="Ex: Marcos Boni" className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-bold text-slate-700" />
@@ -564,7 +598,7 @@ export default function TabelaEventos() {
               </div>
 
               <button onClick={gerarLinkAfiliado} disabled={!nomeAfiliado} className="w-full bg-emerald-600 text-white py-4 rounded-2xl font-black hover:bg-emerald-700 transition-all disabled:opacity-50">Gerar Link com Comissão</button>
-              
+
               {linkGerado && (
                 <div className="flex items-center gap-2 p-2 bg-slate-50 rounded-2xl border border-dashed border-emerald-200 animate-in slide-in-from-top-2">
                   <input readOnly value={linkGerado} className="flex-1 bg-transparent border-none text-[10px] font-mono text-slate-500 px-2 outline-none" />

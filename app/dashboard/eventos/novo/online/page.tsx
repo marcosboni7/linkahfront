@@ -23,6 +23,7 @@ import {
   AlignLeft,
   AlignCenter,
   AlignRight,
+  Tag,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/app/context/LanguageContext';
@@ -179,6 +180,7 @@ export default function NovoEventoOnline() {
   const [isLoading, setIsLoading] = useState(false);
   const [isGeneratingIA, setIsGeneratingIA] = useState(false);
   const [isRestoringDraft, setIsRestoringDraft] = useState(true);
+  const [isGratis, setIsGratis] = useState(false);
 
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -190,6 +192,7 @@ export default function NovoEventoOnline() {
     categoria: '',
     status: 'Ativo',
     descricao: '',
+    preco: '0',
     data_inicio: '',
     hora_inicio: '',
     data_termino: '',
@@ -244,6 +247,10 @@ export default function NovoEventoOnline() {
             ...prev,
             ...draft.formData,
           }));
+
+          if (Number(draft.formData.preco) === 0) {
+            setIsGratis(true);
+          }
 
           if (draft.formData.descricao && editor) {
             editor.commands.setContent(draft.formData.descricao);
@@ -367,7 +374,12 @@ export default function NovoEventoOnline() {
           ...data,
           tipo: 'Online',
           local_nome: data.local_nome || 'Plataforma Online',
+          preco: data.preco !== undefined ? String(data.preco) : prev.preco,
         }));
+
+        if (data.preco !== undefined && Number(data.preco) === 0) {
+          setIsGratis(true);
+        }
 
         if (data.descricao) {
           editor?.commands.setContent(data.descricao);
@@ -395,6 +407,14 @@ export default function NovoEventoOnline() {
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleToggleGratis = (e: any) => {
+    const marcado = e.target.checked;
+    setIsGratis(marcado);
+    if (marcado) {
+      setFormData((prev) => ({ ...prev, preco: '0' }));
+    }
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -481,7 +501,7 @@ export default function NovoEventoOnline() {
 
       if (response.ok) {
         localStorage.removeItem(DRAFT_KEY);
-        router.push(`/dashboard/eventos/novo/ingressos/${result.id}`);
+        router.push(`/dashboard/eventos/novo/ingressos/${result.id || result.evento?.id}`);
       } else {
         Swal.fire('Erro', result.error || 'Erro ao salvar', 'error');
       }
@@ -628,19 +648,33 @@ export default function NovoEventoOnline() {
                 </div>
 
                 <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 italic">
-                    Moeda
-                  </label>
-                  <select
-                    name="moeda"
-                    value={formData.moeda}
-                    onChange={handleChange}
-                    className="w-full bg-slate-50 border-2 border-transparent p-6 rounded-[2rem] outline-none font-bold text-slate-600 focus:border-pink-100 focus:bg-white transition-all shadow-inner appearance-none"
-                  >
-                    <option value="BRL">R$ BRL</option>
-                    <option value="USD">$ USD</option>
-                    <option value="EUR">€ EUR</option>
-                  </select>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 italic">
+                      Preço Base
+                    </label>
+                    <label className="flex items-center gap-1.5 text-[11px] font-bold text-slate-600 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={isGratis}
+                        onChange={handleToggleGratis}
+                        className="rounded border-slate-300 text-black focus:ring-black w-4 h-4"
+                      />
+                      Gratuito
+                    </label>
+                  </div>
+                  <div className="relative">
+                    <input
+                      name="preco"
+                      value={isGratis ? '0' : formData.preco}
+                      onChange={handleChange}
+                      disabled={isGratis}
+                      type="number"
+                      step="0.01"
+                      placeholder="0.00"
+                      className="w-full bg-slate-50 border-2 border-transparent p-6 rounded-[2rem] outline-none font-bold focus:border-pink-100 focus:bg-white transition-all shadow-inner disabled:opacity-50"
+                    />
+                    <Tag className="absolute right-8 top-6 text-slate-300" size={20} />
+                  </div>
                 </div>
               </div>
 
@@ -698,22 +732,40 @@ export default function NovoEventoOnline() {
                 </div>
               </div>
 
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 italic">
-                  Plataforma / Local do Evento
-                </label>
-                <div className="relative">
-                  <input
-                    name="local_nome"
-                    value={formData.local_nome}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 italic">
+                    Plataforma / Local do Evento
+                  </label>
+                  <div className="relative">
+                    <input
+                      name="local_nome"
+                      value={formData.local_nome}
+                      onChange={handleChange}
+                      placeholder="Ex: Zoom, Google Meet, YouTube..."
+                      className="w-full bg-slate-50 border-2 border-transparent p-6 rounded-[2rem] outline-none font-bold focus:border-pink-100 focus:bg-white transition-all shadow-inner"
+                    />
+                    <Building2
+                      className="absolute right-8 top-6 text-slate-300"
+                      size={20}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 italic">
+                    Moeda
+                  </label>
+                  <select
+                    name="moeda"
+                    value={formData.moeda}
                     onChange={handleChange}
-                    placeholder="Ex: Zoom, Google Meet, YouTube..."
-                    className="w-full bg-slate-50 border-2 border-transparent p-6 rounded-[2rem] outline-none font-bold focus:border-pink-100 focus:bg-white transition-all shadow-inner"
-                  />
-                  <Building2
-                    className="absolute right-8 top-6 text-slate-300"
-                    size={20}
-                  />
+                    className="w-full bg-slate-50 border-2 border-transparent p-6 rounded-[2rem] outline-none font-bold text-slate-600 focus:border-pink-100 focus:bg-white transition-all shadow-inner appearance-none"
+                  >
+                    <option value="BRL">R$ BRL</option>
+                    <option value="USD">$ USD</option>
+                    <option value="EUR">€ EUR</option>
+                  </select>
                 </div>
               </div>
 
