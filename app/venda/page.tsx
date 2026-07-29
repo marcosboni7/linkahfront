@@ -377,17 +377,17 @@ function CheckoutContent() {
         return;
       }
 
-      if (
-        totalItens <= 0 ||
-        totalGeral <= 0
-      ) {
-        console.warn('⚠️ [CHECKOUT] Bloqueado: totalItens <= 0 ou totalGeral <= 0.');
-        console.warn('⚠️ [CHECKOUT] Isso confirma que os IDs do payload não bateram com os IDs dos ingressos carregados. Veja os logs "🔍 [CHECKOUT] MISMATCH" acima.');
+      if (totalItens <= 0) {
+        console.warn('⚠️ [CHECKOUT] Bloqueado: totalItens <= 0 (nenhum ingresso selecionado).');
         alert(
           'Nenhum ingresso selecionado.'
         );
         return;
       }
+
+      // Nota: não validamos mais totalGeral <= 0 aqui, pois um evento
+      // com ingressos gratuitos (preco = 0) é um caso válido — totalGeral
+      // será 0 mesmo com ingressos corretamente selecionados.
 
       setLoading(true);
 
