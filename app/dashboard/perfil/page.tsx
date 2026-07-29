@@ -57,6 +57,7 @@ function PerfilContent() {
   const [stripeAtivo, setStripeAtivo] = useState(false);
   const [stripeDetails, setStripeDetails] = useState<StripeDetails | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [paisSelecionado, setPaisSelecionado] = useState('PT'); // Estado para escolher entre PT e BR
 
   const [formData, setFormData] = useState<FormDataState>({
     nome: '',
@@ -70,9 +71,6 @@ function PerfilContent() {
     bio: '',
   });
 
-  // ---- ÚNICA FUNÇÃO ALTERADA ----
-  // Agora verifica @Linkah:User, perfil_completo e userEmail,
-  // igual a Navbar faz, em vez de depender só de @Linkah:User.
   const getUsuarioLogado = useCallback(() => {
     try {
       const savedUser = localStorage.getItem('@Linkah:User');
@@ -106,8 +104,6 @@ function PerfilContent() {
         userEmail ||
         '';
 
-      // Se achamos e-mail mas @Linkah:User não tinha, sincroniza pra
-      // não cair de novo nesse caminho da próxima vez.
       if (emailLogado && !usuarioEncontrado?.email) {
         localStorage.setItem(
           '@Linkah:User',
@@ -120,7 +116,6 @@ function PerfilContent() {
       return { emailLogado: '', token: '' };
     }
   }, []);
-  // ---- FIM DA ALTERAÇÃO ----
 
   const aplicarMascara = (name: string, value: string) => {
     let v = value.replace(/\D/g, '');
@@ -302,7 +297,10 @@ function PerfilContent() {
       const response = await fetch(`${API_URL}/api/pagamento/conectar-stripe`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ email: emailLogado }),
+        body: JSON.stringify({ 
+          email: emailLogado,
+          pais: paisSelecionado // Envia o país selecionado (PT ou BR)[cite: 1]
+        }),
       });
       const data = await response.json();
       if (data.url) window.location.href = data.url;
@@ -473,13 +471,24 @@ function PerfilContent() {
                 </div>
                 
                 {!stripeAtivo ? (
-                    <button 
-                        type="button" 
-                        onClick={handleConectarStripe}
-                        className="w-full md:w-auto bg-black text-white px-6 py-3 rounded-xl text-sm font-bold hover:scale-[1.02] active:scale-[0.98] transition-all"
-                    >
-                        Conectar Conta
-                    </button>
+                    <div className="flex items-center gap-3 w-full md:w-auto">
+                        <select 
+                            value={paisSelecionado}
+                            onChange={(e) => setPaisSelecionado(e.target.value)}
+                            className="px-3 py-3 rounded-xl border border-slate-200 text-sm bg-white font-medium outline-none focus:border-black"
+                        >
+                            <option value="PT">Portugal (PT)</option>
+                            <option value="BR">Brasil (BR)</option>
+                        </select>
+
+                        <button 
+                            type="button" 
+                            onClick={handleConectarStripe}
+                            className="bg-black text-white px-6 py-3 rounded-xl text-sm font-bold hover:scale-[1.02] active:scale-[0.98] transition-all shrink-0"
+                        >
+                            Conectar Conta
+                        </button>
+                    </div>
                 ) : (
                     <span className="bg-emerald-100 text-emerald-700 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">Ativo</span>
                 )}
