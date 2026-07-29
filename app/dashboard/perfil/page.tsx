@@ -24,6 +24,27 @@ import { useLanguage } from '@/app/context/LanguageContext';
 
 const API_URL = 'https://api-linkah.onrender.com';
 
+// Mesma lista de países suportados que o backend valida em
+// PAISES_SUPORTADOS (vincularContaStripe). Mantenha sincronizado.
+const PAISES_SUPORTADOS = [
+  { code: 'BR', label: 'Brasil' },
+  { code: 'PT', label: 'Portugal' },
+  { code: 'US', label: 'Estados Unidos' },
+  { code: 'ES', label: 'Espanha' },
+  { code: 'FR', label: 'França' },
+  { code: 'GB', label: 'Reino Unido' },
+  { code: 'DE', label: 'Alemanha' },
+  { code: 'IT', label: 'Itália' },
+  { code: 'AR', label: 'Argentina' },
+  { code: 'MX', label: 'México' },
+  { code: 'CA', label: 'Canadá' },
+  { code: 'NL', label: 'Holanda' },
+  { code: 'IE', label: 'Irlanda' },
+  { code: 'CH', label: 'Suíça' },
+  { code: 'AT', label: 'Áustria' },
+  { code: 'BE', label: 'Bélgica' },
+];
+
 interface StripeDetails {
   charges_enabled: boolean;
   payout_enabled: boolean;
@@ -39,6 +60,7 @@ interface FormDataState {
   rua: string;
   numero: string;
   bairro: string;
+  pais: string;
   linkedin: string;
   instagram: string;
   bio: string;
@@ -57,7 +79,7 @@ function PerfilContent() {
   const [stripeAtivo, setStripeAtivo] = useState(false);
   const [stripeDetails, setStripeDetails] = useState<StripeDetails | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const [paisSelecionado, setPaisSelecionado] = useState('PT'); // Estado para escolher entre PT e BR
+  const [isConectandoStripe, setIsConectandoStripe] = useState(false);
 
   const [formData, setFormData] = useState<FormDataState>({
     nome: '',
@@ -66,11 +88,14 @@ function PerfilContent() {
     rua: '',
     numero: '',
     bairro: '',
+    pais: 'BR',
     linkedin: '',
     instagram: '',
     bio: '',
   });
 
+  // Verifica @Linkah:User, perfil_completo e userEmail, igual a Navbar faz,
+  // em vez de depender só de @Linkah:User.
   const getUsuarioLogado = useCallback(() => {
     try {
       const savedUser = localStorage.getItem('@Linkah:User');
@@ -104,6 +129,8 @@ function PerfilContent() {
         userEmail ||
         '';
 
+      // Se achamos e-mail mas @Linkah:User não tinha, sincroniza pra
+      // não cair de novo nesse caminho da próxima vez.
       if (emailLogado && !usuarioEncontrado?.email) {
         localStorage.setItem(
           '@Linkah:User',
@@ -120,7 +147,7 @@ function PerfilContent() {
   const aplicarMascara = (name: string, value: string) => {
     let v = value.replace(/\D/g, '');
     if (name === 'cpf_cnpj') {
-      return v.length <= 11 
+      return v.length <= 11
         ? v.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/g, '$1.$2.$3-$4')
         : v.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/g, '$1.$2.$3/$4-$5');
     }
@@ -181,6 +208,7 @@ function PerfilContent() {
             rua: data.rua || '',
             numero: data.numero || '',
             bairro: data.bairro || '',
+            pais: data.pais || 'BR',
             linkedin: data.linkedin || '',
             instagram: data.instagram || '',
             bio: data.bio || '',
@@ -230,7 +258,7 @@ function PerfilContent() {
 
       if (!res.ok) throw new Error('Erro no upload');
       const data = await res.json();
-      
+
       const userStorage = localStorage.getItem('@Linkah:User');
       if (userStorage) {
         const userParsed = JSON.parse(userStorage);
@@ -261,7 +289,7 @@ function PerfilContent() {
       });
 
       if (!response.ok) throw new Error('Erro ao salvar');
-      
+
       const completo = perfilJaCompleto(formData);
       const userStorage = localStorage.getItem('@Linkah:User');
       if (userStorage) {
@@ -286,26 +314,43 @@ function PerfilContent() {
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: (name === 'cpf_cnpj' || name === 'cep') ? aplicarMascara(name, value) : value }));
   };
 
   const handleConectarStripe = async () => {
+    if (!formData.pais) {
+      Swal.fire('Selecione o país', 'Escolha o país da sua conta antes de conectar o Stripe.', 'warning');
+      return;
+    }
+
+    setIsConectandoStripe(true);
     const { emailLogado, token } = getUsuarioLogado();
+
     try {
       const response = await fetch(`${API_URL}/api/pagamento/conectar-stripe`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ 
-          email: emailLogado,
-          pais: paisSelecionado // Envia o país selecionado (PT ou BR)[cite: 1]
-        }),
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        // O backend (vincularContaStripe) espera exatamente { email, pais }
+        // com "pais" em formato ISO de 2 letras (ex: BR, PT, US).
+        body: JSON.stringify({ email: emailLogado, pais: formData.pais }),
       });
+
       const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.error || 'Falha ao conectar Stripe');
+      }
+
       if (data.url) window.location.href = data.url;
-    } catch (error) {
-      Swal.fire('Erro', 'Falha ao conectar Stripe', 'error');
+    } catch (error: any) {
+      Swal.fire('Erro', error.message || 'Falha ao conectar Stripe', 'error');
+    } finally {
+      setIsConectandoStripe(false);
     }
   };
 
@@ -323,9 +368,9 @@ function PerfilContent() {
         <Link href="/dashboard/eventos" className="flex items-center gap-2 text-slate-500 hover:text-black transition-colors text-sm font-medium">
           <ArrowLeft size={16} /> Painel
         </Link>
-        <button 
-          onClick={handleSalvar} 
-          disabled={isSaving} 
+        <button
+          onClick={handleSalvar}
+          disabled={isSaving}
           className="bg-black text-white px-5 py-2 rounded-full text-sm font-semibold hover:bg-slate-800 transition-all disabled:opacity-50 flex items-center gap-2"
         >
           {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
@@ -365,7 +410,7 @@ function PerfilContent() {
             <div className="p-8 space-y-6">
                 <div>
                     <label className="block text-[13px] font-semibold text-slate-700 mb-2">Nome Completo</label>
-                    <input 
+                    <input
                         name="nome"
                         value={formData.nome}
                         onChange={handleChange}
@@ -375,7 +420,7 @@ function PerfilContent() {
                 </div>
                 <div>
                     <label className="block text-[13px] font-semibold text-slate-700 mb-2">Bio</label>
-                    <textarea 
+                    <textarea
                         name="bio"
                         value={formData.bio}
                         onChange={handleChange}
@@ -398,7 +443,7 @@ function PerfilContent() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label className="block text-[13px] font-semibold text-slate-700 mb-2">CPF ou CNPJ</label>
-                        <input 
+                        <input
                             name="cpf_cnpj"
                             value={formData.cpf_cnpj}
                             onChange={handleChange}
@@ -408,7 +453,7 @@ function PerfilContent() {
                     </div>
                     <div>
                         <label className="block text-[13px] font-semibold text-slate-700 mb-2">CEP</label>
-                        <input 
+                        <input
                             name="cep"
                             value={formData.cep}
                             onChange={handleChange}
@@ -416,6 +461,25 @@ function PerfilContent() {
                             placeholder="00000-000"
                         />
                     </div>
+                </div>
+
+                <div>
+                    <label className="block text-[13px] font-semibold text-slate-700 mb-2 flex items-center gap-2">
+                        <MapPin size={13} /> País
+                    </label>
+                    <select
+                        name="pais"
+                        value={formData.pais}
+                        onChange={handleChange}
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-black focus:ring-0 transition-all outline-none text-sm bg-slate-50/30"
+                    >
+                        {PAISES_SUPORTADOS.map((p) => (
+                            <option key={p.code} value={p.code}>{p.label}</option>
+                        ))}
+                    </select>
+                    <p className="text-[11px] text-slate-400 mt-1.5">
+                        Necessário para criar sua conta de recebimento no Stripe.
+                    </p>
                 </div>
             </div>
           </div>
@@ -432,7 +496,7 @@ function PerfilContent() {
                     <div className="w-10 h-10 rounded-xl bg-pink-50 text-pink-500 flex items-center justify-center shrink-0">
                         <Instagram size={20} />
                     </div>
-                    <input 
+                    <input
                         name="instagram"
                         value={formData.instagram}
                         onChange={handleChange}
@@ -444,7 +508,7 @@ function PerfilContent() {
                     <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
                         <Linkedin size={20} />
                     </div>
-                    <input 
+                    <input
                         name="linkedin"
                         value={formData.linkedin}
                         onChange={handleChange}
@@ -469,26 +533,17 @@ function PerfilContent() {
                         </p>
                     </div>
                 </div>
-                
-                {!stripeAtivo ? (
-                    <div className="flex items-center gap-3 w-full md:w-auto">
-                        <select 
-                            value={paisSelecionado}
-                            onChange={(e) => setPaisSelecionado(e.target.value)}
-                            className="px-3 py-3 rounded-xl border border-slate-200 text-sm bg-white font-medium outline-none focus:border-black"
-                        >
-                            <option value="PT">Portugal (PT)</option>
-                            <option value="BR">Brasil (BR)</option>
-                        </select>
 
-                        <button 
-                            type="button" 
-                            onClick={handleConectarStripe}
-                            className="bg-black text-white px-6 py-3 rounded-xl text-sm font-bold hover:scale-[1.02] active:scale-[0.98] transition-all shrink-0"
-                        >
-                            Conectar Conta
-                        </button>
-                    </div>
+                {!stripeAtivo ? (
+                    <button
+                        type="button"
+                        onClick={handleConectarStripe}
+                        disabled={isConectandoStripe}
+                        className="w-full md:w-auto bg-black text-white px-6 py-3 rounded-xl text-sm font-bold hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                        {isConectandoStripe ? <Loader2 size={14} className="animate-spin" /> : <CreditCard size={14} />}
+                        {isConectandoStripe ? 'Conectando...' : 'Conectar Conta'}
+                    </button>
                 ) : (
                     <span className="bg-emerald-100 text-emerald-700 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">Ativo</span>
                 )}
@@ -496,7 +551,7 @@ function PerfilContent() {
           </div>
 
           <div className="pt-6">
-            <button 
+            <button
                 type="submit"
                 disabled={isSaving}
                 className="w-full bg-black text-white py-4 rounded-2xl font-bold hover:bg-slate-800 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
