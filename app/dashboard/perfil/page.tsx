@@ -24,8 +24,7 @@ import { useLanguage } from '@/app/context/LanguageContext';
 
 const API_URL = 'https://api-linkah.onrender.com';
 
-// Mesma lista de países suportados que o backend valida em
-// PAISES_SUPORTADOS (vincularContaStripe). Mantenha sincronizado.
+
 const PAISES_SUPORTADOS = [
   { code: 'BR', label: 'Brasil' },
   { code: 'PT', label: 'Portugal' },
@@ -88,14 +87,17 @@ function PerfilContent() {
     rua: '',
     numero: '',
     bairro: '',
-    pais: 'BR',
+    // Sem valor padrão: o país precisa ser uma escolha explícita do
+    // produtor, nunca um default silencioso — é ele quem define com
+    // qual país a conta Stripe Connect será criada, e isso não pode
+    // ser alterado depois (ver handleConectarStripe / <select> abaixo).
+    pais: '',
     linkedin: '',
     instagram: '',
     bio: '',
   });
 
-  // Verifica @Linkah:User, perfil_completo e userEmail, igual a Navbar faz,
-  // em vez de depender só de @Linkah:User.
+ 
   const getUsuarioLogado = useCallback(() => {
     try {
       const savedUser = localStorage.getItem('@Linkah:User');
@@ -208,7 +210,10 @@ function PerfilContent() {
             rua: data.rua || '',
             numero: data.numero || '',
             bairro: data.bairro || '',
-            pais: data.pais || 'BR',
+            // Sem fallback para 'BR' aqui também: se o perfil salvo no
+            // banco não tiver país definido, o campo fica vazio e o
+            // produtor é obrigado a escolher antes de conectar o Stripe.
+            pais: data.pais || '',
             linkedin: data.linkedin || '',
             instagram: data.instagram || '',
             bio: data.bio || '',
@@ -471,14 +476,20 @@ function PerfilContent() {
                         name="pais"
                         value={formData.pais}
                         onChange={handleChange}
+                        required
                         className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-black focus:ring-0 transition-all outline-none text-sm bg-slate-50/30"
                     >
+                        {/* Placeholder obrigatório: sem isso, o navegador
+                            selecionava o primeiro <option> (Brasil) por
+                            padrão assim que o <select> era renderizado,
+                            mesmo sem o produtor ter escolhido nada. */}
+                        <option value="" disabled>Selecione o país</option>
                         {PAISES_SUPORTADOS.map((p) => (
                             <option key={p.code} value={p.code}>{p.label}</option>
                         ))}
                     </select>
                     <p className="text-[11px] text-slate-400 mt-1.5">
-                        Necessário para criar sua conta de recebimento no Stripe.
+                        Necessário para criar sua conta de recebimento no Stripe. Depois de criada, o país da conta Stripe não pode ser alterado — confirme antes de conectar.
                     </p>
                 </div>
             </div>
