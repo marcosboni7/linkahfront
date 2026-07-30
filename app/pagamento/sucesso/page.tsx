@@ -1,763 +1,245 @@
-const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+'use client';
 
-if (!stripeSecretKey) {
-  console.error('❌ STRIPE_SECRET_KEY não definida no ambiente.');
-}
+import { useEffect, useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { 
+  Ticket, Download, ArrowRight, Loader2, Calendar, User, 
+  Hash, MapPin, AlertCircle, CheckCircle2, Verified, 
+  ExternalLink, Video, Globe 
+} from 'lucide-react';
+import Link from 'next/link';
+import { useLanguage } from '@/app/context/LanguageContext';
 
-const stripe = require('stripe')(stripeSecretKey || '');
-const db = require('../config/database');
-const { enviarIngressoEmail } = require('../services/emailService');
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api-linkah.onrender.com';
 
-const FRONTEND_URL = process.env.FRONTEND_URL || 'https://linkah.eu';
+function TicketVisual() {
+  const searchParams = useSearchParams();
+  
+  // CORREÇÃO: Blindagem com Optional Chaining para não quebrar no build do Next/TS
+  const sessionId = searchParams?.get?.('session_id');
+  
+  const [loading, setLoading] = useState(true);
+  const [erro, setErro] = useState(false);
+  const [compra, setCompra] = useState<any>(null);
+  
+  const { language }: any = useLanguage();
 
-// ======================================================
-// PAÍSES SUPORTADOS PARA CRIAÇÃO DE CONTA STRIPE CONNECT
-// ======================================================
+  useEffect(() => {
+    let tentativas = 0;
+    const maxTentativas = 12;
 
-const PAISES_SUPORTADOS = [
-  'BR', 'PT', 'US', 'ES', 'FR', 'GB', 'DE', 'IT',
-  'AR', 'MX', 'CA', 'NL', 'IE', 'CH', 'AT', 'BE'
-];
+    async function buscar() {
+      if (!sessionId) { 
+        setLoading(false); 
+        setErro(true);
+        return; 
+      }
 
-// ======================================================
-// FUNÇÕES AUXILIARES
-// ======================================================
+      try {
+        const res = await fetch(`${API_URL}/api/pagamento/detalhes/${sessionId}`);
+        const textoResponse = await res.text();
 
-function isValidHttpUrl(value) {
-  try {
-    const url = new URL(value);
-    return url.protocol === 'http:' || url.protocol === 'https:';
-  } catch {
-    return false;
-  }
-}
-
-function safeString(value, fallback = '') {
-  if (value === null || value === undefined) return fallback;
-  return String(value);
-}
-
-function safeNumber(value, fallback = 0) {
-  const num = Number(value);
-  return Number.isFinite(num) ? num : fallback;
-}
-
-function safeInt(value, fallback = 0) {
-  const num = parseInt(value, 10);
-  return Number.isFinite(num) ? num : fallback;
-}
-
-function getErrorMessage(err) {
-  if (!err) return 'Erro desconhecido';
-  if (typeof err === 'string') return err;
-  if (typeof err.message === 'string' && err.message.trim()) return err.message;
-  return 'Erro interno no servidor de pagamentos';
-}
-
-function normalizeCurrency(input) {
-  if (input === null || input === undefined) return 'brl';
-
-  const raw = String(input).trim().toUpperCase();
-
-  if (['R$', 'REAL', 'REAIS', 'BRL'].includes(raw)) return 'brl';
-  if (['€', 'EURO', 'EUROS', 'EUR'].includes(raw)) return 'eur';
-  if (['$', 'DOLAR', 'DÓLAR', 'DOLARES', 'DÓLARES', 'USD'].includes(raw)) return 'usd';
-
-  return 'brl';
-}
-
-function formatDateBR(dateValue) {
-  try {
-    if (!dateValue) return 'Data a definir';
-    return new Date(dateValue).toLocaleDateString('pt-BR');
-  } catch {
-    return 'Data a definir';
-  }
-}
-
-function parseQuantidades(rawQuantidades) {
-  const resultado = {};
-
-  if (!rawQuantidades || typeof rawQuantidades !== 'object' || Array.isArray(rawQuantidades)) {
-    return resultado;
-  }
-
-  for (const [key, value] of Object.entries(rawQuantidades)) {
-    const id = String(key).trim();
-    const qtd = safeInt(value, 0);
-
-    if (id && qtd > 0) {
-      resultado[id] = qtd;
+        if (res.ok && textoResponse && textoResponse.trim().length > 0) {
+          const data = JSON.parse(textoResponse);
+          setCompra(data);
+          setLoading(false);
+        } else {
+          if (tentativas < maxTentativas) {
+            tentativas++;
+            setTimeout(buscar, 4000); 
+          } else {
+            setLoading(false);
+            setErro(true);
+          }
+        }
+      } catch (e) {
+        if (tentativas < maxTentativas) {
+          tentativas++;
+          setTimeout(buscar, 4000);
+        } else {
+          setLoading(false);
+          setErro(true);
+        }
+      }
     }
-  }
+    buscar();
+  }, [sessionId, API_URL]);
 
-  return resultado;
-}
-
-function normalizeCountryCode(pais) {
-  if (!pais || typeof pais !== 'string') return null;
-
-  const codigo = pais.trim().toUpperCase();
-
-  if (!/^[A-Z]{2}$/.test(codigo)) return null;
-
-  return codigo;
-}
-
-// ======================================================
-// INSCRIÇÃO GRATUITA (SEM STRIPE)
-// ======================================================
-// Usada quando o total calculado é 0 — o Stripe não aceita cobranças
-// de valor zero, então para ingressos/eventos gratuitos gravamos a
-// "compra" direto como aprovada, sem passar pelo checkout de pagamento.
-async function registrarInscricaoGratuita({
-  res,
-  ev,
-  usuarioEmail,
-  usuarioNome,
-  quantidadeFinal,
-  moedaFinal,
-  afiliadoId,
-  comissaoPercentual,
-  nomeCracha,
-  instagramUser,
-  alergias,
-  comoConheceu,
-  baseUrl,
-}) {
-  const crypto = require('crypto');
-  const sessionIdFake = `FREE-${crypto.randomUUID()}`;
-
-  await db.query(
-    `INSERT INTO public.compras
-      (usuario_email, evento_id, evento_nome, data_evento, quantidade, valor_total, status, stripe_session_id, afiliado_id, valor_comissao, nome_cracha, instagram_user, alergias, como_conheceu)
-      VALUES ($1, $2, $3, $4, $5, $6, 'Aprovado', $7, $8, $9, $10, $11, $12, $13)`,
-    [
-      safeString(usuarioEmail),
-      ev.id,
-      safeString(ev.nome, 'Evento'),
-      new Date(),
-      quantidadeFinal,
-      0,
-      sessionIdFake,
-      afiliadoId || null,
-      0,
-      nomeCracha || null,
-      instagramUser || null,
-      alergias || null,
-      comoConheceu || null,
-    ]
+  if (loading) return (
+    <div className="flex flex-col items-center justify-center min-h-screen bg-white gap-4">
+      <Loader2 className="animate-spin text-[#C22973]" size={40} />
+      <p className="font-black text-slate-400 uppercase tracking-widest italic animate-pulse text-xs text-center px-6">
+        {language === 'PT' ? 'Sincronizando com a rede AWS...' : 'Syncing with AWS network...'} <br/>
+        {language === 'PT' ? 'Gerando seu ticket oficial' : 'Generating your official ticket'}
+      </p>
+    </div>
   );
 
-  const dataEventoFormatada = formatDateBR(ev.data_inicio);
-  const horaEvento = safeString(ev.hora_inicio, 'Horário a definir');
-  const localEvento =
-    safeString(ev.local_nome) ||
-    (safeString(ev.tipo).toLowerCase() === 'online'
-      ? safeString(ev.link_reuniao, 'Evento online')
-      : 'Local a definir');
+  if (erro || !compra) return (
+    <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 px-6 text-center gap-4">
+      <AlertCircle className="text-[#C22973]" size={40} />
+      <h3 className="font-black text-slate-800 uppercase italic text-xl">
+        {language === 'PT' ? 'Processando Registro' : 'Processing Record'}
+      </h3>
+      <button onClick={() => window.location.reload()} className="bg-[#C22973] text-white px-10 py-4 rounded-full font-bold uppercase text-xs shadow-lg transition-transform active:scale-95">
+        {language === 'PT' ? 'Atualizar Agora' : 'Refresh Now'}
+      </button>
+    </div>
+  );
 
-  try {
-    await enviarIngressoEmail(safeString(usuarioEmail), {
-      tituloEvento: safeString(ev.nome, 'Evento'),
-      quantidade: safeString(quantidadeFinal, '1'),
-      linkIngresso: `${baseUrl}/pagamento/sucesso?session_id=${sessionIdFake}`,
-      dataEvento: safeString(dataEventoFormatada, 'A confirmar'),
-      horaEvento: safeString(horaEvento, 'A confirmar'),
-      localEvento: safeString(localEvento, 'Local a definir'),
-      tipo: safeString(ev.tipo, 'presencial'),
-    });
-  } catch (emailErr) {
-    console.error('❌ Erro ao enviar e-mail de inscrição gratuita:', emailErr);
-  }
+  const isOnline = compra.tipo_evento === 'Online' || !!compra.link_reuniao;
 
-  console.log(`✅ Inscrição gratuita registrada | Evento: ${ev.id} | Email: ${usuarioEmail}`);
+  return (
+    <main className="max-w-2xl mx-auto px-4 py-12 min-h-screen bg-white">
+      <style jsx global>{`
+        @media print { .no-print { display: none !important; } }
+        .ticket-mask {
+          mask-image: radial-gradient(circle at 0 75%, transparent 15px, black 16px), 
+                      radial-gradient(circle at 100% 75%, transparent 15px, black 16px);
+        }
+      `}</style>
 
-  return res.json({
-    url: `${baseUrl}/pagamento/sucesso?session_id=${sessionIdFake}`,
-    gratuito: true,
-    total: 0,
-    quantidade: quantidadeFinal,
-    moeda: moedaFinal.toUpperCase(),
-  });
+      <div className="text-center mb-10 no-print">
+        <div className="inline-flex items-center gap-2 bg-emerald-50 text-emerald-600 px-5 py-2.5 rounded-full mb-6 border border-emerald-100 shadow-sm">
+          <CheckCircle2 size={16} />
+          <span className="font-bold text-[10px] uppercase tracking-widest">
+            {language === 'PT' ? 'Pagamento Aprovado via Stripe' : 'Payment Approved via Stripe'}
+          </span>
+        </div>
+        <h1 className="text-slate-900 font-black text-3xl italic tracking-tighter uppercase leading-none">
+          {language === 'PT' ? 'Sua entrada está liberada!' : 'Your entry is granted!'}
+        </h1>
+      </div>
+
+      <div className="ticket-card ticket-mask bg-white rounded-[3rem] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.1)] overflow-hidden border border-slate-100 relative mb-10">
+        <div className="bg-gradient-to-br from-[#C22973] to-[#8a1d52] p-10 text-center relative overflow-hidden">
+          <h1 className="text-white font-black italic text-5xl tracking-tighter relative z-10 mb-1">LINKAH.</h1>
+          <p className="text-pink-100 font-bold text-[10px] uppercase tracking-[0.4em] relative z-10 opacity-80">Official Ticket • AWS Secured</p>
+        </div>
+
+        <div className="p-8 md:p-10 space-y-8">
+          <div className="text-center space-y-3">
+            <h2 className="text-4xl font-black text-slate-900 uppercase italic tracking-tighter leading-[0.9]">
+              {compra.evento_nome}
+            </h2>
+            <div className="flex items-center justify-center gap-2 text-[#C22973] font-bold text-[11px] uppercase tracking-widest">
+               <Verified size={14} className="fill-[#C22973] text-white" /> 
+               {language === 'PT' ? 'Ingresso Original' : 'Original Ticket'}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50/50 rounded-[2.5rem] p-6 md:p-8 border border-slate-100">
+            <div className="flex items-center gap-4">
+              <div className="bg-white p-3 rounded-2xl shadow-sm border border-slate-100 text-[#C22973]"><User size={22} /></div>
+              <div className="min-w-0">
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">{language === 'PT' ? 'Comprador' : 'Buyer'}</p>
+                <p className="font-bold text-slate-700 text-sm truncate">{compra.usuario_email}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <div className="bg-white p-3 rounded-2xl shadow-sm border border-slate-100 text-[#C22973]"><Hash size={22} /></div>
+              <div>
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">{language === 'PT' ? 'Quantidade' : 'Quantity'}</p>
+                <p className="font-bold text-slate-700 text-sm">{compra.quantidade} {language === 'PT' ? 'Pessoas' : 'People'}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <div className="bg-white p-3 rounded-2xl shadow-sm border border-slate-100 text-[#C22973]"><Calendar size={22} /></div>
+              <div>
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">{language === 'PT' ? 'Data' : 'Date'}</p>
+                <p className="font-bold text-slate-700 text-sm uppercase">{compra.data_evento ? new Date(compra.data_evento).toLocaleDateString('pt-BR') : 'A confirmar'}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <div className="bg-white p-3 rounded-2xl shadow-sm border border-slate-100 text-[#C22973]"><MapPin size={22} /></div>
+              <div className="min-w-0">
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">{language === 'PT' ? 'Local' : 'Venue'}</p>
+                <p className="font-bold text-slate-700 text-sm uppercase truncate">
+                  {isOnline ? 'Plataforma Online' : (compra.local_evento || 'A confirmar')}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {isOnline && compra.link_reuniao && (
+            <div className="bg-pink-50/50 border-2 border-pink-100 rounded-[2.5rem] p-6 text-center animate-in zoom-in-95 duration-500">
+              <div className="flex items-center justify-center gap-2 mb-3 text-[#C22973]">
+                <Globe size={18} />
+                <p className="text-[10px] font-black uppercase tracking-[0.2em]">
+                  {language === 'PT' ? 'Acesso Liberado para a Live' : 'Live Stream Access Granted'}
+                </p>
+              </div>
+              <a 
+                href={compra.link_reuniao} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-slate-900 font-bold text-xs break-all hover:underline flex items-center justify-center gap-2 bg-white px-4 py-2 rounded-xl shadow-sm"
+              >
+                {compra.link_reuniao} <ExternalLink size={14} className="text-[#C22973]" />
+              </a>
+            </div>
+          )}
+
+          <div className="relative border-t-2 border-dashed border-slate-200 pt-10 flex flex-col items-center space-y-6">
+            <div className="bg-white p-6 rounded-[2.5rem] border-2 border-slate-50 shadow-2xl shadow-pink-500/10">
+               <img 
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${sessionId}&color=0f172a`} 
+                alt="QR Code"
+                className="w-40 h-40"
+               />
+            </div>
+            <div className="text-center space-y-2">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">
+                   {language === 'PT' ? 'Apresente este QR Code' : 'Show this QR Code'}
+                </p>
+                <div className="inline-block text-[11px] bg-slate-900 px-4 py-1.5 rounded-full text-white font-mono font-bold tracking-widest">
+                  {sessionId?.slice(-12).toUpperCase()}
+                </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-4 no-print max-w-sm mx-auto">
+        {isOnline && (
+          <a 
+            href={compra.link_reuniao}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full bg-gradient-to-r from-[#C22973] to-[#8a1d52] text-white py-5 rounded-3xl font-black uppercase text-[11px] tracking-widest flex items-center justify-center gap-3 shadow-[0_20px_40px_-10px_rgba(194,41,115,0.4)] hover:scale-105 transition-all"
+          >
+             <Video size={18}/> {language === 'PT' ? 'Acessar Live Agora' : 'Watch Live Now'}
+          </a>
+        )}
+
+        <button 
+          onClick={() => window.print()} 
+          className="w-full bg-slate-900 text-white py-5 rounded-3xl font-black uppercase text-[11px] tracking-widest flex items-center justify-center gap-3 shadow-2xl hover:bg-black transition-all"
+        >
+          <Download size={18}/> {language === 'PT' ? 'Salvar Ingresso' : 'Save Ticket'}
+        </button>
+        
+        <Link 
+          href="/" 
+          className="w-full bg-slate-50 text-slate-500 py-5 rounded-3xl font-black uppercase text-[11px] tracking-widest flex items-center justify-center gap-3 border border-slate-100"
+        >
+          {language === 'PT' ? 'Voltar para o Início' : 'Back to Home'} <ArrowRight size={18}/>
+        </Link>
+      </div>
+    </main>
+  );
 }
 
-// ======================================================
-// 1. CRIAR SESSÃO DE CHECKOUT
-// ======================================================
-
-exports.criarSessaoCheckout = async (req, res) => {
-  try {
-    if (!process.env.STRIPE_SECRET_KEY) {
-      return res.status(500).json({ error: 'STRIPE_SECRET_KEY não configurada.' });
-    }
-
-    const {
-      evento,
-      usuarioEmail,
-      usuarioNome,
-      quantidade,
-      quantidades,
-      afiliadoId,
-      comissaoPercentual,
-      nomeCracha,
-      instagramUser,
-      alergias,
-      comoConheceu
-    } = req.body;
-
-    const baseUrl = FRONTEND_URL;
-
-    if (!isValidHttpUrl(baseUrl)) {
-      return res.status(500).json({ error: 'FRONTEND_URL inválida ou ausente.' });
-    }
-
-    if (!evento?.id) {
-      return res.status(400).json({ error: 'ID do evento não informado.' });
-    }
-
-    if (!usuarioEmail) {
-      return res.status(400).json({ error: 'E-mail do comprador não informado.' });
-    }
-
-    const quantidadesSelecionadas = parseQuantidades(quantidades);
-
-    const dadosEventoBD = await db.query(
-      `SELECT 
-        e.id,
-        e.nome,
-        e.data_inicio,
-        e.hora_inicio,
-        e.local_nome,
-        e.preco,
-        e.tipo,
-        e.link_reuniao,
-        e.moeda,
-        e.taxa_plataforma,
-        COALESCE(p.stripe_account_id, u.stripe_account_id) AS stripe_account_id
-      FROM public.eventos e
-      LEFT JOIN public.produtores p ON e.produtor_email = p.email
-      LEFT JOIN public.usuarios u ON e.produtor_email = u.email
-      WHERE e.id = $1
-      LIMIT 1`,
-      [evento.id]
-    );
-
-    if (dadosEventoBD.rows.length === 0) {
-      return res.status(404).json({ error: 'Evento não encontrado.' });
-    }
-
-    const ev = dadosEventoBD.rows[0];
-
-    const ingressosBD = await db.query(
-      `SELECT 
-        id,
-        nome,
-        preco,
-        moeda
-      FROM public.ingressos
-      WHERE evento_id = $1
-      ORDER BY id ASC`,
-      [evento.id]
-    );
-
-    const ingressos = Array.isArray(ingressosBD.rows) ? ingressosBD.rows : [];
-    const existeSelecaoDeIngressos = Object.keys(quantidadesSelecionadas).length > 0;
-    const eventoTemIngressos = ingressos.length > 0;
-
-    let moedaFinal = normalizeCurrency(ev.moeda || evento?.moeda || 'BRL');
-    let totalFinal = 0;
-    let quantidadeFinal = 0;
-    let descricaoItens = [];
-    let metadataIngressos = [];
-
-    if (eventoTemIngressos && existeSelecaoDeIngressos) {
-      const mapaIngressos = new Map();
-
-      for (const ing of ingressos) {
-        mapaIngressos.set(String(ing.id), ing);
-      }
-
-      for (const [ingressoId, qtd] of Object.entries(quantidadesSelecionadas)) {
-        const ingresso = mapaIngressos.get(String(ingressoId));
-
-        if (!ingresso) continue;
-
-        const precoUnitario = safeNumber(ingresso.preco, 0);
-        const moedaIngresso = normalizeCurrency(ingresso.moeda || ev.moeda || 'BRL');
-
-        // Ingressos gratuitos (preco = 0) são válidos e CONTAM na seleção —
-        // eles só não somam valor ao total. Antes, este trecho pulava
-        // (`continue`) qualquer ingresso com preco <= 0, o que fazia a
-        // seleção inteira ser descartada e disparava o erro
-        // "Nenhum ingresso válido com preço configurado foi selecionado."
-
-        if (quantidadeFinal === 0) {
-          moedaFinal = moedaIngresso;
-        } else if (moedaIngresso !== moedaFinal) {
-          return res.status(400).json({
-            error: 'Os ingressos selecionados possuem moedas diferentes. Ajuste os ingressos antes de continuar.',
-          });
-        }
-
-        totalFinal += precoUnitario * qtd;
-        quantidadeFinal += qtd;
-
-        descricaoItens.push(`${qtd}x ${safeString(ingresso.nome, 'Ingresso')}`);
-        metadataIngressos.push({
-          id: String(ingresso.id),
-          nome: safeString(ingresso.nome, 'Ingresso'),
-          quantidade: qtd,
-          preco: precoUnitario,
-          moeda: moedaIngresso.toUpperCase(),
-        });
-      }
-
-      if (quantidadeFinal <= 0) {
-        return res.status(400).json({
-          error: 'Nenhum ingresso válido foi selecionado.',
-        });
-      }
-    } else {
-      const precoEvento = safeNumber(ev.preco, 0);
-      quantidadeFinal = safeInt(quantidade, 1);
-      moedaFinal = normalizeCurrency(ev.moeda || evento?.moeda || 'BRL');
-
-      if (quantidadeFinal <= 0) {
-        return res.status(400).json({
-          error: 'Quantidade inválida para o checkout.',
-        });
-      }
-
-      // precoEvento pode ser 0 (evento gratuito) — tratado abaixo.
-      totalFinal = precoEvento * quantidadeFinal;
-      descricaoItens.push(`${quantidadeFinal}x Ingresso`);
-    }
-
-    // --- EVENTO/INGRESSO GRATUITO: pula o Stripe inteiramente ---
-    // O Stripe não aceita cobranças de valor 0, então quando o total
-    // calculado é 0 registramos a inscrição direto como aprovada.
-    if (totalFinal <= 0) {
-      return await registrarInscricaoGratuita({
-        res,
-        ev,
-        usuarioEmail,
-        usuarioNome,
-        quantidadeFinal,
-        moedaFinal,
-        afiliadoId,
-        comissaoPercentual,
-        nomeCracha,
-        instagramUser,
-        alergias,
-        comoConheceu,
-        baseUrl,
-      });
-    }
-
-    const totalEmCentavos = Math.round(totalFinal * 100);
-
-    if (totalEmCentavos < 50) {
-      return res.status(400).json({
-        error: `O valor total deve ser pelo menos 0.50 ${moedaFinal.toUpperCase()}.`,
-      });
-    }
-
-    const dataEventoFormatada = formatDateBR(ev.data_inicio);
-    const horaEvento = safeString(ev.hora_inicio, 'Horário a definir');
-    const localEvento =
-      safeString(ev.local_nome) ||
-      (safeString(ev.tipo).toLowerCase() === 'online'
-        ? safeString(ev.link_reuniao, 'Evento online')
-        : 'Local a definir');
-
-    const descricaoStripe =
-      descricaoItens.length > 0
-        ? descricaoItens.join(' | ')
-        : `Data: ${dataEventoFormatada}`;
-
-    const sessionParams = {
-      payment_method_types: ['card'],
-      customer_email: safeString(usuarioEmail),
-      line_items: [
-        {
-          price_data: {
-            currency: moedaFinal,
-            product_data: {
-              name: `Ingresso: ${safeString(ev.nome, 'Evento')}`,
-              description: descricaoStripe,
-            },
-            unit_amount: totalEmCentavos,
-          },
-          quantity: 1,
-        },
-      ],
-      mode: 'payment',
-      metadata: {
-        usuarioEmail: safeString(usuarioEmail),
-        usuarioNome: safeString(usuarioNome),
-        eventoId: safeString(ev.id),
-        tituloEvento: safeString(ev.nome, 'Evento'),
-        quantidade: safeString(quantidadeFinal),
-        moeda: moedaFinal.toUpperCase(),
-        taxaAplicada: safeString(ev.taxa_plataforma || '0.05'),
-        dataEvento: safeString(dataEventoFormatada, 'Data a confirmar'),
-        horaEvento: safeString(horaEvento, 'Horário a confirmar'),
-        localEvento: safeString(localEvento, 'Local a definir'),
-        tipoEvento: safeString(ev.tipo, 'presencial'),
-        itensResumo: safeString(descricaoItens.join(' | ')),
-        valorTotal: safeString(totalFinal),
-        ingressosJson: JSON.stringify(metadataIngressos).slice(0, 490),
-        afiliadoId: safeString(afiliadoId),
-        comissaoPercentual: safeString(comissaoPercentual || '10'),
-        nomeCracha: safeString(nomeCracha),
-        instagramUser: safeString(instagramUser),
-        alergias: safeString(alergias),
-        comoConheceu: safeString(comoConheceu),
-      },
-      success_url: `${baseUrl}/pagamento/sucesso?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${baseUrl}/venda?eventoId=${ev.id}`,
-    };
-
-    if (ev.stripe_account_id) {
-      const taxaStaff = safeNumber(ev.taxa_plataforma, 0.05);
-      const comissaoLinkah = Math.round(totalEmCentavos * taxaStaff);
-
-      sessionParams.payment_intent_data = {
-        application_fee_amount: comissaoLinkah,
-        transfer_data: { destination: ev.stripe_account_id },
-      };
-
-      console.log(
-        `✅ Checkout Connect | Evento: ${ev.id} | Total: ${moedaFinal.toUpperCase()} ${totalFinal} | Taxa Linkah: ${taxaStaff * 100}%`
-      );
-    } else {
-      console.log(
-        `✅ Checkout padrão | Evento: ${ev.id} | Total: ${moedaFinal.toUpperCase()} ${totalFinal}`
-      );
-    }
-
-    const session = await stripe.checkout.sessions.create(sessionParams);
-
-    return res.json({
-      url: session.url,
-      total: totalFinal,
-      quantidade: quantidadeFinal,
-      moeda: moedaFinal.toUpperCase(),
-    });
-  } catch (err) {
-    console.error('❌ Erro Stripe Checkout:', err);
-    return res.status(500).json({ error: getErrorMessage(err) });
-  }
-};
-
-// ======================================================
-// 2. VINCULAR CONTA DO PRODUTOR (COM VALIDAÇÃO DE PAÍS)
-// ======================================================
-
-exports.vincularContaStripe = async (req, res) => {
-  try {
-    const { email, pais } = req.body;
-
-    if (!email) {
-      return res.status(400).json({ error: 'E-mail não informado.' });
-    }
-
-    const produtorResult = await db.query(
-      'SELECT stripe_account_id FROM public.produtores WHERE email = $1 LIMIT 1',
-      [email]
-    );
-
-    const usuarioResult = await db.query(
-      'SELECT stripe_account_id FROM public.usuarios WHERE email = $1 LIMIT 1',
-      [email]
-    );
-
-    const registro = produtorResult.rows[0] || usuarioResult.rows[0];
-    let stripeAccountId = registro?.stripe_account_id || null;
-
-    // Só valida e exige o país quando ainda não existe uma conta vinculada.
-    // Se a conta já existe, o país já foi definido antes e não muda mais.
-    if (!stripeAccountId) {
-      const countryCode = normalizeCountryCode(pais);
-
-      if (!countryCode) {
-        return res.status(400).json({
-          error: 'País não informado ou inválido. Envie um código de país no formato ISO (ex: BR, PT, US).',
-        });
-      }
-
-      if (!PAISES_SUPORTADOS.includes(countryCode)) {
-        return res.status(400).json({
-          error: `País "${countryCode}" não é suportado no momento. Países disponíveis: ${PAISES_SUPORTADOS.join(', ')}.`,
-        });
-      }
-
-      const account = await stripe.accounts.create({
-        type: 'express',
-        email,
-        country: countryCode,
-        capabilities: {
-          card_payments: { requested: true },
-          transfers: { requested: true },
-        },
-      });
-
-      stripeAccountId = account.id;
-
-      await db.query(
-        'UPDATE public.produtores SET stripe_account_id = $1 WHERE email = $2',
-        [stripeAccountId, email]
-      );
-
-      await db.query(
-        'UPDATE public.usuarios SET stripe_account_id = $1 WHERE email = $2',
-        [stripeAccountId, email]
-      );
-
-      console.log(`✅ Nova conta Stripe Connect criada | País: ${countryCode} | Email: ${email}`);
-    }
-
-    const accountLink = await stripe.accountLinks.create({
-      account: stripeAccountId,
-      refresh_url: `${FRONTEND_URL}/dashboard/perfil`,
-      return_url: `${FRONTEND_URL}/dashboard/perfil?stripe_callback=true`,
-      type: 'account_onboarding',
-    });
-
-    return res.json({ ok: true, url: accountLink.url });
-  } catch (err) {
-    console.error('❌ Erro ao vincular conta Stripe:', err);
-    return res.status(500).json({ error: getErrorMessage(err) });
-  }
-};
-
-// ======================================================
-// 3. VERIFICAR STATUS DA CONTA
-// ======================================================
-
-exports.verificarStatusStripe = async (req, res) => {
-  try {
-    const { email } = req.query;
-
-    if (!email) {
-      return res.status(400).json({ error: 'E-mail não informado.' });
-    }
-
-    const result = await db.query(
-      'SELECT stripe_account_id FROM public.produtores WHERE email = $1 LIMIT 1',
-      [email]
-    );
-
-    const stripeAccountId = result.rows[0]?.stripe_account_id;
-
-    if (!stripeAccountId) {
-      return res.json({ conectado: false });
-    }
-
-    const account = await stripe.accounts.retrieve(stripeAccountId);
-    const temPendencias = account?.requirements?.currently_due?.length > 0;
-    const estaHabilitado = !!account.charges_enabled && !!account.payouts_enabled;
-
-    return res.json({
-      conectado: true,
-      status_banco: estaHabilitado && !temPendencias ? 'Ativo' : 'Pendente',
-      details_submitted: !!account.details_submitted,
-      charges_enabled: !!account.charges_enabled,
-      payouts_enabled: !!account.payouts_enabled,
-      business_name: account.settings?.dashboard?.display_name || 'Conta Vinculada',
-    });
-  } catch (err) {
-    console.error('❌ Erro ao verificar status Stripe:', err);
-    return res.status(500).json({ error: getErrorMessage(err) });
-  }
-};
-
-// ======================================================
-// 4. WEBHOOK
-// ======================================================
-
-exports.webhookStripe = async (req, res) => {
-  const sig = req.headers['stripe-signature'];
-  let event;
-
-  try {
-    event = stripe.webhooks.constructEvent(
-      req.body,
-      sig,
-      process.env.STRIPE_WEBHOOK_SECRET
-    );
-  } catch (err) {
-    console.error('❌ Erro na validação do webhook:', err.message);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
-  }
-
-  if (event.type === 'checkout.session.completed') {
-    const session = event.data.object;
-    const meta = session.metadata || {};
-
-    try {
-      const idEvento = safeInt(meta.eventoId, 0);
-      const quantidadeComprada = safeInt(meta.quantidade, 1);
-      const valorTotal = safeNumber(session.amount_total, 0) / 100;
-
-      const afiliadoId = meta.afiliadoId || null;
-      const pctTaxa = safeNumber(meta.comissaoPercentual, 10);
-
-      let valorComissao = 0;
-      if (afiliadoId && afiliadoId.trim() !== '') {
-        valorComissao = valorTotal * (pctTaxa / 100);
-        console.log(`💰 Comissão Afiliado (${afiliadoId}): R$ ${valorComissao.toFixed(2)} (${pctTaxa}%)`);
-      }
-
-      await db.query(
-        `INSERT INTO public.compras
-          (usuario_email, evento_id, evento_nome, data_evento, quantidade, valor_total, status, stripe_session_id, afiliado_id, valor_comissao, nome_cracha, instagram_user, alergias, como_conheceu)
-          VALUES ($1, $2, $3, $4, $5, $6, 'Aprovado', $7, $8, $9, $10, $11, $12, $13)
-          ON CONFLICT (stripe_session_id) DO NOTHING`,
-        [
-          safeString(meta.usuarioEmail),
-          idEvento,
-          safeString(meta.tituloEvento, 'Evento'),
-          new Date(),
-          quantidadeComprada,
-          valorTotal,
-          session.id,
-          afiliadoId,
-          valorComissao,
-          meta.nomeCracha || null,
-          meta.instagramUser || null,
-          meta.alergias || null,
-          meta.comoConheceu || null
-        ]
-      );
-
-      await enviarIngressoEmail(safeString(meta.usuarioEmail), {
-        tituloEvento: safeString(meta.tituloEvento, 'Evento'),
-        quantidade: safeString(meta.quantidade, '1'),
-        linkIngresso: `${FRONTEND_URL}/pagamento/sucesso?session_id=${session.id}`,
-        dataEvento: safeString(meta.dataEvento, 'A confirmar'),
-        horaEvento: safeString(meta.horaEvento, 'A confirmar'),
-        localEvento: safeString(meta.localEvento, 'Local a definir'),
-        tipo: safeString(meta.tipoEvento, 'presencial'),
-      });
-    } catch (err) {
-      console.error('❌ Erro Processamento Webhook:', err);
-    }
-  }
-
-  return res.json({ received: true });
-};
-
-// ======================================================
-// 5. BUSCAR DETALHES
-// ======================================================
-
-exports.buscarDetalhesCompra = async (req, res) => {
-  try {
-    const { sessionId } = req.params;
-
-    if (!sessionId) {
-      return res.status(400).json({ error: 'sessionId não informado.' });
-    }
-
-    const result = await db.query(
-      `SELECT 
-        c.*,
-        e.hora_inicio AS hora_evento,
-        e.local_nome AS local_evento,
-        e.link_reuniao,
-        e.tipo
-      FROM public.compras c
-      LEFT JOIN public.eventos e ON e.id = c.evento_id::integer
-      WHERE c.stripe_session_id = $1`,
-      [sessionId]
-    );
-
-    if (result.rows.length > 0) {
-      return res.json(result.rows[0]);
-    }
-
-    // Inscrições gratuitas usam um ID sintético ("FREE-...") que nunca
-    // existe no Stripe — não faz sentido tentar consultar a API deles.
-    if (sessionId.startsWith('FREE-')) {
-      return res.status(404).json({ error: 'Compra não encontrada.' });
-    }
-
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
-
-    if (session.payment_status === 'paid') {
-      return res.json({
-        usuario_email: session.metadata?.usuarioEmail,
-        evento_nome: session.metadata?.tituloEvento,
-        valor_total: safeNumber(session.amount_total, 0) / 100,
-        status: 'Aprovado',
-      });
-    }
-
-    return res.status(404).json({ error: 'Compra não encontrada.' });
-  } catch (err) {
-    console.error('❌ Erro ao buscar detalhes da compra:', err);
-    return res.status(500).json({ error: getErrorMessage(err) });
-  }
-};
-
-// ======================================================
-// 6. LISTAR MEUS INGRESSOS
-// ======================================================
-
-exports.listarMeusIngressos = async (req, res) => {
-  try {
-    const { email } = req.query;
-
-    if (!email) {
-      return res.status(400).json({ error: 'E-mail não informado.' });
-    }
-
-    const result = await db.query(
-      `SELECT 
-        c.*,
-        e.link_reuniao,
-        TO_CHAR(c.data_evento::timestamp, 'DD/MM/YYYY') AS data
-      FROM public.compras c
-      LEFT JOIN public.eventos e ON e.id = c.evento_id::integer
-      WHERE c.usuario_email = $1
-      ORDER BY c.id DESC`,
-      [email]
-    );
-
-    return res.json(result.rows);
-  } catch (err) {
-    console.error('❌ Erro ao listar ingressos:', err);
-    return res.status(500).json({ error: 'Erro ao buscar ingressos.' });
-  }
-};
-
-exports.buscarComprasPorEvento = async (req, res) => {
-  try {
-    const { idEvento } = req.params;
-
-    if (!idEvento) {
-      return res.status(400).json({ error: 'ID do evento não informado.' });
-    }
-
-    const result = await db.query(
-      `SELECT 
-        usuario_email,
-        nome_cracha,
-        instagram_user,
-        alergias,
-        como_conheceu,
-        status
-      FROM public.compras
-      WHERE evento_id = $1
-      ORDER BY id DESC`,
-      [String(safeInt(idEvento, 0))]
-    );
-
-    return res.json(result.rows);
-  } catch (err) {
-    console.error('❌ Erro ao buscar participantes do evento:', err);
-    return res.status(500).json({ error: 'Erro interno ao listar participantes.' });
-  }
-};
+// Componente Wrapper principal exportado no Next.js
+export default function PaginaSucesso() {
+  return (
+    <div className="bg-slate-50 min-h-screen">
+      <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="animate-spin" /></div>}>
+        <TicketVisual />
+      </Suspense>
+    </div>
+  );
+}
