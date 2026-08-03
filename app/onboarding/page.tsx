@@ -14,7 +14,7 @@ export default function OnboardingPage() {
     setor: '',
     generoFilme: '',
     personalidade: '',
-    qualidades: []
+    qualidades: [] as string[]
   });
 
   // Lista de opções pré-definidas para as escolhas
@@ -25,13 +25,13 @@ export default function OnboardingPage() {
 
   useEffect(() => {
     // Verifica se o usuário está logado pegando o token do localStorage
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('token') || localStorage.getItem('@Linkah:Token');
     if (!token) {
       router.push('/login');
     }
   }, [router]);
 
-  const handleQualidadeToggle = (qualidade) => {
+  const handleQualidadeToggle = (qualidade: string) => {
     setFormData((prev) => {
       const atual = prev.qualidades;
       if (atual.includes(qualidade)) {
@@ -46,13 +46,13 @@ export default function OnboardingPage() {
     });
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('token') || localStorage.getItem('@Linkah:Token');
       const response = await fetch('http://localhost:3001/api/onboarding', {
         method: 'POST',
         headers: {
@@ -68,14 +68,14 @@ export default function OnboardingPage() {
         throw new Error(data.error || 'Erro ao salvar preferências.');
       }
 
-      // Sucesso! Atualiza os dados locais do usuário se necessário e vai para a tela de matches
-      const localUser = JSON.parse(localStorage.getItem('user') || '{}');
+      // Sucesso! Atualiza os dados locais do usuário e vai para a tela de matches
+      const localUser = JSON.parse(localStorage.getItem('@Linkah:User') || '{}');
       localUser.hasOnboarding = true;
-      localStorage.setItem('user', JSON.stringify(localUser));
+      localStorage.setItem('@Linkah:User', JSON.stringify(localUser));
 
       router.push('/matches');
-    } catch (err) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Erro ao salvar preferências.');
     } finally {
       setLoading(false);
     }
