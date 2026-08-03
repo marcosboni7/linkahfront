@@ -19,6 +19,7 @@ type Usuario = {
   nome: string;
   email?: string;
   role?: string;
+  hasOnboarding?: boolean;
 };
 
 export default function LoginPage() {
@@ -98,6 +99,7 @@ export default function LoginPage() {
 
       if (token) {
         localStorage.setItem('@Linkah:Token', token);
+        localStorage.setItem('token', token);
       }
 
       localStorage.setItem('@Linkah:User', JSON.stringify(usuarioParaSalvar));
@@ -110,8 +112,15 @@ export default function LoginPage() {
 
       alert('Logado com sucesso!');
 
+      // CORREÇÃO: Se não tiver a flag de onboarding explicitamente como true, vai para o onboarding
+      const precisaOnboarding = usuarioParaSalvar.hasOnboarding !== true;
+
       setTimeout(() => {
-        window.location.href = '/';
+        if (precisaOnboarding) {
+          window.location.href = '/onboarding';
+        } else {
+          window.location.href = '/matches';
+        }
       }, 500);
     } catch (err: any) {
       if (err?.name === 'AbortError') {
