@@ -11,7 +11,7 @@ export default function MatchesPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('token') || localStorage.getItem('@Linkah:Token');
     if (!token) {
       router.push('/login');
       return;
@@ -29,7 +29,6 @@ export default function MatchesPage() {
 
         if (!response.ok) {
           if (response.status === 400) {
-            // Se não respondeu onboarding ainda, joga pra lá
             router.push('/onboarding');
             return;
           }
@@ -38,8 +37,6 @@ export default function MatchesPage() {
 
         setMatches(data.matches || []);
         setCidadeUser(data.cidade || '');
-      } refactored: {
-        // tratamento de erro padrão abaixo
       } catch (err) {
         setError(err.message);
       } finally {
@@ -88,11 +85,11 @@ export default function MatchesPage() {
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {matches.map((match) => (
+          {matches.map((match: any) => (
             <div key={match.user_id} className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 flex flex-col justify-between hover:border-zinc-700 transition-all">
               <div>
                 <div className="flex items-center space-x-4 mb-4">
-                  <div className="w-12 h-12 rounded-full bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center font-bold text-indigo-400 text-lg">
+                  <div className="w-12 h-12 rounded-full bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center font-bold text-indigo-400 text-lg overflow-hidden">
                     {match.avatar ? (
                       <img src={match.avatar} alt={match.nome} className="w-full h-full rounded-full object-cover" />
                     ) : (
@@ -110,12 +107,16 @@ export default function MatchesPage() {
                 </p>
 
                 <div className="flex flex-wrap gap-1.5 mb-4">
-                  <span className="text-[11px] bg-zinc-950 text-zinc-400 border border-zinc-800 px-2.5 py-1 rounded-md">
-                    🎬 {match.genero_filme}
-                  </span>
-                  <span className="text-[11px] bg-zinc-950 text-zinc-400 border border-zinc-800 px-2.5 py-1 rounded-md">
-                    🧠 {match.personalidade}
-                  </span>
+                  {match.genero_filme && (
+                    <span className="text-[11px] bg-zinc-950 text-zinc-400 border border-zinc-800 px-2.5 py-1 rounded-md">
+                      🎬 {match.genero_filme}
+                    </span>
+                  )}
+                  {match.personalidade && (
+                    <span className="text-[11px] bg-zinc-950 text-zinc-400 border border-zinc-800 px-2.5 py-1 rounded-md">
+                      🧠 {match.personalidade}
+                    </span>
+                  )}
                 </div>
               </div>
 
