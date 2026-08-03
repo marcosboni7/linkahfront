@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 
 export default function MatchesPage() {
   const router = useRouter();
-  const [matches, setMatches] = useState([]);
+  const [matches, setMatches] = useState<any[]>([]);
   const [cidadeUser, setCidadeUser] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -37,8 +37,8 @@ export default function MatchesPage() {
 
         setMatches(data.matches || []);
         setCidadeUser(data.cidade || '');
-      } catch (err) {
-        setError(err.message);
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'Erro ao carregar conexões');
       } finally {
         setLoading(false);
       }
