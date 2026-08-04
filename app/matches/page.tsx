@@ -133,10 +133,10 @@ export default function MatchesPage() {
               </div>
 
               <button
-                onClick={() => alert(`Enviar mensagem ou conectar com ${match.nome}`)}
-                className="w-full bg-zinc-800 hover:bg-indigo-600 text-zinc-200 hover:text-white text-sm font-medium py-2.5 rounded-lg transition-colors"
+                onClick={() => router.push(`/matches/chat/${match.user_id}`)}
+                className="w-full bg-zinc-800 hover:bg-indigo-600 text-zinc-200 hover:text-white text-sm font-medium py-2.5 rounded-lg transition-colors shadow-sm"
               >
-                Conectar-se
+                Conectar-se (Chat)
               </button>
             </div>
           ))}
