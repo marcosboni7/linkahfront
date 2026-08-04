@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api-linkah.onrender.com';
+
 export default function MatchesPage() {
   const router = useRouter();
   const [matches, setMatches] = useState<any[]>([]);
@@ -19,7 +21,7 @@ export default function MatchesPage() {
 
     async function carregarMatches() {
       try {
-        const response = await fetch('http://localhost:3001/api/onboarding/matches', {
+        const response = await fetch(`${API_URL}/api/onboarding/matches`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
