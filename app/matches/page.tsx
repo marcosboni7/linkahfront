@@ -52,6 +52,16 @@ export default function MatchesPage() {
   return (
     <div className="min-h-screen bg-zinc-950 text-white p-6 md:p-12">
       <div className="max-w-4xl mx-auto">
+        {/* Botão de Voltar para https://linkah.eu */}
+        <div className="mb-6">
+          <button
+            onClick={() => window.location.href = 'https://linkah.eu'}
+            className="text-xs bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-300 py-2 px-4 rounded-lg transition-colors flex items-center gap-2"
+          >
+            ← Voltar para o Linkah
+          </button>
+        </div>
+
         <div className="flex justify-between items-center mb-8 border-b border-zinc-800 pb-6">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Conexões na sua região</h1>
