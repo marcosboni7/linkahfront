@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/app/context/LanguageContext';
 import {
   Ticket,
@@ -11,6 +12,7 @@ import {
   MessagesSquare,
   User,
   ChevronDown,
+  Users,
 } from 'lucide-react';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api-linkah.onrender.com';
@@ -22,6 +24,7 @@ type Usuario = {
 };
 
 export function Navbar() {
+  const router = useRouter();
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -34,20 +37,10 @@ export function Navbar() {
   useEffect(() => {
     const checkUser = () => {
       try {
-        console.log('='.repeat(60));
-        console.log('🧭 NAVBAR CHECK USER');
-        console.log('🌍 URL atual:', window.location.href);
-        console.log('🧪 Todas as chaves do localStorage:', Object.keys(localStorage));
-
         const savedUser = localStorage.getItem('@Linkah:User');
         const savedToken = localStorage.getItem('@Linkah:Token');
         const perfilCompleto = localStorage.getItem('perfil_completo');
         const userEmail = localStorage.getItem('userEmail');
-
-        console.log('🔍 Navbar verificando @Linkah:User:', savedUser);
-        console.log('🔍 Navbar verificando @Linkah:Token:', savedToken);
-        console.log('🔍 Navbar verificando perfil_completo:', perfilCompleto);
-        console.log('🔍 Navbar verificando userEmail:', userEmail);
 
         let usuarioEncontrado: any = null;
 
@@ -75,14 +68,11 @@ export function Navbar() {
             role: usuarioEncontrado.role || 'membro',
           };
 
-          console.log('✅ Usuário carregado na Navbar:', usuarioNormalizado);
           setUsuario(usuarioNormalizado);
-
           localStorage.setItem('@Linkah:User', JSON.stringify(usuarioNormalizado));
           return;
         }
 
-        console.log('ℹ️ Nenhum usuário encontrado no LocalStorage.');
         setUsuario(null);
       } catch (e) {
         console.error('❌ Erro ao ler/parsear usuário', e);
@@ -110,7 +100,6 @@ export function Navbar() {
     };
 
     checkUser();
-
     const timeout = setTimeout(checkUser, 800);
 
     window.addEventListener('focus', handleFocus);
@@ -126,17 +115,11 @@ export function Navbar() {
   }, []);
 
   const handleLogout = () => {
-    console.log('🚪 Realizando logout...');
-
     localStorage.removeItem('@Linkah:Token');
     localStorage.removeItem('@Linkah:User');
     localStorage.removeItem('userEmail');
     localStorage.removeItem('perfil_completo');
     localStorage.removeItem('token');
-
-    // ⚠️ NECESSÁRIO: o middleware.ts só verifica o cookie 'token'.
-    // Sem limpar o cookie aqui, o usuário continua "logado" para
-    // efeitos de rota protegida mesmo após o logout.
     document.cookie = 'token=; path=/; max-age=0';
 
     setUsuario(null);
@@ -174,11 +157,9 @@ export function Navbar() {
         const dados = await response.json();
         setMeusIngressos(Array.isArray(dados) ? dados : []);
       } else {
-        console.error('Erro na resposta da API:', response.status);
         setMeusIngressos([]);
       }
     } catch (err) {
-      console.error('Erro ao carregar ingressos:', err);
       setMeusIngressos([]);
     } finally {
       setBuscandoTickets(false);
@@ -221,6 +202,17 @@ export function Navbar() {
           </div>
 
           <div className="flex items-center gap-3">
+            {/* BOTÃO DE DESTAQUE PARA CONEXÕES */}
+            {usuario && (
+              <Link
+                href="/matches"
+                className="hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-xl bg-violet-50 border border-violet-200 text-violet-700 hover:bg-violet-100 transition-all text-sm font-semibold shadow-sm"
+              >
+                <Users size={17} className="text-violet-600" />
+                Conexões
+              </Link>
+            )}
+
             <div className="hidden sm:flex bg-slate-100 p-1 rounded-xl">
               {['PT', 'EN'].map((lang) => (
                 <button
@@ -287,7 +279,16 @@ export function Navbar() {
                       </p>
                     </div>
 
-                    <div className="p-2">
+                    <div className="p-2 space-y-1">
+                      {/* ATALHO PARA CONEXÕES NO MENU MOBILE/DROPDOWN */}
+                      <Link
+                        href="/matches"
+                        className="flex sm:hidden items-center gap-3 px-3 py-2.5 text-sm font-semibold text-violet-700 bg-violet-50 hover:bg-violet-100 rounded-xl transition-colors"
+                      >
+                        <Users size={16} className="text-violet-600" />
+                        Conexões
+                      </Link>
+
                       <button
                         onClick={carregarMeusIngressos}
                         className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-slate-600 hover:bg-violet-50 hover:text-violet-700 rounded-xl transition-colors group"
@@ -384,7 +385,7 @@ export function Navbar() {
                     <Ticket size={24} />
                   </div>
                   <p className="text-slate-500 font-medium">
-                    Lista de ingressos aqui...
+                    Nenhum ingresso encontrado.
                   </p>
                 </div>
               )}
