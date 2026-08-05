@@ -67,7 +67,7 @@ export default function ListaComunidades() {
 
   if (loading) return (
     <div className="flex flex-col justify-center items-center h-screen bg-white">
-      <Loader2 className="animate-spin text-violet-600 mb-4" size={32} />
+      <Loader2 className="animate-spin text-orange-600 mb-4" size={32} />
       <p className="text-sm font-medium text-slate-400 tracking-tight">Entrando no ecossistema...</p>
     </div>
   );
@@ -77,16 +77,16 @@ export default function ListaComunidades() {
       <Navbar />
       <main className="flex-1 flex items-center justify-center p-6">
         <div className="max-w-sm w-full text-center">
-          <div className="w-16 h-16 bg-violet-50 rounded-2xl flex items-center justify-center mx-auto mb-6">
-            <Lock className="text-violet-600" size={28} />
+          <div className="w-16 h-16 bg-orange-50 rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <Lock className="text-orange-600" size={28} />
           </div>
           <h1 className="text-2xl font-bold text-slate-900 mb-2">Área de Membros</h1>
           <p className="text-slate-500 mb-8 text-sm">Faça login para acessar os chats e conexões exclusivas.</p>
           <div className="space-y-3">
-            <Link href="/auth/login" className="block w-full bg-violet-600 text-white py-3.5 rounded-xl font-semibold hover:bg-violet-700 transition-all">
+            <Link href="/auth/login" className="block w-full bg-orange-600 text-white py-3.5 rounded-full font-semibold hover:bg-orange-700 transition-all">
               Entrar agora
             </Link>
-            <Link href="/auth/registro" className="block w-full bg-slate-50 text-slate-600 py-3.5 rounded-xl font-semibold hover:bg-slate-100 transition-all text-sm">
+            <Link href="/auth/registro" className="block w-full bg-slate-50 text-slate-600 py-3.5 rounded-full font-semibold hover:bg-slate-100 transition-all text-sm">
               Criar minha conta
             </Link>
           </div>
@@ -103,7 +103,7 @@ export default function ListaComunidades() {
       <main className="flex-1 max-w-5xl mx-auto px-6 pt-24 pb-32 w-full">
         {/* Header Clean */}
         <div className="max-w-2xl mb-16">
-          <div className="flex items-center gap-2 text-violet-600 font-bold text-[11px] uppercase tracking-widest mb-4">
+          <div className="flex items-center gap-2 text-orange-600 font-bold text-[11px] uppercase tracking-widest mb-4">
             <Hash size={14} strokeWidth={3} />
             Sua Rede Privada
           </div>
@@ -121,7 +121,7 @@ export default function ListaComunidades() {
             <Link 
               key={com.id} 
               href={`/evento/${com.id}/comunidade`}
-              className="group bg-white rounded-2xl border border-slate-200/60 hover:border-violet-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-300 flex flex-col overflow-hidden"
+              className="group bg-white rounded-2xl border border-slate-200/60 hover:border-orange-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-300 flex flex-col overflow-hidden"
             >
               {/* Cover Image */}
               <div className="relative h-40 bg-slate-100">
@@ -131,7 +131,7 @@ export default function ListaComunidades() {
                   alt={com.nome}
                 />
                 <div className="absolute top-3 left-3">
-                  <span className="bg-white/90 backdrop-blur-sm border border-white px-2.5 py-1 rounded-lg text-[10px] font-bold text-violet-600 flex items-center gap-1.5 shadow-sm">
+                  <span className="bg-white/90 backdrop-blur-sm border border-white px-2.5 py-1 rounded-lg text-[10px] font-bold text-orange-600 flex items-center gap-1.5 shadow-sm">
                     <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
                     CHAT ATIVO
                   </span>
@@ -141,11 +141,11 @@ export default function ListaComunidades() {
               {/* Content */}
               <div className="p-5 flex-1 flex flex-col">
                 <div className="flex items-center gap-1.5 mb-2 text-slate-400">
-                  <ShieldCheck size={14} className="text-violet-400" />
+                  <ShieldCheck size={14} className="text-orange-400" />
                   <span className="text-[10px] font-bold uppercase tracking-wider">Grupo Verificado</span>
                 </div>
                 
-                <h2 className="text-lg font-bold text-slate-900 mb-2 group-hover:text-violet-600 transition-colors leading-tight">
+                <h2 className="text-lg font-bold text-slate-900 mb-2 group-hover:text-orange-600 transition-colors leading-tight">
                   {com.nome}
                 </h2>
                 
@@ -158,7 +158,7 @@ export default function ListaComunidades() {
                     <Users size={14} />
                     <span className="text-[11px] font-medium">Comunidade Aberta</span>
                   </div>
-                  <div className="bg-violet-50 p-2 rounded-full text-violet-600 group-hover:bg-violet-600 group-hover:text-white transition-all">
+                  <div className="bg-orange-50 p-2 rounded-full text-orange-600 group-hover:bg-orange-600 group-hover:text-white transition-all">
                     <ArrowRight size={16} />
                   </div>
                 </div>
