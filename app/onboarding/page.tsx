@@ -305,7 +305,7 @@ export default function OnboardingPage() {
             <path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
-        <span className="absolute left-1/2 -translate-x-1/2 font-bold text-[15px] text-zinc-900">
+        <span className="absolute left-1/2 -translate-x-1/2 font-bold text-[13px] uppercase tracking-[0.14em] text-orange-600">
           {step.section}
         </span>
       </div>
@@ -324,7 +324,7 @@ export default function OnboardingPage() {
                   value={cidadeInput}
                   onChange={(e) => setCidadeInput(e.target.value)}
                   placeholder="Ex: Campinas, Lisboa..."
-                  className="w-full bg-white border border-zinc-200 rounded-full px-6 py-4 text-sm font-medium text-zinc-900 outline-none focus:border-zinc-900 transition-colors mb-6"
+                  className="w-full bg-white border border-zinc-200 rounded-full px-6 py-4 text-sm font-medium text-zinc-900 outline-none focus:border-orange-400 transition-colors mb-6"
                 />
                 <button
                   onClick={confirmarCidade}
@@ -344,7 +344,7 @@ export default function OnboardingPage() {
                   />
                 </div>
                 <h1 className="text-3xl font-extrabold text-zinc-900 mb-3 leading-tight">
-                  Comece a se conectar em {cidadeInput}
+                  Comece a se conectar em <span className="text-orange-600">{cidadeInput}</span>
                 </h1>
                 <p className="text-zinc-500 text-[15px] leading-relaxed mb-8">
                   Junte-se a milhares de pessoas se conectando em eventos reais perto de você.
@@ -456,7 +456,7 @@ export default function OnboardingPage() {
                     className={`w-full flex items-center gap-3 text-left py-4 px-6 rounded-full border font-bold text-[15px] transition-all ${
                       selecionado
                         ? 'bg-zinc-900 border-zinc-900 text-white'
-                        : 'bg-white border-zinc-200 text-zinc-900'
+                        : 'bg-white border-zinc-200 text-zinc-900 hover:border-orange-300'
                     }`}
                   >
                     <span>{opt.emoji}</span>
@@ -488,7 +488,7 @@ export default function OnboardingPage() {
                         ? 'bg-zinc-900 border-zinc-900 text-white'
                         : disabled
                         ? 'bg-white border-zinc-100 text-zinc-300'
-                        : 'bg-white border-zinc-200 text-zinc-900'
+                        : 'bg-white border-zinc-200 text-zinc-900 hover:border-orange-300'
                     }`}
                   >
                     <span>{opt.emoji}</span>

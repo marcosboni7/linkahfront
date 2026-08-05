@@ -50,58 +50,58 @@ export default function MatchesPage() {
   }, [router]);
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white p-6 md:p-12">
+    <div className="min-h-screen bg-[#fafafe] text-slate-900 p-6 md:p-12">
       <div className="max-w-4xl mx-auto">
         {/* Botão de Voltar para https://linkah.eu */}
         <div className="mb-6">
           <button
             onClick={() => window.location.href = 'https://linkah.eu'}
-            className="text-xs bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-300 py-2 px-4 rounded-lg transition-colors flex items-center gap-2"
+            className="text-xs bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 py-2 px-4 rounded-full transition-colors flex items-center gap-2"
           >
             ← Voltar para o Linkah
           </button>
         </div>
 
-        <div className="flex justify-between items-center mb-8 border-b border-zinc-800 pb-6">
+        <div className="flex justify-between items-center mb-8 border-b border-slate-200 pb-6">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Conexões na sua região</h1>
-            <p className="text-zinc-400 mt-1 text-sm">
-              Pessoas com interesses parecidos em <span className="text-indigo-400 font-medium">{cidadeUser || 'sua cidade'}</span>
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900">Conexões na sua região</h1>
+            <p className="text-slate-500 mt-1 text-sm">
+              Pessoas com interesses parecidos em <span className="text-orange-600 font-medium">{cidadeUser || 'sua cidade'}</span>
             </p>
           </div>
           <button
             onClick={() => router.push('/onboarding')}
-            className="text-xs bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-300 py-2 px-4 rounded-lg transition-colors"
+            className="text-xs bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 py-2 px-4 rounded-full transition-colors"
           >
             Refazer Onboarding
           </button>
         </div>
 
         {loading && (
-          <div className="text-center py-20 text-zinc-500 animate-pulse">
+          <div className="text-center py-20 text-slate-400 animate-pulse">
             Buscando conexões compatíveis...
           </div>
         )}
 
         {error && (
-          <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-lg mb-6">
+          <div className="p-4 bg-red-50 border border-red-200 text-red-600 text-sm rounded-2xl mb-6">
             {error}
           </div>
         )}
 
         {!loading && matches.length === 0 && (
-          <div className="text-center py-20 bg-zinc-900/50 border border-zinc-800 rounded-2xl">
-            <p className="text-zinc-400">Nenhum match encontrado no momento.</p>
-            <p className="text-zinc-600 text-sm mt-1">Volte mais tarde quando mais pessoas entrarem na sua cidade!</p>
+          <div className="text-center py-20 bg-slate-50 border border-slate-200 rounded-[2rem]">
+            <p className="text-slate-500">Nenhum match encontrado no momento.</p>
+            <p className="text-slate-400 text-sm mt-1">Volte mais tarde quando mais pessoas entrarem na sua cidade!</p>
           </div>
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {matches.map((match: any) => (
-            <div key={match.user_id} className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 flex flex-col justify-between hover:border-zinc-700 transition-all">
+            <div key={match.user_id} className="bg-white border border-slate-200 rounded-2xl p-5 flex flex-col justify-between hover:border-orange-300 hover:shadow-sm transition-all">
               <div>
                 <div className="flex items-center space-x-4 mb-4">
-                  <div className="w-12 h-12 rounded-full bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center font-bold text-indigo-400 text-lg overflow-hidden">
+                  <div className="w-12 h-12 rounded-full bg-orange-50 border border-orange-200 flex items-center justify-center font-bold text-orange-600 text-lg overflow-hidden">
                     {match.avatar ? (
                       <img src={match.avatar} alt={match.nome} className="w-full h-full rounded-full object-cover" />
                     ) : (
@@ -109,23 +109,23 @@ export default function MatchesPage() {
                     )}
                   </div>
                   <div>
-                    <h3 className="font-semibold text-lg text-white">{match.nome}</h3>
-                    <p className="text-xs text-zinc-400">{match.setor || 'Membro Linkah'}</p>
+                    <h3 className="font-semibold text-lg text-slate-900">{match.nome}</h3>
+                    <p className="text-xs text-slate-500">{match.setor || 'Membro Linkah'}</p>
                   </div>
                 </div>
 
-                <p className="text-sm text-zinc-300 mb-4 line-clamp-2">
+                <p className="text-sm text-slate-600 mb-4 line-clamp-2">
                   {match.bio || 'Sem biografia cadastrada.'}
                 </p>
 
                 <div className="flex flex-wrap gap-1.5 mb-4">
                   {match.genero_filme && (
-                    <span className="text-[11px] bg-zinc-950 text-zinc-400 border border-zinc-800 px-2.5 py-1 rounded-md">
+                    <span className="text-[11px] bg-slate-50 text-slate-500 border border-slate-200 px-2.5 py-1 rounded-full">
                       🎬 {match.genero_filme}
                     </span>
                   )}
                   {match.personalidade && (
-                    <span className="text-[11px] bg-zinc-950 text-zinc-400 border border-zinc-800 px-2.5 py-1 rounded-md">
+                    <span className="text-[11px] bg-slate-50 text-slate-500 border border-slate-200 px-2.5 py-1 rounded-full">
                       🧠 {match.personalidade}
                     </span>
                   )}
@@ -134,7 +134,7 @@ export default function MatchesPage() {
 
               <button
                 onClick={() => router.push(`/matches/chat/${match.user_id}`)}
-                className="w-full bg-zinc-800 hover:bg-indigo-600 text-zinc-200 hover:text-white text-sm font-medium py-2.5 rounded-lg transition-colors shadow-sm"
+                className="w-full bg-slate-900 hover:bg-orange-600 text-white text-sm font-medium py-2.5 rounded-full transition-colors shadow-sm"
               >
                 Conectar-se (Chat)
               </button>

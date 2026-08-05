@@ -176,7 +176,7 @@ export function Navbar() {
         <div className="max-w-7xl mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-8">
             <Link href="/" className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-2xl bg-violet-600 flex items-center justify-center shadow-md shadow-violet-200">
+              <div className="w-9 h-9 rounded-2xl bg-orange-600 flex items-center justify-center shadow-md shadow-orange-200">
                 <span className="text-white text-sm font-bold tracking-tight">L</span>
               </div>
 
@@ -184,7 +184,7 @@ export function Navbar() {
                 <span className="text-lg font-semibold tracking-tight text-slate-900 block">
                   LINKAH
                 </span>
-                <span className="text-[10px] font-bold text-violet-500 tracking-[0.22em] uppercase">
+                <span className="text-[10px] font-bold text-orange-500 tracking-[0.22em] uppercase">
                   Live Events
                 </span>
               </div>
@@ -193,7 +193,7 @@ export function Navbar() {
             <div className="hidden lg:flex items-center gap-2">
               <Link
                 href="/comunidades"
-                className="flex items-center gap-2 px-3 py-2 rounded-xl text-slate-500 hover:text-violet-700 hover:bg-violet-50 transition-all text-sm font-medium"
+                className="flex items-center gap-2 px-3 py-2 rounded-xl text-slate-500 hover:text-orange-700 hover:bg-orange-50 transition-all text-sm font-medium"
               >
                 <MessagesSquare size={17} strokeWidth={2} />
                 {t.community || 'Comunidade'}
@@ -206,9 +206,9 @@ export function Navbar() {
             {usuario && (
               <Link
                 href="/matches"
-                className="hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-xl bg-violet-50 border border-violet-200 text-violet-700 hover:bg-violet-100 transition-all text-sm font-semibold shadow-sm"
+                className="hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-xl bg-orange-50 border border-orange-200 text-orange-700 hover:bg-orange-100 transition-all text-sm font-semibold shadow-sm"
               >
-                <Users size={17} className="text-violet-600" />
+                <Users size={17} className="text-orange-600" />
                 Conexões
               </Link>
             )}
@@ -233,7 +233,7 @@ export function Navbar() {
               <div className="relative flex items-center gap-3" ref={menuRef}>
                 <button
                   onClick={carregarMeusIngressos}
-                  className="hidden md:flex items-center gap-2 px-3 py-2 rounded-xl text-slate-500 hover:text-violet-700 hover:bg-violet-50 transition-all text-sm font-medium"
+                  className="hidden md:flex items-center gap-2 px-3 py-2 rounded-xl text-slate-500 hover:text-orange-700 hover:bg-orange-50 transition-all text-sm font-medium"
                 >
                   <Ticket size={17} />
                   {t.myTickets || 'Meus Ingressos'}
@@ -249,12 +249,12 @@ export function Navbar() {
                     <span className="text-[12px] font-semibold text-slate-900 leading-none block">
                       {usuario.nome?.split(' ')[0] || 'Membro'}
                     </span>
-                    <span className="text-[10px] text-violet-500 font-medium">
+                    <span className="text-[10px] text-orange-500 font-medium">
                       {t.member || 'Membro'}
                     </span>
                   </div>
 
-                  <div className="w-8 h-8 rounded-full bg-violet-600 flex items-center justify-center border border-violet-200 shadow-sm">
+                  <div className="w-8 h-8 rounded-full bg-orange-600 flex items-center justify-center border border-orange-200 shadow-sm">
                     <span className="text-white text-xs font-bold">
                       {usuario.nome?.charAt(0).toUpperCase()}
                     </span>
@@ -283,25 +283,25 @@ export function Navbar() {
                       {/* ATALHO PARA CONEXÕES NO MENU MOBILE/DROPDOWN */}
                       <Link
                         href="/matches"
-                        className="flex sm:hidden items-center gap-3 px-3 py-2.5 text-sm font-semibold text-violet-700 bg-violet-50 hover:bg-violet-100 rounded-xl transition-colors"
+                        className="flex sm:hidden items-center gap-3 px-3 py-2.5 text-sm font-semibold text-orange-700 bg-orange-50 hover:bg-orange-100 rounded-xl transition-colors"
                       >
-                        <Users size={16} className="text-violet-600" />
+                        <Users size={16} className="text-orange-600" />
                         Conexões
                       </Link>
 
                       <button
                         onClick={carregarMeusIngressos}
-                        className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-slate-600 hover:bg-violet-50 hover:text-violet-700 rounded-xl transition-colors group"
+                        className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-slate-600 hover:bg-orange-50 hover:text-orange-700 rounded-xl transition-colors group"
                       >
-                        <Ticket size={16} className="text-slate-400 group-hover:text-violet-600" />
+                        <Ticket size={16} className="text-slate-400 group-hover:text-orange-600" />
                         {t.myTickets || 'Meus Ingressos'}
                       </button>
 
                       <Link
                         href="/dashboard/perfil"
-                        className="flex items-center gap-3 px-3 py-2.5 text-sm text-slate-600 hover:bg-violet-50 hover:text-violet-700 rounded-xl transition-colors group"
+                        className="flex items-center gap-3 px-3 py-2.5 text-sm text-slate-600 hover:bg-orange-50 hover:text-orange-700 rounded-xl transition-colors group"
                       >
-                        <User size={16} className="text-slate-400 group-hover:text-violet-600" />
+                        <User size={16} className="text-slate-400 group-hover:text-orange-600" />
                         Perfil
                       </Link>
                     </div>
@@ -321,7 +321,7 @@ export function Navbar() {
             ) : (
               <Link
                 href="/site/login"
-                className="bg-violet-600 text-white text-sm font-semibold px-6 py-2.5 rounded-xl hover:bg-violet-700 transition-all active:scale-95 shadow-sm shadow-violet-200"
+                className="bg-orange-600 text-white text-sm font-semibold px-6 py-2.5 rounded-full hover:bg-orange-700 transition-all active:scale-95 shadow-sm shadow-orange-200"
               >
                 {t.login || 'Entrar'}
               </Link>
@@ -339,7 +339,7 @@ export function Navbar() {
           <div className="relative bg-white w-full max-w-md rounded-[2rem] shadow-2xl overflow-hidden border border-slate-200">
             <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-white">
               <div>
-                <p className="text-[10px] uppercase tracking-[0.18em] text-violet-500 font-bold mb-1">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-orange-500 font-bold mb-1">
                   Tickets
                 </p>
                 <h2 className="text-xl font-semibold text-slate-900">
@@ -358,7 +358,7 @@ export function Navbar() {
             <div className="p-6 md:p-8 text-center">
               {buscandoTickets ? (
                 <div className="py-6">
-                  <Loader2 className="animate-spin mx-auto text-violet-600" />
+                  <Loader2 className="animate-spin mx-auto text-orange-600" />
                   <p className="text-sm text-slate-400 mt-4 font-medium">
                     Carregando ingressos...
                   </p>
@@ -381,7 +381,7 @@ export function Navbar() {
                 </div>
               ) : (
                 <div className="py-6">
-                  <div className="w-14 h-14 rounded-2xl bg-violet-50 text-violet-600 flex items-center justify-center mx-auto mb-4 border border-violet-100">
+                  <div className="w-14 h-14 rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center mx-auto mb-4 border border-orange-100">
                     <Ticket size={24} />
                   </div>
                   <p className="text-slate-500 font-medium">
