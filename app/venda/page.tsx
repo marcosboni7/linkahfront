@@ -100,7 +100,7 @@ function Input({
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        className="h-[58px] w-full rounded-2xl border border-[#e5e7eb] bg-[#fafafa] px-5 text-sm text-[#111827] outline-none transition placeholder:text-[#9ca3af] focus:border-[#c4b5fd] focus:bg-white"
+        className="h-[58px] w-full rounded-2xl border border-[#e5e7eb] bg-[#fafafa] px-5 text-sm text-[#111827] outline-none transition placeholder:text-[#9ca3af] focus:border-[#fdba74] focus:bg-white"
       />
     </div>
   );
@@ -480,7 +480,7 @@ function CheckoutContent() {
     <main className="relative min-h-[88vh] overflow-hidden bg-[#f6f7fb] px-4 py-8 text-[#111827] sm:px-6 lg:px-8">
       <div className="absolute left-[-160px] top-[-180px] h-[420px] w-[420px] rounded-full bg-[#dbeafe] blur-[120px]" />
 
-      <div className="absolute right-[-120px] top-[180px] h-[420px] w-[420px] rounded-full bg-[#ede9fe] blur-[120px]" />
+      <div className="absolute right-[-120px] top-[180px] h-[420px] w-[420px] rounded-full bg-[#ffedd5] blur-[120px]" />
 
       <div className="relative mx-auto max-w-7xl">
         <div className="mb-8">
@@ -500,7 +500,7 @@ function CheckoutContent() {
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_430px]">
           <section className="rounded-[34px] border border-[#e5e7eb] bg-white/90 shadow-[0_20px_80px_rgba(15,23,42,0.06)] backdrop-blur-2xl">
             <div className="border-b border-[#eef0f4] p-6 sm:p-8 lg:p-10">
-              <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#ebeef5] bg-[#f8fafc] px-4 py-2 text-[11px] font-bold uppercase tracking-[0.24em] text-[#7c3aed]">
+              <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#ebeef5] bg-[#fff7ed] px-4 py-2 text-[11px] font-bold uppercase tracking-[0.24em] text-[#ea580c]">
                 <Sparkles size={14} />
                 Checkout seguro
               </div>
@@ -587,7 +587,7 @@ function CheckoutContent() {
                   onChange={
                     handleInputChange
                   }
-                  className="h-[58px] w-full rounded-2xl border border-[#e5e7eb] bg-[#fafafa] px-5 text-sm text-[#111827] outline-none transition focus:border-[#c4b5fd] focus:bg-white"
+                  className="h-[58px] w-full rounded-2xl border border-[#e5e7eb] bg-[#fafafa] px-5 text-sm text-[#111827] outline-none transition focus:border-[#fdba74] focus:bg-white"
                 >
                   <option value="">
                     Selecione uma opção
@@ -712,7 +712,7 @@ function CheckoutContent() {
                               </p>
                             </div>
 
-                            <strong className="text-sm text-[#111827]">
+                            <strong className="text-sm text-[#ea580c]">
                               {money(
                                 safeNumber(
                                   ing?.preco
@@ -739,7 +739,7 @@ function CheckoutContent() {
                       Total
                     </span>
 
-                    <span className="text-4xl font-semibold tracking-[-0.07em] text-[#111827]">
+                    <span className="text-4xl font-semibold tracking-[-0.07em] text-[#ea580c]">
                       {money(
                         totalGeral,
                         moedaEvento
@@ -763,7 +763,7 @@ function CheckoutContent() {
                       !formData.email ||
                       totalItens === 0
                         ? 'cursor-not-allowed bg-[#eef1f5] text-[#9ca3af]'
-                        : 'bg-[#111827] text-white hover:bg-[#1f2937]'
+                        : 'bg-[#ea580c] text-white hover:bg-[#c2410c]'
                     }`}
                   >
                     {loading ? (
