@@ -14,7 +14,6 @@ import {
   Zap,
   Instagram,
   Linkedin,
-  AlignLeft,
   Camera,
   Globe,
 } from 'lucide-react';
@@ -24,8 +23,6 @@ import { useLanguage } from '@/app/context/LanguageContext';
 
 const API_URL = 'https://api-linkah.onrender.com';
 
-// Mesma lista de países suportados que o backend valida em
-// PAISES_SUPORTADOS (vincularContaStripe). Mantenha sincronizado.
 const PAISES_SUPORTADOS = [
   { code: 'BR', label: 'Brasil' },
   { code: 'PT', label: 'Portugal' },
@@ -88,14 +85,12 @@ function PerfilContent() {
     rua: '',
     numero: '',
     bairro: '',
-    pais: 'BR',
+    pais: '',
     linkedin: '',
     instagram: '',
     bio: '',
   });
 
-  // Verifica @Linkah:User, perfil_completo e userEmail, igual a Navbar faz,
-  // em vez de depender só de @Linkah:User.
   const getUsuarioLogado = useCallback(() => {
     try {
       const savedUser = localStorage.getItem('@Linkah:User');
@@ -129,8 +124,6 @@ function PerfilContent() {
         userEmail ||
         '';
 
-      // Se achamos e-mail mas @Linkah:User não tinha, sincroniza pra
-      // não cair de novo nesse caminho da próxima vez.
       if (emailLogado && !usuarioEncontrado?.email) {
         localStorage.setItem(
           '@Linkah:User',
@@ -164,11 +157,14 @@ function PerfilContent() {
       const res = await fetch(`${API_URL}/api/pagamento/status-stripe?email=${encodeURIComponent(email)}`);
       if (!res.ok) return;
       const data = await res.json();
+      
       if (data.conectado) {
-        setStripeAtivo(data.status_banco === 'Ativo' && Boolean(data.charges_enabled));
+        const payoutsOk = Boolean(data.payouts_enabled || data.payout_enabled || data.charges_enabled);
+        
+        setStripeAtivo(data.status_banco === 'Ativo' && payoutsOk);
         setStripeDetails({
           charges_enabled: Boolean(data.charges_enabled),
-          payout_enabled: Boolean(data.payout_enabled),
+          payout_enabled: payoutsOk,
           business_name: data.business_name || 'Conta em Verificação',
           email_stripe: data.email_stripe || email,
           status_banco: data.status_banco || 'Pendente',
@@ -208,7 +204,7 @@ function PerfilContent() {
             rua: data.rua || '',
             numero: data.numero || '',
             bairro: data.bairro || '',
-            pais: data.pais || 'BR',
+            pais: data.pais || '',
             linkedin: data.linkedin || '',
             instagram: data.instagram || '',
             bio: data.bio || '',
@@ -223,7 +219,7 @@ function PerfilContent() {
             localStorage.setItem('@Linkah:User', JSON.stringify({ ...userAtual, ...dadosPerfil, perfil_completo: completo }));
           }
           localStorage.setItem('perfil_completo', completo ? 'true' : 'false');
-          if (data.stripe_account_id) await checarStatusStripe(emailLogado);
+          if (data.stripe_account_id || data.stripe_conectado) await checarStatusStripe(emailLogado);
         }
       } catch (error) {
         console.error('❌ Erro carregar perfil:', error);
@@ -335,8 +331,6 @@ function PerfilContent() {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        // O backend (vincularContaStripe) espera exatamente { email, pais }
-        // com "pais" em formato ISO de 2 letras (ex: BR, PT, US).
         body: JSON.stringify({ email: emailLogado, pais: formData.pais }),
       });
 
@@ -363,7 +357,6 @@ function PerfilContent() {
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] text-slate-900 font-sans antialiased">
-      {/* NAVBAR LUMA STYLE */}
       <nav className="h-16 border-b bg-white/80 backdrop-blur-md flex items-center justify-between px-6 sticky top-0 z-50">
         <Link href="/dashboard/eventos" className="flex items-center gap-2 text-slate-500 hover:text-black transition-colors text-sm font-medium">
           <ArrowLeft size={16} /> Painel
@@ -471,14 +464,16 @@ function PerfilContent() {
                         name="pais"
                         value={formData.pais}
                         onChange={handleChange}
+                        required
                         className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-black focus:ring-0 transition-all outline-none text-sm bg-slate-50/30"
                     >
+                        <option value="" disabled>Selecione o país</option>
                         {PAISES_SUPORTADOS.map((p) => (
                             <option key={p.code} value={p.code}>{p.label}</option>
                         ))}
                     </select>
                     <p className="text-[11px] text-slate-400 mt-1.5">
-                        Necessário para criar sua conta de recebimento no Stripe.
+                        Necessário para criar sua conta de recebimento no Stripe. Depois de criada, o país da conta Stripe não pode ser alterado — confirme antes de conectar.
                     </p>
                 </div>
             </div>
