@@ -119,14 +119,15 @@ export default function LoginPage() {
 
       alert('Logado com sucesso!');
 
-      // CORREÇÃO: Se não tiver a flag de onboarding explicitamente como true, vai para o onboarding
+      // CORREÇÃO: Se não tiver a flag de onboarding explicitamente como true, vai para o onboarding.
+      // Se já tiver onboarding feito, não vai mais para /matches — volta para o site institucional.
       const precisaOnboarding = usuarioParaSalvar.hasOnboarding !== true;
 
       setTimeout(() => {
         if (precisaOnboarding) {
           window.location.href = '/onboarding';
         } else {
-          window.location.href = '/matches';
+          window.location.href = 'https://linkah.eu/';
         }
       }, 500);
     } catch (err: any) {
