@@ -85,7 +85,7 @@ const getImagemUrl = (foto?: string | null) => {
 
 export default function ComunidadePage() {
   const { t }: any = useLanguage();
-  
+
   // CORREÇÃO: Forçando o casting com 'as any' para evitar erro de tipo no build do Next/TS
   const { id } = useParams() as any;
   const router = useRouter();
@@ -219,7 +219,7 @@ export default function ComunidadePage() {
   if (carregando) {
     return (
       <div className="h-screen flex items-center justify-center bg-[#fafafe]">
-        <Loader2 className="animate-spin text-violet-600" size={42} />
+        <Loader2 className="animate-spin text-orange-600" size={42} />
       </div>
     );
   }
@@ -241,18 +241,18 @@ export default function ComunidadePage() {
         <div className="px-6 py-6 border-b border-slate-100">
           <div className="flex items-center justify-between mb-5">
             <div>
-              <p className="text-[10px] uppercase tracking-[0.24em] font-bold text-violet-500 mb-1">
+              <p className="text-[10px] uppercase tracking-[0.24em] font-bold text-orange-500 mb-1">
                 Comunidade
               </p>
               <h2 className="text-lg font-semibold flex items-center gap-2">
-                <Users size={18} className="text-violet-600" />
+                <Users size={18} className="text-orange-600" />
                 {t?.members || 'Membros'}
               </h2>
             </div>
 
             <button
               onClick={() => router.back()}
-              className="w-10 h-10 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 transition-all flex items-center justify-center"
+              className="w-10 h-10 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 transition-all flex items-center justify-center"
             >
               <ChevronLeft size={18} />
             </button>
@@ -278,7 +278,7 @@ export default function ComunidadePage() {
                 <p className="font-semibold text-slate-900 truncate">
                   {dadosUsuario?.nome}
                 </p>
-                <p className="text-[10px] uppercase tracking-[0.16em] text-violet-500 font-bold mt-1">
+                <p className="text-[10px] uppercase tracking-[0.16em] text-orange-500 font-bold mt-1">
                   Online agora
                 </p>
               </div>
@@ -349,12 +349,12 @@ export default function ComunidadePage() {
         <header className="border-b border-slate-200 bg-white">
           <div className="px-5 md:px-8 py-5 flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-11 h-11 rounded-2xl bg-violet-50 border border-violet-100 text-violet-600 flex items-center justify-center">
+              <div className="w-11 h-11 rounded-2xl bg-orange-50 border border-orange-100 text-orange-600 flex items-center justify-center">
                 <Zap size={20} />
               </div>
 
               <div>
-                <p className="text-[10px] uppercase tracking-[0.22em] text-violet-500 font-bold mb-1">
+                <p className="text-[10px] uppercase tracking-[0.22em] text-orange-500 font-bold mb-1">
                   Chat Público
                 </p>
                 <h1 className="text-lg font-semibold text-slate-900">
@@ -365,7 +365,7 @@ export default function ComunidadePage() {
 
             <button
               onClick={() => router.back()}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-slate-600 hover:bg-slate-50 transition-all"
+              className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-slate-600 hover:bg-slate-50 transition-all"
             >
               <LogOut size={18} />
               <span className="hidden sm:inline font-medium">Sair</span>
@@ -425,7 +425,7 @@ export default function ComunidadePage() {
                   <div
                     className={`px-5 py-4 rounded-3xl border shadow-sm ${
                       souEu
-                        ? 'bg-violet-600 text-white border-violet-600 rounded-br-md'
+                        ? 'bg-orange-600 text-white border-orange-600 rounded-br-md'
                         : 'bg-white text-slate-700 border-slate-200 rounded-bl-md'
                     }`}
                   >
@@ -460,7 +460,7 @@ export default function ComunidadePage() {
           className="border-t border-slate-200 bg-white px-4 md:px-8 py-5"
         >
           <div className="flex items-center gap-3">
-            <div className="flex-1 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-2 focus-within:border-violet-300 focus-within:bg-white transition-all">
+            <div className="flex-1 rounded-full border border-slate-200 bg-slate-50 px-5 py-2 focus-within:border-orange-300 focus-within:bg-white transition-all">
               <input
                 value={novoTexto}
                 onChange={(e) => setNovoTexto(e.target.value)}
@@ -471,7 +471,7 @@ export default function ComunidadePage() {
 
             <button
               type="submit"
-              className="w-14 h-14 rounded-2xl bg-violet-600 hover:bg-violet-700 text-white flex items-center justify-center shadow-sm transition-all active:scale-95"
+              className="w-14 h-14 rounded-full bg-orange-600 hover:bg-orange-700 text-white flex items-center justify-center shadow-sm transition-all active:scale-95 shrink-0"
             >
               <Send size={20} />
             </button>
