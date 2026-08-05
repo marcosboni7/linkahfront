@@ -100,6 +100,13 @@ export default function LoginPage() {
       if (token) {
         localStorage.setItem('@Linkah:Token', token);
         localStorage.setItem('token', token);
+
+        // ⚠️ NECESSÁRIO: o middleware.ts roda no servidor/Edge e só enxerga
+        // cookies (nunca localStorage). Sem este cookie, /dashboard, /perfil,
+        // /venda e /admin sempre redirecionam para /auth/login mesmo com
+        // o usuário "logado" no localStorage.
+        const isProd = window.location.protocol === 'https:';
+        document.cookie = `token=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax${isProd ? '; Secure' : ''}`;
       }
 
       localStorage.setItem('@Linkah:User', JSON.stringify(usuarioParaSalvar));

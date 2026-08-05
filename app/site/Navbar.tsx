@@ -132,6 +132,12 @@ export function Navbar() {
     localStorage.removeItem('@Linkah:User');
     localStorage.removeItem('userEmail');
     localStorage.removeItem('perfil_completo');
+    localStorage.removeItem('token');
+
+    // ⚠️ NECESSÁRIO: o middleware.ts só verifica o cookie 'token'.
+    // Sem limpar o cookie aqui, o usuário continua "logado" para
+    // efeitos de rota protegida mesmo após o logout.
+    document.cookie = 'token=; path=/; max-age=0';
 
     setUsuario(null);
     window.location.href = '/';
