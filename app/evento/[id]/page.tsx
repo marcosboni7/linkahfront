@@ -202,19 +202,19 @@ export default function DetalhesLumaRoxo() {
     : null;
 
   return (
-    <div className="min-h-screen bg-white text-[#121212] antialiased selection:bg-violet-100">
+    <div className="min-h-screen bg-white text-[#121212] antialiased selection:bg-orange-100">
       <Navbar />
 
       <main className="max-w-[1100px] mx-auto px-6 pt-10 pb-32">
         <div className="flex items-center justify-between mb-10">
           <button
             onClick={() => router.back()}
-            className="flex items-center gap-2 text-slate-400 hover:text-violet-600 transition-colors text-sm font-semibold"
+            className="flex items-center gap-2 text-slate-400 hover:text-orange-600 transition-colors text-sm font-semibold"
           >
             <ChevronLeft size={20} /> Voltar
           </button>
 
-          <button className="p-2.5 rounded-full border border-slate-100 text-slate-400 hover:text-violet-600 hover:bg-violet-50 transition-all">
+          <button className="p-2.5 rounded-full border border-slate-100 text-slate-400 hover:text-orange-600 hover:bg-orange-50 transition-all">
             <Share2 size={18} />
           </button>
         </div>
@@ -230,7 +230,7 @@ export default function DetalhesLumaRoxo() {
                 />
                 <div className="absolute top-4 left-4">
                   <div className="bg-white/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/50 shadow-sm flex items-center gap-1.5">
-                    <Verified size={14} className="text-violet-600" />
+                    <Verified size={14} className="text-orange-600" />
                     <span className="text-[9px] font-black uppercase tracking-wider text-slate-800">
                       Oficial
                     </span>
@@ -239,7 +239,7 @@ export default function DetalhesLumaRoxo() {
               </div>
 
               <div className="flex items-center gap-3 px-2">
-                <div className="w-11 h-11 rounded-full bg-violet-50 border border-violet-100 flex items-center justify-center text-violet-600 font-extrabold text-sm uppercase">
+                <div className="w-11 h-11 rounded-full bg-orange-50 border border-orange-100 flex items-center justify-center text-orange-600 font-extrabold text-sm uppercase">
                   {evento.produtor_nome?.charAt(0) || 'P'}
                 </div>
                 <div>
@@ -263,7 +263,7 @@ export default function DetalhesLumaRoxo() {
                   </span>
 
                   {evento.tipo === 'Online' && (
-                    <span className="inline-block px-3 py-1 bg-violet-50 text-violet-700 rounded-lg text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5">
+                    <span className="inline-block px-3 py-1 bg-orange-50 text-orange-700 rounded-lg text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5">
                       <Globe size={12} /> Online
                     </span>
                   )}
@@ -276,7 +276,7 @@ export default function DetalhesLumaRoxo() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5 py-6 border-y border-slate-100">
                 <div className="flex gap-4 items-start">
-                  <div className="w-11 h-11 rounded-xl bg-violet-50 flex items-center justify-center text-violet-600 shrink-0 border border-violet-100">
+                  <div className="w-11 h-11 rounded-xl bg-orange-50 flex items-center justify-center text-orange-600 shrink-0 border border-orange-100">
                     <Calendar size={22} />
                   </div>
                   <div>
@@ -294,7 +294,7 @@ export default function DetalhesLumaRoxo() {
                 </div>
 
                 <div className="flex gap-4 items-start">
-                  <div className="w-11 h-11 rounded-xl bg-violet-50 flex items-center justify-center text-violet-600 shrink-0 border border-violet-100">
+                  <div className="w-11 h-11 rounded-xl bg-orange-50 flex items-center justify-center text-orange-600 shrink-0 border border-orange-100">
                     <MapPin size={22} />
                   </div>
                   <div>
@@ -344,7 +344,7 @@ export default function DetalhesLumaRoxo() {
                 {evento.ingressos?.map((ing: any) => (
                   <div
                     key={ing.id}
-                    className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 p-6 rounded-2xl border border-slate-200 bg-white hover:border-violet-300 transition-all shadow-sm focus-within:border-violet-400 focus-within:ring-2 focus-within:ring-violet-100"
+                    className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 p-6 rounded-2xl border border-slate-200 bg-white hover:border-orange-300 transition-all shadow-sm focus-within:border-orange-400 focus-within:ring-2 focus-within:ring-orange-100"
                   >
                     <div className="space-y-2 max-w-xl">
                       <p className="text-base font-bold text-slate-900 uppercase tracking-wide">
@@ -357,14 +357,14 @@ export default function DetalhesLumaRoxo() {
                         </p>
                       )}
 
-                      <p className="text-violet-600 font-extrabold text-base">
+                      <p className="text-orange-600 font-extrabold text-base">
                         {ing.preco === 0
                           ? 'Gratuito'
                           : formatCurrency(getTicketPrice(ing), ing.moeda || evento.moeda)}
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-4 bg-violet-50/50 p-1 rounded-xl border border-violet-100">
+                    <div className="flex items-center gap-4 bg-orange-50/50 p-1 rounded-xl border border-orange-100">
                       <button
                         onClick={() =>
                           setQuantidades((prev) => {
@@ -376,13 +376,13 @@ export default function DetalhesLumaRoxo() {
                             return novo;
                           })
                         }
-                        className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-white text-violet-400 hover:text-violet-700 transition-all active:scale-95"
+                        className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-white text-orange-400 hover:text-orange-700 transition-all active:scale-95"
                         type="button"
                       >
                         <Minus size={16} strokeWidth={3} />
                       </button>
 
-                      <span className="text-base font-black w-5 text-center text-violet-950">
+                      <span className="text-base font-black w-5 text-center text-orange-950">
                         {quantidades[String(ing.id)] || 0}
                       </span>
 
@@ -397,7 +397,7 @@ export default function DetalhesLumaRoxo() {
                             return novo;
                           })
                         }
-                        className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-white text-violet-400 hover:text-violet-700 transition-all active:scale-95"
+                        className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-white text-orange-400 hover:text-orange-700 transition-all active:scale-95"
                         type="button"
                       >
                         <Plus size={16} strokeWidth={3} />
@@ -412,7 +412,7 @@ export default function DetalhesLumaRoxo() {
               <div className="bg-white p-6 rounded-[2.5rem] flex flex-col items-center gap-6 border border-slate-100 shadow-lg shadow-slate-100">
                 <div className="w-full flex items-center justify-between px-4">
                   <p className="text-sm font-bold text-slate-900">Total a investir</p>
-                  <p className="text-3xl font-black text-violet-600">
+                  <p className="text-3xl font-black text-orange-600">
                     {formatCurrency(totalGeral, evento.moeda)}
                   </p>
                 </div>
@@ -431,7 +431,7 @@ export default function DetalhesLumaRoxo() {
                   disabled={!Object.values(quantidades).some((q) => q > 0)}
                   className={`group w-full flex items-center justify-center gap-4 px-12 py-6 rounded-2xl font-bold transition-all duration-300 text-lg ${
                     Object.values(quantidades).some((q) => q > 0)
-                      ? 'bg-violet-600 text-white hover:bg-violet-700 cursor-pointer'
+                      ? 'bg-orange-600 text-white hover:bg-orange-700 cursor-pointer'
                       : 'bg-slate-100 text-slate-400 cursor-not-allowed'
                   }`}
                 >
