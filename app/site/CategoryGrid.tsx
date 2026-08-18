@@ -2,16 +2,17 @@
 
 import React from 'react';
 
-// Mapeamento de cores e ícones para o estilo Luma
-const categoryStyles: Record<string, { icon: string; bg: string; text: string }> = {
-  'Todos': { icon: '🎫', bg: 'bg-slate-100', text: 'text-slate-600' },
-  'Arte & Cultura': { icon: '🎨', bg: 'bg-orange-50', text: 'text-orange-600' },
-  'Entretenimento': { icon: '🎭', bg: 'bg-pink-50', text: 'text-pink-600' },
-  'Negócios': { icon: '💼', bg: 'bg-blue-50', text: 'text-blue-600' },
-  'Educação & Desenvolvimento': { icon: '🎓', bg: 'bg-indigo-50', text: 'text-indigo-600' },
-  'Esportes & Bem-estar': { icon: '🧘', bg: 'bg-green-50', text: 'text-green-600' },
-  'Experiências & Lifestyle': { icon: '✨', bg: 'bg-amber-50', text: 'text-amber-600' },
-  'Família & Comunidade': { icon: '👥', bg: 'bg-purple-50', text: 'text-purple-600' },
+// Paleta pastel por categoria — cada badge de emoji usa um "banho" de cor suave,
+// igual ao padrão visual do Luma (fundo quase branco, cor só no ícone)
+const categoryStyles: Record<string, { icon: string; bg: string }> = {
+  'Todos': { icon: '🎫', bg: 'bg-slate-100' },
+  'Arte & Cultura': { icon: '🎨', bg: 'bg-orange-100' },
+  'Entretenimento': { icon: '🎭', bg: 'bg-pink-100' },
+  'Negócios': { icon: '💼', bg: 'bg-blue-100' },
+  'Educação & Desenvolvimento': { icon: '🎓', bg: 'bg-indigo-100' },
+  'Esportes & Bem-estar': { icon: '🧘', bg: 'bg-green-100' },
+  'Experiências & Lifestyle': { icon: '✨', bg: 'bg-amber-100' },
+  'Família & Comunidade': { icon: '👥', bg: 'bg-purple-100' },
 };
 
 interface CategoryGridProps {
@@ -22,37 +23,70 @@ interface CategoryGridProps {
 
 export function CategoryGrid({ categories, activeCategory, onSelect }: CategoryGridProps) {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-4">
-      {categories.map((cat) => {
-        const style = categoryStyles[cat] || categoryStyles['Todos'];
-        const isActive = activeCategory === cat;
+    <div className="w-full">
+      {/* MOBILE — trilho horizontal com scroll-snap, igual ao filtro de categorias do Luma */}
+      <div
+        className="flex md:hidden gap-2 overflow-x-auto pb-1 -mx-4 px-4 snap-x snap-mandatory
+                   [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        {categories.map((cat) => {
+          const style = categoryStyles[cat] || categoryStyles['Todos'];
+          const isActive = activeCategory === cat;
 
-        return (
-          <button
-            key={cat}
-            onClick={() => onSelect(cat)}
-            className={`flex items-center gap-4 p-4 rounded-[1.5rem] border transition-all duration-300 group text-left
-              ${isActive 
-                ? 'bg-white border-violet-200 shadow-lg shadow-violet-100 scale-[1.02]' 
-                : 'bg-white border-slate-100 hover:border-slate-200 hover:shadow-md'
-              }`}
-          >
-            {/* Ícone com fundo colorido */}
-            <div className={`w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center text-xl shadow-inner ${style.bg}`}>
-              {style.icon}
-            </div>
+          return (
+            <button
+              key={cat}
+              onClick={() => onSelect(cat)}
+              aria-pressed={isActive}
+              className={`flex items-center gap-2 shrink-0 snap-start pl-1.5 pr-4 py-1.5 rounded-full border
+                         transition-all duration-200 active:scale-95
+                ${isActive
+                  ? 'bg-slate-900 border-slate-900 text-white shadow-md shadow-slate-900/20'
+                  : 'bg-white border-slate-200 text-slate-700'
+                }`}
+            >
+              <span
+                className={`w-7 h-7 flex items-center justify-center rounded-full text-sm
+                  ${isActive ? 'bg-white/15' : style.bg}`}
+              >
+                {style.icon}
+              </span>
+              <span className="text-sm font-semibold whitespace-nowrap">{cat}</span>
+            </button>
+          );
+        })}
+      </div>
 
-            <div className="overflow-hidden">
-              <h4 className={`font-black text-sm truncate ${isActive ? 'text-violet-600' : 'text-slate-900'}`}>
-                {cat}
-              </h4>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
-                Explorar
-              </p>
-            </div>
-          </button>
-        );
-      })}
+      {/* DESKTOP — chips em pílula que quebram linha (flex-wrap), não grid rígido */}
+      <div className="hidden md:flex flex-wrap gap-3">
+        {categories.map((cat) => {
+          const style = categoryStyles[cat] || categoryStyles['Todos'];
+          const isActive = activeCategory === cat;
+
+          return (
+            <button
+              key={cat}
+              onClick={() => onSelect(cat)}
+              aria-pressed={isActive}
+              className={`group flex items-center gap-3 pl-2 pr-5 py-2 rounded-full border
+                         transition-all duration-200 ease-out
+                ${isActive
+                  ? 'bg-slate-900 border-slate-900 text-white shadow-lg shadow-slate-900/15'
+                  : 'bg-white border-slate-200 text-slate-800 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md hover:shadow-slate-900/5'
+                }`}
+            >
+              <span
+                className={`w-9 h-9 flex items-center justify-center rounded-full text-lg
+                           transition-transform duration-200 group-hover:scale-110 group-hover:rotate-6
+                  ${isActive ? 'bg-white/15' : style.bg}`}
+              >
+                {style.icon}
+              </span>
+              <span className="text-[13px] font-bold tracking-tight">{cat}</span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

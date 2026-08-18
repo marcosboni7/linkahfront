@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import usePlacesAutocomplete from 'use-places-autocomplete';
-import { MapPin, Globe, Navigation, Search, X, Loader2 } from 'lucide-react';
+import { MapPin, Globe, Navigation, Search, Loader2 } from 'lucide-react';
 
 interface ExploreLocalProps {
   activeCity: string;
@@ -12,20 +12,19 @@ interface ExploreLocalProps {
 export function ExploreLocal({ activeCity, onSelect }: ExploreLocalProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Cidades rápidas (Favoritos)
-// Cidades rápidas (Favoritos - Principais polos de eventos)
+  // Cidades rápidas (Favoritos - Principais polos de eventos)
   const QUICK_CITIES = [
-    'São Paulo', 
-    'Rio de Janeiro', 
-    'Curitiba', 
-    'Belo Horizonte', 
+    'São Paulo',
+    'Rio de Janeiro',
+    'Curitiba',
+    'Belo Horizonte',
     'Florianópolis',
-    'Porto Alegre', 
-    'Brasília', 
-    'Salvador', 
-    'Lisboa', 
-    'Porto', 
-    'Remoto'
+    'Porto Alegre',
+    'Brasília',
+    'Salvador',
+    'Lisboa',
+    'Porto',
+    'Remoto',
   ];
 
   // Hook do Google Places
@@ -53,88 +52,114 @@ export function ExploreLocal({ activeCity, onSelect }: ExploreLocalProps) {
 
   const isCustom = activeCity !== 'todos' && !QUICK_CITIES.includes(activeCity);
 
+  // Estilo de pílula compartilhado — mesma linguagem visual do CategoryGrid
+  const pillBase =
+    'flex items-center gap-2.5 pl-2 pr-4 py-1.5 rounded-full border transition-all duration-200';
+  const pillActive = 'bg-slate-900 border-slate-900 text-white shadow-md shadow-slate-900/15';
+  const pillInactive =
+    'bg-white border-slate-200 text-slate-700 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-sm';
+
   return (
     <section className="py-8">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500">
-          <Navigation size={18} strokeWidth={2.5} />
+      <div className="flex items-center gap-3 mb-5">
+        <div className="w-9 h-9 bg-slate-100 rounded-full flex items-center justify-center text-slate-500">
+          <Navigation size={16} strokeWidth={2.5} />
         </div>
         <div>
-          <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">Explorar por Local</h3>
-          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Global Search</p>
+          <h3 className="text-base font-bold text-slate-900">Explorar por local</h3>
+          <p className="text-xs text-slate-400 font-medium">Busca global</p>
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap gap-2.5">
         <button
           onClick={() => onSelect('todos')}
-          className={`px-6 py-4 rounded-2xl border transition-all ${activeCity === 'todos' ? 'bg-white border-violet-200 shadow-lg text-slate-950 scale-105' : 'bg-white border-slate-100 text-slate-500'}`}
+          aria-pressed={activeCity === 'todos'}
+          className={`px-4 py-2 rounded-full border transition-all duration-200
+            ${activeCity === 'todos' ? pillActive : pillInactive}`}
         >
-          <span className="text-sm font-black uppercase">Todos</span>
+          <span className="text-sm font-semibold">Todos</span>
         </button>
 
-        {QUICK_CITIES.map((city) => (
-          <button
-            key={city}
-            onClick={() => onSelect(city)}
-            className={`flex items-center gap-3 px-6 py-4 rounded-2xl border transition-all
-              ${activeCity === city ? 'bg-white border-violet-200 shadow-lg text-slate-950 scale-105' : 'bg-white border-slate-100 text-slate-500'}`}
-          >
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${activeCity === city ? 'bg-violet-600 text-white' : 'bg-slate-50 text-slate-400'}`}>
-              {city === 'Remoto' ? <Globe size={14} /> : <MapPin size={14} />}
-            </div>
-            <span className="text-sm font-black uppercase">{city}</span>
-          </button>
-        ))}
+        {QUICK_CITIES.map((city) => {
+          const isActive = activeCity === city;
+          return (
+            <button
+              key={city}
+              onClick={() => onSelect(city)}
+              aria-pressed={isActive}
+              className={pillBase + ' ' + (isActive ? pillActive : pillInactive)}
+            >
+              <span
+                className={`w-6 h-6 rounded-full flex items-center justify-center
+                  ${isActive ? 'bg-white/15' : 'bg-slate-100 text-slate-500'}`}
+              >
+                {city === 'Remoto' ? <Globe size={12} /> : <MapPin size={12} />}
+              </span>
+              <span className="text-sm font-semibold">{city}</span>
+            </button>
+          );
+        })}
 
         {/* BOTÃO DE BUSCA GLOBAL */}
         <button
           onClick={() => setIsModalOpen(true)}
-          className={`flex items-center gap-3 px-6 py-4 rounded-2xl border border-dashed transition-all
-            ${isCustom ? 'bg-white border-violet-200 shadow-lg text-slate-950 scale-105' : 'bg-slate-50 border-slate-200 text-slate-400'}`}
+          aria-pressed={isCustom}
+          className={`${pillBase} border-dashed ${isCustom ? pillActive : 'bg-white border-slate-300 text-slate-500 hover:border-slate-400'}`}
         >
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isCustom ? 'bg-violet-600 text-white' : 'bg-white text-slate-300'}`}>
-            <Search size={14} />
-          </div>
-          <span className="text-sm font-black uppercase">{isCustom ? activeCity : 'Buscar outra cidade'}</span>
+          <span
+            className={`w-6 h-6 rounded-full flex items-center justify-center
+              ${isCustom ? 'bg-white/15' : 'bg-slate-100 text-slate-400'}`}
+          >
+            <Search size={12} />
+          </span>
+          <span className="text-sm font-semibold">{isCustom ? activeCity : 'Buscar outra cidade'}</span>
         </button>
       </div>
 
       {isModalOpen && (
         <div className="fixed inset-0 z-[999] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setIsModalOpen(false)} />
-          
-          <div className="relative w-full max-w-lg bg-white rounded-[2.5rem] p-8 shadow-2xl animate-in fade-in zoom-in duration-300">
-            <h3 className="text-2xl font-black text-slate-950 uppercase mb-6 tracking-tight">Onde você quer ir?</h3>
-            
-            <div className="relative mb-4">
-              <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+          <div
+            className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
+            onClick={() => setIsModalOpen(false)}
+          />
+
+          <div className="relative w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
+            <h3 className="text-lg font-bold text-slate-900 mb-4">Onde você quer ir?</h3>
+
+            <div className="relative mb-3">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
               <input
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
                 disabled={!ready}
                 placeholder="Digite o nome de qualquer cidade..."
-                className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-5 pl-14 pr-6 text-slate-900 font-bold outline-none focus:ring-4 focus:ring-violet-500/10 transition-all"
+                className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3.5 pl-11 pr-4 text-sm text-slate-900 font-medium outline-none focus:ring-4 focus:ring-slate-900/5 focus:border-slate-300 transition-all"
               />
-              {!ready && <Loader2 className="absolute right-5 top-1/2 -translate-y-1/2 animate-spin text-slate-300" />}
+              {!ready && (
+                <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 animate-spin text-slate-300" size={16} />
+              )}
             </div>
 
-            <div className="space-y-2 max-h-72 overflow-y-auto pr-2">
-              {status === "OK" && data.map(({ place_id, description }) => (
-                <button
-                  key={place_id}
-                  onClick={() => handleSelect(description)}
-                  className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl bg-slate-50 hover:bg-violet-600 hover:text-white transition-all group text-left"
-                >
-                  <MapPin size={18} className="text-slate-400 group-hover:text-white/70" />
-                  <span className="text-sm font-black uppercase tracking-tight">{description}</span>
-                </button>
-              ))}
-              
-              {value && status !== "OK" && ready && (
-                 <div className="p-4 text-center text-slate-400 font-bold uppercase text-xs">
-                   Nenhum local encontrado.
-                 </div>
+            <div className="space-y-1 max-h-64 overflow-y-auto -mx-1 px-1">
+              {status === 'OK' &&
+                data.map(({ place_id, description }) => (
+                  <button
+                    key={place_id}
+                    onClick={() => handleSelect(description)}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 transition-colors group text-left"
+                  >
+                    <span className="w-8 h-8 shrink-0 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-slate-900 group-hover:text-white transition-colors">
+                      <MapPin size={14} />
+                    </span>
+                    <span className="text-sm font-medium text-slate-800">{description}</span>
+                  </button>
+                ))}
+
+              {value && status !== 'OK' && ready && (
+                <div className="p-4 text-center text-slate-400 text-sm font-medium">
+                  Nenhum local encontrado.
+                </div>
               )}
             </div>
           </div>
