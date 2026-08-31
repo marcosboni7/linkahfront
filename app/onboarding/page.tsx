@@ -306,7 +306,17 @@ const steps: Step[] = [
 
       {
         emoji: '🔧',
-        label: 'Manual de trabalho'
+        label: 'Trabalho manual/operacional'
+      },
+
+      {
+        emoji: '🚀',
+        label: 'Empreendedor/Empresário'
+      },
+
+      {
+        emoji: '🎟️',
+        label: 'Produtor de Eventos'
       },
 
       {
