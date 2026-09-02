@@ -484,7 +484,7 @@ const steps: Step[] = [
     type: 'single',
 
     question:
-      'Suas opiniões geralmente são guiadas por',
+      'Suas decisões geralmente são guiadas por',
 
     options: [
       {
